@@ -1,0 +1,1 @@
+java -Xmx512m -Dfile.encoding=UTF-8 -jar jflex-1.9.1.jar -skel idea-flex.skeleton -d src/main/gen/org/intellij/sdk/language src/main/java/org/intellij/sdk/language/Simple.flex
