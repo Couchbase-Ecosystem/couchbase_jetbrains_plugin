@@ -5,15 +5,6 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface Revoke extends PsiElement {
-
-  @NotNull
-  List<KeyspaceRef> getKeyspaceRefList();
-
-  @NotNull
-  List<Role> getRoleList();
-
-  @NotNull
-  List<User> getUserList();
+public interface Signals extends PsiElement {
 
 }

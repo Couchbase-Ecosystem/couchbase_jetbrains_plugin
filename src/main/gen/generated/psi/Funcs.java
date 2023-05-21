@@ -5,9 +5,6 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface Role extends PsiElement {
-
-  @NotNull
-  Identifier getIdentifier();
+public interface Funcs extends PsiElement {
 
 }

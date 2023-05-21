@@ -11,26 +11,20 @@ import static generated.GeneratedTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import generated.psi.*;
 
-public class RoleImpl extends ASTWrapperPsiElement implements Role {
+public class SignalsImpl extends ASTWrapperPsiElement implements Signals {
 
-  public RoleImpl(@NotNull ASTNode node) {
+  public SignalsImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitRole(this);
+    visitor.visitSignals(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof Visitor) accept((Visitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
   }
 
 }

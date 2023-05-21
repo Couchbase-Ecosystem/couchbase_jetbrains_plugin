@@ -11,14 +11,14 @@ import static generated.GeneratedTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import generated.psi.*;
 
-public class RevokeImpl extends ASTWrapperPsiElement implements Revoke {
+public class BacktickedStringImpl extends ASTWrapperPsiElement implements BacktickedString {
 
-  public RevokeImpl(@NotNull ASTNode node) {
+  public BacktickedStringImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitRevoke(this);
+    visitor.visitBacktickedString(this);
   }
 
   @Override
@@ -29,20 +29,8 @@ public class RevokeImpl extends ASTWrapperPsiElement implements Revoke {
 
   @Override
   @NotNull
-  public List<KeyspaceRef> getKeyspaceRefList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, KeyspaceRef.class);
-  }
-
-  @Override
-  @NotNull
-  public List<Role> getRoleList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Role.class);
-  }
-
-  @Override
-  @NotNull
-  public List<User> getUserList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, User.class);
+  public Identifier getIdentifier() {
+    return findNotNullChildByClass(Identifier.class);
   }
 
 }

@@ -32,7 +32,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   static boolean parse_root_(IElementType t, PsiBuilder b, int l) {
-    return grant(b, l + 1);
+    return role(b, l + 1);
   }
 
   /* ********************************************************** */
@@ -806,6 +806,19 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, ARRAY_EXPR, "<array expr>");
     r = full_array_expr(b, l + 1);
     if (!r) r = simple_array_expr(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '`' identifier '`'
+  public static boolean backticked_string(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "backticked_string")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, BACKTICKED_STRING, "<backticked string>");
+    r = consumeToken(b, "`");
+    r = r && identifier(b, l + 1);
+    r = r && consumeToken(b, "`");
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -2862,6 +2875,211 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // 'ABS' | 'ACOS' | 'ARRAY_APPEND' | 'ARRAY_AVG' | 'ARRAY_CONCAT' | 'ARRAY_CONTAINS' | 'ARRAY_COUNT' | 'ARRAY_DISTINCT' | 'ARRAY_FLATTEN' | 'ARRAY_IFNULL' | 'ARRAY_INSERT' | 'ARRAY_INTERSECT' | 'ARRAY_LENGTH' | 'ARRAY_MAX' | 'ARRAY_MIN' | 'ARRAY_POSITION' | 'ARRAY_PREPEND' | 'ARRAY_PUT' | 'ARRAY_RANGE' | 'ARRAY_REMOVE' | 'ARRAY_REPEAT' | 'ARRAY_REPLACE' | 'ARRAY_REVERSE' | 'ARRAY_SORT' | 'ARRAY_STAR' | 'ARRAY_SUM' | 'ARRAY_SYMDIFF' | 'ARRAY_SYMDIFF1' | 'ARRAY_SYMDIFFN' | 'ARRAY_UNION' | 'ASIN' | 'ATAN' | 'ATAN2' | 'AVG' | 'CEIL' | 'CLOCK_LOCAL' | 'CLOCK_MILLIS' | 'CLOCK_STR' | 'CLOCK_TZ' | 'CLOCK_UTC' | 'CONCAT' | 'CONTAINS' | 'COS' | 'COUNT' | 'DATE_ADD_MILLIS' | 'DATE_ADD_STR' | 'DATE_DIFF_MILLIS' | 'DATE_DIFF_STR' | 'DATE_FORMAT_STR' | 'DATE_PART_MILLIS' | 'DATE_PART_STR' | 'DATE_RANGE_MILLIS' | 'DATE_RANGE_STR' | 'DATE_TRUNC_MILLIS' | 'DATE_TRUNC_STR' | 'DECODE_JSON' | 'DEGREES' | 'DURATION_TO_STR' | 'E' | 'ENCODE_JSON' | 'ENCODED_SIZE' | 'EXP' | 'FLOOR' | 'GREATEST' | 'IF_INF' | 'IF_MISSING' | 'IF_MISSING_OR_NULL' | 'IF_NAN' | 'IF_NAN_OR_INF' | 'IF_NULL' | 'IFINF' | 'IFMISSING' | 'IFMISSINGORNULL' | 'IFNAN' | 'IFNANORINF' | 'IFNULL' | 'INITCAP' | 'IS_ARRAY' | 'IS_ATOM' | 'IS_BOOL' | 'IS_BOOLEAN' | 'IS_NUM' | 'IS_NUMBER' | 'IS_OBJ' | 'IS_OBJECT' | 'IS_STR' | 'IS_STRING' | 'ISARRAY' | 'ISATOM' | 'ISBOOL' | 'ISBOOLEAN' | 'ISNUM' | 'ISNUMBER' | 'ISOBJ' | 'ISOBJECT' | 'ISSTR' | 'ISSTRING' | 'LEAST' | 'LENGTH' | 'LN' | 'LOG' | 'LOWER' | 'LTRIM' | 'MAX' | 'META' | 'MILLIS' | 'MILLIS_TO_LOCAL' | 'MILLIS_TO_STR' | 'MILLIS_TO_TZ' | 'MILLIS_TO_UTC' | 'MILLIS_TO_ZONE_NAME' | 'MIN' | 'MISSING_IF' | 'MISSINGIF' | 'NAN_IF' | 'NANIF' | 'NEGINF_IF' | 'NEGINFIF' | 'NOW_LOCAL' | 'NOW_MILLIS' | 'NOW_STR' | 'NOW_TZ' | 'NOW_UTC' | 'NULL_IF' | 'NULLIF' | 'OBJECT_ADD' | 'OBJECT_CONCAT' | 'OBJECT_INNER_VALUES' | 'OBJECT_LENGTH' | 'OBJECT_NAMES' | 'OBJECT_PAIRS' | 'OBJECT_PUT' | 'OBJECT_REMOVE' | 'OBJECT_RENAME' | 'OBJECT_REPLACE' | 'OBJECT_UNWRAP' | 'OBJECT_VALUES' | 'PAIRS' | 'PI' | 'POSINF_IF' | 'POSINFIF' | 'POSITION' | 'POWER' | 'RADIANS' | 'RANDOM' | 'REGEXP_CONTAINS' | 'REGEXP_LIKE' | 'REGEXP_POSITION' | 'REGEXP_REPLACE' | 'REPEAT' | 'REPLACE' | 'REVERSE' | 'ROUND' | 'RTRIM' | 'SIGN' | 'SIN' | 'SPLIT' | 'SQRT' | 'STR_TO_DURATION' | 'STR_TO_MILLIS' | 'STR_TO_TZ' | 'STR_TO_UTC' | 'STR_TO_ZONE_NAME' | 'SUBSTR' | 'SUM' | 'TAN' | 'TITLE' | 'TO_ARRAY' | 'TO_ATOM' | 'TO_BOOL' | 'TO_BOOLEAN' | 'TO_NUM' | 'TO_NUMBER' | 'TO_OBJ' | 'TO_OBJECT' | 'TO_STR' | 'TO_STRING' | 'TOARRAY' | 'TOATOM' | 'TOBOOL' | 'TOBOOLEAN' | 'TONUM' | 'TONUMBER' | 'TOOBJ' | 'TOOBJECT' | 'TOSTR' | 'TOSTRING' | 'TRIM' | 'TRUNC' | 'TYPE' | 'TYPENAME' | 'UPPER' | 'UUID' | 'WEEKDAY_MILLIS' | 'WEEKDAY_STR'
+  public static boolean funcs(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "funcs")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, FUNCS, "<funcs>");
+    r = consumeToken(b, "ABS");
+    if (!r) r = consumeToken(b, "ACOS");
+    if (!r) r = consumeToken(b, "ARRAY_APPEND");
+    if (!r) r = consumeToken(b, "ARRAY_AVG");
+    if (!r) r = consumeToken(b, "ARRAY_CONCAT");
+    if (!r) r = consumeToken(b, "ARRAY_CONTAINS");
+    if (!r) r = consumeToken(b, "ARRAY_COUNT");
+    if (!r) r = consumeToken(b, "ARRAY_DISTINCT");
+    if (!r) r = consumeToken(b, "ARRAY_FLATTEN");
+    if (!r) r = consumeToken(b, "ARRAY_IFNULL");
+    if (!r) r = consumeToken(b, "ARRAY_INSERT");
+    if (!r) r = consumeToken(b, "ARRAY_INTERSECT");
+    if (!r) r = consumeToken(b, "ARRAY_LENGTH");
+    if (!r) r = consumeToken(b, "ARRAY_MAX");
+    if (!r) r = consumeToken(b, "ARRAY_MIN");
+    if (!r) r = consumeToken(b, "ARRAY_POSITION");
+    if (!r) r = consumeToken(b, "ARRAY_PREPEND");
+    if (!r) r = consumeToken(b, "ARRAY_PUT");
+    if (!r) r = consumeToken(b, "ARRAY_RANGE");
+    if (!r) r = consumeToken(b, "ARRAY_REMOVE");
+    if (!r) r = consumeToken(b, "ARRAY_REPEAT");
+    if (!r) r = consumeToken(b, "ARRAY_REPLACE");
+    if (!r) r = consumeToken(b, "ARRAY_REVERSE");
+    if (!r) r = consumeToken(b, "ARRAY_SORT");
+    if (!r) r = consumeToken(b, "ARRAY_STAR");
+    if (!r) r = consumeToken(b, "ARRAY_SUM");
+    if (!r) r = consumeToken(b, "ARRAY_SYMDIFF");
+    if (!r) r = consumeToken(b, "ARRAY_SYMDIFF1");
+    if (!r) r = consumeToken(b, "ARRAY_SYMDIFFN");
+    if (!r) r = consumeToken(b, "ARRAY_UNION");
+    if (!r) r = consumeToken(b, "ASIN");
+    if (!r) r = consumeToken(b, "ATAN");
+    if (!r) r = consumeToken(b, "ATAN2");
+    if (!r) r = consumeToken(b, "AVG");
+    if (!r) r = consumeToken(b, "CEIL");
+    if (!r) r = consumeToken(b, "CLOCK_LOCAL");
+    if (!r) r = consumeToken(b, "CLOCK_MILLIS");
+    if (!r) r = consumeToken(b, "CLOCK_STR");
+    if (!r) r = consumeToken(b, "CLOCK_TZ");
+    if (!r) r = consumeToken(b, "CLOCK_UTC");
+    if (!r) r = consumeToken(b, "CONCAT");
+    if (!r) r = consumeToken(b, "CONTAINS");
+    if (!r) r = consumeToken(b, "COS");
+    if (!r) r = consumeToken(b, "COUNT");
+    if (!r) r = consumeToken(b, "DATE_ADD_MILLIS");
+    if (!r) r = consumeToken(b, "DATE_ADD_STR");
+    if (!r) r = consumeToken(b, "DATE_DIFF_MILLIS");
+    if (!r) r = consumeToken(b, "DATE_DIFF_STR");
+    if (!r) r = consumeToken(b, "DATE_FORMAT_STR");
+    if (!r) r = consumeToken(b, "DATE_PART_MILLIS");
+    if (!r) r = consumeToken(b, "DATE_PART_STR");
+    if (!r) r = consumeToken(b, "DATE_RANGE_MILLIS");
+    if (!r) r = consumeToken(b, "DATE_RANGE_STR");
+    if (!r) r = consumeToken(b, "DATE_TRUNC_MILLIS");
+    if (!r) r = consumeToken(b, "DATE_TRUNC_STR");
+    if (!r) r = consumeToken(b, "DECODE_JSON");
+    if (!r) r = consumeToken(b, "DEGREES");
+    if (!r) r = consumeToken(b, "DURATION_TO_STR");
+    if (!r) r = consumeToken(b, "E");
+    if (!r) r = consumeToken(b, "ENCODE_JSON");
+    if (!r) r = consumeToken(b, "ENCODED_SIZE");
+    if (!r) r = consumeToken(b, "EXP");
+    if (!r) r = consumeToken(b, "FLOOR");
+    if (!r) r = consumeToken(b, "GREATEST");
+    if (!r) r = consumeToken(b, "IF_INF");
+    if (!r) r = consumeToken(b, "IF_MISSING");
+    if (!r) r = consumeToken(b, "IF_MISSING_OR_NULL");
+    if (!r) r = consumeToken(b, "IF_NAN");
+    if (!r) r = consumeToken(b, "IF_NAN_OR_INF");
+    if (!r) r = consumeToken(b, "IF_NULL");
+    if (!r) r = consumeToken(b, "IFINF");
+    if (!r) r = consumeToken(b, "IFMISSING");
+    if (!r) r = consumeToken(b, "IFMISSINGORNULL");
+    if (!r) r = consumeToken(b, "IFNAN");
+    if (!r) r = consumeToken(b, "IFNANORINF");
+    if (!r) r = consumeToken(b, "IFNULL");
+    if (!r) r = consumeToken(b, "INITCAP");
+    if (!r) r = consumeToken(b, "IS_ARRAY");
+    if (!r) r = consumeToken(b, "IS_ATOM");
+    if (!r) r = consumeToken(b, "IS_BOOL");
+    if (!r) r = consumeToken(b, "IS_BOOLEAN");
+    if (!r) r = consumeToken(b, "IS_NUM");
+    if (!r) r = consumeToken(b, "IS_NUMBER");
+    if (!r) r = consumeToken(b, "IS_OBJ");
+    if (!r) r = consumeToken(b, "IS_OBJECT");
+    if (!r) r = consumeToken(b, "IS_STR");
+    if (!r) r = consumeToken(b, "IS_STRING");
+    if (!r) r = consumeToken(b, "ISARRAY");
+    if (!r) r = consumeToken(b, "ISATOM");
+    if (!r) r = consumeToken(b, "ISBOOL");
+    if (!r) r = consumeToken(b, "ISBOOLEAN");
+    if (!r) r = consumeToken(b, "ISNUM");
+    if (!r) r = consumeToken(b, "ISNUMBER");
+    if (!r) r = consumeToken(b, "ISOBJ");
+    if (!r) r = consumeToken(b, "ISOBJECT");
+    if (!r) r = consumeToken(b, "ISSTR");
+    if (!r) r = consumeToken(b, "ISSTRING");
+    if (!r) r = consumeToken(b, "LEAST");
+    if (!r) r = consumeToken(b, "LENGTH");
+    if (!r) r = consumeToken(b, "LN");
+    if (!r) r = consumeToken(b, "LOG");
+    if (!r) r = consumeToken(b, "LOWER");
+    if (!r) r = consumeToken(b, "LTRIM");
+    if (!r) r = consumeToken(b, "MAX");
+    if (!r) r = consumeToken(b, "META");
+    if (!r) r = consumeToken(b, "MILLIS");
+    if (!r) r = consumeToken(b, "MILLIS_TO_LOCAL");
+    if (!r) r = consumeToken(b, "MILLIS_TO_STR");
+    if (!r) r = consumeToken(b, "MILLIS_TO_TZ");
+    if (!r) r = consumeToken(b, "MILLIS_TO_UTC");
+    if (!r) r = consumeToken(b, "MILLIS_TO_ZONE_NAME");
+    if (!r) r = consumeToken(b, "MIN");
+    if (!r) r = consumeToken(b, "MISSING_IF");
+    if (!r) r = consumeToken(b, "MISSINGIF");
+    if (!r) r = consumeToken(b, "NAN_IF");
+    if (!r) r = consumeToken(b, "NANIF");
+    if (!r) r = consumeToken(b, "NEGINF_IF");
+    if (!r) r = consumeToken(b, "NEGINFIF");
+    if (!r) r = consumeToken(b, "NOW_LOCAL");
+    if (!r) r = consumeToken(b, "NOW_MILLIS");
+    if (!r) r = consumeToken(b, "NOW_STR");
+    if (!r) r = consumeToken(b, "NOW_TZ");
+    if (!r) r = consumeToken(b, "NOW_UTC");
+    if (!r) r = consumeToken(b, "NULL_IF");
+    if (!r) r = consumeToken(b, "NULLIF");
+    if (!r) r = consumeToken(b, "OBJECT_ADD");
+    if (!r) r = consumeToken(b, "OBJECT_CONCAT");
+    if (!r) r = consumeToken(b, "OBJECT_INNER_VALUES");
+    if (!r) r = consumeToken(b, "OBJECT_LENGTH");
+    if (!r) r = consumeToken(b, "OBJECT_NAMES");
+    if (!r) r = consumeToken(b, "OBJECT_PAIRS");
+    if (!r) r = consumeToken(b, "OBJECT_PUT");
+    if (!r) r = consumeToken(b, "OBJECT_REMOVE");
+    if (!r) r = consumeToken(b, "OBJECT_RENAME");
+    if (!r) r = consumeToken(b, "OBJECT_REPLACE");
+    if (!r) r = consumeToken(b, "OBJECT_UNWRAP");
+    if (!r) r = consumeToken(b, "OBJECT_VALUES");
+    if (!r) r = consumeToken(b, "PAIRS");
+    if (!r) r = consumeToken(b, "PI");
+    if (!r) r = consumeToken(b, "POSINF_IF");
+    if (!r) r = consumeToken(b, "POSINFIF");
+    if (!r) r = consumeToken(b, "POSITION");
+    if (!r) r = consumeToken(b, "POWER");
+    if (!r) r = consumeToken(b, "RADIANS");
+    if (!r) r = consumeToken(b, "RANDOM");
+    if (!r) r = consumeToken(b, "REGEXP_CONTAINS");
+    if (!r) r = consumeToken(b, "REGEXP_LIKE");
+    if (!r) r = consumeToken(b, "REGEXP_POSITION");
+    if (!r) r = consumeToken(b, "REGEXP_REPLACE");
+    if (!r) r = consumeToken(b, "REPEAT");
+    if (!r) r = consumeToken(b, "REPLACE");
+    if (!r) r = consumeToken(b, "REVERSE");
+    if (!r) r = consumeToken(b, "ROUND");
+    if (!r) r = consumeToken(b, "RTRIM");
+    if (!r) r = consumeToken(b, "SIGN");
+    if (!r) r = consumeToken(b, "SIN");
+    if (!r) r = consumeToken(b, "SPLIT");
+    if (!r) r = consumeToken(b, "SQRT");
+    if (!r) r = consumeToken(b, "STR_TO_DURATION");
+    if (!r) r = consumeToken(b, "STR_TO_MILLIS");
+    if (!r) r = consumeToken(b, "STR_TO_TZ");
+    if (!r) r = consumeToken(b, "STR_TO_UTC");
+    if (!r) r = consumeToken(b, "STR_TO_ZONE_NAME");
+    if (!r) r = consumeToken(b, "SUBSTR");
+    if (!r) r = consumeToken(b, "SUM");
+    if (!r) r = consumeToken(b, "TAN");
+    if (!r) r = consumeToken(b, "TITLE");
+    if (!r) r = consumeToken(b, "TO_ARRAY");
+    if (!r) r = consumeToken(b, "TO_ATOM");
+    if (!r) r = consumeToken(b, "TO_BOOL");
+    if (!r) r = consumeToken(b, "TO_BOOLEAN");
+    if (!r) r = consumeToken(b, "TO_NUM");
+    if (!r) r = consumeToken(b, "TO_NUMBER");
+    if (!r) r = consumeToken(b, "TO_OBJ");
+    if (!r) r = consumeToken(b, "TO_OBJECT");
+    if (!r) r = consumeToken(b, "TO_STR");
+    if (!r) r = consumeToken(b, "TO_STRING");
+    if (!r) r = consumeToken(b, "TOARRAY");
+    if (!r) r = consumeToken(b, "TOATOM");
+    if (!r) r = consumeToken(b, "TOBOOL");
+    if (!r) r = consumeToken(b, "TOBOOLEAN");
+    if (!r) r = consumeToken(b, "TONUM");
+    if (!r) r = consumeToken(b, "TONUMBER");
+    if (!r) r = consumeToken(b, "TOOBJ");
+    if (!r) r = consumeToken(b, "TOOBJECT");
+    if (!r) r = consumeToken(b, "TOSTR");
+    if (!r) r = consumeToken(b, "TOSTRING");
+    if (!r) r = consumeToken(b, "TRIM");
+    if (!r) r = consumeToken(b, "TRUNC");
+    if (!r) r = consumeToken(b, "TYPE");
+    if (!r) r = consumeToken(b, "TYPENAME");
+    if (!r) r = consumeToken(b, "UPPER");
+    if (!r) r = consumeToken(b, "UUID");
+    if (!r) r = consumeToken(b, "WEEKDAY_MILLIS");
+    if (!r) r = consumeToken(b, "WEEKDAY_STR");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
   // ( namespace ':' ( bucket '.' scope '.' )? )? identifier
   public static boolean function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "function")) return false;
@@ -2935,109 +3153,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, FUNCTION_NAME, "<function name>");
     r = identifier(b, l + 1);
     exit_section_(b, l, m, r, false, null);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // 'GRANT' role ( ',' role )* ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
-  //           'TO' user ( ',' user )*
-  static boolean grant(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, "GRANT");
-    r = r && role(b, l + 1);
-    r = r && grant_2(b, l + 1);
-    r = r && grant_3(b, l + 1);
-    r = r && consumeToken(b, "TO");
-    r = r && user(b, l + 1);
-    r = r && grant_6(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( ',' role )*
-  private static boolean grant_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_2")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!grant_2_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "grant_2", c)) break;
-    }
-    return true;
-  }
-
-  // ',' role
-  private static boolean grant_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_2_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && role(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
-  private static boolean grant_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_3")) return false;
-    grant_3_0(b, l + 1);
-    return true;
-  }
-
-  // 'ON' keyspace-ref ( ',' keyspace-ref )*
-  private static boolean grant_3_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_3_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, "ON");
-    r = r && keyspace_ref(b, l + 1);
-    r = r && grant_3_0_2(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( ',' keyspace-ref )*
-  private static boolean grant_3_0_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_3_0_2")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!grant_3_0_2_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "grant_3_0_2", c)) break;
-    }
-    return true;
-  }
-
-  // ',' keyspace-ref
-  private static boolean grant_3_0_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_3_0_2_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && keyspace_ref(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( ',' user )*
-  private static boolean grant_6(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_6")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!grant_6_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "grant_6", c)) break;
-    }
-    return true;
-  }
-
-  // ',' user
-  private static boolean grant_6_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "grant_6_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && user(b, l + 1);
-    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -4707,6 +4822,174 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, KEYSPACE_REF, "<keyspace ref>");
     r = keyspace_path(b, l + 1);
     if (!r) r = keyspace_partial(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'ADAPTER'| 'ALL'| 'ALTER'| 'ANALYTICS'| 'AND'| 'ANY'| 'APPLY'| 'ARGS'| 'AS'| 'ASC'| 'AT'| 'AUTOGENERATED'| 'BETWEEN'| 'BTREE'| 'BY'| 'CASE'| 'CAST'| 'CLOSED'| 'COLLECTION'| 'COMPACT'| 'COMPACTION'| 'CONNECT'| 'CONNECTED'| 'CORRELATE'| 'CREATE'| 'CROSS'| 'CUBE'| 'CURRENT'| 'DATASET'| 'DATAVERSE'| 'DECLARE'| 'DEFINITION'| 'DELETE'| 'DESC'| 'DISABLE'| 'DISCONNECT'| 'DISTINCT'| 'DIV'| 'DROP'| 'ELEMENT'| 'ELSE'| 'ENABLE'| 'END'| 'ENFORCED'| 'EVERY'| 'EXCEPT'| 'EXCLUDE'| 'EXISTS'| 'EXPLAIN'| 'EXTERNAL'| 'FEED'| 'FILTER'| 'FIRST'| 'FLATTEN'| 'FOLLOWING'| 'FOR'| 'FOREIGN'| 'FROM'| 'FULL'| 'FULLTEXT'| 'FUNCTION'| 'GROUP'| 'GROUPING'| 'GROUPS'| 'HAVING'| 'HINTS'| 'IF'| 'IGNORE'| 'IN'| 'INCLUDE'| 'INDEX'| 'INGESTION'| 'INNER'| 'INSERT'| 'INTERNAL'| 'INTERSECT'| 'INTO'| 'IS'| 'JOIN'| 'KEY'| 'KEYWORD'| 'KNOWN'| 'LAST'| 'LEFT'| 'LET'| 'LETTING'| 'LIKE'| 'LIMIT'| 'LINK'| 'LOAD'| 'MISSING'| 'MOD'| 'NGRAM'| 'NO'| 'NODEGROUP'| 'NOT'| 'NULL'| 'NULLS'| 'OFFSET'| 'ON'| 'OPEN'| 'OR'| 'ORDER'| 'OTHERS'| 'OUTER'| 'OUTPUT'| 'OVER'| 'PARTITION'| 'PATH'| 'POLICY'| 'PRECEDING'| 'PRIMARY'| 'RANGE'| 'RAW'| 'REFERENCES'| 'REFRESH'| 'REPLACE'| 'RESPECT'| 'RETURN'| 'RETURNING'| 'RETURNS'| 'RIGHT'| 'ROLLUP'| 'ROW'| 'ROWS'| 'RTREE'| 'RUN'| 'SATISFIES'| 'SCOPE'| 'SECONDARY'| 'SELECT'| 'SET'| 'SETS'| 'SOME'| 'START'| 'STOP'| 'SYNONYM'| 'TEMPORARY'| 'THEN'| 'TIES'| 'TO'| 'TYPE'| 'UNBOUNDED'| 'UNION ALL'| 'UNION'| 'UNKNOWN'| 'UNNEST'| 'UPDATE'| 'UPSERT'| 'USE'| 'USING'| 'VALUE'| 'VALUED'| 'VIEW'| 'WHEN'| 'WHERE'| 'WITH'| 'WRITE '
+  public static boolean kwd(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "kwd")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, KWD, "<kwd>");
+    r = consumeToken(b, "ADAPTER");
+    if (!r) r = consumeToken(b, "ALL");
+    if (!r) r = consumeToken(b, "ALTER");
+    if (!r) r = consumeToken(b, "ANALYTICS");
+    if (!r) r = consumeToken(b, "AND");
+    if (!r) r = consumeToken(b, "ANY");
+    if (!r) r = consumeToken(b, "APPLY");
+    if (!r) r = consumeToken(b, "ARGS");
+    if (!r) r = consumeToken(b, "AS");
+    if (!r) r = consumeToken(b, "ASC");
+    if (!r) r = consumeToken(b, "AT");
+    if (!r) r = consumeToken(b, "AUTOGENERATED");
+    if (!r) r = consumeToken(b, "BETWEEN");
+    if (!r) r = consumeToken(b, "BTREE");
+    if (!r) r = consumeToken(b, "BY");
+    if (!r) r = consumeToken(b, "CASE");
+    if (!r) r = consumeToken(b, "CAST");
+    if (!r) r = consumeToken(b, "CLOSED");
+    if (!r) r = consumeToken(b, "COLLECTION");
+    if (!r) r = consumeToken(b, "COMPACT");
+    if (!r) r = consumeToken(b, "COMPACTION");
+    if (!r) r = consumeToken(b, "CONNECT");
+    if (!r) r = consumeToken(b, "CONNECTED");
+    if (!r) r = consumeToken(b, "CORRELATE");
+    if (!r) r = consumeToken(b, "CREATE");
+    if (!r) r = consumeToken(b, "CROSS");
+    if (!r) r = consumeToken(b, "CUBE");
+    if (!r) r = consumeToken(b, "CURRENT");
+    if (!r) r = consumeToken(b, "DATASET");
+    if (!r) r = consumeToken(b, "DATAVERSE");
+    if (!r) r = consumeToken(b, "DECLARE");
+    if (!r) r = consumeToken(b, "DEFINITION");
+    if (!r) r = consumeToken(b, "DELETE");
+    if (!r) r = consumeToken(b, "DESC");
+    if (!r) r = consumeToken(b, "DISABLE");
+    if (!r) r = consumeToken(b, "DISCONNECT");
+    if (!r) r = consumeToken(b, "DISTINCT");
+    if (!r) r = consumeToken(b, "DIV");
+    if (!r) r = consumeToken(b, "DROP");
+    if (!r) r = consumeToken(b, "ELEMENT");
+    if (!r) r = consumeToken(b, "ELSE");
+    if (!r) r = consumeToken(b, "ENABLE");
+    if (!r) r = consumeToken(b, "END");
+    if (!r) r = consumeToken(b, "ENFORCED");
+    if (!r) r = consumeToken(b, "EVERY");
+    if (!r) r = consumeToken(b, "EXCEPT");
+    if (!r) r = consumeToken(b, "EXCLUDE");
+    if (!r) r = consumeToken(b, "EXISTS");
+    if (!r) r = consumeToken(b, "EXPLAIN");
+    if (!r) r = consumeToken(b, "EXTERNAL");
+    if (!r) r = consumeToken(b, "FEED");
+    if (!r) r = consumeToken(b, "FILTER");
+    if (!r) r = consumeToken(b, "FIRST");
+    if (!r) r = consumeToken(b, "FLATTEN");
+    if (!r) r = consumeToken(b, "FOLLOWING");
+    if (!r) r = consumeToken(b, "FOR");
+    if (!r) r = consumeToken(b, "FOREIGN");
+    if (!r) r = consumeToken(b, "FROM");
+    if (!r) r = consumeToken(b, "FULL");
+    if (!r) r = consumeToken(b, "FULLTEXT");
+    if (!r) r = consumeToken(b, "FUNCTION");
+    if (!r) r = consumeToken(b, "GROUP");
+    if (!r) r = consumeToken(b, "GROUPING");
+    if (!r) r = consumeToken(b, "GROUPS");
+    if (!r) r = consumeToken(b, "HAVING");
+    if (!r) r = consumeToken(b, "HINTS");
+    if (!r) r = consumeToken(b, "IF");
+    if (!r) r = consumeToken(b, "IGNORE");
+    if (!r) r = consumeToken(b, "IN");
+    if (!r) r = consumeToken(b, "INCLUDE");
+    if (!r) r = consumeToken(b, "INDEX");
+    if (!r) r = consumeToken(b, "INGESTION");
+    if (!r) r = consumeToken(b, "INNER");
+    if (!r) r = consumeToken(b, "INSERT");
+    if (!r) r = consumeToken(b, "INTERNAL");
+    if (!r) r = consumeToken(b, "INTERSECT");
+    if (!r) r = consumeToken(b, "INTO");
+    if (!r) r = consumeToken(b, "IS");
+    if (!r) r = consumeToken(b, "JOIN");
+    if (!r) r = consumeToken(b, "KEY");
+    if (!r) r = consumeToken(b, "KEYWORD");
+    if (!r) r = consumeToken(b, "KNOWN");
+    if (!r) r = consumeToken(b, "LAST");
+    if (!r) r = consumeToken(b, "LEFT");
+    if (!r) r = consumeToken(b, "LET");
+    if (!r) r = consumeToken(b, "LETTING");
+    if (!r) r = consumeToken(b, "LIKE");
+    if (!r) r = consumeToken(b, "LIMIT");
+    if (!r) r = consumeToken(b, "LINK");
+    if (!r) r = consumeToken(b, "LOAD");
+    if (!r) r = consumeToken(b, "MISSING");
+    if (!r) r = consumeToken(b, "MOD");
+    if (!r) r = consumeToken(b, "NGRAM");
+    if (!r) r = consumeToken(b, "NO");
+    if (!r) r = consumeToken(b, "NODEGROUP");
+    if (!r) r = consumeToken(b, "NOT");
+    if (!r) r = consumeToken(b, "NULL");
+    if (!r) r = consumeToken(b, "NULLS");
+    if (!r) r = consumeToken(b, "OFFSET");
+    if (!r) r = consumeToken(b, "ON");
+    if (!r) r = consumeToken(b, "OPEN");
+    if (!r) r = consumeToken(b, "OR");
+    if (!r) r = consumeToken(b, "ORDER");
+    if (!r) r = consumeToken(b, "OTHERS");
+    if (!r) r = consumeToken(b, "OUTER");
+    if (!r) r = consumeToken(b, "OUTPUT");
+    if (!r) r = consumeToken(b, "OVER");
+    if (!r) r = consumeToken(b, "PARTITION");
+    if (!r) r = consumeToken(b, "PATH");
+    if (!r) r = consumeToken(b, "POLICY");
+    if (!r) r = consumeToken(b, "PRECEDING");
+    if (!r) r = consumeToken(b, "PRIMARY");
+    if (!r) r = consumeToken(b, "RANGE");
+    if (!r) r = consumeToken(b, "RAW");
+    if (!r) r = consumeToken(b, "REFERENCES");
+    if (!r) r = consumeToken(b, "REFRESH");
+    if (!r) r = consumeToken(b, "REPLACE");
+    if (!r) r = consumeToken(b, "RESPECT");
+    if (!r) r = consumeToken(b, "RETURN");
+    if (!r) r = consumeToken(b, "RETURNING");
+    if (!r) r = consumeToken(b, "RETURNS");
+    if (!r) r = consumeToken(b, "RIGHT");
+    if (!r) r = consumeToken(b, "ROLLUP");
+    if (!r) r = consumeToken(b, "ROW");
+    if (!r) r = consumeToken(b, "ROWS");
+    if (!r) r = consumeToken(b, "RTREE");
+    if (!r) r = consumeToken(b, "RUN");
+    if (!r) r = consumeToken(b, "SATISFIES");
+    if (!r) r = consumeToken(b, "SCOPE");
+    if (!r) r = consumeToken(b, "SECONDARY");
+    if (!r) r = consumeToken(b, "SELECT");
+    if (!r) r = consumeToken(b, "SET");
+    if (!r) r = consumeToken(b, "SETS");
+    if (!r) r = consumeToken(b, "SOME");
+    if (!r) r = consumeToken(b, "START");
+    if (!r) r = consumeToken(b, "STOP");
+    if (!r) r = consumeToken(b, "SYNONYM");
+    if (!r) r = consumeToken(b, "TEMPORARY");
+    if (!r) r = consumeToken(b, "THEN");
+    if (!r) r = consumeToken(b, "TIES");
+    if (!r) r = consumeToken(b, "TO");
+    if (!r) r = consumeToken(b, "TYPE");
+    if (!r) r = consumeToken(b, "UNBOUNDED");
+    if (!r) r = consumeToken(b, "UNION ALL");
+    if (!r) r = consumeToken(b, "UNION");
+    if (!r) r = consumeToken(b, "UNKNOWN");
+    if (!r) r = consumeToken(b, "UNNEST");
+    if (!r) r = consumeToken(b, "UPDATE");
+    if (!r) r = consumeToken(b, "UPSERT");
+    if (!r) r = consumeToken(b, "USE");
+    if (!r) r = consumeToken(b, "USING");
+    if (!r) r = consumeToken(b, "VALUE");
+    if (!r) r = consumeToken(b, "VALUED");
+    if (!r) r = consumeToken(b, "VIEW");
+    if (!r) r = consumeToken(b, "WHEN");
+    if (!r) r = consumeToken(b, "WHERE");
+    if (!r) r = consumeToken(b, "WITH");
+    if (!r) r = consumeToken(b, "WRITE ");
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -6613,109 +6896,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'REVOKE' role ( ',' role )* ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
-  //            'FROM' user ( ',' user )*
-  public static boolean revoke(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke")) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, REVOKE, "<revoke>");
-    r = consumeToken(b, "REVOKE");
-    r = r && role(b, l + 1);
-    r = r && revoke_2(b, l + 1);
-    r = r && revoke_3(b, l + 1);
-    r = r && consumeToken(b, "FROM");
-    r = r && user(b, l + 1);
-    r = r && revoke_6(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
-    return r;
-  }
-
-  // ( ',' role )*
-  private static boolean revoke_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_2")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!revoke_2_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "revoke_2", c)) break;
-    }
-    return true;
-  }
-
-  // ',' role
-  private static boolean revoke_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_2_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && role(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
-  private static boolean revoke_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_3")) return false;
-    revoke_3_0(b, l + 1);
-    return true;
-  }
-
-  // 'ON' keyspace-ref ( ',' keyspace-ref )*
-  private static boolean revoke_3_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_3_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, "ON");
-    r = r && keyspace_ref(b, l + 1);
-    r = r && revoke_3_0_2(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( ',' keyspace-ref )*
-  private static boolean revoke_3_0_2(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_3_0_2")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!revoke_3_0_2_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "revoke_3_0_2", c)) break;
-    }
-    return true;
-  }
-
-  // ',' keyspace-ref
-  private static boolean revoke_3_0_2_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_3_0_2_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && keyspace_ref(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // ( ',' user )*
-  private static boolean revoke_6(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_6")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!revoke_6_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "revoke_6", c)) break;
-    }
-    return true;
-  }
-
-  // ',' user
-  private static boolean revoke_6_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "revoke_6_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, ",");
-    r = r && user(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  /* ********************************************************** */
   // expr ( 'AS'? alias )?
   public static boolean rhs_generic(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "rhs_generic")) return false;
@@ -6819,13 +6999,8 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // identifier
-  public static boolean role(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "role")) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, ROLE, "<role>");
-    r = identifier(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
-    return r;
+  static boolean role(PsiBuilder b, int l) {
+    return identifier(b, l + 1);
   }
 
   /* ********************************************************** */
@@ -7308,6 +7483,28 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // '+' |'-' |'/' | '%' | '^' | '<' | '>' | '<=' | '=>' | '!=' | '=' | ';'
+  public static boolean signals(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "signals")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, SIGNALS, "<signals>");
+    r = consumeToken(b, "+");
+    if (!r) r = consumeToken(b, "-");
+    if (!r) r = consumeToken(b, "/");
+    if (!r) r = consumeToken(b, "%");
+    if (!r) r = consumeToken(b, "^");
+    if (!r) r = consumeToken(b, "<");
+    if (!r) r = consumeToken(b, ">");
+    if (!r) r = consumeToken(b, "<=");
+    if (!r) r = consumeToken(b, "=>");
+    if (!r) r = consumeToken(b, "!=");
+    if (!r) r = consumeToken(b, "=");
+    if (!r) r = consumeToken(b, ";");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
   // ( 'ALL' | 'DISTINCT' ) expr
   public static boolean simple_array_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "simple_array_expr")) return false;
@@ -7445,6 +7642,29 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "slice_expr_4")) return false;
     end_expr(b, l + 1);
     return true;
+  }
+
+  /* ********************************************************** */
+  // kwd | kwd sqlKeywords
+  public static boolean sqlKeywords(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "sqlKeywords")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, SQL_KEYWORDS, "<sql keywords>");
+    r = kwd(b, l + 1);
+    if (!r) r = sqlKeywords_1(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // kwd sqlKeywords
+  private static boolean sqlKeywords_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "sqlKeywords_1")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = kwd(b, l + 1);
+    r = r && sqlKeywords(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
   }
 
   /* ********************************************************** */

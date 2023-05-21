@@ -33,6 +33,7 @@ public interface GeneratedTypes {
   IElementType ARITHMETIC_TERM = new IElementType("ARITHMETIC_TERM", null);
   IElementType ARRAY = new IElementType("ARRAY", null);
   IElementType ARRAY_EXPR = new IElementType("ARRAY_EXPR", null);
+  IElementType BACKTICKED_STRING = new IElementType("BACKTICKED_STRING", null);
   IElementType BEGIN_TRANSACTION = new IElementType("BEGIN_TRANSACTION", null);
   IElementType BETWEEN_EXPR = new IElementType("BETWEEN_EXPR", null);
   IElementType BLOCK_COMMENT = new IElementType("BLOCK_COMMENT", null);
@@ -92,6 +93,7 @@ public interface GeneratedTypes {
   IElementType FTS_HINT_JSON = new IElementType("FTS_HINT_JSON", null);
   IElementType FTS_HINT_SIMPLE = new IElementType("FTS_HINT_SIMPLE", null);
   IElementType FULL_ARRAY_EXPR = new IElementType("FULL_ARRAY_EXPR", null);
+  IElementType FUNCS = new IElementType("FUNCS", null);
   IElementType FUNCTION = new IElementType("FUNCTION", null);
   IElementType FUNCTION_CALL = new IElementType("FUNCTION_CALL", null);
   IElementType FUNCTION_NAME = new IElementType("FUNCTION_NAME", null);
@@ -154,6 +156,7 @@ public interface GeneratedTypes {
   IElementType KEYSPACE_PROPERTY = new IElementType("KEYSPACE_PROPERTY", null);
   IElementType KEYSPACE_REF = new IElementType("KEYSPACE_REF", null);
   IElementType KEY_ATTRIBS = new IElementType("KEY_ATTRIBS", null);
+  IElementType KWD = new IElementType("KWD", null);
   IElementType LEAD_KEY_ATTRIBS = new IElementType("LEAD_KEY_ATTRIBS", null);
   IElementType LETTING_CLAUSE = new IElementType("LETTING_CLAUSE", null);
   IElementType LET_CLAUSE = new IElementType("LET_CLAUSE", null);
@@ -219,11 +222,9 @@ public interface GeneratedTypes {
   IElementType RELATIONAL_EXPR = new IElementType("RELATIONAL_EXPR", null);
   IElementType RESULT_EXPR = new IElementType("RESULT_EXPR", null);
   IElementType RETURNING_CLAUSE = new IElementType("RETURNING_CLAUSE", null);
-  IElementType REVOKE = new IElementType("REVOKE", null);
   IElementType RHS_GENERIC = new IElementType("RHS_GENERIC", null);
   IElementType RHS_KEYSPACE = new IElementType("RHS_KEYSPACE", null);
   IElementType RHS_SUBQUERY = new IElementType("RHS_SUBQUERY", null);
-  IElementType ROLE = new IElementType("ROLE", null);
   IElementType ROLLBACK_TRANSACTION = new IElementType("ROLLBACK_TRANSACTION", null);
   IElementType SAVEPOINT = new IElementType("SAVEPOINT", null);
   IElementType SAVEPOINTNAME = new IElementType("SAVEPOINTNAME", null);
@@ -238,11 +239,13 @@ public interface GeneratedTypes {
   IElementType SET_CLAUSE = new IElementType("SET_CLAUSE", null);
   IElementType SET_OP = new IElementType("SET_OP", null);
   IElementType SET_TRANSACTION = new IElementType("SET_TRANSACTION", null);
+  IElementType SIGNALS = new IElementType("SIGNALS", null);
   IElementType SIMPLE_ARRAY_EXPR = new IElementType("SIMPLE_ARRAY_EXPR", null);
   IElementType SIMPLE_CASE_EXPR = new IElementType("SIMPLE_CASE_EXPR", null);
   IElementType SIMPLE_HINT = new IElementType("SIMPLE_HINT", null);
   IElementType SIMPLE_HINT_SEQUENCE = new IElementType("SIMPLE_HINT_SEQUENCE", null);
   IElementType SLICE_EXPR = new IElementType("SLICE_EXPR", null);
+  IElementType SQL_KEYWORDS = new IElementType("SQL_KEYWORDS", null);
   IElementType START_EXPR = new IElementType("START_EXPR", null);
   IElementType STATEMENT = new IElementType("STATEMENT", null);
   IElementType STR = new IElementType("STR", null);
@@ -378,6 +381,9 @@ public interface GeneratedTypes {
       }
       else if (type == ARRAY_EXPR) {
         return new ArrayExprImpl(node);
+      }
+      else if (type == BACKTICKED_STRING) {
+        return new BacktickedStringImpl(node);
       }
       else if (type == BEGIN_TRANSACTION) {
         return new BeginTransactionImpl(node);
@@ -555,6 +561,9 @@ public interface GeneratedTypes {
       }
       else if (type == FULL_ARRAY_EXPR) {
         return new FullArrayExprImpl(node);
+      }
+      else if (type == FUNCS) {
+        return new FuncsImpl(node);
       }
       else if (type == FUNCTION) {
         return new FunctionImpl(node);
@@ -741,6 +750,9 @@ public interface GeneratedTypes {
       }
       else if (type == KEY_ATTRIBS) {
         return new KeyAttribsImpl(node);
+      }
+      else if (type == KWD) {
+        return new KwdImpl(node);
       }
       else if (type == LEAD_KEY_ATTRIBS) {
         return new LeadKeyAttribsImpl(node);
@@ -937,9 +949,6 @@ public interface GeneratedTypes {
       else if (type == RETURNING_CLAUSE) {
         return new ReturningClauseImpl(node);
       }
-      else if (type == REVOKE) {
-        return new RevokeImpl(node);
-      }
       else if (type == RHS_GENERIC) {
         return new RhsGenericImpl(node);
       }
@@ -948,9 +957,6 @@ public interface GeneratedTypes {
       }
       else if (type == RHS_SUBQUERY) {
         return new RhsSubqueryImpl(node);
-      }
-      else if (type == ROLE) {
-        return new RoleImpl(node);
       }
       else if (type == ROLLBACK_TRANSACTION) {
         return new RollbackTransactionImpl(node);
@@ -994,6 +1000,9 @@ public interface GeneratedTypes {
       else if (type == SET_TRANSACTION) {
         return new SetTransactionImpl(node);
       }
+      else if (type == SIGNALS) {
+        return new SignalsImpl(node);
+      }
       else if (type == SIMPLE_ARRAY_EXPR) {
         return new SimpleArrayExprImpl(node);
       }
@@ -1008,6 +1017,9 @@ public interface GeneratedTypes {
       }
       else if (type == SLICE_EXPR) {
         return new SliceExprImpl(node);
+      }
+      else if (type == SQL_KEYWORDS) {
+        return new SqlKeywordsImpl(node);
       }
       else if (type == START_EXPR) {
         return new StartExprImpl(node);

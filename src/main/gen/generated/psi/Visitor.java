@@ -107,6 +107,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitBacktickedString(@NotNull BacktickedString o) {
+    visitPsiElement(o);
+  }
+
   public void visitBeginTransaction(@NotNull BeginTransaction o) {
     visitPsiElement(o);
   }
@@ -340,6 +344,10 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitFullArrayExpr(@NotNull FullArrayExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFuncs(@NotNull Funcs o) {
     visitPsiElement(o);
   }
 
@@ -588,6 +596,10 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitKeyspaceRef(@NotNull KeyspaceRef o) {
+    visitPsiElement(o);
+  }
+
+  public void visitKwd(@NotNull Kwd o) {
     visitPsiElement(o);
   }
 
@@ -851,10 +863,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitRevoke(@NotNull Revoke o) {
-    visitPsiElement(o);
-  }
-
   public void visitRhsGeneric(@NotNull RhsGeneric o) {
     visitPsiElement(o);
   }
@@ -864,10 +872,6 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitRhsSubquery(@NotNull RhsSubquery o) {
-    visitPsiElement(o);
-  }
-
-  public void visitRole(@NotNull Role o) {
     visitPsiElement(o);
   }
 
@@ -927,6 +931,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitSignals(@NotNull Signals o) {
+    visitPsiElement(o);
+  }
+
   public void visitSimpleArrayExpr(@NotNull SimpleArrayExpr o) {
     visitPsiElement(o);
   }
@@ -944,6 +952,10 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitSliceExpr(@NotNull SliceExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitSqlKeywords(@NotNull SqlKeywords o) {
     visitPsiElement(o);
   }
 
