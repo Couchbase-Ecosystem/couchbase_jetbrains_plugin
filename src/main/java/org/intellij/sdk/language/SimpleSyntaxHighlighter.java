@@ -9,7 +9,7 @@ import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.fileTypes.SyntaxHighlighterBase;
 import com.intellij.psi.TokenType;
 import com.intellij.psi.tree.IElementType;
-import org.intellij.sdk.language.psi.SimpleTypes;
+import generated.GeneratedTypes;
 import org.jetbrains.annotations.NotNull;
 
 import static com.intellij.openapi.editor.colors.TextAttributesKey.createTextAttributesKey;
@@ -43,16 +43,16 @@ public class SimpleSyntaxHighlighter extends SyntaxHighlighterBase {
 
   @Override
   public TextAttributesKey @NotNull [] getTokenHighlights(IElementType tokenType) {
-    if (tokenType.equals(SimpleTypes.SEPARATOR)) {
-      return SEPARATOR_KEYS;
-    }
-    if (tokenType.equals(SimpleTypes.KEY)) {
+    System.out.println(tokenType.toString());
+    if (tokenType.equals(GeneratedTypes.SELECT_CLAUSE)
+            || tokenType.equals(GeneratedTypes.FROM_CLAUSE)
+            || tokenType.equals(GeneratedTypes.SET_OP)) {
       return KEY_KEYS;
     }
-    if (tokenType.equals(SimpleTypes.VALUE)) {
+    if (tokenType.equals(GeneratedTypes.BOOL)) {
       return VALUE_KEYS;
     }
-    if (tokenType.equals(SimpleTypes.COMMENT)) {
+    if (tokenType.equals(GeneratedTypes.COMMENT)) {
       return COMMENT_KEYS;
     }
     if (tokenType.equals(TokenType.BAD_CHARACTER)) {

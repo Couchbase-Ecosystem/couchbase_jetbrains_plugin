@@ -1,0 +1,1435 @@
+// Copyright 2000-2022 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+{
+  parserClass="org.intellij.sdk.language.parser.SimpleParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Simple"
+  psiImplClassSuffix="Impl"
+  psiPackage="org.intellij.sdk.language.psi"
+  psiImplPackage="org.intellij.sdk.language.psi.impl"
+
+  elementTypeHolderClass="org.intellij.sdk.language.psi.SimpleTypes"
+  elementTypeClass="org.intellij.sdk.language.psi.SimpleElementType"
+  tokenTypeClass="org.intellij.sdk.language.psi.SimpleTokenType"
+
+  psiImplUtilClass="org.intellij.sdk.language.psi.impl.SimplePsiImplUtil"
+}
+/* Data Control Language */
+
+//dcl-statement ::= grant | revoke
+
+/* tag::grant[] */
+grant ::= 'GRANT' role ( ',' role )* ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
+          'TO' user ( ',' user )*
+/* end::grant[] */
+
+/* tag::revoke[] */
+revoke ::= 'REVOKE' role ( ',' role )* ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
+           'FROM' user ( ',' user )*
+/* end::revoke[] */
+
+role ::= identifier
+user ::= identifier
+
+/* Data Definition Language */
+
+ddl-statement ::= create-statement
+                | drop-statement
+                | other-statement
+
+create-statement ::= create-scope
+                   | create-collection
+                   | create-primary-index
+                   | create-index
+                   | create-function
+
+drop-statement ::= drop-scope
+                 | drop-collection
+                 | drop-primary-index
+                 | drop-index
+                 | drop-function
+
+other-statement ::= alter-index
+                  | build-index
+                  | execute-function
+
+
+/**************************
+ * Scopes and Collections *
+ **************************/
+
+/* tag::create-scope[] */
+create-scope ::= 'CREATE' 'SCOPE' ( namespace ':' )? bucket '.' scope ( 'IF' 'NOT' 'EXISTS' )?
+/* end::create-scope[] */
+
+/* tag::create-collection[] */
+create-collection ::= 'CREATE' 'COLLECTION' ( ( namespace ':' )? bucket '.' scope '.' )?
+                      collection ( 'IF' 'NOT' 'EXISTS' )?
+/* end::create-collection[] */
+
+/* tag::drop-scope[] */
+drop-scope ::= 'DROP' 'SCOPE' ( namespace ':' )? bucket '.' scope ( 'IF' 'EXISTS' )?
+/* end::drop-scope[] */
+
+/* tag::drop-collection[] */
+drop-collection ::= 'DROP' 'COLLECTION' ( ( namespace ':' )? bucket '.' scope '.' )?
+                    collection ( 'IF' 'EXISTS' )?
+/* end::drop-collection[] */
+
+
+/***********
+ * Indexes *
+ ***********/
+
+/* tag::create-primary-index[] */
+create-primary-index ::= 'CREATE' 'PRIMARY' 'INDEX' index-name? ( 'IF' 'NOT' 'EXISTS' )?
+                         'ON' keyspace-ref index-using? index-with?
+/* end::create-primary-index[] */
+
+/* tag::index-using[] */
+index-using ::= 'USING' 'GSI'
+/* end::index-using[] */
+
+/* tag::index-with[] */
+index-with ::= 'WITH' expr
+/* end::index-with[] */
+
+/* tag::create-index[] */
+create-index ::= 'CREATE' 'INDEX' index-name ( 'IF' 'NOT' 'EXISTS' )? 'ON' keyspace-ref
+                 '(' index-key lead-key-attribs? ( ( ',' index-key key-attribs? )+ )? ')'
+                 index-partition? where-clause? index-using? index-with?
+/* end::create-index[] */
+
+/* tag::index-key[] */
+index-key ::= expr | array-expr
+/* end::index-key[] */
+
+/* tag::lead-key-attribs[] */
+lead-key-attribs ::= index-order include-missing? | include-missing index-order?
+/* end::lead-key-attribs[] */
+
+/* tag::key-attribs[] */
+key-attribs ::= index-order
+/* end::key-attribs[] */
+
+/* tag::include-missing[] */
+include-missing ::= 'INCLUDE' 'MISSING'
+/* end::include-missing[] */
+
+/* tag::index-order[] */
+index-order ::= 'ASC' | 'DESC'
+/* end::index-order[] */
+
+/* tag::array-expr[] */
+array-expr ::= full-array-expr | simple-array-expr
+/* end::array-expr[] */
+
+/* tag::full-array-expr[] */
+full-array-expr ::= ( 'ALL' | 'DISTINCT' ) 'ARRAY' var-expr
+                    'FOR' var ( 'IN' | 'WITHIN' ) expr
+                    ( ',' var ( 'IN' | 'WITHIN' ) expr )* ( 'WHEN' cond )? 'END'
+/* end::full-array-expr[] */
+
+/* tag::simple-array-expr[] */
+simple-array-expr ::= ( 'ALL' | 'DISTINCT' ) expr
+/* end::simple-array-expr[] */
+
+/* tag::pairs-function[] */
+pairs-function ::= 'PAIRS' '(' ( 'SELF' | index-key-object ) ')'
+/* end::pairs-function[] */
+
+/* tag::index-key-object[] */
+index-key-object ::= expr
+/* end::index-key-object[] */
+
+/* tag::index-partition[] */
+index-partition ::= 'PARTITION' 'BY' 'HASH' '(' partition-key-expr
+                    ( ',' partition-key-expr )* ')'
+/* end::index-partition[] */
+
+/* tag::partition-key-expr[] */
+partition-key-expr ::= expr
+/* end::partition-key-expr[] */
+
+/* tag::alter-index[] */
+alter-index ::= 'ALTER' 'INDEX' ( index-path '.' index-name | index-name 'ON' keyspace-ref )
+                index-using? index-with
+/* end::alter-index[] */
+
+/* tag::build-index[] */
+build-index ::= 'BUILD' 'INDEX' 'ON' keyspace-ref '(' index-term (',' index-term)* ')'
+                index-using?
+/* end::build-index[] */
+
+/* tag::index-term[] */
+index-term ::= index-name | index-expr | subquery-expr
+/* end::index-term[] */
+
+/* tag::index-expr[] */
+index-expr ::= string | array
+/* end::index-expr[] */
+
+/* tag::drop-primary-index[] */
+drop-primary-index ::= 'DROP' 'PRIMARY' 'INDEX' ( 'IF' 'EXISTS' )? 'ON' keyspace-ref
+                       index-using?
+/* end::drop-primary-index[] */
+
+/* tag::drop-index[] */
+drop-index ::= 'DROP' 'INDEX' ( index-path '.' index-name ( 'IF' 'EXISTS' )? |
+                index-name ( 'IF' 'EXISTS' )? 'ON' keyspace-ref ) index-using?
+/* end::drop-index[] */
+
+/* tag::index-path[] */
+index-path ::= keyspace-full | keyspace-prefix | keyspace-partial
+/* end::index-path[] */
+
+/* tag::keyspace-full[] */
+keyspace-full ::= namespace ':' bucket '.' scope '.' collection
+/* end::keyspace-full[] */
+
+/* tag::keyspace-prefix[] */
+keyspace-prefix ::= ( namespace ':' )? bucket
+/* end::keyspace-prefix[] */
+
+
+/*************
+ * Functions *
+ *************/
+
+/* tag::create-function[] */
+create-function ::= create-function-inline | create-function-external
+/* end::create-function[] */
+
+/* tag::create-function-inline[] */
+create-function-inline ::= 'CREATE' ( 'OR' 'REPLACE' )? 'FUNCTION' function '(' params? ')'
+                           ( 'IF' 'NOT' 'EXISTS' )?
+                           ( '{' body '}' | 'LANGUAGE' 'INLINE' 'AS' body )
+/* end::create-function-inline[] */
+
+/* tag::create-function-external[] */
+create-function-external ::= 'CREATE' ( 'OR' 'REPLACE' )? 'FUNCTION' function '(' params? ')'
+                             ( 'IF' 'NOT' 'EXISTS' )?
+                             'LANGUAGE' 'JAVASCRIPT' 'AS' obj 'AT' library
+/* end::create-function-external[] */
+
+/* tag::function[] */
+function ::= ( namespace ':' ( bucket '.' scope '.' )? )? identifier
+/* end::function[] */
+
+/* tag::params[] */
+params ::= identifier ( "," identifier )* | "..."
+/* end::params[] */
+
+/* tag::body[] */
+body ::= expr
+/* end::body[] */
+
+/* tag::obj[] */
+obj ::= string
+/* end::obj[] */
+
+/* tag::library[] */
+library ::= string
+/* end::library[] */
+
+/* tag::drop-function[] */
+drop-function ::= 'DROP' 'FUNCTION' function ( 'IF' 'EXISTS' )?
+/* end::drop-function[] */
+
+/* tag::execute-function[] */
+execute-function ::= 'EXECUTE' 'FUNCTION' function '(' ( expr ( ',' expr )* )? ')'
+/* end::execute-function[] */
+
+/* Data Manipulation Language */
+
+dml-statement ::= delete
+                | insert
+                | merge
+                | update
+                | upsert
+
+/********************
+ * Delete Statement *
+ ********************/
+
+/* tag::delete[] */
+delete ::= 'DELETE' 'FROM' target-keyspace use-keys-clause? where-clause?
+            limit-clause? returning-clause?
+/* end::delete[] */
+
+/********************
+ * Insert Statement *
+ ********************/
+
+/* tag::insert[] */
+insert ::= 'INSERT' 'INTO' target-keyspace ( insert-values | insert-select )
+            returning-clause?
+/* end::insert[] */
+
+/* tag::insert-values[] */
+insert-values ::= ( '(' 'PRIMARY'? 'KEY' ',' 'VALUE' ( ',' 'OPTIONS' )? ')' )? values-clause
+/* end::insert-values[] */
+
+/* tag::values-clause[] */
+values-clause ::= 'VALUES'  '(' key ',' value ( ',' options )? ')'
+            ( ',' 'VALUES'? '(' key ',' value ( ',' options )? ')' )*
+/* end::values-clause[] */
+
+/* tag::insert-select[] */
+insert-select ::= '(' 'PRIMARY'? 'KEY' key ( ',' 'VALUE' value )?
+                   ( ',' 'OPTIONS' options )? ')' select
+/* end::insert-select[] */
+
+/*******************
+ * Merge Statement *
+ *******************/
+
+/* tag::merge[] */
+merge ::= 'MERGE' 'INTO' ( ansi-merge | lookup-merge ) limit-clause? returning-clause?
+/* end::merge[] */
+
+/* tag::ansi-merge[] */
+ansi-merge ::= target-keyspace use-index-clause 'USING' ansi-merge-source
+               ansi-merge-predicate ansi-merge-actions
+/* end::ansi-merge[] */
+
+/* tag::ansi-merge-source[] */
+ansi-merge-source ::= ( merge-source-keyspace | merge-source-subquery | merge-source-expr )
+                      ansi-join-hints?
+/* end::ansi-merge-source[] */
+
+/* tag::ansi-merge-predicate[] */
+ansi-merge-predicate ::= 'ON' expr
+/* end::ansi-merge-predicate[] */
+
+/* tag::ansi-merge-actions[] */
+ansi-merge-actions ::= merge-update? merge-delete? ansi-merge-insert?
+/* end::ansi-merge-actions[] */
+
+/* tag::ansi-merge-insert[] */
+ansi-merge-insert ::= 'WHEN' 'NOT' 'MATCHED' 'THEN' 'INSERT' '(' 'KEY'? key
+                      ( ',' 'VALUE'? value )? ( ',' 'OPTIONS'? options )? ')' where-clause?
+/* end::ansi-merge-insert[] */
+
+/* tag::lookup-merge[] */
+lookup-merge ::= target-keyspace 'USING' lookup-merge-source lookup-merge-predicate
+                 lookup-merge-actions
+/* end::lookup-merge[] */
+
+/* tag::lookup-merge-source[] */
+lookup-merge-source ::= merge-source-keyspace use-clause? |
+                        merge-source-subquery |
+                        merge-source-expr
+/* end::lookup-merge-source[] */
+
+/* tag::lookup-merge-predicate[] */
+lookup-merge-predicate ::= 'ON' 'PRIMARY'? 'KEY' expr
+/* end::lookup-merge-predicate[] */
+
+/* tag::lookup-merge-actions[] */
+lookup-merge-actions ::= merge-update? merge-delete? lookup-merge-insert?
+/* end::lookup-merge-actions[] */
+
+/* tag::lookup-merge-insert[] */
+lookup-merge-insert ::= 'WHEN' 'NOT' 'MATCHED' 'THEN' 'INSERT' expr where-clause?
+/* end::lookup-merge-insert[] */
+
+/* tag::merge-source-keyspace[] */
+merge-source-keyspace ::= keyspace-ref ( 'AS'? alias )?
+/* end::merge-source-keyspace[] */
+
+/* tag::merge-source-subquery[] */
+merge-source-subquery ::= subquery-expr 'AS'? alias
+/* end::merge-source-subquery[] */
+
+/* tag::merge-source-expr[] */
+merge-source-expr ::= expr ( 'AS'? alias )?
+/* end::merge-source-expr[] */
+
+/* tag::merge-update[] */
+merge-update ::= 'WHEN' 'MATCHED' 'THEN' 'UPDATE' set-clause? unset-clause? where-clause?
+/* end::merge-update[] */
+
+/* tag::merge-delete[] */
+merge-delete ::= 'WHEN' 'MATCHED' 'THEN' 'DELETE' where-clause?
+/* end::merge-delete[] */
+
+/********************
+ * Update Statement *
+ ********************/
+
+/* tag::update[] */
+update ::= 'UPDATE' target-keyspace use-keys? set-clause? unset-clause?
+            where-clause? limit-clause? returning-clause?
+/* end::update[] */
+
+use-keys ::= string
+/********************
+ * Upsert Statement *
+ ********************/
+
+/* tag::upsert[] */
+upsert ::= 'UPSERT' 'INTO' target-keyspace ( insert-values | insert-select )
+            returning-clause?
+/* end::upsert[] */
+
+/******************
+ * Common Clauses *
+ ******************/
+
+/* tag::target-keyspace[] */
+target-keyspace ::= keyspace-ref ( 'AS'? alias )?
+/* end::target-keyspace[] */
+
+/* tag::returning-clause[] */
+returning-clause ::= 'RETURNING' (result-expr (',' result-expr)* |
+                    ('RAW' | 'ELEMENT' | 'VALUE') expr)
+/* end::returning-clause[] */
+
+/* tag::set-clause[] */
+set-clause ::= 'SET' ( path '=' expr update-for? )
+               ( ',' (  path '=' expr update-for? ) )*
+/* end::set-clause[] */
+
+/* tag::unset-clause[] */
+unset-clause ::= 'UNSET' path update-for? (',' path update-for?)*
+/* end::unset-clause[] */
+
+/* tag::update-for[] */
+update-for ::= ('FOR' (name-var ':')? var ('IN' | 'WITHIN') path
+               (','   (name-var ':')? var ('IN' | 'WITHIN') path)* )+
+               ('WHEN' cond)? 'END'
+/* end::update-for[] */
+
+key ::= expr
+value ::= expr
+options ::= object
+
+/* Data Query Language */
+
+dql-statement ::= select |
+                  infer |
+                  update-statistics
+
+/***************
+ * N1QL SELECT *
+ ***************/
+
+/* tag::select[] */
+select ::= select-term ( set-op select-term )* order-by-clause? limit-clause? offset-clause?
+/* end::select[] */
+
+/* tag::select-term[] */
+select-term ::= subselect | '(' select ')'
+/* end::select-term[] */
+
+/* tag::subselect[] */
+subselect ::= select-from | from-select
+/* end::subselect[] */
+
+/* tag::select-from[] */
+select-from ::= with-clause? select-clause from-clause? let-clause? where-clause? group-by-clause? window-clause?
+/* end::select-from[] */
+
+/* tag::from-select[] */
+from-select ::= with-clause? from-clause let-clause? where-clause? group-by-clause? window-clause? select-clause
+/* end::from-select[] */
+
+/* tag::set-op[] */
+set-op ::= ( 'UNION' | 'INTERSECT' | 'EXCEPT' ) 'ALL'?
+/* end::set-op[] */
+
+
+/* WITH Clause */
+
+/* tag::with-clause[] */
+with-clause ::= 'WITH' alias 'AS' '(' ( select | expr ) ')'
+                 ( ',' alias 'AS' '(' ( select | expr ) ')' )*
+/* end::with-clause[] */
+
+/* tag::alias[] */
+alias ::= identifier
+/* end::alias[] */
+
+
+/* SELECT Clause */
+
+/* tag::select-clause[] */
+select-clause ::= 'SELECT' hint-comment? projection
+/* end::select-clause[] */
+
+/* tag::projection[] */
+projection ::= ( 'ALL' | 'DISTINCT' )? ( result-expr ( ',' result-expr )* |
+               ( 'RAW' | 'ELEMENT' | 'VALUE' ) expr ( 'AS'? alias )? )
+/* end::projection[] */
+
+/* tag::result-expr[] */
+result-expr ::= ( path '.' )? '*' | expr ( 'AS'? alias )?
+/* end::result-expr[] */
+
+/* tag::path[] */
+path ::= identifier ( '[' expr ']' )* ( '.' identifier ( '[' expr ']' )* )*
+/* end::path[] */
+
+
+/* FROM Clause */
+
+/* tag::from-clause[] */
+from-clause ::= 'FROM' from-terms
+/* end::from-clause[] */
+
+/* tag::from-terms[] */
+from-terms ::= ( from-keyspace | from-subquery | from-generic )
+               ( join-clause | nest-clause | unnest-clause )* comma-separated-join*
+/* end::from-terms[] */
+
+/* tag::from-keyspace[] */
+from-keyspace ::= keyspace-ref ( 'AS'? alias )? use-clause?
+/* end::from-keyspace[] */
+
+/* tag::keyspace-ref[] */
+keyspace-ref ::= keyspace-path | keyspace-partial
+/* end::keyspace-ref[] */
+
+/* tag::keyspace-path[] */
+keyspace-path ::= ( namespace ':' )? bucket ( '.' scope '.' collection )?
+/* end::keyspace-path[] */
+
+/* tag::keyspace-partial[] */
+keyspace-partial ::= collection
+/* end::keyspace-partial[] */
+
+/* tag::namespace[] */
+namespace ::= identifier
+/* end::namespace[] */
+
+/* tag::bucket[] */
+bucket ::= identifier
+/* end::bucket[] */
+
+/* tag::scope[] */
+scope ::= identifier
+/* end::scope[] */
+
+/* tag::collection[] */
+collection ::= identifier
+/* end::collection[] */
+
+/* tag::from-subquery[] */
+from-subquery ::= subquery-expr 'AS'? alias
+/* end::from-subquery[] */
+
+/* tag::subquery-expr[] */
+subquery-expr ::= '(' select ')'
+/* end::subquery-expr[] */
+
+/* tag::from-generic[] */
+from-generic ::= expr ( 'AS' alias )?
+/* end::from-generic[] */
+
+
+/* JOIN Clause */
+
+/* tag::join-clause[] */
+join-clause ::= ansi-join-clause | lookup-join-clause | index-join-clause
+/* end::join-clause[] */
+
+
+/* ANSI JOIN */
+
+/* tag::ansi-join-clause[] */
+ansi-join-clause ::= ansi-join-type? 'JOIN' ansi-join-rhs ansi-join-predicate
+/* end::ansi-join-clause[] */
+
+/* tag::ansi-join-type[] */
+ansi-join-type ::= 'INNER' | ( 'LEFT' | 'RIGHT' ) 'OUTER'?
+/* end::ansi-join-type[] */
+
+/* tag::ansi-join-rhs[] */
+ansi-join-rhs ::= rhs-keyspace | rhs-subquery | rhs-generic
+/* end::ansi-join-rhs[] */
+
+/* tag::rhs-keyspace[] */
+rhs-keyspace ::= keyspace-ref ( 'AS'? alias )? ansi-join-hints?
+/* end::rhs-keyspace[] */
+
+/* tag::rhs-subquery[] */
+rhs-subquery ::= subquery-expr 'AS'? alias
+/* end::rhs-subquery[] */
+
+/* tag::rhs-generic[] */
+rhs-generic ::= expr ( 'AS'? alias )?
+/* end::rhs-generic[] */
+
+/* tag::ansi-join-hints[] */
+ansi-join-hints ::= use-hash-hint | use-nl-hint | multiple-hints
+/* end::ansi-join-hints[] */
+
+/* tag::use-hash-hint[] */
+use-hash-hint ::= 'USE' use-hash-term
+/* end::use-hash-hint[] */
+
+/* tag::use-hash-term[] */
+use-hash-term ::= 'HASH' '(' ( 'BUILD' | 'PROBE' ) ')'
+/* end::use-hash-term[] */
+
+/* tag::use-nl-hint[] */
+use-nl-hint ::= 'USE' use-nl-term
+/* end::use-nl-hint[] */
+
+/* tag::use-nl-term[] */
+use-nl-term ::= 'NL'
+/* end::use-nl-term[] */
+
+/* tag::multiple-hints[] */
+multiple-hints ::= 'USE' ( ansi-hint-terms other-hint-terms |
+                           other-hint-terms ansi-hint-terms )
+/* end::multiple-hints[] */
+
+/* tag::ansi-hint-terms[] */
+ansi-hint-terms ::= use-hash-term | use-nl-term
+/* end::ansi-hint-terms[] */
+
+/* tag::other-hint-terms[] */
+other-hint-terms ::= use-index-term | use-keys-term
+/* end::other-hint-terms[] */
+
+/* tag::ansi-join-predicate[] */
+ansi-join-predicate ::= 'ON' expr
+/* end::ansi-join-predicate[] */
+
+
+/* Lookup JOIN */
+
+/* tag::lookup-join-clause[] */
+lookup-join-clause ::= lookup-join-type? 'JOIN' lookup-join-rhs lookup-join-predicate
+/* end::lookup-join-clause[] */
+
+/* tag::lookup-join-type[] */
+lookup-join-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+/* end::lookup-join-type[] */
+
+/* tag::lookup-join-rhs[] */
+lookup-join-rhs ::= keyspace-ref ( 'AS'? alias )?
+/* end::lookup-join-rhs[] */
+
+/* tag::lookup-join-predicate[] */
+lookup-join-predicate ::= 'ON' 'PRIMARY'? 'KEYS' expr
+/* end::lookup-join-predicate[] */
+
+
+/* Index JOIN */
+
+/* tag::index-join-clause[] */
+index-join-clause ::= index-join-type? 'JOIN' index-join-rhs index-join-predicate
+/* end::index-join-clause[] */
+
+/* tag::index-join-type[] */
+index-join-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+/* end::index-join-type[] */
+
+/* tag::index-join-rhs[] */
+index-join-rhs ::= keyspace-ref ( 'AS'? alias )?
+/* end::index-join-rhs[] */
+
+/* tag::index-join-predicate[] */
+index-join-predicate ::= 'ON' 'PRIMARY'? 'KEY' expr 'FOR' alias
+/* end::index-join-predicate[] */
+
+
+/* Comma-Separated Cartesian Join */
+
+/* tag::comma-separated-join[] */
+comma-separated-join ::= ',' ( rhs-keyspace | rhs-subquery | rhs-generic )
+/* end::comma-separated-join[] */
+
+
+/* NEST Clause */
+
+/* tag::nest-clause[] */
+nest-clause ::= ansi-nest-clause | lookup-nest-clause | index-nest-clause
+/* end::nest-clause[] */
+
+
+/* ANSI NEST */
+
+/* tag::ansi-nest-clause[] */
+ansi-nest-clause ::= ansi-nest-type? 'NEST' ansi-nest-rhs ansi-nest-predicate
+/* end::ansi-nest-clause[] */
+
+/* tag::ansi-nest-type[] */
+ansi-nest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+/* end::ansi-nest-type[] */
+
+/* tag::ansi-nest-rhs[] */
+ansi-nest-rhs ::= keyspace-ref ( 'AS'? alias )?
+/* end::ansi-nest-rhs[] */
+
+/* tag::ansi-nest-predicate[] */
+ansi-nest-predicate ::= 'ON' expr
+/* end::ansi-nest-predicate[] */
+
+
+/* Lookup NEST */
+
+/* tag::lookup-nest-clause[] */
+lookup-nest-clause ::= lookup-nest-type? 'NEST' lookup-nest-rhs lookup-nest-predicate
+/* end::lookup-nest-clause[] */
+
+/* tag::lookup-nest-type[] */
+lookup-nest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+/* end::lookup-nest-type[] */
+
+/* tag::lookup-nest-rhs[] */
+lookup-nest-rhs ::= keyspace-ref ( 'AS'? alias )?
+/* end::lookup-nest-rhs[] */
+
+/* tag::lookup-nest-predicate[] */
+lookup-nest-predicate ::= 'ON' 'KEYS' expr
+/* end::lookup-nest-predicate[] */
+
+
+/* Index NEST */
+
+/* tag::index-nest-clause[] */
+index-nest-clause ::= index-nest-type? 'NEST' index-nest-rhs index-nest-predicate
+/* end::index-nest-clause[] */
+
+/* tag::index-nest-type[] */
+index-nest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+/* end::index-nest-type[] */
+
+/* tag::index-nest-rhs[] */
+index-nest-rhs ::= keyspace-ref ( 'AS'? alias )?
+/* end::index-nest-rhs[] */
+
+/* tag::index-nest-predicate[] */
+index-nest-predicate ::= 'ON' 'KEY' expr 'FOR' alias
+/* end::index-nest-predicate[] */
+
+
+/* UNNEST Clause */
+
+/* tag::unnest-clause[] */
+unnest-clause ::= unnest-type? ( 'UNNEST' | 'FLATTEN' ) expr ( 'AS'? alias )?
+/* end::unnest-clause[] */
+
+/* tag::unnest-type[] */
+unnest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+/* end::unnest-type[] */
+
+
+/* USE Clause */
+
+/* tag::use-clause[] */
+use-clause ::= use-keys-clause | use-index-clause
+/* end::use-clause[] */
+
+/* tag::use-keys-clause[] */
+use-keys-clause ::= 'USE' use-keys-term
+/* end::use-keys-clause[] */
+
+/* tag::use-keys-term[] */
+use-keys-term ::= 'PRIMARY'? 'KEYS' expr
+/* end::use-keys-term[] */
+
+/* tag::use-index-clause[] */
+use-index-clause ::= 'USE' use-index-term
+/* end::use-index-clause[] */
+
+/* tag::use-index-term[] */
+use-index-term ::= 'INDEX' '(' index-ref ( ',' index-ref )* ')'
+/* end::use-index-term[] */
+
+/* tag::index-ref[] */
+index-ref ::= index-name? index-type?
+/* end::index-ref[] */
+
+/* tag::index-name[] */
+index-name ::= identifier
+/* end::index-name[] */
+
+/* tag::index-type[] */
+index-type ::= 'USING' ( 'GSI' | 'FTS' )
+/* end::index-type[] */
+
+
+/* LET Clause */
+
+/* tag::let-clause[] */
+let-clause ::= 'LET' alias '=' expr ( ',' alias '=' expr )*
+/* end::let-clause[] */
+
+
+/* WHERE Clause */
+
+/* tag::where-clause[] */
+where-clause ::= 'WHERE' cond
+/* end::where-clause[] */
+
+/* tag::cond[] */
+cond ::= expr
+/* end::cond[] */
+
+
+/* GROUP BY Clause */
+
+/* tag::group-by-clause[] */
+group-by-clause ::= 'GROUP' 'BY' group-term ( ',' group-term )*
+                    letting-clause? having-clause? | letting-clause
+/* end::group-by-clause[] */
+
+/* tag::group-term[] */
+group-term ::= expr ( ('AS')? alias )?
+/* end::group-term[] */
+
+/* tag::letting-clause[] */
+letting-clause ::= 'LETTING' alias '=' expr ( ',' alias '=' expr )*
+/* end::letting-clause[] */
+
+/* tag::having-clause[] */
+having-clause ::= 'HAVING' cond
+/* end::having-clause[] */
+
+
+/* WINDOW Clause */
+
+/* tag::window-clause[] */
+window-clause ::= 'WINDOW' window-declaration ( ',' window-declaration )*
+/* end::window-clause[] */
+
+/* tag::window-declaration[] */
+window-declaration ::= window-name 'AS' '(' window-definition ')'
+/* end::window-declaration[] */
+
+/* tag::window-name[] */
+window-name ::= identifier
+/* end::window-name[] */
+
+/* tag::window-definition[] */
+window-definition ::= window-ref? window-partition-clause? window-order-clause?
+                      window-frame-clause?
+/* end::window-definition[] */
+
+/* tag::window-ref[] */
+window-ref ::= identifier
+/* end::window-ref[] */
+
+/* tag::window-partition-clause[] */
+window-partition-clause ::= 'PARTITION' 'BY' expr ( ',' expr )*
+/* end::window-partition-clause[] */
+
+/* tag::window-order-clause[] */
+window-order-clause ::= 'ORDER' 'BY' ordering-term ( ',' ordering-term )*
+/* end::window-order-clause[] */
+
+/* tag::window-frame-clause[] */
+window-frame-clause ::= ( 'ROWS' | 'RANGE' | 'GROUPS' ) window-frame-extent
+                        window-frame-exclusion?
+/* end::window-frame-clause[] */
+
+/* tag::window-frame-extent[] */
+window-frame-extent ::= 'UNBOUNDED' 'PRECEDING' | 'CURRENT' 'ROW' |
+                        'BETWEEN' ( 'UNBOUNDED' 'PRECEDING' | 'CURRENT' 'ROW' | ( 'PRECEDING' | 'FOLLOWING' ) )
+                            'AND' ( 'UNBOUNDED' 'FOLLOWING' | 'CURRENT' 'ROW' | ( 'PRECEDING' | 'FOLLOWING' ) )
+/* end::window-frame-extent[] */
+
+/* tag::window-frame-exclusion[] */
+window-frame-exclusion ::= 'EXCLUDE' ( 'CURRENT' 'ROW' | 'GROUP' | 'TIES' | 'NO' 'OTHERS' )
+/* end::window-frame-exclusion[] */
+
+
+/* ORDER BY Clause */
+
+/* tag::order-by-clause[] */
+order-by-clause ::= 'ORDER' 'BY' ordering-term ( ',' ordering-term )*
+/* end::order-by-clause[] */
+
+/* tag::ordering-term[] */
+ordering-term ::= expr ( 'ASC' | 'DESC' )? ( 'NULLS' ( 'FIRST' | 'LAST' ) )?
+/* end::ordering-term[] */
+
+
+/* LIMIT Clause */
+
+/* tag::limit-clause[] */
+limit-clause ::= 'LIMIT' expr
+/* end::limit-clause[] */
+
+
+/* OFFSET Clause */
+
+/* tag::offset-clause[] */
+offset-clause ::= 'OFFSET' expr
+/* end::offset-clause[] */
+
+/* Hints */
+
+/* tag::hint-comment[] */
+hint-comment ::= block-hint-comment | line-hint-comment
+/* end::hint-comment[] */
+
+/* tag::block-hint-comment[] */
+block-hint-comment ::= '/*+' hints '*/'
+/* end::block-hint-comment[] */
+
+/* tag::line-hint-comment[] */
+line-hint-comment ::= '--+' hints
+/* end::line-hint-comment[] */
+
+/* tag::hints[] */
+hints ::= simple-hint-sequence | json-hint-object
+/* end::hints[] */
+
+/* tag::simple-hint-sequence[] */
+simple-hint-sequence ::= simple-hint+
+/* end::simple-hint-sequence[] */
+
+/* tag::simple-hint[] */
+simple-hint ::= ordered-hint-simple
+              | gsi-hint-simple
+              | fts-hint-simple
+              | hash-hint-simple
+              | nl-hint-simple
+/* end::simple-hint[] */
+
+/* tag::ordered-hint-simple[] */
+ordered-hint-simple ::= 'ORDERED'
+/* end::ordered-hint-simple[] */
+
+/* tag::gsi-hint-simple[] */
+gsi-hint-simple ::= 'INDEX' '(' keyspace  ')'
+/* end::gsi-hint-simple[] */
+
+<keyspace> ::= 'KEYSPACE' <identifier>
+
+/* tag::fts-hint-simple[] */
+fts-hint-simple ::= 'INDEX_FTS' '(' keyspace  ')'
+/* end::fts-hint-simple[] */
+
+/* tag::nl-hint-simple[] */
+nl-hint-simple ::= 'USE_NL' '(' ( keyspace )+ ')'
+/* end::nl-hint-simple[] */
+
+/* tag::hash-hint-simple[] */
+hash-hint-simple ::= 'USE_HASH' '(' ( keyspace ( '/' ( 'BUILD' | 'PROBE' ) )? )+ ')'
+/* end::hash-hint-simple[] */
+
+/* tag::json-hint-object[] */
+json-hint-object ::= '{' json-hint (',' json-hint )* '}'
+/* end::json-hint-object[] */
+
+/* tag::json-hint[] */
+json-hint ::= ordered-hint-json
+             | gsi-hint-json
+             | fts-hint-json
+             | hash-hint-json
+             | nl-hint-json
+/* end::json-hint[] */
+
+/* tag::ordered-hint-json[] */
+ordered-hint-json ::= '"ordered"' ':' 'true'
+/* end::ordered-hint-json[] */
+
+/* tag::gsi-hint-json[] */
+gsi-hint-json ::= '"index"' ':' ( index-array | index-object )
+/* end::gsi-hint-json[] */
+
+/* tag::fts-hint-json[] */
+fts-hint-json ::= '"index_fts"' ':' ( index-array | index-object )
+/* end::fts-hint-json[] */
+
+/* tag::nl-hint-json[] */
+nl-hint-json ::= '"use_nl"' ':' ( keyspace-array | keyspace-object )
+/* end::nl-hint-json[] */
+
+/* tag::hash-hint-json[] */
+hash-hint-json ::= '"use_hash"' ':' ( hash-array | hash-object )
+/* end::hash-hint-json[] */
+
+/* tag::index-array[] */
+index-array ::= '[' index-object ( ',' index-object )* ']'
+/* end::index-array[] */
+
+/* tag::index-object[] */
+index-object ::= '{' keyspace-property ',' indexes-property '}'
+/* end::index-object[] */
+
+/* tag::indexes-property[] */
+indexes-property ::= '"indexes"' ':' ( 'null'
+                                     | '"' index '"'
+                                     | '[' '"' index '"' ( ',' '"' index '"' )* ']' )
+/* end::indexes-property[] */
+
+/* tag::keyspace-array[] */
+keyspace-array ::= '[' keyspace-object ( ',' keyspace-object )* ']'
+/* end::keyspace-array[] */
+
+/* tag::keyspace-object[] */
+keyspace-object ::= '{' keyspace-property '}'
+/* end::keyspace-object[] */
+
+/* tag::keyspace-property[] */
+keyspace-property ::= ( '"keyspace"' | '"alias"' ) ':' '"' keyspace '"'
+/* end::keyspace-property[] */
+
+/* tag::hash-array[] */
+hash-array ::= '[' hash-object ( ',' hash-object )* ']'
+/* end::hash-array[] */
+
+/* tag::hash-object[] */
+hash-object ::= '{' keyspace-property ( "," option-property )? '}'
+/* end::hash-object[] */
+
+/* tag::option-property[] */
+option-property ::= '"option"' ':' ( '"build"' | '"probe"' | 'null' )
+/* end::option-property[] */
+
+/* SQL++ for Query (N1QL) */
+
+/**************
+ * Statements *
+ **************/
+
+sequence ::= statement ( ';' statement )* ';'?
+
+statement ::= dcl-statement |
+              ddl-statement |
+              dml-statement |
+              dql-statement |
+              tcl-statement |
+              utility-statement
+
+/***************
+ * Expressions *
+ ***************/
+
+expr ::= literal |
+         identifier |
+         arithmetic-term |
+         comparison-term |
+         concatenation-term |
+         logical-term |
+         case-expr |
+         collection-expr |
+         construction-expr |
+         nested-expr |
+         function-call |
+         subquery-expr |
+         '(' expr ')'
+
+
+/* Literal */
+
+literal ::= string | number | boolean | null | missing
+
+/* tag::string[] */
+string ::= '"' char* '"' | "'" char* "'"
+/* end::string[] */
+
+/* tag::char[] */
+char ::= '\' ('\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' | 'u' hex hex hex hex )
+/* end::char[] */
+
+/* tag::hex[] */
+hex ::= [0-9a-fA-F]
+/* end::hex[] */
+
+/* tag::number[] */
+number ::= '-'? integer fraction? exponent?
+/* end::number[] */
+
+/* tag::integer[] */
+integer ::= [0-9] | [1-9] [0-9]+
+/* end::integer[] */
+
+/* tag::fraction[] */
+fraction ::= '.' [0-9]+
+/* end::fraction[] */
+
+/* tag::exponent[] */
+exponent ::= ('e' | 'E') ('-' | '+')? [0-9]+
+/* end::exponent[] */
+
+/* tag::boolean[] */
+boolean ::= 'TRUE' | 'FALSE'
+/* end::boolean[] */
+
+/* tag::null[] */
+null ::= 'NULL'
+/* end::null[] */
+
+/* tag::missing[] */
+missing ::= 'MISSING'
+/* end::missing[] */
+
+
+/* Identifier */
+
+/* tag::identifier[] */
+identifier ::= unescaped-identifier | escaped-identifier
+/* end::identifier[] */
+
+/* tag::unescaped-identifier[] */
+unescaped-identifier ::= [a-zA-Z_] ( [0-9a-zA-Z_$] )*
+/* end::unescaped-identifier[] */
+
+/* tag::escaped-identifier[] */
+escaped-identifier ::= '`' char+ '`'
+/* end::escaped-identifier[] */
+
+
+/* Arithmetic Terms */
+
+/* tag::arithmetic-term[] */
+arithmetic-term ::= expr '+' expr |
+                    expr '-' expr |
+                    expr '*' expr |
+                    expr '/' expr |
+                    expr '%' expr |
+                    '-' expr
+/* end::arithmetic-term[] */
+
+
+/* Comparison Terms */
+
+comparison-term ::= relational-expr |
+                    between-expr |
+                    like-expr |
+                    is-expr
+
+/* tag::relational-expr[] */
+relational-expr ::= expr '=' expr |
+                    expr '==' expr |
+                    expr '!=' expr |
+                    expr '<>' expr |
+                    expr '>' expr |
+                    expr '>=' expr |
+                    expr '<' expr |
+                    expr '<=' expr
+/* end::relational-expr[] */
+
+/* tag::between-expr[] */
+between-expr ::= expr 'NOT'? 'BETWEEN' start-expr 'AND' end-expr
+/* end::between-expr[] */
+
+/* tag::like-expr[] */
+like-expr ::= expr 'NOT'? 'LIKE' expr
+/* end::like-expr[] */
+
+/* tag::is-expr[] */
+is-expr ::= expr 'IS' 'NOT'? 'NULL' |
+            expr 'IS' 'NOT'? 'MISSING' |
+            expr 'IS' 'NOT'? 'VALUED'
+/* end::is-expr[] */
+
+
+/* Concatenation Terms */
+
+/* tag::concatenation-term[] */
+concatenation-term ::= expr '||' expr
+/* end::concatenation-term[] */
+
+
+/* Logical Terms */
+
+logical-term ::= and | or | not
+
+/* tag::and[] */
+and ::= cond 'AND' cond
+/* end::and[] */
+
+/* tag::or[] */
+or ::= cond 'OR' cond
+/* end::or[] */
+
+/* tag::not[] */
+not ::= 'NOT' cond
+/* end::not[] */
+
+
+/* Case Expressions */
+
+/* tag::case-expr[] */
+case-expr ::= simple-case-expr | searched-case-expr
+/* end::case-expr[] */
+
+/* tag::simple-case-expr[] */
+simple-case-expr ::= 'CASE' expr ('WHEN' expr 'THEN' expr)+ ('ELSE' expr)? 'END'
+/* end::simple-case-expr[] */
+
+/* tag::searched-case-expr[] */
+searched-case-expr ::= 'CASE' ('WHEN' cond 'THEN' expr)+ ('ELSE' expr)? 'END'
+/* end::searched-case-expr[] */
+
+
+/* Collection Expressions */
+
+collection-expr ::= exists-expr | in-expr | within-expr | range-cond | range-xform
+
+/* tag::exists-expr[] */
+exists-expr ::= 'EXISTS' expr
+/* end::exists-expr[] */
+
+/* tag::in-expr[] */
+in-expr ::= search-expr 'NOT'? 'IN' target-expr
+/* end::in-expr[] */
+
+/* tag::within-expr[] */
+within-expr ::= search-expr 'NOT'? 'WITHIN' target-expr
+/* end::within-expr[] */
+
+/* tag::range-cond[] */
+range-cond ::= ( ( 'ANY' | 'SOME' ) ( 'AND' 'EVERY' )? | 'EVERY' )
+               range 'SATISFIES' cond 'END'
+/* end::range-cond[] */
+
+/* tag::range-xform[] */
+range-xform ::= ( ( 'ARRAY' | 'FIRST' ) | 'OBJECT' name-expr ':' ) var-expr
+                'FOR' range ( 'WHEN' cond )? 'END'
+/* end::range-xform[] */
+
+/* tag::range[] */
+range ::= ( name-var ':' )? var ( 'IN' | 'WITHIN' ) expr
+    ( ',' ( name-var ':' )? var ( 'IN' | 'WITHIN' ) expr )*
+/* end::range[] */
+
+search-expr ::= expr
+target-expr ::= expr
+var-expr ::= expr
+name-expr ::= expr
+var ::= identifier
+name-var ::= identifier
+
+
+/* Construction Expressions */
+
+construction-expr ::= object | array
+
+/* tag::object[] */
+object ::= '{' ( ( name-expr ':' )? expr (',' ( name-expr ':' )? expr)* )? '}'
+/* end::object[] */
+
+/* tag::array[] */
+array ::= '[' ( expr ( ',' expr )* )? ']'
+/* end::array[] */
+
+
+/* Nested Expressions */
+
+/* tag::nested-expr[] */
+nested-expr ::= field-expr | element-expr | slice-expr
+/* end::nested-expr[] */
+
+/* tag::field-expr[] */
+field-expr ::= expr '.' ( identifier | ( ( escaped-identifier | '[' name-expr ']' ) 'i'? ) )
+/* end::field-expr[] */
+
+/* tag::element-expr[] */
+element-expr ::= expr '[' position ']'
+/* end::element-expr[] */
+
+/* tag::slice-expr[] */
+slice-expr ::= expr '[' start-expr ':' end-expr? ']'
+/* end::slice-expr[] */
+
+start-expr ::= expr
+end-expr ::= expr
+position ::= expr
+
+/* Function Calls */
+
+function-call ::= ordinary-function |
+                  aggregate-function |
+                  window-function
+
+function-name ::= identifier
+aggregate-function-name ::= identifier
+window-function-name ::= identifier
+
+ordinary-function ::= function-name '(' ( expr ( ',' expr )* )? ')'
+
+/* tag::aggregate-function[] */
+aggregate-function ::= aggregate-function-name '(' ( aggregate-quantifier? expr |
+                       ( path '.' )? '*' ) ')' filter-clause? over-clause?
+/* end::aggregate-function[] */
+
+/* tag::aggregate-quantifier[] */
+aggregate-quantifier ::= 'ALL' | 'DISTINCT'
+/* end::aggregate-quantifier[] */
+
+/* tag::filter-clause[] */
+filter-clause ::= 'FILTER' '(' 'WHERE' cond ')'
+/* end::filter-clause[] */
+
+/* tag::window-function[] */
+window-function ::= window-function-name '(' window-function-arguments ')'
+                    window-function-options? over-clause
+/* end::window-function[] */
+
+/* tag::window-function-arguments[] */
+window-function-arguments ::= ( expr ( ',' expr ( ',' expr )? )? )?
+/* end::window-function-arguments[] */
+
+/* tag::window-function-options[] */
+window-function-options ::= nthval-from? nulls-treatment?
+/* end::window-function-options[] */
+
+/* tag::nthval-from[] */
+nthval-from ::= 'FROM' ( 'FIRST' | 'LAST' )
+/* end::nthval-from[] */
+
+/* tag::nulls-treatment[] */
+nulls-treatment ::= ( 'RESPECT' | 'IGNORE' ) 'NULLS'
+/* end::nulls-treatment[] */
+
+/* tag::over-clause[] */
+over-clause ::= 'OVER' ( '(' window-definition ')' | window-ref )
+/* end::over-clause[] */
+
+
+/* Subquery Expressions */
+
+/* tag::subquery-expr[] */
+subquery-expr ::= '(' select ')'
+/* end::subquery-expr[] */
+
+
+/************
+ * Comments *
+ ************/
+
+comment ::= block-comment | line-comment
+
+/* tag::block-comment[] */
+block-comment ::= '/*' (  newline )* '*/'
+/* end::block-comment[] */
+
+/* tag::line-comment[] */
+line-comment ::=  '--' string?
+/* end::line-comment[] */
+
+
+<newline> ::= '\n'
+
+/* Transaction Control Language */
+
+tcl-statement ::= begin-transaction
+                | set-transaction
+                | savepoint
+                | rollback-transaction
+                | commit-transaction
+
+/* tag::begin-transaction[] */
+begin-transaction ::= ( 'BEGIN' | 'START' ) ( 'WORK' | 'TRAN' | 'TRANSACTION' )
+                      ( 'ISOLATION' 'LEVEL' 'READ' 'COMMITTED' )?
+/* end::begin-transaction[] */
+
+/* tag::set-transaction[] */
+set-transaction ::= 'SET' 'TRANSACTION' 'ISOLATION' 'LEVEL' 'READ' 'COMMITTED'
+/* end::set-transaction[] */
+
+/* tag::savepoint[] */
+savepoint ::= 'SAVEPOINT' savepointname
+/* end::savepoint[] */
+
+/* tag::rollback-transaction[] */
+rollback-transaction ::= 'ROLLBACK' ( 'WORK' | 'TRAN' | 'TRANSACTION' )?
+                       ( 'TO' 'SAVEPOINT' savepointname )?
+/* end::rollback-transaction[] */
+
+/* tag::commit-transaction[] */
+commit-transaction ::= 'COMMIT' ( 'WORK' | 'TRAN' | 'TRANSACTION' )?
+/* end::commit-transaction[] */
+
+savepointname ::= identifier
+
+
+/* Utility Statements */
+
+utility-statement ::= advise
+                    | explain
+                    | prepare
+                    | execute
+
+/* tag::advise[] */
+advise ::= 'ADVISE' 'INDEX'? ( select | update | delete | merge )
+/* end::advise[] */
+
+/* tag::explain[] */
+explain ::= 'EXPLAIN' statement
+/* end::explain[] */
+
+/* tag::infer[] */
+infer ::= 'INFER' ( 'COLLECTION' | 'KEYSPACE' )? keyspace-ref ( 'WITH' options )?
+/* end::infer[] */
+
+options ::= object
+
+/***********************
+ * Prepared Statements *
+ ***********************/
+
+/* tag::prepare[] */
+prepare ::= 'PREPARE' 'FORCE'? ( name ( 'FROM' | 'AS' ) )? statement
+/* end::prepare[] */
+
+/* tag::execute[] */
+execute ::= 'EXECUTE' name ( 'USING' parameters )?
+/* end::execute[] */
+
+name ::= identifier
+parameters ::= array | object
+
+/**************
+ * Statistics *
+ **************/
+
+/* tag::update-statistics[] */
+update-statistics ::= update-statistics-expr | update-statistics-index | update-statistics-delete
+/* end::update-statistics[] */
+
+/* tag::update-statistics-expr[] */
+update-statistics-expr ::= ( 'UPDATE' 'STATISTICS' 'FOR'? |
+                             'ANALYZE' ( 'KEYSPACE' | 'COLLECTION')? )
+                             keyspace-ref '(' index-key ( ',' index-key )* ')' index-with?
+/* end::update-statistics-expr[] */
+
+/* tag::update-statistics-index[] */
+update-statistics-index ::= ( 'UPDATE' 'STATISTICS' 'FOR' | 'ANALYZE' )
+                              index-clause index-using?  index-with?
+/* end::update-statistics-index[] */
+
+/* tag::index-clause[] */
+index-clause ::= 'INDEX' ( index-path '.' index-name | index-name 'ON' keyspace-ref )
+/* end::index-clause[] */
+
+/* tag::update-statistics-indexes[] */
+update-statistics-indexes ::= ( 'UPDATE' 'STATISTICS' 'FOR'? |
+                                'ANALYZE' ( 'KEYSPACE' | 'COLLECTION')? )
+                                keyspace-ref indexes-clause index-using? index-with?
+/* end::update-statistics-indexes[] */
+
+/* tag::indexes-clause[] */
+indexes-clause ::= 'INDEX' ( '(' ( index-name ( ',' index-name )* | subquery-expr ) ')' |
+                             'ALL' )
+/* end::indexes-clause[] */
+
+/* tag::update-statistics-delete[] */
+update-statistics-delete ::= ( 'UPDATE' 'STATISTICS' 'FOR'? |
+                               'ANALYZE' ( 'KEYSPACE' | 'COLLECTION')? )
+                               keyspace-ref delete-clause
+/* end::update-statistics-delete[] */
+
+/* tag::delete-clause[] */
+delete-clause ::= 'DELETE' ( delete-expr | delete-all )
+/* end::delete-clause[] */
+
+/* tag::delete-expr[] */
+delete-expr ::= 'STATISTICS'? '(' index-key ( ',' index-key )* ')'
+/* end::delete-expr[] */
+
+/* tag::delete-all[] */
+delete-all ::= 'ALL' | 'STATISTICS'
+/* end::delete-all[] */

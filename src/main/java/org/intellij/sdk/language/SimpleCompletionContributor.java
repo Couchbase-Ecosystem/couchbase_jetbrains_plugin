@@ -6,13 +6,13 @@ import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.util.ProcessingContext;
-import org.intellij.sdk.language.psi.SimpleTypes;
+import generated.GeneratedTypes;
 import org.jetbrains.annotations.NotNull;
 
 public class SimpleCompletionContributor extends CompletionContributor {
 
   public SimpleCompletionContributor() {
-    extend(CompletionType.BASIC, PlatformPatterns.psiElement(SimpleTypes.VALUE),
+    extend(CompletionType.BASIC, PlatformPatterns.psiElement(GeneratedTypes.BOOL),
             new CompletionProvider<>() {
               public void addCompletions(@NotNull CompletionParameters parameters,
                                          @NotNull ProcessingContext context,

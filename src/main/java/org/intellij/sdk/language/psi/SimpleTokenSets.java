@@ -3,11 +3,12 @@
 package org.intellij.sdk.language.psi;
 
 import com.intellij.psi.tree.TokenSet;
+import generated.GeneratedTypes;
 
 public interface SimpleTokenSets {
 
-  TokenSet IDENTIFIERS = TokenSet.create(SimpleTypes.KEY);
+  TokenSet IDENTIFIERS = TokenSet.create(GeneratedTypes.MISSING);
 
-  TokenSet COMMENTS = TokenSet.create(SimpleTypes.COMMENT);
+  TokenSet COMMENTS = TokenSet.create(GeneratedTypes.COMMENT);
 
 }

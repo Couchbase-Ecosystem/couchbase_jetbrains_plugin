@@ -1,31 +1,813 @@
-// Copyright 2000-2022 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-{
-  parserClass="org.intellij.sdk.language.parser.SimpleParser"
 
-  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+grant ::= 'GRANT' role ( ',' role )* ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
+          'TO' user ( ',' user )*
 
-  psiClassPrefix="Simple"
-  psiImplClassSuffix="Impl"
-  psiPackage="org.intellij.sdk.language.psi"
-  psiImplPackage="org.intellij.sdk.language.psi.impl"
 
-  elementTypeHolderClass="org.intellij.sdk.language.psi.SimpleTypes"
-  elementTypeClass="org.intellij.sdk.language.psi.SimpleElementType"
-  tokenTypeClass="org.intellij.sdk.language.psi.SimpleTokenType"
 
-  psiImplUtilClass="org.intellij.sdk.language.psi.impl.SimplePsiImplUtil"
-}
+revoke ::= 'REVOKE' role ( ',' role )* ( 'ON' keyspace-ref ( ',' keyspace-ref )* )?
+           'FROM' user ( ',' user )*
 
-simpleFile ::= item_*
 
-private item_ ::= (property|COMMENT|CRLF)
+role ::= identifier
+user ::= identifier
 
-property ::= (KEY? SEPARATOR VALUE?) | KEY {
-  pin=3
-  recoverWhile="recover_property"
-  mixin="org.intellij.sdk.language.psi.impl.SimpleNamedElementImpl"
-  implements="org.intellij.sdk.language.psi.SimpleNamedElement"
-  methods=[getKey getValue getName setName getNameIdentifier getPresentation]
-}
 
-private recover_property ::= !(KEY|SEPARATOR|COMMENT)
+ddl-statement ::= create-statement
+                | drop-statement
+                | other-statement
+
+create-statement ::= create-scope
+                   | create-collection
+                   | create-primary-index
+                   | create-index
+                   | create-function
+
+drop-statement ::= drop-scope
+                 | drop-collection
+                 | drop-primary-index
+                 | drop-index
+                 | drop-function
+
+other-statement ::= alter-index
+                  | build-index
+                  | execute-function
+
+
+create-scope ::= 'CREATE' 'SCOPE' ( namespace ':' )? bucket '.' scope ( 'IF' 'NOT' 'EXISTS' )?
+
+create-collection ::= 'CREATE' 'COLLECTION' ( ( namespace ':' )? bucket '.' scope '.' )?
+                      collection ( 'IF' 'NOT' 'EXISTS' )?
+
+
+
+drop-scope ::= 'DROP' 'SCOPE' ( namespace ':' )? bucket '.' scope ( 'IF' 'EXISTS' )?
+
+
+
+drop-collection ::= 'DROP' 'COLLECTION' ( ( namespace ':' )? bucket '.' scope '.' )?
+                    collection ( 'IF' 'EXISTS' )?
+
+
+create-primary-index ::= 'CREATE' 'PRIMARY' 'INDEX' index-name? ( 'IF' 'NOT' 'EXISTS' )?
+                         'ON' keyspace-ref index-using? index-with?
+
+index-using ::= 'USING' 'GSI'
+
+index-with ::= 'WITH' expr
+
+create-index ::= 'CREATE' 'INDEX' index-name ( 'IF' 'NOT' 'EXISTS' )? 'ON' keyspace-ref
+                 '(' index-key lead-key-attribs? ( ( ',' index-key key-attribs? )+ )? ')'
+                 index-partition? where-clause? index-using? index-with?
+
+index-key ::= expr | array-expr
+
+lead-key-attribs ::= index-order include-missing? | include-missing index-order?
+
+key-attribs ::= index-order
+
+include-missing ::= 'INCLUDE' 'MISSING'
+
+index-order ::= 'ASC' | 'DESC'
+
+array-expr ::= full-array-expr | simple-array-expr
+
+full-array-expr ::= ( 'ALL' | 'DISTINCT' ) 'ARRAY' var-expr
+                    'FOR' var ( 'IN' | 'WITHIN' ) expr
+                    ( ',' var ( 'IN' | 'WITHIN' ) expr )* ( 'WHEN' cond )? 'END'
+
+simple-array-expr ::= ( 'ALL' | 'DISTINCT' ) expr
+
+pairs-function ::= 'PAIRS' '(' ( 'SELF' | index-key-object ) ')'
+
+index-key-object ::= expr
+
+index-partition ::= 'PARTITION' 'BY' 'HASH' '(' partition-key-expr
+                    ( ',' partition-key-expr )* ')'
+
+partition-key-expr ::= expr
+
+
+alter-index ::= 'ALTER' 'INDEX' ( index-path '.' index-name | index-name 'ON' keyspace-ref )
+                index-using? index-with
+
+build-index ::= 'BUILD' 'INDEX' 'ON' keyspace-ref '(' index-term (',' index-term)* ')'
+                index-using?
+
+index-term ::= index-name | subquery-expr
+
+
+drop-primary-index ::= 'DROP' 'PRIMARY' 'INDEX' ( 'IF' 'EXISTS' )? 'ON' keyspace-ref
+                       index-using?
+
+drop-index ::= 'DROP' 'INDEX' ( index-path '.' index-name ( 'IF' 'EXISTS' )? |
+                index-name ( 'IF' 'EXISTS' )? 'ON' keyspace-ref ) index-using?
+
+index-path ::= keyspace-full | keyspace-prefix | keyspace-partial
+
+keyspace-full ::= namespace ':' bucket '.' scope '.' collection
+
+keyspace-prefix ::= ( namespace ':' )? bucket
+
+create-function ::= create-function-inline | create-function-external
+
+create-function-inline ::= 'CREATE' ( 'OR' 'REPLACE' )? 'FUNCTION' function '(' params? ')'
+                           ( 'IF' 'NOT' 'EXISTS' )?
+                           ( '{' body '}' | 'LANGUAGE' 'INLINE' 'AS' body )
+
+create-function-external ::= 'CREATE' ( 'OR' 'REPLACE' )? 'FUNCTION' function '(' params? ')'
+                             ( 'IF' 'NOT' 'EXISTS' )?
+                             'LANGUAGE' 'JAVASCRIPT' 'AS' obj 'AT'
+
+function ::= ( namespace ':' ( bucket '.' scope '.' )? )? identifier
+
+params ::= identifier ( "," identifier )* | "..."
+
+body ::= expr
+
+obj ::= str
+
+drop-function ::= 'DROP' 'FUNCTION' function ( 'IF' 'EXISTS' )?
+
+execute-function ::= 'EXECUTE' 'FUNCTION' function '(' ( expr ( ',' expr )* )? ')'
+
+dml-statement ::= delete
+                | insert
+                | merge
+                | update
+                | upsert
+
+
+
+delete ::= 'DELETE' 'FROM' target-keyspace use-keys-clause? where-clause?
+            limit-clause? returning-clause?
+
+insert ::= 'INSERT' 'INTO' target-keyspace ( insert-values | insert-select )
+            returning-clause?
+
+insert-values ::= ( '(' 'PRIMARY'? 'KEY' ',' 'VALUE' ( ',' 'OPTIONS' )? ')' )? values-clause
+
+values-clause ::= 'VALUES'  '(' key ',' value ( ',' options )? ')'
+            ( ',' 'VALUES'? '(' key ',' value ( ',' options )? ')' )*
+
+insert-select ::= '(' 'PRIMARY'? 'KEY' key ( ',' 'VALUE' value )?
+                   ( ',' 'OPTIONS' options )? ')' select
+
+
+merge ::= 'MERGE' 'INTO' ( ansi-merge | lookup-merge ) limit-clause? returning-clause?
+
+ansi-merge ::= target-keyspace use-index-clause 'USING' ansi-merge-source
+               ansi-merge-predicate ansi-merge-actions
+
+ansi-merge-source ::= ( merge-source-keyspace | merge-source-subquery | merge-source-expr )
+                      ansi-join-hints?
+
+ansi-merge-predicate ::= 'ON' expr
+
+ansi-merge-actions ::= merge-update? merge-delete? ansi-merge-insert?
+
+ansi-merge-insert ::= 'WHEN' 'NOT' 'MATCHED' 'THEN' 'INSERT' '(' 'KEY'? key
+                      ( ',' 'VALUE'? value )? ( ',' 'OPTIONS'? options )? ')' where-clause?
+
+lookup-merge ::= target-keyspace 'USING' lookup-merge-source lookup-merge-predicate
+                 lookup-merge-actions
+
+lookup-merge-source ::= merge-source-keyspace use-clause? |
+                        merge-source-subquery |
+                        merge-source-expr
+
+lookup-merge-predicate ::= 'ON' 'PRIMARY'? 'KEY' expr
+
+lookup-merge-actions ::= merge-update? merge-delete? lookup-merge-insert?
+
+lookup-merge-insert ::= 'WHEN' 'NOT' 'MATCHED' 'THEN' 'INSERT' expr where-clause?
+
+merge-source-keyspace ::= keyspace-ref ( 'AS'? alias )?
+
+merge-source-subquery ::= subquery-expr 'AS'? alias
+
+merge-source-expr ::= expr ( 'AS'? alias )?
+
+merge-update ::= 'WHEN' 'MATCHED' 'THEN' 'UPDATE' set-clause? unset-clause? where-clause?
+
+merge-delete ::= 'WHEN' 'MATCHED' 'THEN' 'DELETE' where-clause?
+
+update ::= 'UPDATE' target-keyspace use-keys? set-clause? unset-clause?
+            where-clause? limit-clause? returning-clause?
+
+
+use-keys ::= str
+
+upsert ::= 'UPSERT' 'INTO' target-keyspace ( insert-values | insert-select )
+            returning-clause?
+
+
+target-keyspace ::= keyspace-ref ( 'AS'? alias )?
+
+returning-clause ::= 'RETURNING' (result-expr (',' result-expr)* |
+                    ('RAW' | 'ELEMENT' | 'VALUE') expr)
+
+set-clause ::= 'SET' ( path '=' expr update-for? )
+               ( ',' (  path '=' expr update-for? ) )*
+
+unset-clause ::= 'UNSET' path update-for? (',' path update-for?)*
+
+update-for ::= ('FOR' (name-var ':')? var ('IN' | 'WITHIN') path
+               (','   (name-var ':')? var ('IN' | 'WITHIN') path)* )+
+               ('WHEN' cond)? 'END'
+/* end::update-for[] */
+
+key ::= expr
+value ::= expr
+
+/* Data Query Language */
+
+dql-statement ::= select |
+                  infer |
+                  update-statistics
+
+/***************
+ * N1QL SELECT *
+ ***************/
+
+select ::= select-term ( set-op select-term )* order-by-clause? limit-clause? offset-clause?
+
+select-term ::= subselect | '(' select ')'
+
+subselect ::= select-from | from-select
+
+select-from ::= with-clause? select-clause from-clause? let-clause? where-clause? group-by-clause? window-clause?
+
+from-select ::= with-clause? from-clause let-clause? where-clause? group-by-clause? window-clause? select-clause
+
+set-op ::= ( 'UNION' | 'INTERSECT' | 'EXCEPT' ) 'ALL'?
+
+
+
+with-clause ::= 'WITH' alias 'AS' '(' ( select | expr ) ')'
+                 ( ',' alias 'AS' '(' ( select | expr ) ')' )*
+
+alias ::= identifier
+
+
+
+select-clause ::= 'SELECT' hint-comment? projection
+
+projection ::= ( 'ALL' | 'DISTINCT' )? ( result-expr ( ',' result-expr )* |
+               ( 'RAW' | 'ELEMENT' | 'VALUE' ) expr ( 'AS'? alias )? )
+
+result-expr ::= ( path '.' )? '*' | expr ( 'AS'? alias )?
+
+path ::= identifier ( '[' expr ']' )* ( '.' identifier ( '[' expr ']' )* )*
+
+
+
+from-clause ::= 'FROM' from-terms
+
+from-terms ::= ( from-keyspace | from-subquery | from-generic )
+               ( join-clause | nest-clause | unnest-clause )* comma-separated-join*
+
+from-keyspace ::= keyspace-ref ( 'AS'? alias )? use-clause?
+
+keyspace-ref ::= keyspace-path | keyspace-partial
+
+keyspace-path ::= ( namespace ':' )? bucket ( '.' scope '.' collection )?
+
+keyspace-partial ::= collection
+
+namespace ::= identifier
+
+bucket ::= identifier
+
+scope ::= identifier
+
+collection ::= identifier
+
+from-subquery ::= subquery-expr 'AS'? alias
+
+subquery-expr ::= '(' select ')'
+
+from-generic ::= expr ( 'AS' alias )?
+
+
+
+join-clause ::= ansi-join-clause | lookup-join-clause | index-join-clause
+
+
+
+ansi-join-clause ::= ansi-join-type? 'JOIN' ansi-join-rhs ansi-join-predicate
+
+ansi-join-type ::= 'INNER' | ( 'LEFT' | 'RIGHT' ) 'OUTER'?
+
+ansi-join-rhs ::= rhs-keyspace | rhs-subquery | rhs-generic
+
+rhs-keyspace ::= keyspace-ref ( 'AS'? alias )? ansi-join-hints?
+
+rhs-subquery ::= subquery-expr 'AS'? alias
+
+rhs-generic ::= expr ( 'AS'? alias )?
+
+ansi-join-hints ::= use-hash-hint | use-nl-hint | multiple-hints
+
+use-hash-hint ::= 'USE' use-hash-term
+
+use-hash-term ::= 'HASH' '(' ( 'BUILD' | 'PROBE' ) ')'
+
+use-nl-hint ::= 'USE' use-nl-term
+
+use-nl-term ::= 'NL'
+
+multiple-hints ::= 'USE' ( ansi-hint-terms other-hint-terms |
+                           other-hint-terms ansi-hint-terms )
+
+ansi-hint-terms ::= use-hash-term | use-nl-term
+
+other-hint-terms ::= use-index-term | use-keys-term
+
+ansi-join-predicate ::= 'ON' expr
+
+
+
+lookup-join-clause ::= lookup-join-type? 'JOIN' lookup-join-rhs lookup-join-predicate
+
+lookup-join-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+
+lookup-join-rhs ::= keyspace-ref ( 'AS'? alias )?
+
+lookup-join-predicate ::= 'ON' 'PRIMARY'? 'KEYS' expr
+
+
+
+index-join-clause ::= index-join-type? 'JOIN' index-join-rhs index-join-predicate
+
+index-join-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+
+index-join-rhs ::= keyspace-ref ( 'AS'? alias )?
+
+index-join-predicate ::= 'ON' 'PRIMARY'? 'KEY' expr 'FOR' alias
+
+
+
+comma-separated-join ::= ',' ( rhs-keyspace | rhs-subquery | rhs-generic )
+
+
+
+nest-clause ::= ansi-nest-clause | lookup-nest-clause | index-nest-clause
+
+
+
+ansi-nest-clause ::= ansi-nest-type? 'NEST' ansi-nest-rhs ansi-nest-predicate
+
+ansi-nest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+
+ansi-nest-rhs ::= keyspace-ref ( 'AS'? alias )?
+
+ansi-nest-predicate ::= 'ON' expr
+
+
+
+lookup-nest-clause ::= lookup-nest-type? 'NEST' lookup-nest-rhs lookup-nest-predicate
+
+lookup-nest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+
+lookup-nest-rhs ::= keyspace-ref ( 'AS'? alias )?
+
+lookup-nest-predicate ::= 'ON' 'KEYS' expr
+
+
+
+index-nest-clause ::= index-nest-type? 'NEST' index-nest-rhs index-nest-predicate
+
+index-nest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+
+index-nest-rhs ::= keyspace-ref ( 'AS'? alias )?
+
+index-nest-predicate ::= 'ON' 'KEY' expr 'FOR' alias
+
+
+
+unnest-clause ::= unnest-type? ( 'UNNEST' | 'FLATTEN' ) expr ( 'AS'? alias )?
+
+unnest-type ::= 'INNER' | ( 'LEFT' 'OUTER'? )
+
+
+
+use-clause ::= use-keys-clause | use-index-clause
+
+use-keys-clause ::= 'USE' use-keys-term
+
+use-keys-term ::= 'PRIMARY'? 'KEYS' expr
+
+use-index-clause ::= 'USE' use-index-term
+
+use-index-term ::= 'INDEX' '(' index-ref ( ',' index-ref )* ')'
+
+index-ref ::= index-name? index-type?
+
+index-name ::= identifier
+
+index-type ::= 'USING' ( 'GSI' | 'FTS' )
+
+
+
+let-clause ::= 'LET' alias '=' expr ( ',' alias '=' expr )*
+
+
+
+where-clause ::= 'WHERE' cond
+
+cond ::= expr
+
+
+
+group-by-clause ::= 'GROUP' 'BY' group-term ( ',' group-term )*
+                    letting-clause? having-clause? | letting-clause
+
+group-term ::= expr ( ('AS')? alias )?
+
+letting-clause ::= 'LETTING' alias '=' expr ( ',' alias '=' expr )*
+
+having-clause ::= 'HAVING' cond
+
+
+
+window-clause ::= 'WINDOW' window-declaration ( ',' window-declaration )*
+
+window-declaration ::= window-name 'AS' '(' window-definition ')'
+
+window-name ::= identifier
+
+window-definition ::= window-ref? window-partition-clause? window-order-clause?
+                      window-frame-clause?
+
+window-ref ::= identifier
+
+window-partition-clause ::= 'PARTITION' 'BY' expr ( ',' expr )*
+
+window-order-clause ::= 'ORDER' 'BY' ordering-term ( ',' ordering-term )*
+
+window-frame-clause ::= ( 'ROWS' | 'RANGE' | 'GROUPS' ) window-frame-extent
+                        window-frame-exclusion?
+
+window-frame-extent ::= 'UNBOUNDED' 'PRECEDING' | 'CURRENT' 'ROW' |
+                        'BETWEEN' ( 'UNBOUNDED' 'PRECEDING' | 'CURRENT' 'ROW' | ( 'PRECEDING' | 'FOLLOWING' ) )
+                            'AND' ( 'UNBOUNDED' 'FOLLOWING' | 'CURRENT' 'ROW' | ( 'PRECEDING' | 'FOLLOWING' ) )
+
+window-frame-exclusion ::= 'EXCLUDE' ( 'CURRENT' 'ROW' | 'GROUP' | 'TIES' | 'NO' 'OTHERS' )
+
+
+
+order-by-clause ::= 'ORDER' 'BY' ordering-term ( ',' ordering-term )*
+
+ordering-term ::= expr ( 'ASC' | 'DESC' )? ( 'NULLS' ( 'FIRST' | 'LAST' ) )?
+
+
+
+limit-clause ::= 'LIMIT' expr
+
+
+
+offset-clause ::= 'OFFSET' expr
+
+
+hint-comment ::= block-hint-comment | line-hint-comment
+
+block-hint-comment ::= '/*+' hints '*/'
+
+line-hint-comment ::= '--+' hints
+
+hints ::= simple-hint-sequence | json-hint-object
+
+simple-hint-sequence ::= simple-hint+
+
+simple-hint ::= ordered-hint-simple
+              | gsi-hint-simple
+              | fts-hint-simple
+              | hash-hint-simple
+              | nl-hint-simple
+
+ordered-hint-simple ::= 'ORDERED'
+
+gsi-hint-simple ::= 'INDEX' '(' keyspace  ')'
+
+<keyspace> ::= 'KEYSPACE' <identifier>
+
+fts-hint-simple ::= 'INDEX_FTS' '(' keyspace  ')'
+
+nl-hint-simple ::= 'USE_NL' '(' ( keyspace )+ ')'
+
+hash-hint-simple ::= 'USE_HASH' '(' ( keyspace ( '/' ( 'BUILD' | 'PROBE' ) )? )+ ')'
+
+json-hint-object ::= '{' json-hint (',' json-hint )* '}'
+
+json-hint ::= ordered-hint-json
+             | gsi-hint-json
+             | fts-hint-json
+             | hash-hint-json
+             | nl-hint-json
+
+ordered-hint-json ::= '"ordered"' ':' 'true'
+
+gsi-hint-json ::= '"index"' ':' ( index-array | index-object )
+
+fts-hint-json ::= '"index_fts"' ':' ( index-array | index-object )
+
+nl-hint-json ::= '"use_nl"' ':' ( keyspace-array | keyspace-object )
+
+hash-hint-json ::= '"use_hash"' ':' ( hash-array | hash-object )
+
+index-array ::= '[' index-object ( ',' index-object )* ']'
+
+index-object ::= '{' keyspace-property ',' indexes-property '}'
+
+indexes-property ::= '"indexes"' ':' ( 'null'
+                                     | '"' index '"'
+                                     | '[' '"' index '"' ( ',' '"' index '"' )* ']' )
+
+keyspace-array ::= '[' keyspace-object ( ',' keyspace-object )* ']'
+
+keyspace-object ::= '{' keyspace-property '}'
+
+keyspace-property ::= ( '"keyspace"' | '"alias"' ) ':' '"' keyspace '"'
+
+hash-array ::= '[' hash-object ( ',' hash-object )* ']'
+
+hash-object ::= '{' keyspace-property ( "," option-property )? '}'
+
+option-property ::= '"option"' ':' ( '"build"' | '"probe"' | 'null' )
+
+
+/**************
+ * Statements *
+ **************/
+
+sequence ::= statement ( ';' statement )* ';'?
+
+statement ::= ddl-statement |
+              dml-statement |
+              dql-statement |
+              tcl-statement |
+              utility-statement
+
+/***************
+ * Expressions *
+ ***************/
+
+expr ::= literal |
+         identifier |
+         arithmetic-term |
+         comparison-term |
+         concatenation-term |
+         logical-term |
+         case-expr |
+         collection-expr |
+         nested-expr |
+         function-call |
+         subquery-expr |
+         '(' expr ')'
+
+
+
+literal ::= str | nbr | bool | null | missing
+
+str ::= '"' chr* '"' | "'" chr* "'"
+
+chr ::= '\' ('\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' | 'u' hex hex hex hex )
+
+hex ::= [0-9a-fA-F]
+
+nbr ::= '-'? intgr fraction? exponent?
+
+intgr ::= [0-9] | [1-9] [0-9]+
+
+fraction ::= '.' [0-9]+
+
+exponent ::= ('e' | 'E') ('-' | '+')? [0-9]+
+
+bool ::= 'TRUE' | 'FALSE'
+
+null ::= 'NULL'
+
+missing ::= 'MISSING'
+
+
+
+identifier ::= unescaped-identifier | escaped-identifier
+
+unescaped-identifier ::= [a-zA-Z_] ( [0-9a-zA-Z_$] )*
+
+escaped-identifier ::= '`' chr+ '`'
+
+
+
+arithmetic-term ::= expr '+' expr |
+                    expr '-' expr |
+                    expr '*' expr |
+                    expr '/' expr |
+                    expr '%' expr |
+                    '-' expr
+
+
+
+comparison-term ::= relational-expr |
+                    between-expr |
+                    like-expr |
+                    is-expr
+
+relational-expr ::= expr '=' expr |
+                    expr '==' expr |
+                    expr '!=' expr |
+                    expr '<>' expr |
+                    expr '>' expr |
+                    expr '>=' expr |
+                    expr '<' expr |
+                    expr '<=' expr
+
+between-expr ::= expr 'NOT'? 'BETWEEN' start-expr 'AND' end-expr
+
+like-expr ::= expr 'NOT'? 'LIKE' expr
+
+is-expr ::= expr 'IS' 'NOT'? 'NULL' |
+            expr 'IS' 'NOT'? 'MISSING' |
+            expr 'IS' 'NOT'? 'VALUED'
+
+
+
+concatenation-term ::= expr '||' expr
+
+
+
+logical-term ::= and | or | not
+
+and ::= cond 'AND' cond
+
+or ::= cond 'OR' cond
+
+not ::= 'NOT' cond
+
+
+
+case-expr ::= simple-case-expr | searched-case-expr
+
+simple-case-expr ::= 'CASE' expr ('WHEN' expr 'THEN' expr)+ ('ELSE' expr)? 'END'
+
+searched-case-expr ::= 'CASE' ('WHEN' cond 'THEN' expr)+ ('ELSE' expr)? 'END'
+
+
+
+collection-expr ::= exists-expr | in-expr | within-expr
+
+exists-expr ::= 'EXISTS' expr
+
+in-expr ::= search-expr 'NOT'? 'IN' target-expr
+
+within-expr ::= search-expr 'NOT'? 'WITHIN' target-expr
+
+
+
+search-expr ::= expr
+target-expr ::= expr
+var-expr ::= expr
+name-expr ::= expr
+var ::= identifier
+name-var ::= identifier
+
+
+
+
+
+array ::= '[' ( expr ( ',' expr )* )? ']'
+
+
+
+nested-expr ::= field-expr | element-expr | slice-expr
+
+field-expr ::= expr '.' ( identifier | ( ( escaped-identifier | '[' name-expr ']' ) 'i'? ) )
+
+element-expr ::= expr '[' position ']'
+
+slice-expr ::= expr '[' start-expr ':' end-expr? ']'
+
+start-expr ::= expr
+end-expr ::= expr
+position ::= expr
+
+
+function-call ::= ordinary-function |
+                  aggregate-function |
+                  window-function
+
+function-name ::= identifier
+aggregate-function-name ::= identifier
+window-function-name ::= identifier
+
+ordinary-function ::= function-name '(' ( expr ( ',' expr )* )? ')'
+
+aggregate-function ::= aggregate-function-name '(' ( aggregate-quantifier? expr |
+                       ( path '.' )? '*' ) ')' filter-clause? over-clause?
+
+aggregate-quantifier ::= 'ALL' | 'DISTINCT'
+
+filter-clause ::= 'FILTER' '(' 'WHERE' cond ')'
+
+window-function ::= window-function-name '(' window-function-arguments ')'
+                    window-function-options? over-clause
+
+window-function-arguments ::= ( expr ( ',' expr ( ',' expr )? )? )?
+
+window-function-options ::= nthval-from? nulls-treatment?
+
+nthval-from ::= 'FROM' ( 'FIRST' | 'LAST' )
+
+nulls-treatment ::= ( 'RESPECT' | 'IGNORE' ) 'NULLS'
+
+over-clause ::= 'OVER' ( '(' window-definition ')' | window-ref )
+
+
+
+subquery-expr ::= '(' select ')'
+
+
+/************
+ * Comments *
+ ************/
+
+comment ::= block-comment
+
+block-comment ::= '/*' (  newline )* '*/'
+
+
+
+<newline> ::= '\n'
+
+
+tcl-statement ::= begin-transaction
+                | set-transaction
+                | savepoint
+                | rollback-transaction
+                | commit-transaction
+
+begin-transaction ::= ( 'BEGIN' | 'START' ) ( 'WORK' | 'TRAN' | 'TRANSACTION' )
+                      ( 'ISOLATION' 'LEVEL' 'READ' 'COMMITTED' )?
+
+set-transaction ::= 'SET' 'TRANSACTION' 'ISOLATION' 'LEVEL' 'READ' 'COMMITTED'
+
+savepoint ::= 'SAVEPOINT' savepointname
+
+rollback-transaction ::= 'ROLLBACK' ( 'WORK' | 'TRAN' | 'TRANSACTION' )?
+                       ( 'TO' 'SAVEPOINT' savepointname )?
+
+commit-transaction ::= 'COMMIT' ( 'WORK' | 'TRAN' | 'TRANSACTION' )?
+
+savepointname ::= identifier
+
+
+
+utility-statement ::= advise
+                    | explain
+
+advise ::= 'ADVISE' 'INDEX'? ( select | update | delete | merge )
+
+explain ::= 'EXPLAIN' statement
+
+infer ::= 'INFER' ( 'COLLECTION' | 'KEYSPACE' )? keyspace-ref ( 'WITH' options )?
+
+
+/***********************
+ * Prepared Statements *
+ ***********************/
+
+
+name ::= identifier
+parameters ::= array
+
+/**************
+ * Statistics *
+ **************/
+
+update-statistics ::= update-statistics-expr | update-statistics-index | update-statistics-delete
+
+update-statistics-expr ::= ( 'UPDATE' 'STATISTICS' 'FOR'? |
+                             'ANALYZE' ( 'KEYSPACE' | 'COLLECTION')? )
+                             keyspace-ref '(' index-key ( ',' index-key )* ')' index-with?
+
+update-statistics-index ::= ( 'UPDATE' 'STATISTICS' 'FOR' | 'ANALYZE' )
+                              index-clause index-using?  index-with?
+
+index-clause ::= 'INDEX' ( index-path '.' index-name | index-name 'ON' keyspace-ref )
+
+update-statistics-indexes ::= ( 'UPDATE' 'STATISTICS' 'FOR'? |
+                                'ANALYZE' ( 'KEYSPACE' | 'COLLECTION')? )
+                                keyspace-ref indexes-clause index-using? index-with?
+
+indexes-clause ::= 'INDEX' ( '(' ( index-name ( ',' index-name )* | subquery-expr ) ')' |
+                             'ALL' )
+
+update-statistics-delete ::= ( 'UPDATE' 'STATISTICS' 'FOR'? |
+                               'ANALYZE' ( 'KEYSPACE' | 'COLLECTION')? )
+                               keyspace-ref delete-clause
+
+delete-clause ::= 'DELETE' ( delete-expr | delete-all )
+
+delete-expr ::= 'STATISTICS'? '(' index-key ( ',' index-key )* ')'
+
+delete-all ::= 'ALL' | 'STATISTICS'

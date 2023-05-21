@@ -12,10 +12,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
-import org.intellij.sdk.language.parser.SimpleParser;
+import generated.GeneratedParser;
+import generated.GeneratedTypes;
 import org.intellij.sdk.language.psi.SimpleFile;
 import org.intellij.sdk.language.psi.SimpleTokenSets;
-import org.intellij.sdk.language.psi.SimpleTypes;
 import org.jetbrains.annotations.NotNull;
 
 public class SimpleParserDefinition implements ParserDefinition {
@@ -43,7 +43,7 @@ public class SimpleParserDefinition implements ParserDefinition {
   @NotNull
   @Override
   public PsiParser createParser(final Project project) {
-    return new SimpleParser();
+    return new GeneratedParser();
   }
 
   @NotNull
@@ -61,7 +61,7 @@ public class SimpleParserDefinition implements ParserDefinition {
   @NotNull
   @Override
   public PsiElement createElement(ASTNode node) {
-    return SimpleTypes.Factory.createElement(node);
+    return GeneratedTypes.Factory.createElement(node);
   }
 
 }
