@@ -57,6 +57,10 @@
                 language="Simple"
                 implementationClass="org.intellij.sdk.language.SimpleSyntaxHighlighterFactory"/>
 
+        <completion.contributor
+                language="Simple"
+                implementationClass="org.intellij.sdk.language.SimpleCompletionContributor"/>
+
     </extensions>
 
 
