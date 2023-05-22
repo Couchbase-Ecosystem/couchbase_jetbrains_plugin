@@ -25,7 +25,7 @@
         <projectService serviceInterface="com.couchbase.intellij.persistence.TreeModelStorage"
                         serviceImplementation="com.couchbase.intellij.persistence.TreeModelStorage"/>
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
-                    factoryClass="com.couchbase.intellij.CouchbaseWindowFactory"/>
+                    factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
 
         <toolWindow id="Couchbase Result" anchor="bottom"
                     factoryClass="com.couchbase.intellij.workbench.QueryResultToolWindowFactory"/>

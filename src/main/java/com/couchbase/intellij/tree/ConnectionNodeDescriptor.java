@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.intellij.CouchbaseWindowContent;
 import com.intellij.openapi.util.IconLoader;
 
 public class ConnectionNodeDescriptor extends NodeDescriptor {
