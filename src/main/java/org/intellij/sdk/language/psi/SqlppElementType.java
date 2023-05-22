@@ -2,15 +2,15 @@
 
 package org.intellij.sdk.language.psi;
 
+import org.intellij.sdk.language.SQLPPLanguage;
 import com.intellij.psi.tree.IElementType;
-import org.intellij.sdk.language.SimpleLanguage;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
-public class SimpleElementType extends IElementType {
+public class SqlppElementType extends IElementType {
 
-  public SimpleElementType(@NotNull @NonNls String debugName) {
-    super(debugName, SimpleLanguage.INSTANCE);
+  public SqlppElementType(@NotNull @NonNls String debugName) {
+    super(debugName, SQLPPLanguage.INSTANCE);
   }
 
 }

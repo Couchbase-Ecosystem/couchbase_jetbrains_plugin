@@ -14,31 +14,31 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.intellij.openapi.editor.colors.TextAttributesKey.createTextAttributesKey;
 
-public class SimpleSyntaxHighlighter extends SyntaxHighlighterBase {
+public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
 
     public static final TextAttributesKey SEPARATOR =
-            createTextAttributesKey("SIMPLE_SEPARATOR", DefaultLanguageHighlighterColors.OPERATION_SIGN);
+            createTextAttributesKey("SQLPP_SEPARATOR", DefaultLanguageHighlighterColors.OPERATION_SIGN);
     public static final TextAttributesKey KEY =
-            createTextAttributesKey("SIMPLE_KEY", DefaultLanguageHighlighterColors.KEYWORD);
+            createTextAttributesKey("SQLPP_KEY", DefaultLanguageHighlighterColors.KEYWORD);
     public static final TextAttributesKey VALUE =
-            createTextAttributesKey("SIMPLE_VALUE", DefaultLanguageHighlighterColors.STRING);
+            createTextAttributesKey("SQLPP_VALUE", DefaultLanguageHighlighterColors.STRING);
     public static final TextAttributesKey COMMENT =
-            createTextAttributesKey("SIMPLE_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT);
+            createTextAttributesKey("SQLPP_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT);
 
     public static final TextAttributesKey NUMBER =
-            createTextAttributesKey("SIMPLE_NUMBER", DefaultLanguageHighlighterColors.NUMBER);
+            createTextAttributesKey("SQLPP_NUMBER", DefaultLanguageHighlighterColors.NUMBER);
 
     public static final TextAttributesKey ESCAPED_IDENTIFIER =
-            createTextAttributesKey("SIMPLE_ESCAPED_IDENTIFIER", DefaultLanguageHighlighterColors.LABEL);
+            createTextAttributesKey("SQLPP_ESCAPED_IDENTIFIER", DefaultLanguageHighlighterColors.LABEL);
 
     public static final TextAttributesKey FUNCTION =
-            createTextAttributesKey("SIMPLE_FUNCTION", DefaultLanguageHighlighterColors.GLOBAL_VARIABLE);
+            createTextAttributesKey("SQLPP_FUNCTION", DefaultLanguageHighlighterColors.GLOBAL_VARIABLE);
 
     public static final TextAttributesKey STRING =
-            createTextAttributesKey("SIMPLE_STRING", DefaultLanguageHighlighterColors.STRING);
+            createTextAttributesKey("SQLPP_STRING", DefaultLanguageHighlighterColors.STRING);
 
     public static final TextAttributesKey BAD_CHARACTER =
-            createTextAttributesKey("SIMPLE_BAD_CHARACTER", HighlighterColors.BAD_CHARACTER);
+            createTextAttributesKey("SQLPP_BAD_CHARACTER", HighlighterColors.BAD_CHARACTER);
 
 
     private static final TextAttributesKey[] BAD_CHAR_KEYS = new TextAttributesKey[]{BAD_CHARACTER};
@@ -58,12 +58,11 @@ public class SimpleSyntaxHighlighter extends SyntaxHighlighterBase {
     @NotNull
     @Override
     public Lexer getHighlightingLexer() {
-        return new SimpleLexerAdapter();
+        return new SqlppLexerAdapter();
     }
 
     @Override
     public TextAttributesKey @NotNull [] getTokenHighlights(IElementType tokenType) {
-        System.out.println(tokenType.toString());
         if (tokenType.equals(GeneratedTypes.SQL_KEYWORDS)) {
             return KEY_KEYS;
         }

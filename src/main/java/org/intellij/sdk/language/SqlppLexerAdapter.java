@@ -2,14 +2,12 @@
 
 package org.intellij.sdk.language;
 
-import com.intellij.lang.Language;
+import com.intellij.lexer.FlexAdapter;
 
-public class SimpleLanguage extends Language {
+public class SqlppLexerAdapter extends FlexAdapter {
 
-  public static final SimpleLanguage INSTANCE = new SimpleLanguage();
-
-  private SimpleLanguage() {
-    super("Simple");
+  public SqlppLexerAdapter() {
+    super(new SqlppLexer(null));
   }
 
 }

@@ -13,25 +13,25 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.util.Map;
 
-public class SimpleColorSettingsPage implements ColorSettingsPage {
+public class SqlppColorSettingsPage implements ColorSettingsPage {
 
   private static final AttributesDescriptor[] DESCRIPTORS = new AttributesDescriptor[]{
-          new AttributesDescriptor("Key", SimpleSyntaxHighlighter.KEY),
-          new AttributesDescriptor("Separator", SimpleSyntaxHighlighter.SEPARATOR),
-          new AttributesDescriptor("Value", SimpleSyntaxHighlighter.VALUE),
-          new AttributesDescriptor("Bad value", SimpleSyntaxHighlighter.BAD_CHARACTER)
+          new AttributesDescriptor("Key", SqlppSyntaxHighlighter.KEY),
+          new AttributesDescriptor("Separator", SqlppSyntaxHighlighter.SEPARATOR),
+          new AttributesDescriptor("Value", SqlppSyntaxHighlighter.VALUE),
+          new AttributesDescriptor("Bad value", SqlppSyntaxHighlighter.BAD_CHARACTER)
   };
 
   @Nullable
   @Override
   public Icon getIcon() {
-    return SimpleIcons.FILE;
+    return SqlppIcons.FILE;
   }
 
   @NotNull
   @Override
   public SyntaxHighlighter getHighlighter() {
-    return new SimpleSyntaxHighlighter();
+    return new SqlppSyntaxHighlighter();
   }
 
   @NotNull
@@ -70,7 +70,7 @@ public class SimpleColorSettingsPage implements ColorSettingsPage {
   @NotNull
   @Override
   public String getDisplayName() {
-    return "Simple";
+    return "sqlpp";
   }
 
 }

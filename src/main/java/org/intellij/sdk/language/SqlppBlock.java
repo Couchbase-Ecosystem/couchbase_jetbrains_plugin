@@ -12,12 +12,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SimpleBlock extends AbstractBlock {
+public class SqlppBlock extends AbstractBlock {
 
   private final SpacingBuilder spacingBuilder;
 
-  protected SimpleBlock(@NotNull ASTNode node, @Nullable Wrap wrap, @Nullable Alignment alignment,
-                        SpacingBuilder spacingBuilder) {
+  protected SqlppBlock(@NotNull ASTNode node, @Nullable Wrap wrap, @Nullable Alignment alignment,
+                       SpacingBuilder spacingBuilder) {
     super(node, wrap, alignment);
     this.spacingBuilder = spacingBuilder;
   }
@@ -28,7 +28,7 @@ public class SimpleBlock extends AbstractBlock {
     ASTNode child = myNode.getFirstChildNode();
     while (child != null) {
       if (child.getElementType() != TokenType.WHITE_SPACE) {
-        Block block = new SimpleBlock(child, Wrap.createWrap(WrapType.NONE, false), Alignment.createAlignment(),
+        Block block = new SqlppBlock(child, Wrap.createWrap(WrapType.NONE, false), Alignment.createAlignment(),
                 spacingBuilder);
         blocks.add(block);
       }

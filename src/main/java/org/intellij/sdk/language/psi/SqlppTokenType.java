@@ -2,20 +2,20 @@
 
 package org.intellij.sdk.language.psi;
 
+import org.intellij.sdk.language.SQLPPLanguage;
 import com.intellij.psi.tree.IElementType;
-import org.intellij.sdk.language.SimpleLanguage;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
-public class SimpleTokenType extends IElementType {
+public class SqlppTokenType extends IElementType {
 
-  public SimpleTokenType(@NotNull @NonNls String debugName) {
-    super(debugName, SimpleLanguage.INSTANCE);
+  public SqlppTokenType(@NotNull @NonNls String debugName) {
+    super(debugName, SQLPPLanguage.INSTANCE);
   }
 
   @Override
   public String toString() {
-    return "SimpleTokenType." + super.toString();
+    return "SqlppTokenType." + super.toString();
   }
 
 }

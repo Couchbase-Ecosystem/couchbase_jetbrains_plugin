@@ -1,4 +1,4 @@
-package com.couchbase.intellij.workbench.lang;
+package org.intellij.sdk.language;
 
 import com.intellij.lang.Language;
 

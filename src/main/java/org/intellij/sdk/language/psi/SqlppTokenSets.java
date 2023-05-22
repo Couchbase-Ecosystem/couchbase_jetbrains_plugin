@@ -5,9 +5,9 @@ package org.intellij.sdk.language.psi;
 import com.intellij.psi.tree.TokenSet;
 import generated.GeneratedTypes;
 
-public interface SimpleTokenSets {
+public interface SqlppTokenSets {
 
-  TokenSet IDENTIFIERS = TokenSet.create(GeneratedTypes.MISSING);
+  TokenSet IDENTIFIERS = TokenSet.create(GeneratedTypes.IDENTIFIER);
 
   TokenSet COMMENTS = TokenSet.create(GeneratedTypes.COMMENT);
 

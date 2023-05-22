@@ -5,7 +5,7 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>Couchbase-intellij-plugin</name>
+    <name>Couchbase</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="support@yourcompany.com" url="https://www.couchbase.com">Couchbase</vendor>
@@ -13,10 +13,7 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
-  ]]></description>
+    <description>Couchbase is an award-winning distributed NoSQL cloud database that delivers unmatched versatility, performance, scalability</description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
@@ -36,30 +33,24 @@
 
         <fileDocumentSynchronizationVetoer implementation="com.couchbase.intellij.listener.JsonDocumentListener"/>
 
+         <completion.contributor language="sqlpp"
+                                implementationClass="org.intellij.sdk.language.SqlppCompletionContributor"/>
 
-        <fileType name="SQL++ file" implementationClass="com.couchbase.intellij.workbench.lang.SQLPPFileType"
+        <fileType name="SQL++ file" implementationClass="org.intellij.sdk.language.SQLPPFileType"
                   fieldName="INSTANCE"
-                  language="sqlpp" extensions="sqlpp"/>
+                  language="sqlpp"
+                  extensions="sqlpp"/>
         <fileEditorProvider implementation="com.couchbase.intellij.workbench.CustomSqlFileEditorProvider"/>
 
-        <fileType
-                name="Simple File"
-                implementationClass="org.intellij.sdk.language.SimpleFileType"
-                fieldName="INSTANCE"
-                language="Simple"
-                extensions="simple"/>
-
         <lang.parserDefinition
-                language="Simple"
-                implementationClass="org.intellij.sdk.language.SimpleParserDefinition"/>
+                language="sqlpp"
+                implementationClass="org.intellij.sdk.language.SqlppParserDefinition"/>
 
         <lang.syntaxHighlighterFactory
-                language="Simple"
-                implementationClass="org.intellij.sdk.language.SimpleSyntaxHighlighterFactory"/>
+                language="sqlpp"
+                implementationClass="org.intellij.sdk.language.SqlppSyntaxHighlighterFactory"/>
 
-        <completion.contributor
-                language="Simple"
-                implementationClass="org.intellij.sdk.language.SimpleCompletionContributor"/>
+
 
     </extensions>
 

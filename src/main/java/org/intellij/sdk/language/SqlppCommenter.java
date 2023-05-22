@@ -5,7 +5,7 @@ package org.intellij.sdk.language;
 import com.intellij.lang.Commenter;
 import org.jetbrains.annotations.Nullable;
 
-public class SimpleCommenter implements Commenter {
+public class SqlppCommenter implements Commenter {
 
   @Nullable
   @Override

@@ -14,24 +14,24 @@ import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
 import generated.GeneratedParser;
 import generated.GeneratedTypes;
-import org.intellij.sdk.language.psi.SimpleFile;
-import org.intellij.sdk.language.psi.SimpleTokenSets;
+import org.intellij.sdk.language.psi.SqlppFile;
+import org.intellij.sdk.language.psi.SqlppTokenSets;
 import org.jetbrains.annotations.NotNull;
 
-public class SimpleParserDefinition implements ParserDefinition {
+public class SqlppParserDefinition implements ParserDefinition {
 
-  public static final IFileElementType FILE = new IFileElementType(SimpleLanguage.INSTANCE);
+  public static final IFileElementType FILE = new IFileElementType(SQLPPLanguage.INSTANCE);
 
   @NotNull
   @Override
   public Lexer createLexer(Project project) {
-    return new SimpleLexerAdapter();
+    return new SqlppLexerAdapter();
   }
 
   @NotNull
   @Override
   public TokenSet getCommentTokens() {
-    return SimpleTokenSets.COMMENTS;
+    return SqlppTokenSets.COMMENTS;
   }
 
   @NotNull
@@ -55,7 +55,7 @@ public class SimpleParserDefinition implements ParserDefinition {
   @NotNull
   @Override
   public PsiFile createFile(@NotNull FileViewProvider viewProvider) {
-    return new SimpleFile(viewProvider);
+    return new SqlppFile(viewProvider);
   }
 
   @NotNull

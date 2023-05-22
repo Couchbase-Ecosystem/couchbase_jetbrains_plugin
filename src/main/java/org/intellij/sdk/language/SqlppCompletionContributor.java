@@ -5,9 +5,10 @@ import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.util.ProcessingContext;
+import org.intellij.sdk.language.psi.SqlppElementType;
 import org.jetbrains.annotations.NotNull;
 
-public class SimpleCompletionContributor extends CompletionContributor {
+public class SqlppCompletionContributor extends CompletionContributor {
 
     private static final String[] SQLPP_KEYWORDS =
             {"ADAPTER","ALL","ALTER","ANALYTICS","AND","ANY","APPLY","ARGS","AS","ASC","AT",
@@ -54,10 +55,11 @@ public class SimpleCompletionContributor extends CompletionContributor {
             "TOSTRING","TRIM","TRUNC","TYPE","TYPENAME","UPPER","UUID","WEEKDAY_MILLIS","WEEKDAY_STR"
 
     };
-    public SimpleCompletionContributor() {
+    public SqlppCompletionContributor() {
         extend(CompletionType.BASIC,
-                PlatformPatterns.psiElement(),
+                PlatformPatterns.psiElement(new SqlppElementType("sqlpp")),
                 new CompletionProvider<CompletionParameters>() {
+
                     public void addCompletions(@NotNull CompletionParameters parameters,
                                                @NotNull ProcessingContext context,
                                                @NotNull CompletionResultSet resultSet) {

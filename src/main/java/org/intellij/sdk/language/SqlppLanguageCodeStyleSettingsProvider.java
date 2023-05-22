@@ -7,12 +7,12 @@ import com.intellij.psi.codeStyle.CodeStyleSettingsCustomizable;
 import com.intellij.psi.codeStyle.LanguageCodeStyleSettingsProvider;
 import org.jetbrains.annotations.NotNull;
 
-public class SimpleLanguageCodeStyleSettingsProvider extends LanguageCodeStyleSettingsProvider {
+public class SqlppLanguageCodeStyleSettingsProvider extends LanguageCodeStyleSettingsProvider {
 
   @NotNull
   @Override
   public Language getLanguage() {
-    return SimpleLanguage.INSTANCE;
+    return SQLPPLanguage.INSTANCE;
   }
 
   @Override

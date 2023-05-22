@@ -1,4 +1,4 @@
-package com.couchbase.intellij.workbench.lang;
+package org.intellij.sdk.language;
 
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import org.jetbrains.annotations.*;
@@ -33,6 +33,6 @@ public class SQLPPFileType extends LanguageFileType {
     @Nullable
     @Override
     public Icon getIcon() {
-        return null;
+        return SqlppIcons.FILE;
     }
 }

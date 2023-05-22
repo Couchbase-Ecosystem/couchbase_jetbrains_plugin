@@ -6,8 +6,8 @@ import com.intellij.openapi.util.IconLoader;
 
 import javax.swing.*;
 
-public class SimpleIcons {
+public class SqlppIcons {
 
-  public static final Icon FILE = IconLoader.getIcon("/icons/jar-gray.png", SimpleIcons.class);
+  public static final Icon FILE = IconLoader.getIcon("/icons/jar-gray.png", SqlppIcons.class);
 
 }

@@ -1,4 +1,3 @@
-// Copyright 2000-2022 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 
 package org.intellij.sdk.language;
 
@@ -12,17 +11,17 @@ import com.intellij.psi.codeStyle.CustomCodeStyleSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class SimpleCodeStyleSettingsProvider extends CodeStyleSettingsProvider {
+public class SqlppCodeStyleSettingsProvider extends CodeStyleSettingsProvider {
 
   @Override
   public CustomCodeStyleSettings createCustomSettings(CodeStyleSettings settings) {
-    return new SimpleCodeStyleSettings(settings);
+    return new SqlppCodeStyleSettings(settings);
   }
 
   @Nullable
   @Override
   public String getConfigurableDisplayName() {
-    return "Simple";
+    return "SLQ++";
   }
 
   @NotNull
@@ -30,15 +29,15 @@ public class SimpleCodeStyleSettingsProvider extends CodeStyleSettingsProvider {
     return new CodeStyleAbstractConfigurable(settings, modelSettings, this.getConfigurableDisplayName()) {
       @Override
       protected CodeStyleAbstractPanel createPanel(CodeStyleSettings settings) {
-        return new SimpleCodeStyleMainPanel(getCurrentSettings(), settings);
+        return new SqlppCodeStyleMainPanel(getCurrentSettings(), settings);
       }
     };
   }
 
-  private static class SimpleCodeStyleMainPanel extends TabbedLanguageCodeStylePanel {
+  private static class SqlppCodeStyleMainPanel extends TabbedLanguageCodeStylePanel {
 
-    public SimpleCodeStyleMainPanel(CodeStyleSettings currentSettings, CodeStyleSettings settings) {
-      super(SimpleLanguage.INSTANCE, currentSettings, settings);
+    public SqlppCodeStyleMainPanel(CodeStyleSettings currentSettings, CodeStyleSettings settings) {
+      super(SQLPPLanguage.INSTANCE, currentSettings, settings);
     }
 
   }
