@@ -107,6 +107,11 @@ public class DataLoader {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new CollectionNodeDescriptor(spec.name()));
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
+
+                        // Add schema subfolder
+                        DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
+                        schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                        childNode.add(schemaNode);
                     }
                     treeModel.nodeStructureChanged(parentNode);
                 } finally {
@@ -190,6 +195,51 @@ public class DataLoader {
             throw new IllegalStateException("The expected parent was CollectionNodeDescriptor but got something else");
         }
     }
+
+    public static void showSchema(DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
+        Object userObject = parentNode.getUserObject();
+        tree.setPaintBusy(true);
+        if (userObject instanceof SchemaNodeDescriptor) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    parentNode.removeAllChildren();
+
+                    DefaultMutableTreeNode collectionNode = (DefaultMutableTreeNode) parentNode.getParent();
+                    String collectionName = ((CollectionNodeDescriptor) collectionNode.getUserObject()).getText();
+                    DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) collectionNode.getParent().getParent();
+                    String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
+                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
+
+                    // Replace with your schema inference query
+                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scope.name() + "`.`" + collection.name() + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \"" + username + ":" + password + "\"}) AS d";
+
+                    // Execute the schema inference query
+                    final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
+                            .query(inferSchemaQuery, QueryOptions.queryOptions()).rowsAsObject();
+
+                    // Process the results and add them to the tree structure
+                    for (JsonObject obj : results) {
+                        // Replace with your code for processing the schema data and adding it to the tree structure
+                        JsonObject inferSchemaRow = obj.getArray("results").getObject(0);
+                        JsonObject inferSchemaProperties = PropertyExtractor.extractTypes(inferSchemaRow.getObject("properties"), 4);
+                        String schemaString = inferSchemaProperties.toString();
+                        String prettySchemaString = prettyPrintJson(schemaString);
+
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(prettySchemaString));
+                        parentNode.add(childNode);
+                    }
+                    treeModel.nodeStructureChanged(parentNode);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    tree.setPaintBusy(false);
+                }
+            });
+        } else {
+            throw new IllegalStateException("The expected parent was SchemaNodeDescriptor but got something else");
+        }
+    }
+
 
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope, String collection) {

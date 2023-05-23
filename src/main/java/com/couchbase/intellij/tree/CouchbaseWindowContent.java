@@ -200,8 +200,10 @@ public class CouchbaseWindowContent extends JPanel {
                         DataLoader.listCollections(expandedTreeNode, treeModel, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
                         DataLoader.listDocuments(project, expandedTreeNode, treeModel, tree);
+                    } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
+                        DataLoader.showSchema(expandedTreeNode, treeModel, tree);
                     } else {
-                        throw new UnsupportedOperationException("Not implemente yet");
+                        throw new UnsupportedOperationException("Not implemented yet");
                     }
                 }
             }
