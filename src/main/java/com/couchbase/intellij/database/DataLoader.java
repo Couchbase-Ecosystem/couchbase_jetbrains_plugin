@@ -1,6 +1,7 @@
 package com.couchbase.intellij.database;
 
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.query.QueryOptions;
@@ -27,6 +28,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 public class DataLoader {
 
@@ -211,7 +217,7 @@ public class DataLoader {
                     String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
 
                     // Replace with your schema inference query
-                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scope.name() + "`.`" + collection.name() + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \"" + username + ":" + password + "\"}) AS d";
+                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\"}) AS d";
 
                     // Execute the schema inference query
                     final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
@@ -221,7 +227,7 @@ public class DataLoader {
                     for (JsonObject obj : results) {
                         // Replace with your code for processing the schema data and adding it to the tree structure
                         JsonObject inferSchemaRow = obj.getArray("results").getObject(0);
-                        JsonObject inferSchemaProperties = PropertyExtractor.extractTypes(inferSchemaRow.getObject("properties"), 4);
+                        JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"), 4);
                         String schemaString = inferSchemaProperties.toString();
                         String prettySchemaString = prettyPrintJson(schemaString);
 
@@ -238,6 +244,44 @@ public class DataLoader {
         } else {
             throw new IllegalStateException("The expected parent was SchemaNodeDescriptor but got something else");
         }
+    }
+
+    public static JsonObject extractTypes(JsonObject properties, int depth) {
+        JsonObject result = JsonObject.create();
+
+        try {
+            for (String key : properties.getNames()) {
+                JsonObject property = properties.getObject(key);
+                if (property != null && property.containsKey("type")) {
+                    Object type = property.get("type");
+                    if (type instanceof String) {
+                        if (((String) type).equalsIgnoreCase("object") && depth > 0)
+                            result.put(key, extractTypes(property.getObject("properties"), depth - 1));
+                        else
+                            result.put(key, type);
+                    } else if (type instanceof JsonArray) {
+                        StringBuilder types = new StringBuilder();
+                        for (int i = 0; i < ((com.couchbase.client.java.json.JsonArray) type).size(); i++) {
+                            types.append(((com.couchbase.client.java.json.JsonArray) type).getString(i)).append(" | ");
+                        }
+                        types = new StringBuilder(types.substring(0, types.length() - 3));
+                        result.put(key, types.toString());
+                    }
+                } else if (property != null && property.containsKey("properties") && depth > 0) {
+                    result.put(key, extractTypes(property.getObject("properties"), depth - 1));
+                }
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public static String prettyPrintJson(String json) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        JsonParser jp = new JsonParser();
+        JsonElement je = jp.parse(json);
+        return gson.toJson(je);
     }
 
 
