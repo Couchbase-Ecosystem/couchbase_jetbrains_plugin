@@ -232,7 +232,7 @@ public class DataLoader {
                     for (JsonObject obj : results) {
                         // Replace with your code for processing the schema data and adding it to the tree structure
                         JsonObject inferSchemaRow = obj.getArray("results").getArray(0).getObject(0);
-                        JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"), 4);
+                        JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
                         String schemaString = inferSchemaProperties.toString();
                         String prettySchemaString = prettyPrintJson(schemaString);
 
@@ -251,7 +251,7 @@ public class DataLoader {
         }
     }
 
-    public static JsonObject extractTypes(JsonObject properties, int depth) {
+    public static JsonObject extractTypes(JsonObject properties) {
         JsonObject result = JsonObject.create();
 
         try {
@@ -260,27 +260,52 @@ public class DataLoader {
                 if (property != null && property.containsKey("type")) {
                     Object type = property.get("type");
                     if (type instanceof String) {
-                        if (((String) type).equalsIgnoreCase("object") && depth > 0)
-                            result.put(key, extractTypes(property.getObject("properties"), depth - 1));
-                        else
+                        if (((String) type).equalsIgnoreCase("object"))
+                            result.put(key, extractTypes(property.getObject("properties")));
+                        else if (((String) type).equalsIgnoreCase("array")) {
+                            JsonObject items = property.getObject("items");
+                            if (items != null && items.containsKey("type")) {
+                                Object itemType = items.get("type");
+                                if (itemType instanceof String) {
+                                    if (((String) itemType).equalsIgnoreCase("object"))
+                                        result.put(key, "array of " + extractTypes(items.getObject("properties")));
+                                    else
+                                        result.put(key, "array of " + itemType);
+                                } else if (itemType instanceof JsonArray) {
+                                    StringBuilder types = new StringBuilder();
+                                    for (int i = 0; i < ((JsonArray) itemType).size(); i++) {
+                                        types.append(((JsonArray) itemType).getString(i)).append(" | ");
+                                    }
+
+                                    types = new StringBuilder(types.substring(0, types.length() - 3));
+                                    result.put(key, "array of " + types.toString());
+                                }
+                            } else {
+                                result.put(key, "array");
+                            }
+                        } else {
                             result.put(key, type);
+                        }
                     } else if (type instanceof JsonArray) {
                         StringBuilder types = new StringBuilder();
-                        for (int i = 0; i < ((com.couchbase.client.java.json.JsonArray) type).size(); i++) {
-                            types.append(((com.couchbase.client.java.json.JsonArray) type).getString(i)).append(" | ");
+                        for (int i = 0; i < ((JsonArray) type).size(); i++) {
+                            types.append(((JsonArray) type).getString(i)).append(" | ");
                         }
+
                         types = new StringBuilder(types.substring(0, types.length() - 3));
                         result.put(key, types.toString());
                     }
-                } else if (property != null && property.containsKey("properties") && depth > 0) {
-                    result.put(key, extractTypes(property.getObject("properties"), depth - 1));
+                } else if (property != null && property.containsKey("properties")) {
+                    result.put(key, extractTypes(property.getObject("properties")));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         return result;
     }
+
 
     public static String prettyPrintJson(String json) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
