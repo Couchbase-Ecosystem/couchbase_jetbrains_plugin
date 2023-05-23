@@ -114,10 +114,6 @@ public class DataLoader {
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
 
-                        // Add schema subfolder
-                        DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
-                        schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                        childNode.add(schemaNode);
                     }
                     treeModel.nodeStructureChanged(parentNode);
                 } finally {
@@ -149,6 +145,12 @@ public class DataLoader {
 
                     ApplicationManager.getApplication().runWriteAction(() -> {
                         PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName, collectionName);
+
+                        // Add a schema subfolder
+                        DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
+                        schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                        parentNode.add(schemaNode);
+
                         for (JsonObject obj : results) {
 
                             String docId = obj.getString("cbFileNameId");
@@ -217,7 +219,9 @@ public class DataLoader {
                     String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
 
                     // Replace with your schema inference query
-                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\"}) AS d";
+                    String temporaryUsername = "kaustav";
+                    String temporaryPassword = "password";
+                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \"" + temporaryUsername + ":" + temporaryPassword + "\"}) AS d";
 
                     // Execute the schema inference query
                     final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
