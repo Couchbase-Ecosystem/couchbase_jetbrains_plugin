@@ -130,75 +130,75 @@ public class DataLoader {
         tree.setPaintBusy(true);
         if (userObject instanceof CollectionNodeDescriptor) {
             //CompletableFuture.runAsync(() -> {
-                try {
-                    parentNode.removeAllChildren();
+            try {
+                parentNode.removeAllChildren();
 
-                    String collectionName = ((CollectionNodeDescriptor) parentNode.getUserObject()).getText();
-                    DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent().getParent();
-                    String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
-                    String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent().getParent()).getUserObject()).getText();
+                String collectionName = ((CollectionNodeDescriptor) parentNode.getUserObject()).getText();
+                DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent().getParent();
+                String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
+                String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
+                String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent().getParent()).getUserObject()).getText();
 
-                    final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
-                            .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
-                                    + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions()).rowsAsObject();
+                final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
+                        .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
+                                + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions()).rowsAsObject();
 
-                    ApplicationManager.getApplication().runWriteAction(() -> {
-                        PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName, collectionName);
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName, collectionName);
 
-                        // Add a schema subfolder
-                        DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
-                        schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                        parentNode.add(schemaNode);
+                    // Add a schema subfolder
+                    DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
+                    schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                    parentNode.add(schemaNode);
 
-                        for (JsonObject obj : results) {
+                    for (JsonObject obj : results) {
 
-                            String docId = obj.getString("cbFileNameId");
-                            Long cas = obj.getLong("cbCasNb");
-                            obj.removeKey("cbFileNameId");
-                            obj.removeKey("cbCasNb");
+                        String docId = obj.getString("cbFileNameId");
+                        Long cas = obj.getLong("cbCasNb");
+                        obj.removeKey("cbFileNameId");
+                        obj.removeKey("cbCasNb");
 
-                            String fileName = docId + ".json";
-                            //removes the id that we added
+                        String fileName = docId + ".json";
+                        //removes the id that we added
 
-                            String fileContent = obj.toString(); // replace with actual JSON content if needed
+                        String fileContent = obj.toString(); // replace with actual JSON content if needed
 
-                            // Check if the file already exists before creating it
-                            PsiFile psiFile = psiDirectory.findFile(fileName);
-                            if (psiFile == null) {
-                                psiFile = psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())
-                                        .createFile(fileName);
-                            }
-
-                            // Get the Document associated with the PsiFile
-                            Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
-                            if (document != null) {
-                                document.setText(fileContent);
-                            }
-
-                            // Retrieve the VirtualFile from the PsiFile
-                            VirtualFile virtualFile = psiFile.getVirtualFile();
-                            virtualFile.putUserData(VirtualFileKeys.CLUSTER, connName);
-                            virtualFile.putUserData(VirtualFileKeys.BUCKET, bucketName);
-                            virtualFile.putUserData(VirtualFileKeys.SCOPE, scopeName);
-                            virtualFile.putUserData(VirtualFileKeys.COLLECTION, collectionName);
-                            virtualFile.putUserData(VirtualFileKeys.ID, docId);
-                            virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
-
-                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, virtualFile);
-                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
-                            parentNode.add(jsonFileNode);
+                        // Check if the file already exists before creating it
+                        PsiFile psiFile = psiDirectory.findFile(fileName);
+                        if (psiFile == null) {
+                            psiFile = psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())
+                                    .createFile(fileName);
                         }
-                        treeModel.nodeStructureChanged(parentNode);
-                    });
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    throw e;
-                } finally {
-                    tree.setPaintBusy(false);
-                }
-           // });
+                        // Get the Document associated with the PsiFile
+                        Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
+                        if (document != null) {
+                            document.setText(fileContent);
+                        }
+
+                        // Retrieve the VirtualFile from the PsiFile
+                        VirtualFile virtualFile = psiFile.getVirtualFile();
+                        virtualFile.putUserData(VirtualFileKeys.CLUSTER, connName);
+                        virtualFile.putUserData(VirtualFileKeys.BUCKET, bucketName);
+                        virtualFile.putUserData(VirtualFileKeys.SCOPE, scopeName);
+                        virtualFile.putUserData(VirtualFileKeys.COLLECTION, collectionName);
+                        virtualFile.putUserData(VirtualFileKeys.ID, docId);
+                        virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
+
+                        FileNodeDescriptor node = new FileNodeDescriptor(fileName, virtualFile);
+                        DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                        parentNode.add(jsonFileNode);
+                    }
+                    treeModel.nodeStructureChanged(parentNode);
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw e;
+            } finally {
+                tree.setPaintBusy(false);
+            }
+            // });
         } else {
             throw new IllegalStateException("The expected parent was CollectionNodeDescriptor but got something else");
         }
@@ -219,9 +219,10 @@ public class DataLoader {
                     String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
 
                     // Replace with your schema inference query
-                    String temporaryUsername = "kaustav";
-                    String temporaryPassword = "password";
-                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \"" + temporaryUsername + ":" + temporaryPassword + "\"}) AS d";
+//                    String temporaryUsername = "kaustav";
+//                    String temporaryPassword = "password";
+                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
+                            + ActiveCluster.getActiveClusterUsername() + ":" + ActiveCluster.getActiveClusterPassword() + "\"}) d";
 
                     // Execute the schema inference query
                     final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
@@ -230,7 +231,7 @@ public class DataLoader {
                     // Process the results and add them to the tree structure
                     for (JsonObject obj : results) {
                         // Replace with your code for processing the schema data and adding it to the tree structure
-                        JsonObject inferSchemaRow = obj.getArray("results").getObject(0);
+                        JsonObject inferSchemaRow = obj.getArray("results").getArray(0).getObject(0);
                         JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"), 4);
                         String schemaString = inferSchemaProperties.toString();
                         String prettySchemaString = prettyPrintJson(schemaString);
@@ -275,7 +276,7 @@ public class DataLoader {
                     result.put(key, extractTypes(property.getObject("properties"), depth - 1));
                 }
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return result;
@@ -289,22 +290,21 @@ public class DataLoader {
     }
 
 
-
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope, String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
         //return ApplicationManager.getApplication().runWriteAction((Computable<PsiDirectory>) () -> {
-            try {
-                String dirPath = connection + File.separator + bucket + File.separator + scope + File.separator + collection;
-                VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
-                return PsiManager.getInstance(project).findDirectory(directory);
+        try {
+            String dirPath = connection + File.separator + bucket + File.separator + scope + File.separator + collection;
+            VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
+            return PsiManager.getInstance(project).findDirectory(directory);
 
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
         //});
 
     }

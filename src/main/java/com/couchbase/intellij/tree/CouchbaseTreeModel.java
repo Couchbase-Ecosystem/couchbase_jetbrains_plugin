@@ -23,7 +23,7 @@ public class CouchbaseTreeModel {
 
         Cluster cluster = Cluster.connect(
                 "localhost",
-                ClusterOptions.clusterOptions("Administrator", "password").environment(env -> {
+                ClusterOptions.clusterOptions("kaustav", "password").environment(env -> {
                     //env.applyProfile("wan-development");
                 })
         );

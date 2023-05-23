@@ -4,7 +4,6 @@ import com.couchbase.client.java.Cluster;
 
 public class ActiveCluster {
 
-
     private static Cluster cluster;
     private static String clusterId;
 
@@ -18,5 +17,13 @@ public class ActiveCluster {
     public static void set(Cluster cluster, String clusterId) {
         ActiveCluster.cluster = cluster;
         ActiveCluster.clusterId = clusterId;
+    }
+
+    public static String getActiveClusterUsername() {
+        return "kaustav";
+    }
+
+    public static String getActiveClusterPassword() {
+        return "password";
     }
 }
