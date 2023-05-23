@@ -29,20 +29,15 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     private JLabel messageLabel;
 
     private JPanel mainPanel;
-    private JPanel firstPanel;
-    private JPanel secondPanel;
     private JPanel thirdPanel;
     private JTextField connectionNameTextField;
     private JTextField hostTextField;
     private JCheckBox enableSSLCheckBox;
     private JTextField usernameTextField;
     private JPasswordField passwordField;
-    private JButton cancelButton;
     private JButton testConnectionButton;
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
-
-    private JPanel notificationPanel;
 
     JLabel defaultBucketLabel;
     JTextField defaultBucketTextField;
@@ -75,7 +70,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
 
-        cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton("Cancel");
         cancelButton.addActionListener((ActionEvent e) -> {
             close(DialogWrapper.CANCEL_EXIT_CODE);
         });
@@ -123,6 +118,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 }
                 hideErrorLabel();
                 messageLabel.setText("Connection was successful");
+                testConnectionButton.setEnabled(true);
             });
         });
         buttonPanel.add(testConnectionButton);
@@ -163,7 +159,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
         buttonPanel.add(saveButton);
 
-        notificationPanel = new JPanel(new BorderLayout());
+        JPanel notificationPanel = new JPanel(new BorderLayout());
         errorLabel = new JLabel();
         errorLabel.setForeground(Color.decode("#FF4444"));
         messageLabel = new JLabel();
@@ -221,7 +217,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
     private void createUIComponents() {
         // First Panel
-        firstPanel = new JPanel(new GridBagLayout());
+        JPanel firstPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(5, 5, 5, 5);
@@ -292,7 +288,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
 
         // Second Panel
-        secondPanel = new JPanel(new BorderLayout());
+        JPanel secondPanel = new JPanel(new BorderLayout());
         TitledBorder credentialsBorder = BorderFactory.createTitledBorder("Credentials");
         secondPanel.setBorder(credentialsBorder);
         JPanel credentialsPanel = new JPanel(new GridBagLayout());
@@ -338,10 +334,8 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         eventLogTable = new JBTable(tableModel);
         eventLogTable.setDefaultRenderer(Object.class, new SDKDoctorTableCellRenderer());
 
-        //consoleScrollPane = new JBScrollPane(consoleArea);
         consoleScrollPane = new JBScrollPane(eventLogTable);
         consoleScrollPane.setMinimumSize(new Dimension(800, 300));
-        //consoleScrollPane.setMinimumSize(new Dimension(consoleScrollPane.getPreferredSize().width, 300));
         consoleScrollPane.setVerticalScrollBarPolicy(JBScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         consoleScrollPane.setVisible(false);
         thirdPanel.add(consoleScrollPane, BorderLayout.CENTER);
