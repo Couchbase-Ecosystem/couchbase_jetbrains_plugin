@@ -19,4 +19,12 @@ public class ActiveCluster {
         ActiveCluster.cluster = cluster;
         ActiveCluster.clusterId = clusterId;
     }
+
+    public static String getActiveClusterUsername() {
+        return "Administrator";
+    }
+
+    public static String getActiveClusterPassword() {
+        return "password";
+    }
 }

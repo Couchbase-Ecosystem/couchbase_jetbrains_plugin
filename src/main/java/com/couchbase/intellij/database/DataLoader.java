@@ -1,5 +1,7 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
@@ -23,6 +25,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -123,69 +126,69 @@ public class DataLoader {
         tree.setPaintBusy(true);
         if (userObject instanceof CollectionNodeDescriptor) {
             //CompletableFuture.runAsync(() -> {
-                try {
-                    parentNode.removeAllChildren();
+            try {
+                parentNode.removeAllChildren();
 
-                    String collectionName = ((CollectionNodeDescriptor) parentNode.getUserObject()).getText();
-                    DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent().getParent();
-                    String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
-                    String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent().getParent()).getUserObject()).getText();
+                String collectionName = ((CollectionNodeDescriptor) parentNode.getUserObject()).getText();
+                DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent().getParent();
+                String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
+                String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
+                String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent().getParent()).getUserObject()).getText();
 
-                    final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
-                            .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
-                                    + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions()).rowsAsObject();
+                final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
+                        .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
+                                + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions()).rowsAsObject();
 
-                    ApplicationManager.getApplication().runWriteAction(() -> {
-                        PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName, collectionName);
-                        for (JsonObject obj : results) {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName, collectionName);
+                    for (JsonObject obj : results) {
 
-                            String docId = obj.getString("cbFileNameId");
-                            Long cas = obj.getLong("cbCasNb");
-                            obj.removeKey("cbFileNameId");
-                            obj.removeKey("cbCasNb");
+                        String docId = obj.getString("cbFileNameId");
+                        Long cas = obj.getLong("cbCasNb");
+                        obj.removeKey("cbFileNameId");
+                        obj.removeKey("cbCasNb");
 
-                            String fileName = docId + ".json";
-                            //removes the id that we added
+                        String fileName = docId + ".json";
+                        //removes the id that we added
 
-                            String fileContent = obj.toString(); // replace with actual JSON content if needed
+                        String fileContent = obj.toString(); // replace with actual JSON content if needed
 
-                            // Check if the file already exists before creating it
-                            PsiFile psiFile = psiDirectory.findFile(fileName);
-                            if (psiFile == null) {
-                                psiFile = psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())
-                                        .createFile(fileName);
-                            }
-
-                            // Get the Document associated with the PsiFile
-                            Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
-                            if (document != null) {
-                                document.setText(fileContent);
-                            }
-
-                            // Retrieve the VirtualFile from the PsiFile
-                            VirtualFile virtualFile = psiFile.getVirtualFile();
-                            virtualFile.putUserData(VirtualFileKeys.CLUSTER, connName);
-                            virtualFile.putUserData(VirtualFileKeys.BUCKET, bucketName);
-                            virtualFile.putUserData(VirtualFileKeys.SCOPE, scopeName);
-                            virtualFile.putUserData(VirtualFileKeys.COLLECTION, collectionName);
-                            virtualFile.putUserData(VirtualFileKeys.ID, docId);
-                            virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
-
-                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, virtualFile);
-                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
-                            parentNode.add(jsonFileNode);
+                        // Check if the file already exists before creating it
+                        PsiFile psiFile = psiDirectory.findFile(fileName);
+                        if (psiFile == null) {
+                            psiFile = psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())
+                                    .createFile(fileName);
                         }
-                        treeModel.nodeStructureChanged(parentNode);
-                    });
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    throw e;
-                } finally {
-                    tree.setPaintBusy(false);
-                }
-           // });
+                        // Get the Document associated with the PsiFile
+                        Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
+                        if (document != null) {
+                            document.setText(fileContent);
+                        }
+
+                        // Retrieve the VirtualFile from the PsiFile
+                        VirtualFile virtualFile = psiFile.getVirtualFile();
+                        virtualFile.putUserData(VirtualFileKeys.CLUSTER, connName);
+                        virtualFile.putUserData(VirtualFileKeys.BUCKET, bucketName);
+                        virtualFile.putUserData(VirtualFileKeys.SCOPE, scopeName);
+                        virtualFile.putUserData(VirtualFileKeys.COLLECTION, collectionName);
+                        virtualFile.putUserData(VirtualFileKeys.ID, docId);
+                        virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
+
+                        FileNodeDescriptor node = new FileNodeDescriptor(fileName, virtualFile);
+                        DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                        parentNode.add(jsonFileNode);
+                    }
+                    treeModel.nodeStructureChanged(parentNode);
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw e;
+            } finally {
+                tree.setPaintBusy(false);
+            }
+            // });
         } else {
             throw new IllegalStateException("The expected parent was CollectionNodeDescriptor but got something else");
         }
@@ -197,17 +200,43 @@ public class DataLoader {
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
-        //return ApplicationManager.getApplication().runWriteAction((Computable<PsiDirectory>) () -> {
-            try {
-                String dirPath = connection + File.separator + bucket + File.separator + scope + File.separator + collection;
-                VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
-                return PsiManager.getInstance(project).findDirectory(directory);
+        try {
+            String dirPath = connection + File.separator + bucket + File.separator + scope + File.separator + collection;
+            VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
+            return PsiManager.getInstance(project).findDirectory(directory);
 
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        //});
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static String adjustClusterProtocol(String cluster, boolean ssl) {
+        if (cluster.startsWith("couchbase://") || cluster.startsWith("couchbases://")) {
+            return cluster;
+        }
+
+        String protocol = "";
+        if (ssl) {
+            protocol = "couchbases://";
+        } else {
+            protocol = "couchbase://";
+        }
+        return protocol + cluster;
+    }
+
+    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password) {
+
+        Cluster cluster = Cluster.connect(
+                adjustClusterProtocol(clusterUrl, ssl),
+                ClusterOptions.clusterOptions(username, password).environment(env -> {
+                    //env.applyProfile("wan-development");
+                })
+        );
+        cluster.waitUntilReady(Duration.ofSeconds(5));
+
+        return cluster.buckets().getAllBuckets().keySet();
 
     }
 }

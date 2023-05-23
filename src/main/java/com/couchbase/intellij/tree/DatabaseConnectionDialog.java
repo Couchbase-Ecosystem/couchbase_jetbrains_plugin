@@ -1,60 +1,248 @@
 package com.couchbase.intellij.tree;
 
 
-
+import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.tools.doctor.SDKDoctorTableCellRenderer;
+import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.ui.ValidationInfo;
-import com.intellij.ui.components.*;
-import com.intellij.util.ui.JBUI;
-import org.jetbrains.annotations.Nullable;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.table.JBTable;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DatabaseConnectionDialog extends DialogWrapper {
-    private JBTextField nameField;
-    private JBTextField hostField;
+
+    private JLabel errorLabel;
+    private JLabel messageLabel;
+
+    private JPanel mainPanel;
+    private JPanel firstPanel;
+    private JPanel secondPanel;
+    private JPanel thirdPanel;
+    private JTextField connectionNameTextField;
+    private JTextField hostTextField;
     private JCheckBox enableSSLCheckBox;
-    private JBTextField usernameField;
-    private JBPasswordField passwordField;
-    private JBTextArea consoleArea;
+    private JTextField usernameTextField;
+    private JPasswordField passwordField;
+    private JButton cancelButton;
+    private JButton testConnectionButton;
+    private JButton saveButton;
     private JBScrollPane consoleScrollPane;
 
-    protected DatabaseConnectionDialog() {
-        super(true); // use current window as parent
+    private JPanel notificationPanel;
+
+    JLabel defaultBucketLabel;
+    JTextField defaultBucketTextField;
+
+    private JBTable eventLogTable;
+
+    public DatabaseConnectionDialog() {
+        super(false);
+
+        createUIComponents();
+
         init();
         setTitle("New Couchbase Connection");
+        setResizable(true);
+        getPeer().getWindow().setMinimumSize(new Dimension(600, getPeer().getWindow().getSize().height));
     }
 
-    @Nullable
     @Override
     protected JComponent createCenterPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(JBUI.Borders.empty(10)); // margin
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(0, 0, 5, 10); // bottom and right padding
-        c.anchor = GridBagConstraints.WEST; // align to the left
+        return mainPanel;
+    }
 
-        // Fields and Labels
-        addField(panel, "Name:", 0, c);
-        nameField = addTextField(panel, 1, 0, c);
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(600, 300);
+    }
 
-        addField(panel, "Host:", 1, c);
-        hostField = addTextField(panel, 1, 1, c);
-        c.gridy = 1;
-        c.gridx = 2;
-        c.gridwidth = 1; // back to one column
-        c.anchor = GridBagConstraints.CENTER;
-        JBLabel linkLabel = new JBLabel("<html><a href=''>Sign up to Couchbase Capella</a></html>");
-        linkLabel.setFont(linkLabel.getFont().deriveFont(10f)); // Decrease font size
-        linkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        linkLabel.addMouseListener(new MouseAdapter() {
+    @Override
+    protected JComponent createSouthPanel() {
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+
+        cancelButton = new JButton("Cancel");
+        cancelButton.addActionListener((ActionEvent e) -> {
+            close(DialogWrapper.CANCEL_EXIT_CODE);
+        });
+        buttonPanel.add(cancelButton);
+
+        // Test Connection Button
+        testConnectionButton = new JButton("Test Connection");
+        testConnectionButton.addActionListener((ActionEvent e) -> {
+            checkSSLIfCapella();
+            List<String> errors = validateForm();
+            if (errors.isEmpty()) {
+                hideErrorLabel();
+            } else {
+                showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+                return;
+            }
+            testConnectionButton.setEnabled(false);
+
+            consoleScrollPane.setVisible(true);
+            thirdPanel.revalidate();
+            ((DefaultTableModel) eventLogTable.getModel()).setRowCount(0);
+            SdkDoctorRunner.run(hostTextField.getText(), enableSSLCheckBox.isSelected(),
+                    defaultBucketTextField.getText(),
+                    usernameTextField.getText(), String.valueOf(passwordField.getPassword()), (str) -> {
+                        DefaultTableModel tableModel = (DefaultTableModel) eventLogTable.getModel();
+                        tableModel.addRow(new Object[]{str});
+                        eventLogTable.scrollRectToVisible(eventLogTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
+                    });
+
+            messageLabel.setText("Trying to Connect...");
+
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    if (!hasCorrectBucketConnection()) {
+                        messageLabel.setText("");
+                        testConnectionButton.setEnabled(true);
+                        return;
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    showErrorLabel("Connection failed.");
+                    testConnectionButton.setEnabled(true);
+                    messageLabel.setText("");
+                    return;
+                }
+                hideErrorLabel();
+                messageLabel.setText("Connection was successful");
+            });
+        });
+        buttonPanel.add(testConnectionButton);
+
+        saveButton = new JButton("Save");
+        saveButton.addActionListener((ActionEvent e) -> {
+            saveButton.setEnabled(false);
+            checkSSLIfCapella();
+            List<String> errors = validateForm();
+            if (errors.isEmpty()) {
+                hideErrorLabel();
+            } else {
+                showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+                saveButton.setEnabled(true);
+                return;
+            }
+            messageLabel.setText("Trying to Connect...");
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    if (!hasCorrectBucketConnection()) {
+                        messageLabel.setText("");
+                        saveButton.setEnabled(true);
+                        return;
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    showErrorLabel("<html>Could not connect to the cluster.<br>Please double-check your credentials or click " +
+                            "on 'Test Connection' to troubleshoot the error.</html>");
+                    saveButton.setEnabled(true);
+                    messageLabel.setText("");
+                    return;
+                }
+
+                messageLabel.setText("Connection was successful");
+                System.out.println("Saving....");
+            });
+        });
+
+        buttonPanel.add(saveButton);
+
+        notificationPanel = new JPanel(new BorderLayout());
+        errorLabel = new JLabel();
+        errorLabel.setForeground(Color.decode("#FF4444"));
+        messageLabel = new JLabel();
+        notificationPanel.add(messageLabel, BorderLayout.NORTH);
+        notificationPanel.add(errorLabel, BorderLayout.SOUTH);
+
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        wrapperPanel.add(notificationPanel, BorderLayout.NORTH);
+        wrapperPanel.add(buttonPanel, BorderLayout.CENTER);
+
+        return wrapperPanel;
+    }
+
+    private boolean hasCorrectBucketConnection() {
+        Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(), enableSSLCheckBox.isSelected(),
+                usernameTextField.getText(), String.valueOf(passwordField.getPassword()));
+
+        if (!buckets.contains(defaultBucketTextField.getText())) {
+            showErrorLabel("The bucket '" + defaultBucketTextField.getText() + "' is not present in this cluster.");
+            return false;
+        }
+        return true;
+    }
+
+    private List<String> validateForm() {
+        List<String> errors = new ArrayList<>();
+
+        if (connectionNameTextField.getText().isEmpty()) {
+            errors.add("Connection Name can't be empty");
+        }
+
+        if (hostTextField.getText().isEmpty()) {
+            errors.add("Couchbase Connection URL can't be empty");
+        }
+
+        if (defaultBucketTextField.getText().isEmpty()) {
+            errors.add("Default Bucket can't be empty");
+        }
+
+        if (usernameTextField.getText().isEmpty()) {
+            errors.add("Username can't be empty");
+        }
+
+        if (String.valueOf(passwordField.getPassword()).isEmpty()) {
+            errors.add("Password can't be empty");
+        }
+        return errors;
+    }
+
+    private void checkSSLIfCapella() {
+        if (hostTextField.getText().contains("cloud.couchbase.com")) {
+            enableSSLCheckBox.setSelected(true);
+        }
+    }
+
+    private void createUIComponents() {
+        // First Panel
+        firstPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // Add TitledBorder to the firstPanel
+        TitledBorder databaseBorder = BorderFactory.createTitledBorder("Database");
+        firstPanel.setBorder(databaseBorder);
+
+        JLabel connectionNameLabel = new JLabel("Connection Name");
+        connectionNameTextField = new JTextField(20);
+        connectionNameTextField.addFocusListener(new TextFieldFocusListener(connectionNameTextField));
+        JLabel hostLabel = new JLabel("Couchbase Server URL");
+        hostTextField = new JTextField(20);
+        hostTextField.addFocusListener(new TextFieldFocusListener(hostTextField));
+        defaultBucketLabel = new JLabel("Default Bucket");
+        defaultBucketTextField = new JTextField(20);
+        JPanel signupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel signupLabel = new JLabel("<html><a href=\"https://cloud.couchbase.com/sign-up\">Sign up to Capella</a></html>");
+        signupLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        signupLabel.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent e) {
                 try {
                     Desktop.getDesktop().browse(new URI("https://cloud.couchbase.com/sign-up"));
@@ -63,92 +251,120 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 }
             }
         });
-        panel.add(linkLabel, c);
+        signupPanel.add(signupLabel);
 
-        addField(panel, "Username:", 2, c);
-        usernameField = addTextField(panel, 1, 2, c);
-
-        addField(panel, "Password:", 3, c);
-        passwordField = new JBPasswordField();
-        c.gridx = 1;
-        c.gridy = 3;
-        panel.add(passwordField, c);
-
-        // CheckBox
-        c.gridx = 2;
-        c.gridy = 3;
-        c.anchor = GridBagConstraints.EAST; // align to the right
         enableSSLCheckBox = new JCheckBox("Enable SSL");
-        panel.add(enableSSLCheckBox, c);
 
-        // Console
-        consoleArea = new JBTextArea(5, 20);
-        consoleArea.setVisible(false);
-        consoleScrollPane = new JBScrollPane(consoleArea);
-        consoleScrollPane.setVisible(false);
-        c.gridx = 0;
-        c.gridy = 4;
-        c.gridwidth = 3; // span 3 columns
-        c.weighty = 1.0; // request any extra vertical space
-        panel.add(consoleScrollPane, c);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        firstPanel.add(connectionNameLabel, gbc);
 
-        return panel;
-    }
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        firstPanel.add(connectionNameTextField, gbc);
 
-    private void addField(JPanel panel, String label, int y, GridBagConstraints c) {
-        c.gridx = 0;
-        c.gridy = y;
-        panel.add(new JBLabel(label), c);
-    }
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        firstPanel.add(hostLabel, gbc);
 
-    private JBTextField addTextField(JPanel panel, int x, int y, GridBagConstraints c) {
-        JBTextField textField = new JBTextField(20);
-        c.gridx = x;
-        c.gridy = y;
-        panel.add(textField, c);
-        return textField;
-    }
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        firstPanel.add(hostTextField, gbc);
 
-    @Nullable
-    @Override
-    protected JComponent createSouthPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton testConnectionButton = new JButton("Test Connection");
-        testConnectionButton.addActionListener(new ActionListener() {
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        firstPanel.add(enableSSLCheckBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        firstPanel.add(defaultBucketLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        firstPanel.add(defaultBucketTextField, gbc);
+
+
+        gbc.gridx = 2;
+        gbc.gridy = 1;
+        firstPanel.add(signupPanel, gbc);
+        firstPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, firstPanel.getPreferredSize().height));
+
+
+        // Second Panel
+        secondPanel = new JPanel(new BorderLayout());
+        TitledBorder credentialsBorder = BorderFactory.createTitledBorder("Credentials");
+        secondPanel.setBorder(credentialsBorder);
+        JPanel credentialsPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcCredentials = new GridBagConstraints();
+        gbcCredentials.anchor = GridBagConstraints.WEST;
+        gbcCredentials.insets = new Insets(5, -20, 5, 30);
+
+        JLabel usernameLabel = new JLabel("Username");
+        usernameTextField = new JTextField(20);
+        JLabel passwordLabel = new JLabel("Password");
+        passwordField = new JPasswordField(20);
+
+        gbcCredentials.gridx = 0;
+        gbcCredentials.gridy = 0;
+        credentialsPanel.add(usernameLabel, gbcCredentials);
+
+        gbcCredentials.gridx = 1;
+        gbcCredentials.gridy = 0;
+        credentialsPanel.add(usernameTextField, gbcCredentials);
+
+        gbcCredentials.gridx = 0;
+        gbcCredentials.gridy = 1;
+        credentialsPanel.add(passwordLabel, gbcCredentials);
+
+        gbcCredentials.gridx = 1;
+        gbcCredentials.gridy = 1;
+        credentialsPanel.add(passwordField, gbcCredentials);
+
+        secondPanel.add(credentialsPanel, BorderLayout.CENTER);
+        secondPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, secondPanel.getPreferredSize().height));
+
+
+        // Third Panel
+        thirdPanel = new JPanel(new BorderLayout());
+        //consoleArea = new JBTextArea(10, 20);
+        DefaultTableModel tableModel = new DefaultTableModel() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                consoleArea.setText("Testing the connection...");
-                consoleArea.setVisible(true);
-                consoleScrollPane.setVisible(true); // Show the scroll pane as well
+            public Class<?> getColumnClass(int columnIndex) {
+                return String.class; // Set the column class to String
             }
-        });
-        panel.add(testConnectionButton);
-        panel.add(super.createSouthPanel());
+        };
+        tableModel.addColumn("Output");
+        eventLogTable = new JBTable(tableModel);
+        eventLogTable.setDefaultRenderer(Object.class, new SDKDoctorTableCellRenderer());
 
-        return panel;
+        //consoleScrollPane = new JBScrollPane(consoleArea);
+        consoleScrollPane = new JBScrollPane(eventLogTable);
+        consoleScrollPane.setMinimumSize(new Dimension(800, 300));
+        //consoleScrollPane.setMinimumSize(new Dimension(consoleScrollPane.getPreferredSize().width, 300));
+        consoleScrollPane.setVerticalScrollBarPolicy(JBScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        consoleScrollPane.setVisible(false);
+        thirdPanel.add(consoleScrollPane, BorderLayout.CENTER);
+
+        // Main Panel
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.add(firstPanel);
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing between panels
+        topPanel.add(secondPanel);
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing between panels
+
+        // Main Panel
+        mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(thirdPanel, BorderLayout.CENTER);
     }
 
-    @Override
-    protected void doOKAction() {
-        // Add your save logic here
-        super.doOKAction();
+    private void showErrorLabel(String errorMessage) {
+        errorLabel.setText(errorMessage);
     }
 
-    @Nullable
-    @Override
-    protected ValidationInfo doValidate() {
-        // Add your validation logic here
-        return super.doValidate();
-    }
-
-    @Override
-    public void doCancelAction() {
-        // You may want to add some custom logic here
-        super.doCancelAction();
-    }
-
-    public static void main(String[] args) {
-        DatabaseConnectionDialog dialog = new DatabaseConnectionDialog();
-        dialog.show();
+    private void hideErrorLabel() {
+        errorLabel.setText("");
     }
 }
