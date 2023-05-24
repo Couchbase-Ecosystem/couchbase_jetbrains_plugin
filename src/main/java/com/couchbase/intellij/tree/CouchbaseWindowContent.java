@@ -131,7 +131,6 @@ public class CouchbaseWindowContent extends JPanel {
         rightActionGroup.add(ellipsisAction);
 
 
-        // create an ActionToolbar and add it to the toolbar panel
         ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
         leftActionToolbar.setTargetComponent(this);
         toolBarPanel.add(leftActionToolbar.getComponent(), BorderLayout.WEST);
@@ -143,13 +142,6 @@ public class CouchbaseWindowContent extends JPanel {
         // add the toolbar panel to the main panel
         add(toolBarPanel, BorderLayout.NORTH);
 
-        // create the tree
-
-//        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-//        DefaultTreeModel treeModel = new DefaultTreeModel(root);
-//        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode("Child");
-//        root.add(childNode);
-
 
         tree.addMouseListener(new MouseInputAdapter() {
             @Override
@@ -159,39 +151,29 @@ public class CouchbaseWindowContent extends JPanel {
                 } else {
                     if (SwingUtilities.isRightMouseButton(e)) {
                         TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
-                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
-                        Object userObject = clickedNode.getUserObject();
-                        int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-                        tree.setSelectionRow(row);
 
-                        if (userObject instanceof ConnectionNodeDescriptor) {
-                            JPopupMenu popup = new JPopupMenu();
+                        if (clickedPath != null) {
+                            DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                            Object userObject = clickedNode.getUserObject();
+                            int row = tree.getClosestRowForLocation(e.getX(), e.getY());
+                            tree.setSelectionRow(row);
 
-                            ConnectionNodeDescriptor con = (ConnectionNodeDescriptor) userObject;
-
-                            if (con.isActive()) {
-                                JMenuItem menuItem = new JMenuItem("Disconnect");
-                                popup.add(menuItem);
-                                menuItem.addActionListener(event -> {
-                                    TreeActionHandler.disconnectFromCluster(clickedNode, con, tree);
-                                });
-
-                            } else {
-                                JMenuItem menuItem = new JMenuItem("Connect");
+                            if (userObject instanceof ConnectionNodeDescriptor) {
+                                handleConnectionRightClick(e, clickedNode, (ConnectionNodeDescriptor) userObject, tree);
+                            } else if (userObject instanceof BucketNodeDescriptor) {
+                                handleBucketRightClick(e, clickedNode, tree);
+                            } else if (userObject instanceof CollectionsNodeDescriptor) {
+                                JPopupMenu popup = new JPopupMenu();
+                                popup.addSeparator();
+                                JMenuItem menuItem = new JMenuItem("Refresh Collections");
                                 popup.add(menuItem);
                                 menuItem.addActionListener(e12 -> {
-                                    TreeActionHandler.connectToCluster(con.getSavedCluster(), tree);
+                                    TreePath treePath = new TreePath(clickedNode.getPath());
+                                    tree.collapsePath(treePath);
+                                    tree.expandPath(treePath);
                                 });
+                                popup.show(tree, e.getX(), e.getY());
                             }
-
-                            popup.addSeparator();
-                            JMenuItem menuItem = new JMenuItem("Delete");
-                            popup.add(menuItem);
-                            menuItem.addActionListener(e12 -> {
-                                TreeActionHandler.deleteConnection(clickedNode, con, tree);
-                            });
-
-                            popup.show(tree, e.getX(), e.getY());
                         }
                     }
                 }
@@ -263,6 +245,58 @@ public class CouchbaseWindowContent extends JPanel {
         add(new JScrollPane(tree), BorderLayout.CENTER);
     }
 
+    private static void handleBucketRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Refresh Scopes");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            TreePath treePath = new TreePath(clickedNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        ConnectionNodeDescriptor con = userObject;
+
+
+        if (con.isActive()) {
+            JMenuItem refreshBuckets = new JMenuItem("Refresh Buckets");
+            refreshBuckets.addActionListener(e12 -> {
+                TreePath treePath = new TreePath(clickedNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+            popup.add(refreshBuckets);
+            popup.addSeparator();
+
+            JMenuItem menuItem = new JMenuItem("Disconnect");
+            popup.add(menuItem);
+            menuItem.addActionListener(event -> {
+                TreeActionHandler.disconnectFromCluster(clickedNode, con, tree);
+            });
+
+        } else {
+            JMenuItem menuItem = new JMenuItem("Connect");
+            popup.add(menuItem);
+            menuItem.addActionListener(e12 -> {
+                TreeActionHandler.connectToCluster(con.getSavedCluster(), tree);
+            });
+        }
+
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Delete Connection");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            TreeActionHandler.deleteConnection(clickedNode, con, tree);
+        });
+
+        popup.show(tree, e.getX(), e.getY());
+    }
+
 
     class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
@@ -275,6 +309,21 @@ public class CouchbaseWindowContent extends JPanel {
                     NodeDescriptor descriptor = (NodeDescriptor) userObject;
                     setIcon(descriptor.getIcon());
                     setText(descriptor.getText());
+
+//                    NodeDescriptor descriptor = (NodeDescriptor) userObject;
+//
+//                Icon icon1 = descriptor.getIcon();
+//                setIcon(icon1);
+//
+//                JLabel icon2Label = new JLabel();
+//                Icon icon2 = // second icon
+//                icon2Label.setIcon(icon2);
+//
+//                JPanel iconsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+//                iconsPanel.add(this);
+//                iconsPanel.add(icon2Label);
+//
+//                return iconsPanel;
                 }
             }
             return this;
