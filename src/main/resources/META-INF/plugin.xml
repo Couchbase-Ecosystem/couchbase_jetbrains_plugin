@@ -22,8 +22,8 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <projectService serviceInterface="com.couchbase.intellij.persistence.TreeModelStorage"
-                        serviceImplementation="com.couchbase.intellij.persistence.TreeModelStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.ClustersStorage"/>
+
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
 

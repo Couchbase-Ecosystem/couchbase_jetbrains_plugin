@@ -27,13 +27,13 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
         //filtering files from our plugin
         if (file != null && file.equals(file) && file.getUserData(VirtualFileKeys.CLUSTER) != null) {
-            if (!ActiveCluster.id().equals(file.getUserData(VirtualFileKeys.CLUSTER))) {
+            if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
                 Messages.showMessageDialog("Couchbase Plugin Error",
-                        "The file that you are trying to save is from a connection that is no longer active"
+                        "The file that you are trying to save belongs to a connection that is no longer active"
                         , Messages.getErrorIcon());
                 return false;
             } else {
-                Collection collection = ActiveCluster.get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
+                Collection collection = ActiveCluster.getInstance().get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
                         .scope(file.getUserData(VirtualFileKeys.SCOPE))
                         .collection(file.getUserData(VirtualFileKeys.COLLECTION));
                 try {

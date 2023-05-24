@@ -2,13 +2,19 @@ package com.couchbase.intellij.tree;
 
 
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
+import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
+import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.doctor.SDKDoctorTableCellRenderer;
 import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
+import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -20,6 +26,7 @@ import java.awt.event.MouseEvent;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,16 +50,17 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     JTextField defaultBucketTextField;
 
     private JBTable eventLogTable;
+    private Tree tree;
 
-    public DatabaseConnectionDialog() {
+    public DatabaseConnectionDialog(Tree tree) {
         super(false);
-
+        this.tree = tree;
         createUIComponents();
 
         init();
         setTitle("New Couchbase Connection");
         setResizable(true);
-        getPeer().getWindow().setMinimumSize(new Dimension(600, getPeer().getWindow().getSize().height));
+        getPeer().getWindow().setMinimumSize(new Dimension(600, 400));
     }
 
     @Override
@@ -62,14 +70,13 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
     @Override
     public Dimension getPreferredSize() {
-        return new Dimension(600, 300);
+        return new Dimension(600, 400);
     }
 
     @Override
     protected JComponent createSouthPanel() {
+
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-
-
         JButton cancelButton = new JButton("Cancel");
         cancelButton.addActionListener((ActionEvent e) -> {
             close(DialogWrapper.CANCEL_EXIT_CODE);
@@ -83,26 +90,28 @@ public class DatabaseConnectionDialog extends DialogWrapper {
             List<String> errors = validateForm();
             if (errors.isEmpty()) {
                 hideErrorLabel();
+                messageLabel.setText("");
             } else {
                 showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
                 return;
             }
             testConnectionButton.setEnabled(false);
-
-            consoleScrollPane.setVisible(true);
-            thirdPanel.revalidate();
-            ((DefaultTableModel) eventLogTable.getModel()).setRowCount(0);
-            SdkDoctorRunner.run(hostTextField.getText(), enableSSLCheckBox.isSelected(),
-                    defaultBucketTextField.getText(),
-                    usernameTextField.getText(), String.valueOf(passwordField.getPassword()), (str) -> {
-                        DefaultTableModel tableModel = (DefaultTableModel) eventLogTable.getModel();
-                        tableModel.addRow(new Object[]{str});
-                        eventLogTable.scrollRectToVisible(eventLogTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                    });
-
             messageLabel.setText("Trying to Connect...");
 
             SwingUtilities.invokeLater(() -> {
+                if (!defaultBucketTextField.getText().trim().isEmpty()) {
+                    consoleScrollPane.setVisible(true);
+                    thirdPanel.revalidate();
+                    ((DefaultTableModel) eventLogTable.getModel()).setRowCount(0);
+                    SdkDoctorRunner.run(hostTextField.getText(), enableSSLCheckBox.isSelected(),
+                            defaultBucketTextField.getText(),
+                            usernameTextField.getText(), String.valueOf(passwordField.getPassword()), (str) -> {
+                                DefaultTableModel tableModel = (DefaultTableModel) eventLogTable.getModel();
+                                tableModel.addRow(new Object[]{str});
+                                eventLogTable.scrollRectToVisible(eventLogTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
+                            });
+                }
+
                 try {
                     if (!hasCorrectBucketConnection()) {
                         messageLabel.setText("");
@@ -111,13 +120,15 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    showErrorLabel("Connection failed.");
+                    showErrorLabel("<html>Connection failed.<br>Please double-check your credentials"
+                            + (defaultBucketTextField.getText().trim().isEmpty() ? " or inform a 'Default Bucket' and click again on 'Test Connection' to run the SDK Doctor" : "")
+                            + "</html>");
                     testConnectionButton.setEnabled(true);
                     messageLabel.setText("");
                     return;
                 }
                 hideErrorLabel();
-                messageLabel.setText("Connection was successful");
+                messageLabel.setText("Connection was successful.");
                 testConnectionButton.setEnabled(true);
             });
         });
@@ -130,6 +141,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
             List<String> errors = validateForm();
             if (errors.isEmpty()) {
                 hideErrorLabel();
+                messageLabel.setText("");
             } else {
                 showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
                 saveButton.setEnabled(true);
@@ -145,15 +157,34 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    showErrorLabel("<html>Could not connect to the cluster.<br>Please double-check your credentials or click " +
-                            "on 'Test Connection' to troubleshoot the error.</html>");
+                    showErrorLabel("<html>Could not connect to the cluster.<br>Please double-check your credentials or"
+                            + (defaultBucketTextField.getText().isEmpty() ? " inform a <strong>Default Bucket</strong> and" : "")
+                            + " click on <strong>Test Connection</strong> to troubleshoot the error.</html>");
                     saveButton.setEnabled(true);
                     messageLabel.setText("");
                     return;
                 }
 
-                messageLabel.setText("Connection was successful");
-                System.out.println("Saving....");
+                try {
+                    SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(), hostTextField.getText(), enableSSLCheckBox.isSelected(),
+                            usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
+                            defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
+                    messageLabel.setText("Connection was successful");
+                    TreeActionHandler.connectToCluster(sc, tree);
+                    close(DialogWrapper.CANCEL_EXIT_CODE);
+                } catch (DuplicatedClusterNameAndUserException cae) {
+                    messageLabel.setText("");
+                    showErrorLabel("The combination of the name of the cluster and user already exists.");
+                } catch (ClusterAlreadyExistsException caee) {
+                    messageLabel.setText("");
+                    showErrorLabel("The Couchbase cluster URL and username already exists.");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    messageLabel.setText("");
+                    showErrorLabel("Could not save the database credentials");
+                }
+                saveButton.setEnabled(true);
+
             });
         });
 
@@ -163,6 +194,8 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         errorLabel = new JLabel();
         errorLabel.setForeground(Color.decode("#FF4444"));
         messageLabel = new JLabel();
+        messageLabel.setBorder(new EmptyBorder(5, 0, 0, 0));
+        messageLabel.setForeground(JBColor.GREEN);
         notificationPanel.add(messageLabel, BorderLayout.NORTH);
         notificationPanel.add(errorLabel, BorderLayout.SOUTH);
 
@@ -177,9 +210,11 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(), enableSSLCheckBox.isSelected(),
                 usernameTextField.getText(), String.valueOf(passwordField.getPassword()));
 
-        if (!buckets.contains(defaultBucketTextField.getText())) {
-            showErrorLabel("The bucket '" + defaultBucketTextField.getText() + "' is not present in this cluster.");
-            return false;
+        if (!defaultBucketTextField.getText().trim().isEmpty()) {
+            if (!buckets.contains(defaultBucketTextField.getText())) {
+                showErrorLabel("The bucket '" + defaultBucketTextField.getText() + "' is not present in this cluster.");
+                return false;
+            }
         }
         return true;
     }
@@ -193,10 +228,6 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
         if (hostTextField.getText().isEmpty()) {
             errors.add("Couchbase Connection URL can't be empty");
-        }
-
-        if (defaultBucketTextField.getText().isEmpty()) {
-            errors.add("Default Bucket can't be empty");
         }
 
         if (usernameTextField.getText().isEmpty()) {
@@ -232,7 +263,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         JLabel hostLabel = new JLabel("Couchbase Server URL");
         hostTextField = new JTextField(20);
         hostTextField.addFocusListener(new TextFieldFocusListener(hostTextField));
-        defaultBucketLabel = new JLabel("Default Bucket");
+        defaultBucketLabel = new JLabel("(Optional) Default Bucket");
         defaultBucketTextField = new JTextField(20);
         JPanel signupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel signupLabel = new JLabel("<html><a href=\"https://cloud.couchbase.com/sign-up\">Sign up to Capella</a></html>");

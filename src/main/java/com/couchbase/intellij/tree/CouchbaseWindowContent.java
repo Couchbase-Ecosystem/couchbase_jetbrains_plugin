@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.persistence.SavedCluster;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -24,8 +25,12 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CouchbaseWindowContent extends JPanel {
 
@@ -35,6 +40,11 @@ public class CouchbaseWindowContent extends JPanel {
     public CouchbaseWindowContent(Project project) {
         this.project = project;
         setLayout(new BorderLayout());
+
+        treeModel = getTreeModel(project);
+        Tree tree = new Tree(treeModel);
+        tree.setRootVisible(false);
+        tree.setCellRenderer(new NodeDescriptorRenderer());
 
         // create the toolbar
         JPanel toolBarPanel = new JPanel(new BorderLayout());
@@ -66,7 +76,7 @@ public class CouchbaseWindowContent extends JPanel {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Add connection action code here
-                DatabaseConnectionDialog dialog = new DatabaseConnectionDialog();
+                DatabaseConnectionDialog dialog = new DatabaseConnectionDialog(tree);
                 dialog.show();
             }
         };
@@ -140,17 +150,50 @@ public class CouchbaseWindowContent extends JPanel {
 //        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode("Child");
 //        root.add(childNode);
 
-        treeModel = CouchbaseTreeModel.getTreeModel(project);
-        Tree tree = new Tree(treeModel);
-        tree.setRootVisible(false);
-        tree.setCellRenderer(new NodeDescriptorRenderer());
-
 
         tree.addMouseListener(new MouseInputAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     mouseClicked(e);
+                } else {
+                    if (SwingUtilities.isRightMouseButton(e)) {
+                        TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
+                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                        Object userObject = clickedNode.getUserObject();
+                        int row = tree.getClosestRowForLocation(e.getX(), e.getY());
+                        tree.setSelectionRow(row);
+
+                        if (userObject instanceof ConnectionNodeDescriptor) {
+                            JPopupMenu popup = new JPopupMenu();
+
+                            ConnectionNodeDescriptor con = (ConnectionNodeDescriptor) userObject;
+
+                            if (con.isActive()) {
+                                JMenuItem menuItem = new JMenuItem("Disconnect");
+                                popup.add(menuItem);
+                                menuItem.addActionListener(event -> {
+                                    TreeActionHandler.disconnectFromCluster(clickedNode, con, tree);
+                                });
+
+                            } else {
+                                JMenuItem menuItem = new JMenuItem("Connect");
+                                popup.add(menuItem);
+                                menuItem.addActionListener(e12 -> {
+                                    TreeActionHandler.connectToCluster(con.getSavedCluster(), tree);
+                                });
+                            }
+
+                            popup.addSeparator();
+                            JMenuItem menuItem = new JMenuItem("Delete");
+                            popup.add(menuItem);
+                            menuItem.addActionListener(e12 -> {
+                                TreeActionHandler.deleteConnection(clickedNode, con, tree);
+                            });
+
+                            popup.show(tree, e.getX(), e.getY());
+                        }
+                    }
                 }
             }
         });
@@ -158,11 +201,11 @@ public class CouchbaseWindowContent extends JPanel {
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
-                    if (clickedPath != null) {
-                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
-                        Object userObject = clickedNode.getUserObject();
+                TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
+                if (clickedPath != null) {
+                    DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                    Object userObject = clickedNode.getUserObject();
+                    if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
                             VirtualFile virtualFile = descriptor.getVirtualFile();
@@ -174,9 +217,11 @@ public class CouchbaseWindowContent extends JPanel {
 
 
                             } else {
-                                System.out.println("virtual file is null===============");
+                                System.out.println("virtual file is null");
                             }
                         }
+                    } else {
+                        //do nothing for now
                     }
                 }
             }
@@ -191,15 +236,15 @@ public class CouchbaseWindowContent extends JPanel {
                     DefaultMutableTreeNode expandedTreeNode = (DefaultMutableTreeNode) expandedNode;
 
                     if (expandedTreeNode.getUserObject() instanceof ConnectionNodeDescriptor) {
-                        DataLoader.listBuckets(expandedTreeNode, treeModel, tree);
+                        DataLoader.listBuckets(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof BucketNodeDescriptor) {
-                        DataLoader.listScopes(expandedTreeNode, treeModel, tree);
+                        DataLoader.listScopes(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
                         //Do Nothing
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionsNodeDescriptor) {
-                        DataLoader.listCollections(expandedTreeNode, treeModel, tree);
+                        DataLoader.listCollections(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
-                        DataLoader.listDocuments(project, expandedTreeNode, treeModel, tree);
+                        DataLoader.listDocuments(project, expandedTreeNode, tree);
                     } else {
                         throw new UnsupportedOperationException("Not implemente yet");
                     }
@@ -235,4 +280,16 @@ public class CouchbaseWindowContent extends JPanel {
             return this;
         }
     }
+
+    public static DefaultTreeModel getTreeModel(Project project) {
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
+
+        Map<String, SavedCluster> sortedClusters = new TreeMap<>(DataLoader.getSavedClusters());
+        for (Map.Entry<String, SavedCluster> entry : sortedClusters.entrySet()) {
+            DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(new ConnectionNodeDescriptor(entry.getKey(), entry.getValue(), false));
+            root.add(adminLocal);
+        }
+        return new DefaultTreeModel(root);
+    }
+
 }

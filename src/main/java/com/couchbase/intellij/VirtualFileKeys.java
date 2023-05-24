@@ -4,6 +4,7 @@ import com.intellij.openapi.util.Key;
 
 public class VirtualFileKeys {
 
+     public static final Key<String> CONN_ID = new Key<>("connid");
     public static final Key<String> CLUSTER = new Key<>("cluster");
     public static final Key<String> BUCKET = new Key<>("bucket");
     public static final Key<String> SCOPE = new Key<>("scope");

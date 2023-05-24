@@ -64,9 +64,7 @@ public class CustomSqlFileEditor implements FileEditor {
             public void actionPerformed(@NotNull AnActionEvent e) {
 
                 String editorText = myEditor.getDocument().getText();
-                System.out.println("======text = "+editorText);
-
-                final List<JsonObject> results = ActiveCluster.get().query(editorText).rowsAsObject();
+                final List<JsonObject> results = ActiveCluster.getInstance().get().query(editorText).rowsAsObject();
                 QueryResult.show(results, project);
 
             }
