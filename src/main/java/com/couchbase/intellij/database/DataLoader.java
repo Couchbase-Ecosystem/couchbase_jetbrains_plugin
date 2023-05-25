@@ -296,7 +296,8 @@ public class DataLoader {
 
     public static Map<String, SavedCluster> getSavedClusters() {
 
-        if (ClustersStorage.getInstance().getValue().getMap() == null) {
+        if (ClustersStorage.getInstance().getValue() ==null
+                || ClustersStorage.getInstance().getValue().getMap() == null) {
             return new HashMap<>();
         }
         return ClustersStorage.getInstance().getValue().getMap();
