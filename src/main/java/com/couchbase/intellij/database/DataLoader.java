@@ -1,11 +1,14 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.intellij.VirtualFileKeys;
+import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.tree.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -19,12 +22,15 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.ui.treeStructure.Tree;
 
-
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -36,20 +42,26 @@ import com.google.gson.JsonParser;
 
 public class DataLoader {
 
-    public static void listBuckets(DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
+    public static void listBuckets(DefaultMutableTreeNode parentNode, Tree tree) {
+
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
-                    Set<String> buckets = ActiveCluster.get().buckets().getAllBuckets().keySet();
+                    Set<String> buckets = ActiveCluster.getInstance().get()
+                            .buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
                     for (String bucket : buckets) {
+
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket));
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
-                    treeModel.nodeStructureChanged(parentNode);
+
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
                 }
@@ -59,19 +71,22 @@ public class DataLoader {
         }
     }
 
-    public static void listScopes(DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
+    public static void listScopes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof BucketNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
                     String bucketName = ((BucketNodeDescriptor) parentNode.getUserObject()).getText();
-                    List<ScopeSpec> scopes = ActiveCluster.get().bucket(bucketName).collections().getAllScopes();
+                    List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                            .getAllScopes();
                     parentNode.removeAllChildren();
                     for (ScopeSpec scopeSpec : scopes) {
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new ScopeNodeDescriptor(scopeSpec.name()));
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                new ScopeNodeDescriptor(scopeSpec.name()));
 
-                        DefaultMutableTreeNode collections = new DefaultMutableTreeNode(new CollectionsNodeDescriptor());
+                        DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
+                                new CollectionsNodeDescriptor());
                         collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         childNode.add(collections);
 
@@ -80,7 +95,8 @@ public class DataLoader {
                         childNode.add(indexes);
                         parentNode.add(childNode);
                     }
-                    treeModel.nodeStructureChanged(parentNode);
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    System.out.println("updating scope structure----");
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
@@ -92,8 +108,7 @@ public class DataLoader {
         }
     }
 
-
-    public static void listCollections(DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
+    public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof CollectionsNodeDescriptor) {
@@ -102,20 +117,23 @@ public class DataLoader {
                     parentNode.removeAllChildren();
                     DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent();
                     String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
+                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
+                            .getUserObject()).getText();
 
-                    List<CollectionSpec> collections = ActiveCluster.get().bucket(bucketName).collections().getAllScopes().stream()
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName)
+                            .collections().getAllScopes().stream()
                             .filter(scope -> scope.name().equals(scopeName))
                             .flatMap(scope -> scope.collections().stream())
                             .collect(Collectors.toList());
 
                     for (CollectionSpec spec : collections) {
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new CollectionNodeDescriptor(spec.name()));
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                new CollectionNodeDescriptor(spec.name()));
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
 
                     }
-                    treeModel.nodeStructureChanged(parentNode);
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } finally {
                     tree.setPaintBusy(false);
                 }
@@ -125,26 +143,30 @@ public class DataLoader {
         }
     }
 
-    public static void listDocuments(Project project, DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
+    public static void listDocuments(Project project, DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof CollectionNodeDescriptor) {
-            //CompletableFuture.runAsync(() -> {
+            // CompletableFuture.runAsync(() -> {
             try {
                 parentNode.removeAllChildren();
 
                 String collectionName = ((CollectionNodeDescriptor) parentNode.getUserObject()).getText();
                 DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent().getParent();
                 String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
-                String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent().getParent()).getUserObject()).getText();
+                String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
+                        .getUserObject()).getText();
+                String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()
+                        .getParent()).getUserObject()).getText();
 
-                final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
+                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(bucketName).scope(scopeName)
                         .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
-                                + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions()).rowsAsObject();
+                                + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions())
+                        .rowsAsObject();
 
                 ApplicationManager.getApplication().runWriteAction(() -> {
-                    PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName, collectionName);
+                    PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName,
+                            collectionName);
 
                     // Add a schema subfolder
                     DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
@@ -159,7 +181,7 @@ public class DataLoader {
                         obj.removeKey("cbCasNb");
 
                         String fileName = docId + ".json";
-                        //removes the id that we added
+                        // removes the id that we added
 
                         String fileContent = obj.toString(); // replace with actual JSON content if needed
 
@@ -189,7 +211,7 @@ public class DataLoader {
                         DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                         parentNode.add(jsonFileNode);
                     }
-                    treeModel.nodeStructureChanged(parentNode);
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 });
 
             } catch (Exception e) {
@@ -216,27 +238,32 @@ public class DataLoader {
                     String collectionName = ((CollectionNodeDescriptor) collectionNode.getUserObject()).getText();
                     DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) collectionNode.getParent().getParent();
                     String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()).getUserObject()).getText();
+                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
+                            .getUserObject()).getText();
 
                     // Replace with your schema inference query
-//                    String temporaryUsername = "kaustav";
-//                    String temporaryPassword = "password";
-                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
-                            + ActiveCluster.getActiveClusterUsername() + ":" + ActiveCluster.getActiveClusterPassword() + "\"}) d";
+                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `"
+                            + bucketName + "`.`" + scopeName + "`.`" + collectionName
+                            + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
+                            + ActiveCluster.getActiveClusterUsername() + ":" + ActiveCluster.getActiveClusterPassword()
+                            + "\"}) d";
 
                     // Execute the schema inference query
-                    final List<JsonObject> results = ActiveCluster.get().bucket(bucketName).scope(scopeName)
+                    final List<JsonObject> results = ActiveCluster.getInstance().get()
+                            .bucket(bucketName).scope(scopeName)
                             .query(inferSchemaQuery, QueryOptions.queryOptions()).rowsAsObject();
 
                     // Process the results and add them to the tree structure
                     for (JsonObject obj : results) {
-                        // Replace with your code for processing the schema data and adding it to the tree structure
+                        // Replace with your code for processing the schema data and adding it to the
+                        // tree structure
                         JsonObject inferSchemaRow = obj.getArray("results").getArray(0).getObject(0);
                         JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
                         String schemaString = inferSchemaProperties.toString();
                         String prettySchemaString = prettyPrintJson(schemaString);
 
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(prettySchemaString));
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                new SchemaDataNodeDescriptor(prettySchemaString));
                         parentNode.add(childNode);
                     }
                     treeModel.nodeStructureChanged(parentNode);
@@ -306,7 +333,6 @@ public class DataLoader {
         return result;
     }
 
-
     public static String prettyPrintJson(String json) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         JsonParser jp = new JsonParser();
@@ -314,15 +340,15 @@ public class DataLoader {
         return gson.toJson(je);
     }
 
-
-    private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope, String collection) {
+    private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
+            String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
-        //return ApplicationManager.getApplication().runWriteAction((Computable<PsiDirectory>) () -> {
         try {
-            String dirPath = connection + File.separator + bucket + File.separator + scope + File.separator + collection;
+            String dirPath = connection + File.separator + bucket + File.separator + scope + File.separator
+                    + collection;
             VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
             return PsiManager.getInstance(project).findDirectory(directory);
 
@@ -330,7 +356,92 @@ public class DataLoader {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-        //});
 
+    }
+
+    public static String adjustClusterProtocol(String cluster, boolean ssl) {
+        if (cluster.startsWith("couchbase://") || cluster.startsWith("couchbases://")) {
+            return cluster;
+        }
+
+        String protocol = "";
+        if (ssl) {
+            protocol = "couchbases://";
+        } else {
+            protocol = "couchbase://";
+        }
+        return protocol + cluster;
+    }
+
+    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password) {
+
+        Cluster cluster = null;
+        try {
+            cluster = Cluster.connect(
+                    adjustClusterProtocol(clusterUrl, ssl),
+                    ClusterOptions.clusterOptions(username, password).environment(env -> {
+                        // env.applyProfile("wan-development");
+                    }));
+            cluster.waitUntilReady(Duration.ofSeconds(5));
+
+            return cluster.buckets().getAllBuckets().keySet();
+        } catch (Exception e) {
+            cluster.disconnect();
+            throw e;
+        }
+
+    }
+
+    public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username,
+            String password, String defaultBucket) {
+        String key = username + ":" + name;
+        SavedCluster sc = new SavedCluster();
+        sc.setId(key);
+        sc.setName(name);
+        sc.setUsername(username);
+        sc.setUrl(adjustClusterProtocol(url, isSSL));
+        sc.setDefaultBucket(defaultBucket);
+
+        Clusters clusters = ClustersStorage.getInstance().getValue();
+        if (clusters == null) {
+            clusters = new Clusters();
+        }
+
+        if (clusters.getMap() == null) {
+            clusters.setMap(new HashMap<>());
+        }
+
+        if (clusters.getMap().containsKey(sc.getId())) {
+            throw new DuplicatedClusterNameAndUserException();
+        }
+
+        for (Map.Entry<String, SavedCluster> entry : clusters.getMap().entrySet()) {
+            if (entry.getValue().getUrl().equals(sc.getUrl()) && entry.getValue().getUsername().equals(username)) {
+                throw new ClusterAlreadyExistsException();
+            }
+        }
+
+        clusters.getMap().put(key, sc);
+        ClustersStorage.getInstance().setValue(clusters);
+        PasswordStorage.savePassword(sc, password);
+
+        return sc;
+    }
+
+    public static Map<String, SavedCluster> getSavedClusters() {
+        if (ClustersStorage.getInstance().getValue() == null
+                || ClustersStorage.getInstance().getValue().getMap() == null) {
+            return new HashMap<>();
+        }
+        return ClustersStorage.getInstance().getValue().getMap();
+    }
+
+    public static String getClusterPassword(SavedCluster sv) {
+        return PasswordStorage.getPassword(sv);
+    }
+
+    public static void deleteSavedCluster(SavedCluster sv) {
+        PasswordStorage.savePassword(sv, null);
+        ClustersStorage.getInstance().getValue().getMap().remove(sv.getId());
     }
 }

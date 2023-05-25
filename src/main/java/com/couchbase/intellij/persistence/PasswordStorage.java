@@ -7,15 +7,14 @@ import com.intellij.ide.passwordSafe.PasswordSafe;
 
 public class PasswordStorage {
 
-    public static void savePassword(String key, String password) {
-        CredentialAttributes credentialAttributes =
-        createCredentialAttributes(key); // see previous sample
-        Credentials credentials = new Credentials(key, password);
+    public static void savePassword(SavedCluster sc, String password) {
+        CredentialAttributes credentialAttributes = createCredentialAttributes(sc.getUsername()+":"+sc.getName());
+        Credentials credentials = new Credentials(sc.getUsername()+":"+sc.getName(), password);
         PasswordSafe.getInstance().set(credentialAttributes, credentials);
     }
 
-    public static String getPassword(String key) {
-        CredentialAttributes credentialAttributes = createCredentialAttributes(key);
+    public static String getPassword(SavedCluster sc) {
+        CredentialAttributes credentialAttributes = createCredentialAttributes(sc.getUsername()+":"+sc.getName());
 
         Credentials credentials = PasswordSafe.getInstance().get(credentialAttributes);
         if (credentials != null) {
