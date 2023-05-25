@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -188,6 +189,8 @@ public class CouchbaseWindowContent extends JPanel {
                                     tree.expandPath(treePath);
                                 });
                                 popup.show(tree, e.getX(), e.getY());
+                            } else if (userObject instanceof CollectionNodeDescriptor) {
+                                handleCollectionRightClick(e, clickedNode, tree);
                             }
                         }
                     }
@@ -269,6 +272,69 @@ public class CouchbaseWindowContent extends JPanel {
             tree.collapsePath(treePath);
             tree.expandPath(treePath);
         });
+
+        // Add "Delete Scope" option
+        JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
+        deleteScopeItem.addActionListener(e1 -> {
+            // Code for deleting scope here
+            // Show confirmation dialog before deleting scope
+            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this scope?",
+                    "Delete Scope", JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                // Code for deleting scope here
+            }
+        });
+        popup.add(deleteScopeItem);
+
+        // Add "Add New Scope" option
+        JMenuItem addNewScopeItem = new JMenuItem("Add New Scope");
+        addNewScopeItem.addActionListener(e1 -> {
+            // Code for adding new scope here
+            // Show dialog for entering name of new scope
+            String scopeName = JOptionPane.showInputDialog(tree, "Enter name of new scope:", "Add New Scope",
+                    JOptionPane.PLAIN_MESSAGE);
+            if (scopeName != null && !scopeName.isEmpty()) {
+                // Check if scope with this name already exists
+                // If it does, show error message
+                // Otherwise, add new scope
+            }
+        });
+        popup.add(addNewScopeItem);
+
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+
+        // Add "Delete Collection" option
+        JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
+        deleteCollectionItem.addActionListener(e1 -> {
+            // Code for deleting collection here
+            // Show confirmation dialog before deleting collection
+            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this collection?",
+                    "Delete Collection", JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                // Code for deleting collection here
+            }
+        });
+        popup.add(deleteCollectionItem);
+        // Add "Add New Collection" option
+        JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
+        addNewCollectionItem.addActionListener(e1 -> {
+            // Code for adding new collection here
+            // Show dialog for entering name of new collection
+            String collectionName = JOptionPane.showInputDialog(tree, "Enter name of new collection:",
+                    "Add New Collection", JOptionPane.PLAIN_MESSAGE);
+            if (collectionName != null && !collectionName.isEmpty()) {
+                // Check if collection with this name already exists
+                // If it does, show error message
+                // Otherwise, add new collection
+            }
+        });
+        popup.add(addNewCollectionItem);
+
         popup.show(tree, e.getX(), e.getY());
     }
 
