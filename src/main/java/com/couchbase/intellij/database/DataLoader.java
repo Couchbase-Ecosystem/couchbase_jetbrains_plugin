@@ -67,7 +67,7 @@ public class DataLoader {
                 }
             });
         } else {
-            throw new IllegalStateException("The expected parent was ConnectionNode but gotsomething else");
+            throw new IllegalStateException("The expected parent was ConnectionNode but got something else");
         }
     }
 
@@ -131,7 +131,6 @@ public class DataLoader {
                                 new CollectionNodeDescriptor(spec.name()));
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
-
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } finally {
@@ -200,6 +199,7 @@ public class DataLoader {
 
                         // Retrieve the VirtualFile from the PsiFile
                         VirtualFile virtualFile = psiFile.getVirtualFile();
+                        virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
                         virtualFile.putUserData(VirtualFileKeys.CLUSTER, connName);
                         virtualFile.putUserData(VirtualFileKeys.BUCKET, bucketName);
                         virtualFile.putUserData(VirtualFileKeys.SCOPE, scopeName);
@@ -245,7 +245,8 @@ public class DataLoader {
                     String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `"
                             + bucketName + "`.`" + scopeName + "`.`" + collectionName
                             + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
-                            + ActiveCluster.getActiveClusterUsername() + ":" + ActiveCluster.getActiveClusterPassword()
+                            + ActiveCluster.getInstance().getUsername() + ":"
+                            + ActiveCluster.getInstance().getPassword()
                             + "\"}) d";
 
                     // Execute the schema inference query
@@ -287,17 +288,18 @@ public class DataLoader {
                 if (property != null && property.containsKey("type")) {
                     Object type = property.get("type");
                     if (type instanceof String) {
-                        if (((String) type).equalsIgnoreCase("object"))
+                        if (((String) type).equalsIgnoreCase("object")) {
                             result.put(key, extractTypes(property.getObject("properties")));
-                        else if (((String) type).equalsIgnoreCase("array")) {
+                        } else if (((String) type).equalsIgnoreCase("array")) {
                             JsonObject items = property.getObject("items");
                             if (items != null && items.containsKey("type")) {
                                 Object itemType = items.get("type");
                                 if (itemType instanceof String) {
-                                    if (((String) itemType).equalsIgnoreCase("object"))
+                                    if (((String) itemType).equalsIgnoreCase("object")) {
                                         result.put(key, "array of " + extractTypes(items.getObject("properties")));
-                                    else
+                                    } else {
                                         result.put(key, "array of " + itemType);
+                                    }
                                 } else if (itemType instanceof JsonArray) {
                                     StringBuilder types = new StringBuilder();
                                     for (int i = 0; i < ((JsonArray) itemType).size(); i++) {
