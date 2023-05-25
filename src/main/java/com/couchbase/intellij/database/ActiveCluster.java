@@ -9,14 +9,12 @@ import java.time.Duration;
 public class ActiveCluster {
 
     private static ActiveCluster activeCluster = new ActiveCluster();
-
-    private ActiveCluster(){
-
-    }
-
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
+
+    private ActiveCluster() {
+    }
 
     public static ActiveCluster getInstance() {
         return activeCluster;
@@ -25,24 +23,24 @@ public class ActiveCluster {
     public Cluster get() {
         return cluster;
     }
+
     public String getId() {
-        if(this.savedCluster == null) {
+        if (this.savedCluster == null) {
             return null;
         }
         return this.savedCluster.getId();
     }
 
     public void connect(SavedCluster savedCluster) {
-        if(this.cluster != null) {
+        if (this.cluster != null) {
             disconnect();
         }
 
         String password = DataLoader.getClusterPassword(savedCluster);
         Cluster cluster = Cluster.connect(savedCluster.getUrl(),
                 ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
-                    //env.applyProfile("wan-development");
-                })
-        );
+                    // env.applyProfile("wan-development");
+                }));
         cluster.waitUntilReady(Duration.ofSeconds(5));
         this.cluster = cluster;
         this.savedCluster = savedCluster;
@@ -56,15 +54,15 @@ public class ActiveCluster {
         this.password = null;
     }
 
+    public boolean isCapella() {
+        return this.savedCluster.getUrl().contains("cloud.couchbase.com");
+    }
+
     public String getUsername() {
-        if(this.savedCluster == null) {
+        if (this.savedCluster == null) {
             return null;
         }
         return this.savedCluster.getUsername();
-    }
-
-    public boolean isCapella() {
-        return this.savedCluster.getUrl().contains("cloud.couchbase.com");
     }
 
     public String getPassword() {
