@@ -6,6 +6,7 @@ public class SavedCluster {
     private String url;
     private String username;
 
+    private boolean sslEnable;
     private String defaultBucket;
 
     public String getId() {
@@ -48,6 +49,14 @@ public class SavedCluster {
         this.defaultBucket = defaultBucket;
     }
 
+    public boolean isSslEnable() {
+        return sslEnable;
+    }
+
+    public void setSslEnable(boolean sslEnable) {
+        this.sslEnable = sslEnable;
+    }
+
     @Override
     public String toString() {
         return "SavedCluster{" +
@@ -55,6 +64,7 @@ public class SavedCluster {
                 ", name='" + name + '\'' +
                 ", url='" + url + '\'' +
                 ", username='" + username + '\'' +
+                ", sslEnable=" + sslEnable +
                 ", defaultBucket='" + defaultBucket + '\'' +
                 '}';
     }
