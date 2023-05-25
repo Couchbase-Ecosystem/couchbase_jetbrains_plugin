@@ -4,6 +4,7 @@ package com.couchbase.intellij.tree;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -163,14 +164,17 @@ public class CouchbaseWindowContent extends JPanel {
                             } else if (userObject instanceof BucketNodeDescriptor) {
                                 handleBucketRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionsNodeDescriptor) {
+                                handleCollectionsRightClick(clickedNode, tree, e);
+                            } else if (userObject instanceof CollectionNodeDescriptor) {
+
+                                CollectionNodeDescriptor col = (CollectionNodeDescriptor) userObject;
                                 JPopupMenu popup = new JPopupMenu();
                                 popup.addSeparator();
-                                JMenuItem menuItem = new JMenuItem("Refresh Collections");
+                                JMenuItem menuItem = new JMenuItem("Filter Documents");
                                 popup.add(menuItem);
                                 menuItem.addActionListener(e12 -> {
-                                    TreePath treePath = new TreePath(clickedNode.getPath());
-                                    tree.collapsePath(treePath);
-                                    tree.expandPath(treePath);
+                                    DocumentFilterDialog dialog = new DocumentFilterDialog(col.getText());
+                                    dialog.show();
                                 });
                                 popup.show(tree, e.getX(), e.getY());
                             }
@@ -243,6 +247,19 @@ public class CouchbaseWindowContent extends JPanel {
 
         // add the tree to the main panel
         add(new JScrollPane(tree), BorderLayout.CENTER);
+    }
+
+    private static void handleCollectionsRightClick(DefaultMutableTreeNode clickedNode, Tree tree, MouseEvent e) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Refresh Collections");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            TreePath treePath = new TreePath(clickedNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.show(tree, e.getX(), e.getY());
     }
 
     private static void handleBucketRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
