@@ -63,6 +63,10 @@ public class ActiveCluster {
         return this.savedCluster.getUsername();
     }
 
+    public boolean isCapella() {
+        return this.savedCluster.getUrl().contains("cloud.couchbase.com");
+    }
+
     public String getPassword() {
         return this.password;
     }
