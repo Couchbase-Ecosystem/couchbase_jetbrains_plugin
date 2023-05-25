@@ -54,7 +54,8 @@ public class DataLoader {
                     parentNode.removeAllChildren();
                     for (String bucket : buckets) {
 
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket));
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket,
+                                ActiveCluster.getInstance().getId()));
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
@@ -83,10 +84,10 @@ public class DataLoader {
                     parentNode.removeAllChildren();
                     for (ScopeSpec scopeSpec : scopes) {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new ScopeNodeDescriptor(scopeSpec.name()));
+                                new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(), bucketName));
 
                         DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
-                                new CollectionsNodeDescriptor());
+                                new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName, scopeSpec.name() ));
                         collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         childNode.add(collections);
 
@@ -96,7 +97,6 @@ public class DataLoader {
                         parentNode.add(childNode);
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                    System.out.println("updating scope structure----");
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
@@ -115,24 +115,24 @@ public class DataLoader {
             CompletableFuture.runAsync(() -> {
                 try {
                     parentNode.removeAllChildren();
-                    DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent();
-                    String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
-                            .getUserObject()).getText();
+                    CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) userObject;
 
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName)
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(cols.getBucket())
                             .collections().getAllScopes().stream()
-                            .filter(scope -> scope.name().equals(scopeName))
+                            .filter(scope -> scope.name().equals(cols.getScope()))
                             .flatMap(scope -> scope.collections().stream())
                             .collect(Collectors.toList());
 
                     for (CollectionSpec spec : collections) {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new CollectionNodeDescriptor(spec.name()));
+                                new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
+                                        cols.getBucket(), cols.getScope()));
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                } catch(Exception e){
+                    e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
                 }
@@ -150,22 +150,17 @@ public class DataLoader {
             try {
                 parentNode.removeAllChildren();
 
-                String collectionName = ((CollectionNodeDescriptor) parentNode.getUserObject()).getText();
-                DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) parentNode.getParent().getParent();
-                String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
-                        .getUserObject()).getText();
-                String connName = ((ConnectionNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent()
-                        .getParent()).getUserObject()).getText();
+                CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) userObject;
 
-                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(bucketName).scope(scopeName)
+                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope())
                         .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
-                                + collectionName + "` c order by meta(c).id limit 10", QueryOptions.queryOptions())
+                                + colNode.getText() + "` c order by meta(c).id limit 10", QueryOptions.queryOptions())
                         .rowsAsObject();
 
                 ApplicationManager.getApplication().runWriteAction(() -> {
-                    PsiDirectory psiDirectory = findOrCreateFolder(project, connName, bucketName, scopeName,
-                            collectionName);
+                    PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(),
+                            colNode.getBucket(), colNode.getScope(),
+                            colNode.getText());
 
                     // Add a schema subfolder
                     DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
@@ -200,10 +195,10 @@ public class DataLoader {
                         // Retrieve the VirtualFile from the PsiFile
                         VirtualFile virtualFile = psiFile.getVirtualFile();
                         virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
-                        virtualFile.putUserData(VirtualFileKeys.CLUSTER, connName);
-                        virtualFile.putUserData(VirtualFileKeys.BUCKET, bucketName);
-                        virtualFile.putUserData(VirtualFileKeys.SCOPE, scopeName);
-                        virtualFile.putUserData(VirtualFileKeys.COLLECTION, collectionName);
+                        virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
+                        virtualFile.putUserData(VirtualFileKeys.BUCKET, colNode.getBucket());
+                        virtualFile.putUserData(VirtualFileKeys.SCOPE, colNode.getScope());
+                        virtualFile.putUserData(VirtualFileKeys.COLLECTION, colNode.getText());
                         virtualFile.putUserData(VirtualFileKeys.ID, docId);
                         virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
 
@@ -343,7 +338,7 @@ public class DataLoader {
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
-            String collection) {
+                                                   String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
@@ -395,7 +390,7 @@ public class DataLoader {
     }
 
     public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username,
-            String password, String defaultBucket) {
+                                                       String password, String defaultBucket) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
