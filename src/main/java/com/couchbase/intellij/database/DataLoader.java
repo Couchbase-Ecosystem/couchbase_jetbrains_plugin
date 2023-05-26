@@ -10,6 +10,7 @@ import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.tree.*;
+import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -124,9 +125,16 @@ public class DataLoader {
                             .collect(Collectors.toList());
 
                     for (CollectionSpec spec : collections) {
+
+                        String filter = QueryFiltersStorage.getInstance()
+                                .getValue()
+                                .getQueryFilter(ActiveCluster.getInstance().getId(),
+                                        cols.getBucket(), cols.getScope(), spec.name());
+
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
                                 new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
-                                        cols.getBucket(), cols.getScope()));
+                                        cols.getBucket(), cols.getScope(), filter));
+                        System.out.println("====== "+filter);
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
@@ -152,9 +160,15 @@ public class DataLoader {
 
                 CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) userObject;
 
+                String filter = colNode.getQueryFilter();
+                String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).cas as cbCasNb, couchbaseAlias.* from `"
+                        +colNode.getText()+"` as couchbaseAlias "
+                        + ((filter == null || filter.isEmpty())?"": (" where " +filter))
+                        + (SQLPPQueryUtils.hasOrderBy(filter)?"":"  order by meta(couchbaseAlias).id ")
+                        +" limit 10";
+
                 final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope())
-                        .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
-                                + colNode.getText() + "` c order by meta(c).id limit 10", QueryOptions.queryOptions())
+                        .query(query)
                         .rowsAsObject();
 
                 ApplicationManager.getApplication().runWriteAction(() -> {
@@ -400,7 +414,8 @@ public class DataLoader {
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
 
-        Clusters clusters = ClustersStorage.getInstance().getValue();
+        Clusters clusters =
+                ClustersStorage.getInstance().getValue();
         if (clusters == null) {
             clusters = new Clusters();
         }

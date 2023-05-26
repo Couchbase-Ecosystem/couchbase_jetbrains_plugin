@@ -21,6 +21,8 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.persistence.QueryFiltersStorage;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import org.jetbrains.annotations.NotNull;
 
@@ -181,7 +183,7 @@ public class CouchbaseWindowContent extends JPanel {
                             } else if (userObject instanceof CollectionsNodeDescriptor) {
                                 handleCollectionsRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionNodeDescriptor) {
-                                handleCollectionRightClick(e, (CollectionNodeDescriptor) userObject, tree);
+                                handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
                             }
                         }
                     }
@@ -266,16 +268,41 @@ public class CouchbaseWindowContent extends JPanel {
         popup.show(tree, e.getX(), e.getY());
     }
 
-    private static void handleCollectionRightClick(MouseEvent e, CollectionNodeDescriptor userObject, Tree tree) {
-        CollectionNodeDescriptor col = userObject;
+    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Filter Documents");
+        String filter = "Add Document Filter";
+        boolean hasDeleteFilter = false;
+        if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
+            filter = "Edit Document Filter";
+            hasDeleteFilter = true;
+        }
+        JMenuItem menuItem = new JMenuItem(filter);
         popup.add(menuItem);
         menuItem.addActionListener(e12 -> {
-            DocumentFilterDialog dialog = new DocumentFilterDialog(col.getText());
+            DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
             dialog.show();
         });
+
+        if (hasDeleteFilter) {
+            JMenuItem clearDocFilter = new JMenuItem("Clear Document Filter");
+            popup.add(clearDocFilter);
+            clearDocFilter.addActionListener(e12 -> {
+                QueryFiltersStorage.getInstance().getValue()
+                        .saveQueryFilter(
+                                ActiveCluster.getInstance().getId(),
+                                col.getBucket(),
+                                col.getScope(),
+                                col.getText(),
+                                null);
+
+                col.setQueryFilter(null);
+                TreePath treePath = new TreePath(clickedNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+        }
+
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -339,25 +366,20 @@ public class CouchbaseWindowContent extends JPanel {
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
-                if (userObject instanceof NodeDescriptor) {
+
+                if (userObject instanceof CollectionNodeDescriptor) {
+                    CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
+                    setText(descriptor.getText());
+                    if (descriptor.getQueryFilter() == null
+                            || descriptor.getQueryFilter().trim().isEmpty()) {
+                        setIcon(descriptor.getIcon());
+                    } else {
+                        setIcon(IconLoader.findIcon("./assets/icons/filter.svg"));
+                    }
+                } else if (userObject instanceof NodeDescriptor) {
                     NodeDescriptor descriptor = (NodeDescriptor) userObject;
                     setIcon(descriptor.getIcon());
                     setText(descriptor.getText());
-
-                    // NodeDescriptor descriptor = (NodeDescriptor) userObject;
-                    //
-                    // Icon icon1 = descriptor.getIcon();
-                    // setIcon(icon1);
-                    //
-                    // JLabel icon2Label = new JLabel();
-                    // Icon icon2 = // second icon
-                    // icon2Label.setIcon(icon2);
-                    //
-                    // JPanel iconsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-                    // iconsPanel.add(this);
-                    // iconsPanel.add(icon2Label);
-                    //
-                    // return iconsPanel;
                 }
             }
             return this;

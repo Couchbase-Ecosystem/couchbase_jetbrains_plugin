@@ -8,12 +8,15 @@ public class CollectionNodeDescriptor extends NodeDescriptor {
     private String bucket;
     private String scope;
 
-    public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope) {
+    private String queryFilter;
+
+    public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope, String queryFilter) {
         super(name, IconLoader.findIcon("./assets/icons/collection.svg", ScopeNodeDescriptor.class,
                 false, true));
         this.connectionId = connectionId;
         this.bucket = bucket;
         this.scope = scope;
+        this.queryFilter = queryFilter;
     }
 
     public String getConnectionId() {
@@ -38,5 +41,13 @@ public class CollectionNodeDescriptor extends NodeDescriptor {
 
     public void setScope(String scope) {
         this.scope = scope;
+    }
+
+    public String getQueryFilter() {
+        return queryFilter;
+    }
+
+    public void setQueryFilter(String queryFilter) {
+        this.queryFilter = queryFilter;
     }
 }
