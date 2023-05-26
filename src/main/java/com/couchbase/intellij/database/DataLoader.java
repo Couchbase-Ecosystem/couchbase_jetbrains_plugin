@@ -1,15 +1,51 @@
 package com.couchbase.intellij.database;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
-import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.persistence.*;
-import com.couchbase.intellij.tree.*;
+import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
+import com.couchbase.intellij.persistence.Clusters;
+import com.couchbase.intellij.persistence.ClustersStorage;
+import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
+import com.couchbase.intellij.persistence.PasswordStorage;
+import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.BucketNodeDescriptor;
+import com.couchbase.intellij.tree.CollectionNodeDescriptor;
+import com.couchbase.intellij.tree.CollectionsNodeDescriptor;
+import com.couchbase.intellij.tree.ConnectionNodeDescriptor;
+import com.couchbase.intellij.tree.FileNodeDescriptor;
+import com.couchbase.intellij.tree.IndexesNodeDescriptor;
+import com.couchbase.intellij.tree.LoadingNodeDescriptor;
+import com.couchbase.intellij.tree.SchemaDataNodeDescriptor;
+import com.couchbase.intellij.tree.SchemaNodeDescriptor;
+import com.couchbase.intellij.tree.ScopeNodeDescriptor;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -22,24 +58,6 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.ui.treeStructure.Tree;
 
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
-import java.io.File;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-
 public class DataLoader {
 
     public static void listBuckets(DefaultMutableTreeNode parentNode, Tree tree) {
@@ -49,8 +67,7 @@ public class DataLoader {
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
-                    Set<String> buckets = ActiveCluster.getInstance().get()
-                            .buckets().getAllBuckets().keySet();
+                    Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
                     for (String bucket : buckets) {
 
@@ -84,10 +101,12 @@ public class DataLoader {
                     parentNode.removeAllChildren();
                     for (ScopeSpec scopeSpec : scopes) {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(), bucketName));
+                                new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(),
+                                        bucketName));
 
                         DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
-                                new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName, scopeSpec.name() ));
+                                new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName,
+                                        scopeSpec.name()));
                         collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         childNode.add(collections);
 
@@ -131,7 +150,7 @@ public class DataLoader {
                         parentNode.add(childNode);
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                } catch(Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -152,7 +171,8 @@ public class DataLoader {
 
                 CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) userObject;
 
-                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope())
+                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket())
+                        .scope(colNode.getScope())
                         .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
                                 + colNode.getText() + "` c order by meta(c).id limit 10", QueryOptions.queryOptions())
                         .rowsAsObject();
@@ -236,33 +256,77 @@ public class DataLoader {
                     String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
                             .getUserObject()).getText();
 
-                    // Replace with your schema inference query
-                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `"
-                            + bucketName + "`.`" + scopeName + "`.`" + collectionName
-                            + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
-                            + ActiveCluster.getInstance().getUsername() + ":"
-                            + ActiveCluster.getInstance().getPassword()
-                            + "\"}) d";
+                    String clusterURL = ActiveCluster.getInstance().getClusterURL(); // couchbase://localhost
+                    String serverURI = "";
+                    if (ActiveCluster.getInstance().isSSLEnabled()) {
+                        serverURI = clusterURL.replace("couchbases://", "https://");
+                        serverURI += ":18093/query/service";
+                    } else {
+                        serverURI = clusterURL.replace("couchbase://", "http://");
+                        serverURI += ":8093/query/service";
+                    }
 
-                    // Execute the schema inference query
-                    final List<JsonObject> results = ActiveCluster.getInstance().get()
-                            .bucket(bucketName).scope(scopeName)
-                            .query(inferSchemaQuery, QueryOptions.queryOptions()).rowsAsObject();
+                    // // Approach 1: Using HTTP Request
+                    // Create an HttpClient
+                    HttpClient client = HttpClient.newHttpClient();
+
+                    // Build the request body
+                    String requestBody = "{\"statement\":\"INFER `" + bucketName + "`.`" +
+                            scopeName + "`.`"
+                            + collectionName + "` WITH {\\\"sample_size\\\": 1000}\"}";
+
+                    // Build the request
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(serverURI))
+                            .header("Content-Type", "application/json")
+                            .header("Authorization",
+                                    "Basic " + Base64.getEncoder()
+                                            .encodeToString((ActiveCluster.getInstance().getUsername() + ":"
+                                                    + ActiveCluster.getInstance().getPassword()).getBytes()))
+                            .POST(HttpRequest.BodyPublishers.ofString(requestBody)).build();
+
+                    // Send the request and get the response
+                    HttpResponse<String> response = client.send(request,
+                            HttpResponse.BodyHandlers.ofString());
+
+                    // Get the response body
+                    String responseBody = response.body();
+                    System.out.println(responseBody);
+
+                    // // Get the response body as a JsonObject
+                    JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
+
+                    // // Approach 2: Using CURL function
+                    // String inferSchemaQuery = "SELECT d.* FROM
+                    // CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `"
+                    // + bucketName + "`.`" + scopeName + "`.`" + collectionName
+                    // + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
+                    // + ActiveCluster.getInstance().getUsername() + ":"
+                    // + ActiveCluster.getInstance().getPassword()
+                    // + "\"}) d";
+                    //
+                    // // Execute the schema inference query
+                    // final JsonObject inferenceQueryResults =
+                    // ActiveCluster.getInstance().get().bucket(bucketName)
+                    // .scope(scopeName).query(inferSchemaQuery,
+                    // QueryOptions.queryOptions())
+                    // .rowsAsObject().get(0);
 
                     // Process the results and add them to the tree structure
-                    for (JsonObject obj : results) {
-                        // Replace with your code for processing the schema data and adding it to the
-                        // tree structure
-                        JsonObject inferSchemaRow = obj.getArray("results").getArray(0).getObject(0);
-                        JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
-                        String schemaString = inferSchemaProperties.toString();
-                        String prettySchemaString = prettyPrintJson(schemaString);
+                    // Replace with your code for processing the schema data and adding it to the
+                    // tree structure
 
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new SchemaDataNodeDescriptor(prettySchemaString));
-                        parentNode.add(childNode);
-                    }
+                    JsonObject inferSchemaRow = inferenceQueryResults.getArray("results").getArray(0).getObject(0);
+                    JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
+                    String schemaString = inferSchemaProperties.toString();
+                    String prettySchemaString = prettyPrintJson(schemaString);
+
+                    DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                            new SchemaDataNodeDescriptor(prettySchemaString));
+                    parentNode.add(childNode);
+
                     treeModel.nodeStructureChanged(parentNode);
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
@@ -283,25 +347,27 @@ public class DataLoader {
                 if (property != null && property.containsKey("type")) {
                     Object type = property.get("type");
                     if (type instanceof String) {
-                        if (((String) type).equalsIgnoreCase("object")) {
+                        String typeString = (String) type;
+                        if (typeString.equalsIgnoreCase("object")) {
                             result.put(key, extractTypes(property.getObject("properties")));
-                        } else if (((String) type).equalsIgnoreCase("array")) {
+                        } else if (typeString.equalsIgnoreCase("array")) {
                             JsonObject items = property.getObject("items");
                             if (items != null && items.containsKey("type")) {
                                 Object itemType = items.get("type");
                                 if (itemType instanceof String) {
-                                    if (((String) itemType).equalsIgnoreCase("object")) {
+                                    String itemTypeString = (String) itemType;
+                                    if (itemTypeString.equalsIgnoreCase("object")) {
                                         result.put(key, "array of " + extractTypes(items.getObject("properties")));
                                     } else {
-                                        result.put(key, "array of " + itemType);
+                                        result.put(key, "array of " + itemTypeString);
                                     }
                                 } else if (itemType instanceof JsonArray) {
                                     StringBuilder types = new StringBuilder();
-                                    for (int i = 0; i < ((JsonArray) itemType).size(); i++) {
-                                        types.append(((JsonArray) itemType).getString(i)).append(" | ");
+                                    JsonArray itemTypeArray = (JsonArray) itemType;
+                                    for (int i = 0; i < itemTypeArray.size(); i++) {
+                                        types.append(itemTypeArray.getString(i)).append(" | ");
                                     }
-
-                                    types = new StringBuilder(types.substring(0, types.length() - 3));
+                                    types.delete(types.length() - 3, types.length());
                                     result.put(key, "array of " + types.toString());
                                 }
                             } else {
@@ -312,11 +378,11 @@ public class DataLoader {
                         }
                     } else if (type instanceof JsonArray) {
                         StringBuilder types = new StringBuilder();
-                        for (int i = 0; i < ((JsonArray) type).size(); i++) {
-                            types.append(((JsonArray) type).getString(i)).append(" | ");
+                        JsonArray typeArray = (JsonArray) type;
+                        for (int i = 0; i < typeArray.size(); i++) {
+                            types.append(typeArray.getString(i)).append(" | ");
                         }
-
-                        types = new StringBuilder(types.substring(0, types.length() - 3));
+                        types.delete(types.length() - 3, types.length());
                         result.put(key, types.toString());
                     }
                 } else if (property != null && property.containsKey("properties")) {
@@ -338,7 +404,7 @@ public class DataLoader {
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
-                                                   String collection) {
+            String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
@@ -374,8 +440,7 @@ public class DataLoader {
 
         Cluster cluster = null;
         try {
-            cluster = Cluster.connect(
-                    adjustClusterProtocol(clusterUrl, ssl),
+            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl),
                     ClusterOptions.clusterOptions(username, password).environment(env -> {
                         // env.applyProfile("wan-development");
                     }));
@@ -390,7 +455,7 @@ public class DataLoader {
     }
 
     public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username,
-                                                       String password, String defaultBucket) {
+            String password, String defaultBucket) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
