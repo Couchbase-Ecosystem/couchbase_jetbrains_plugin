@@ -9,7 +9,6 @@ public class SchemaDataNodeDescriptor extends NodeDescriptor {
                 schemaText.replace("\n", "<br/>") +
                 "</html>"
                 ,
-                IconLoader.findIcon("./assets/icons/schema.svg", SchemaDataNodeDescriptor.class,
-                false, true));
+                null);
     }
 }

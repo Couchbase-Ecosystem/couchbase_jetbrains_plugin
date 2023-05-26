@@ -249,12 +249,11 @@ public class DataLoader {
                 try {
                     parentNode.removeAllChildren();
 
-                    DefaultMutableTreeNode collectionNode = (DefaultMutableTreeNode) parentNode.getParent();
-                    String collectionName = ((CollectionNodeDescriptor) collectionNode.getUserObject()).getText();
-                    DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) collectionNode.getParent().getParent();
-                    String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
-                            .getUserObject()).getText();
+                    CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) ((DefaultMutableTreeNode) parentNode
+                            .getParent()).getUserObject();
+                    String collectionName = colNode.getText();
+                    String scopeName = colNode.getScope();
+                    String bucketName = colNode.getBucket();
 
                     String clusterURL = ActiveCluster.getInstance().getClusterURL(); // couchbase://localhost
                     String serverURI = "";
@@ -291,7 +290,6 @@ public class DataLoader {
 
                     // Get the response body
                     String responseBody = response.body();
-                    System.out.println(responseBody);
 
                     // // Get the response body as a JsonObject
                     JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
@@ -318,14 +316,18 @@ public class DataLoader {
 
                     JsonObject inferSchemaRow = inferenceQueryResults.getArray("results").getArray(0).getObject(0);
                     JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
-                    String schemaString = inferSchemaProperties.toString();
-                    String prettySchemaString = prettyPrintJson(schemaString);
 
-                    DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                            new SchemaDataNodeDescriptor(prettySchemaString));
-                    parentNode.add(childNode);
-
+                    addSchemaToTree(inferSchemaProperties, parentNode);
                     treeModel.nodeStructureChanged(parentNode);
+
+//                    String schemaString = inferSchemaProperties.toString();
+//                    String prettySchemaString = prettyPrintJson(schemaString);
+//
+//                    DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+//                            new SchemaDataNodeDescriptor(prettySchemaString));
+//                    parentNode.add(childNode);
+//
+//                    treeModel.nodeStructureChanged(parentNode);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -340,61 +342,77 @@ public class DataLoader {
 
     public static JsonObject extractTypes(JsonObject properties) {
         JsonObject result = JsonObject.create();
-
-        try {
-            for (String key : properties.getNames()) {
-                JsonObject property = properties.getObject(key);
-                if (property != null && property.containsKey("type")) {
-                    Object type = property.get("type");
-                    if (type instanceof String) {
-                        String typeString = (String) type;
-                        if (typeString.equalsIgnoreCase("object")) {
-                            result.put(key, extractTypes(property.getObject("properties")));
-                        } else if (typeString.equalsIgnoreCase("array")) {
-                            JsonObject items = property.getObject("items");
-                            if (items != null && items.containsKey("type")) {
-                                Object itemType = items.get("type");
-                                if (itemType instanceof String) {
-                                    String itemTypeString = (String) itemType;
-                                    if (itemTypeString.equalsIgnoreCase("object")) {
-                                        result.put(key, "array of " + extractTypes(items.getObject("properties")));
-                                    } else {
-                                        result.put(key, "array of " + itemTypeString);
-                                    }
-                                } else if (itemType instanceof JsonArray) {
-                                    StringBuilder types = new StringBuilder();
-                                    JsonArray itemTypeArray = (JsonArray) itemType;
-                                    for (int i = 0; i < itemTypeArray.size(); i++) {
-                                        types.append(itemTypeArray.getString(i)).append(" | ");
-                                    }
-                                    types.delete(types.length() - 3, types.length());
-                                    result.put(key, "array of " + types.toString());
+        for (String key : properties.getNames()) {
+            JsonObject property = properties.getObject(key);
+            if (property != null && property.containsKey("type")) {
+                Object type = property.get("type");
+                if (type instanceof String) {
+                    String typeString = (String) type;
+                    if (typeString.equalsIgnoreCase("object")) {
+                        result.put(key, extractTypes(property.getObject("properties")));
+                    } else if (typeString.equalsIgnoreCase("array")) {
+                        JsonObject items = property.getObject("items");
+                        if (items != null && items.containsKey("type")) {
+                            Object itemType = items.get("type");
+                            if (itemType instanceof String) {
+                                String itemTypeString = (String) itemType;
+                                if (itemTypeString.equalsIgnoreCase("object")) {
+                                    result.put(key, "array of " + extractTypes(items.getObject("properties")));
+                                } else {
+                                    result.put(key, "array of " + itemType);
                                 }
-                            } else {
-                                result.put(key, "array");
+                            } else if (itemType instanceof JsonArray) {
+                                result.put(key, "array of " + extractTypesFromArray((JsonArray) itemType));
                             }
                         } else {
-                            result.put(key, type);
+                            result.put(key, "array");
                         }
-                    } else if (type instanceof JsonArray) {
-                        StringBuilder types = new StringBuilder();
-                        JsonArray typeArray = (JsonArray) type;
-                        for (int i = 0; i < typeArray.size(); i++) {
-                            types.append(typeArray.getString(i)).append(" | ");
-                        }
-                        types.delete(types.length() - 3, types.length());
-                        result.put(key, types.toString());
+                    } else {
+                        result.put(key, type);
                     }
-                } else if (property != null && property.containsKey("properties")) {
-                    result.put(key, extractTypes(property.getObject("properties")));
+                } else if (type instanceof JsonArray) {
+                    result.put(key, extractTypesFromArray((JsonArray) type));
                 }
+            } else if (property != null && property.containsKey("properties")) {
+                result.put(key, extractTypes(property.getObject("properties")));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-
         return result;
     }
+
+    private static String extractTypesFromArray(JsonArray array) {
+        StringBuilder types = new StringBuilder();
+        for (int i = 0; i < array.size(); i++) {
+            Object item = array.get(i);
+            if (item instanceof String) {
+                types.append(item).append(" | ");
+            } else if (item instanceof JsonObject) {
+                types.append(extractTypes((JsonObject) item)).append(" | ");
+            }
+        }
+        types.delete(types.length() - 3, types.length());
+        return types.toString();
+    }
+
+    private static void addSchemaToTree(JsonObject schema, DefaultMutableTreeNode parentNode) {
+        for (String key : schema.getNames()) {
+            Object value = schema.get(key);
+            if (value instanceof JsonObject) {
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key));
+                addSchemaToTree((JsonObject) value, childNode);
+                parentNode.add(childNode);
+            } else if (value instanceof String && ((String) value).startsWith("array of {")) {
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key + ": array of objects"));
+                JsonObject arraySchema = JsonObject.fromJson(((String) value).substring(9));
+                addSchemaToTree(arraySchema, childNode);
+                parentNode.add(childNode);
+            } else {
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key + ": " + value.toString()));
+                parentNode.add(childNode);
+            }
+        }
+    }
+
 
     public static String prettyPrintJson(String json) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -404,7 +422,7 @@ public class DataLoader {
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
-            String collection) {
+                                                   String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
@@ -455,7 +473,7 @@ public class DataLoader {
     }
 
     public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username,
-            String password, String defaultBucket) {
+                                                       String password, String defaultBucket) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
