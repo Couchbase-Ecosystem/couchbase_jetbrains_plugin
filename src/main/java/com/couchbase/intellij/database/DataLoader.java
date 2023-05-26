@@ -7,11 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -279,7 +275,6 @@ public class DataLoader {
                         serverURI += ":8093/query/service";
                     }
 
-                    // // Approach 1: Using HTTP Request
                     // Create an HttpClient
                     HttpClient client = HttpClient.newHttpClient();
 
@@ -308,40 +303,11 @@ public class DataLoader {
                     // // Get the response body as a JsonObject
                     JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
 
-                    // // Approach 2: Using CURL function
-                    // String inferSchemaQuery = "SELECT d.* FROM
-                    // CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `"
-                    // + bucketName + "`.`" + scopeName + "`.`" + collectionName
-                    // + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
-                    // + ActiveCluster.getInstance().getUsername() + ":"
-                    // + ActiveCluster.getInstance().getPassword()
-                    // + "\"}) d";
-                    //
-                    // // Execute the schema inference query
-                    // final JsonObject inferenceQueryResults =
-                    // ActiveCluster.getInstance().get().bucket(bucketName)
-                    // .scope(scopeName).query(inferSchemaQuery,
-                    // QueryOptions.queryOptions())
-                    // .rowsAsObject().get(0);
-
-                    // Process the results and add them to the tree structure
-                    // Replace with your code for processing the schema data and adding it to the
-                    // tree structure
-
                     JsonObject inferSchemaRow = inferenceQueryResults.getArray("results").getArray(0).getObject(0);
                     JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
 
                     addSchemaToTree(inferSchemaProperties, parentNode);
                     treeModel.nodeStructureChanged(parentNode);
-
-                    // String schemaString = inferSchemaProperties.toString();
-                    // String prettySchemaString = prettyPrintJson(schemaString);
-                    //
-                    // DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                    // new SchemaDataNodeDescriptor(prettySchemaString));
-                    // parentNode.add(childNode);
-                    //
-                    // treeModel.nodeStructureChanged(parentNode);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -378,6 +344,8 @@ public class DataLoader {
                             } else if (itemType instanceof JsonArray) {
                                 result.put(key, "array of " + extractTypesFromArray((JsonArray) itemType));
                             }
+                        } else if (items != null && items.containsKey("properties")) {
+                            result.put(key, "array of " + extractTypes(items.getObject("properties")));
                         } else {
                             result.put(key, "array");
                         }
@@ -393,20 +361,30 @@ public class DataLoader {
         }
         return result;
     }
-
     private static String extractTypesFromArray(JsonArray array) {
-        StringBuilder types = new StringBuilder();
+        if (array.isEmpty()) {
+            return "array";
+        }
+        Set<String> types = new HashSet<>();
         for (int i = 0; i < array.size(); i++) {
             Object item = array.get(i);
             if (item instanceof String) {
-                types.append(item).append(" | ");
+                types.add("string");
             } else if (item instanceof JsonObject) {
-                types.append(extractTypes((JsonObject) item)).append(" | ");
+                types.add("object (" + extractTypes((JsonObject) item).toString() + ")");
+            } else if (item instanceof JsonArray) {
+                types.add("array");
+            } else if (item instanceof Boolean) {
+                types.add("boolean");
+            } else if (item instanceof Long || item instanceof Integer) {
+                types.add("long");
+            } else if (item instanceof Double || item instanceof Float) {
+                types.add("double");
             }
         }
-        types.delete(types.length() - 3, types.length());
-        return types.toString();
+        return "array of " + String.join(", ", types);
     }
+
 
     private static void addSchemaToTree(JsonObject schema, DefaultMutableTreeNode parentNode) {
         for (String key : schema.getNames()) {
