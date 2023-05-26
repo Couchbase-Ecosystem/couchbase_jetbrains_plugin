@@ -68,4 +68,18 @@ public class ActiveCluster {
     public String getPassword() {
         return this.password;
     }
+
+    public boolean isSSLEnabled() {
+       if (this.savedCluster == null) {
+            return false;
+        }
+        return this.savedCluster.isSslEnable();
+    }
+
+    public String getClusterURL() {
+       if (this.savedCluster == null) {
+            return null;
+        }
+        return this.savedCluster.getUrl();
+    }
 }

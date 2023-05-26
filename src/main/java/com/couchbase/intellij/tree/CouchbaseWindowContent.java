@@ -22,6 +22,7 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.intellij.DocumentFormatter;
@@ -262,6 +263,32 @@ public class CouchbaseWindowContent extends JPanel {
         add(new JScrollPane(tree), BorderLayout.CENTER);
     }
 
+    private static void handleCollectionsRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Refresh Collections");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            TreePath treePath = new TreePath(clickedNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleCollectionRightClick(MouseEvent e, CollectionNodeDescriptor userObject, Tree tree) {
+        CollectionNodeDescriptor col = userObject;
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Filter Documents");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            DocumentFilterDialog dialog = new DocumentFilterDialog(col.getText());
+            dialog.show();
+        });
+        popup.show(tree, e.getX(), e.getY());
+    }
+
     private static void handleBucketRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
@@ -339,7 +366,7 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
     private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-            ConnectionNodeDescriptor userObject, Tree tree) {
+                                                   ConnectionNodeDescriptor userObject, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         ConnectionNodeDescriptor con = userObject;
 
@@ -380,7 +407,7 @@ public class CouchbaseWindowContent extends JPanel {
     class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
-                boolean leaf, int row, boolean hasFocus) {
+                                                      boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
