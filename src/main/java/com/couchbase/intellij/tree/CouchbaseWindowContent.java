@@ -166,12 +166,10 @@ public class CouchbaseWindowContent extends JPanel {
                 if (e.getClickCount() == 2) {
                     mouseClicked(e);
                 } else {
-                    if (SwingUtilities.isRightMouseButton(e)) {
-                        TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
-
-                        if (clickedPath != null) {
-                            DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath
-                                    .getLastPathComponent();
+                    TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
+                    if (clickedPath != null) {
+                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                        if (SwingUtilities.isRightMouseButton(e)) {
                             Object userObject = clickedNode.getUserObject();
                             int row = tree.getClosestRowForLocation(e.getX(), e.getY());
                             tree.setSelectionRow(row);
@@ -185,6 +183,10 @@ public class CouchbaseWindowContent extends JPanel {
                             } else if (userObject instanceof CollectionNodeDescriptor) {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
                             }
+
+                        } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
+                            LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
+                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
                         }
                     }
                 }
@@ -235,7 +237,7 @@ public class CouchbaseWindowContent extends JPanel {
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionsNodeDescriptor) {
                         DataLoader.listCollections(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
-                        DataLoader.listDocuments(project, expandedTreeNode, tree);
+                        DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
                     } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
                     } else {

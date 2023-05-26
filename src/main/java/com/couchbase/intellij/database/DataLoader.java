@@ -134,7 +134,6 @@ public class DataLoader {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
                                 new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
                                         cols.getBucket(), cols.getScope(), filter));
-                        System.out.println("====== "+filter);
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
@@ -150,21 +149,29 @@ public class DataLoader {
         }
     }
 
-    public static void listDocuments(Project project, DefaultMutableTreeNode parentNode, Tree tree) {
+    public static void listDocuments(Project project, DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof CollectionNodeDescriptor) {
+            CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) parentNode.getUserObject();
             // CompletableFuture.runAsync(() -> {
             try {
-                parentNode.removeAllChildren();
+                if(newOffset == 0) {
+                    parentNode.removeAllChildren();
+                    DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
+                    schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                    parentNode.add(schemaNode);
+                } else {
+                    parentNode.remove(parentNode.getChildCount()-1);
+                }
 
-                CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) userObject;
 
                 String filter = colNode.getQueryFilter();
                 String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).cas as cbCasNb, couchbaseAlias.* from `"
                         +colNode.getText()+"` as couchbaseAlias "
                         + ((filter == null || filter.isEmpty())?"": (" where " +filter))
                         + (SQLPPQueryUtils.hasOrderBy(filter)?"":"  order by meta(couchbaseAlias).id ")
+                        + (newOffset==0?"":" OFFSET "+newOffset)
                         +" limit 10";
 
                 final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope())
@@ -175,11 +182,6 @@ public class DataLoader {
                     PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(),
                             colNode.getBucket(), colNode.getScope(),
                             colNode.getText());
-
-                    // Add a schema subfolder
-                    DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
-                    schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                    parentNode.add(schemaNode);
 
                     for (JsonObject obj : results) {
 
@@ -220,9 +222,15 @@ public class DataLoader {
                         DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                         parentNode.add(jsonFileNode);
                     }
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+
                 });
 
+                if(results.size() == 10) {
+                    DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
+                            new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset+10));
+                    parentNode.add(loadMoreNode);
+                }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw e;
