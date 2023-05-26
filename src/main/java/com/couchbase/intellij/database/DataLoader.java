@@ -24,13 +24,13 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
-import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
 import com.couchbase.intellij.persistence.Clusters;
 import com.couchbase.intellij.persistence.ClustersStorage;
 import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
 import com.couchbase.intellij.persistence.PasswordStorage;
+import com.couchbase.intellij.persistence.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.BucketNodeDescriptor;
 import com.couchbase.intellij.tree.CollectionNodeDescriptor;
@@ -42,6 +42,7 @@ import com.couchbase.intellij.tree.LoadingNodeDescriptor;
 import com.couchbase.intellij.tree.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.SchemaNodeDescriptor;
 import com.couchbase.intellij.tree.ScopeNodeDescriptor;
+import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -143,9 +144,16 @@ public class DataLoader {
                             .collect(Collectors.toList());
 
                     for (CollectionSpec spec : collections) {
+
+                        String filter = QueryFiltersStorage.getInstance()
+                                .getValue()
+                                .getQueryFilter(ActiveCluster.getInstance().getId(),
+                                        cols.getBucket(), cols.getScope(), spec.name());
+
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
                                 new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
-                                        cols.getBucket(), cols.getScope()));
+                                        cols.getBucket(), cols.getScope(), filter));
+                        System.out.println("====== " + filter);
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
@@ -171,10 +179,16 @@ public class DataLoader {
 
                 CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) userObject;
 
+                String filter = colNode.getQueryFilter();
+                String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).cas as cbCasNb, couchbaseAlias.* from `"
+                        + colNode.getText() + "` as couchbaseAlias "
+                        + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter))
+                        + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ")
+                        + " limit 10";
+
                 final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket())
                         .scope(colNode.getScope())
-                        .query("Select meta(c).id as cbFileNameId, meta(c).cas as cbCasNb, c.* from `"
-                                + colNode.getText() + "` c order by meta(c).id limit 10", QueryOptions.queryOptions())
+                        .query(query)
                         .rowsAsObject();
 
                 ApplicationManager.getApplication().runWriteAction(() -> {
@@ -320,14 +334,14 @@ public class DataLoader {
                     addSchemaToTree(inferSchemaProperties, parentNode);
                     treeModel.nodeStructureChanged(parentNode);
 
-//                    String schemaString = inferSchemaProperties.toString();
-//                    String prettySchemaString = prettyPrintJson(schemaString);
-//
-//                    DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-//                            new SchemaDataNodeDescriptor(prettySchemaString));
-//                    parentNode.add(childNode);
-//
-//                    treeModel.nodeStructureChanged(parentNode);
+                    // String schemaString = inferSchemaProperties.toString();
+                    // String prettySchemaString = prettyPrintJson(schemaString);
+                    //
+                    // DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                    // new SchemaDataNodeDescriptor(prettySchemaString));
+                    // parentNode.add(childNode);
+                    //
+                    // treeModel.nodeStructureChanged(parentNode);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -402,17 +416,18 @@ public class DataLoader {
                 addSchemaToTree((JsonObject) value, childNode);
                 parentNode.add(childNode);
             } else if (value instanceof String && ((String) value).startsWith("array of {")) {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key + ": array of objects"));
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                        new SchemaDataNodeDescriptor(key + ": array of objects"));
                 JsonObject arraySchema = JsonObject.fromJson(((String) value).substring(9));
                 addSchemaToTree(arraySchema, childNode);
                 parentNode.add(childNode);
             } else {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key + ": " + value.toString()));
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                        new SchemaDataNodeDescriptor(key + ": " + value.toString()));
                 parentNode.add(childNode);
             }
         }
     }
-
 
     public static String prettyPrintJson(String json) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -422,7 +437,7 @@ public class DataLoader {
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
-                                                   String collection) {
+            String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
@@ -473,7 +488,7 @@ public class DataLoader {
     }
 
     public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username,
-                                                       String password, String defaultBucket) {
+            String password, String defaultBucket) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
