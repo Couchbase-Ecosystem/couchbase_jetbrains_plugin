@@ -1,22 +1,19 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tree.node;
 
+import com.couchbase.intellij.tree.NodeDescriptor;
 import com.intellij.openapi.util.IconLoader;
 
-public class CollectionNodeDescriptor extends NodeDescriptor {
+public class CollectionsNodeDescriptor extends NodeDescriptor {
 
     private String connectionId;
     private String bucket;
     private String scope;
-
-    private String queryFilter;
-
-    public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope, String queryFilter) {
-        super(name, IconLoader.findIcon("./assets/icons/collection.svg", ScopeNodeDescriptor.class,
+    public CollectionsNodeDescriptor(String connectionId, String bucket, String scope) {
+        super("Collections", IconLoader.findIcon("./assets/icons/collections.svg", ScopeNodeDescriptor.class,
                 false, true));
         this.connectionId = connectionId;
         this.bucket = bucket;
         this.scope = scope;
-        this.queryFilter = queryFilter;
     }
 
     public String getConnectionId() {
@@ -41,13 +38,5 @@ public class CollectionNodeDescriptor extends NodeDescriptor {
 
     public void setScope(String scope) {
         this.scope = scope;
-    }
-
-    public String getQueryFilter() {
-        return queryFilter;
-    }
-
-    public void setQueryFilter(String queryFilter) {
-        this.queryFilter = queryFilter;
     }
 }

@@ -1,10 +1,9 @@
 package com.couchbase.intellij.tree.docfilter;
 
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.ClusterOptions;
+import com.couchbase.intellij.color.ColorHelper;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.QueryFiltersStorage;
-import com.couchbase.intellij.tree.CollectionNodeDescriptor;
+import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
@@ -64,8 +63,8 @@ public class DocumentFilterDialog extends DialogWrapper {
     @Nullable
     @Override
     protected JComponent createCenterPanel() {
-        String fontKeywordColor = getKeywordColor();
-        String fontStringColor = getStringColor();
+        String fontKeywordColor = ColorHelper.getKeywordColor();
+        String fontStringColor = ColorHelper.getStringColor();
 
         JPanel panel = new JPanel(new BorderLayout());
         JPanel infoPanel = new JPanel(new BorderLayout());
@@ -232,24 +231,7 @@ public class DocumentFilterDialog extends DialogWrapper {
         return editor;
     }
 
-    private String getKeywordColor() {
-        EditorColorsManager colorsManager = EditorColorsManager.getInstance();
 
-        EditorColorsScheme scheme = colorsManager.getGlobalScheme();
-        TextAttributesKey keywordKey = TextAttributesKey.createTextAttributesKey("SQLPP_KEY", DefaultLanguageHighlighterColors.KEYWORD);
-        TextAttributes keywordAttributes = scheme.getAttributes(keywordKey);
-        Color keywordColor = keywordAttributes.getForegroundColor();
-        return String.format("#%02x%02x%02x", keywordColor.getRed(), keywordColor.getGreen(), keywordColor.getBlue());
-    }
-
-    private String getStringColor() {
-        EditorColorsManager colorsManager = EditorColorsManager.getInstance();
-        EditorColorsScheme scheme = colorsManager.getGlobalScheme();
-        TextAttributesKey keywordKey = TextAttributesKey.createTextAttributesKey("SQLPP_STRING", DefaultLanguageHighlighterColors.STRING);
-        TextAttributes keywordAttributes = scheme.getAttributes(keywordKey);
-        Color keywordColor = keywordAttributes.getForegroundColor();
-        return String.format("#%02x%02x%02x", keywordColor.getRed(), keywordColor.getGreen(), keywordColor.getBlue());
-    }
 
     private static void showGotItTooltip(Component component, String tooltipText) {
         Point screenPoint = component.getLocationOnScreen();

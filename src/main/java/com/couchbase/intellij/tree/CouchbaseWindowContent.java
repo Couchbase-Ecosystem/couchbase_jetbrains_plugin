@@ -24,6 +24,8 @@ import javax.swing.tree.TreePath;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.QueryFiltersStorage;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.tree.node.*;
+import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.intellij.DocumentFormatter;
@@ -378,7 +380,6 @@ public class CouchbaseWindowContent extends JPanel {
                     if(descriptor.getTooltip()!=null) {
                         setToolTipText(descriptor.getTooltip());
                     }
-
                 } else if (userObject instanceof CollectionNodeDescriptor) {
                     CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
                     setText(descriptor.getText());

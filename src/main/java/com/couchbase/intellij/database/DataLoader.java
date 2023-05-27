@@ -9,6 +9,7 @@ import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.tree.*;
+import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -256,44 +257,11 @@ public class DataLoader {
                     String bucketName = colNode.getBucket();
 
                     String clusterURL = ActiveCluster.getInstance().getClusterURL(); // couchbase://localhost
-                    String serverURI = "";
-                    if (ActiveCluster.getInstance().isSSLEnabled()) {
-                        serverURI = clusterURL.replace("couchbases://", "https://");
-                        serverURI += ":18093/query/service";
-                    } else {
-                        serverURI = clusterURL.replace("couchbase://", "http://");
-                        serverURI += ":8093/query/service";
-                    }
+                    String responseBody = InferHelper.inferSchema(collectionName, scopeName, bucketName, clusterURL);
 
-                    // Create an HttpClient
-                    HttpClient client = HttpClient.newHttpClient();
-
-                    // Build the request body
-                    String requestBody = "{\"statement\":\"INFER `" + bucketName + "`.`" +
-                            scopeName + "`.`"
-                            + collectionName + "` WITH {\\\"sample_size\\\": 1000}\"}";
-
-                    // Build the request
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(serverURI))
-                            .header("Content-Type", "application/json")
-                            .header("Authorization",
-                                    "Basic " + Base64.getEncoder()
-                                            .encodeToString((ActiveCluster.getInstance().getUsername() + ":"
-                                                    + ActiveCluster.getInstance().getPassword()).getBytes()))
-                            .POST(HttpRequest.BodyPublishers.ofString(requestBody)).build();
-
-                    // Send the request and get the response
-                    HttpResponse<String> response = client.send(request,
-                            HttpResponse.BodyHandlers.ofString());
-
-                    // Get the response body
-                    String responseBody = response.body();
-
-                    // // Get the response body as a JsonObject
                     JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
                     JsonArray array = inferenceQueryResults.getArray("results").getArray(0);
-                    extractArray(parentNode, array);
+                    InferHelper.extractArray(parentNode, array);
                     treeModel.nodeStructureChanged(parentNode);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -304,151 +272,6 @@ public class DataLoader {
         } else {
             throw new IllegalStateException("The expected parent was SchemaNodeDescriptor but got something else");
         }
-    }
-
-    private static void extractArray(DefaultMutableTreeNode parentNode, JsonArray array) {
-        for (int i = 0; i < array.size(); i++) {
-            JsonObject inferSchemaRow = array.getObject(i);
-
-            String tooltip = "#docs: " + inferSchemaRow.getNumber("#docs") + ", pattern: " + inferSchemaRow.getString("Flavor");
-            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern Found #" + (i + 1), tooltip);
-            DefaultMutableTreeNode flavorNode = new DefaultMutableTreeNode(sf);
-            parentNode.add(flavorNode);
-            JsonObject properties = inferSchemaRow.getObject("properties");
-
-            if (properties != null) {
-                extractTypes(flavorNode, inferSchemaRow.getObject("properties"));
-
-            } else {
-                JsonArray samples = inferSchemaRow.getArray("samples");
-                if (samples != null) {
-                    String additionalTooltip = samples.toList()
-                            .stream()
-                            .map(e -> e.toString()).collect(Collectors.joining(","));
-                    sf.setTooltip(sf.getTooltip() + ", samples: " + additionalTooltip);
-                } else {
-                    System.err.println("Infer reached an unexpected state");
-                }
-            }
-        }
-    }
-
-    public static void extractTypes(DefaultMutableTreeNode parentNode, JsonObject properties) {
-        for (String key : properties.getNames()) {
-            JsonObject property = properties.getObject(key);
-            String type = property.get("type").toString();
-            //if it is an Object
-            if (type.equals("object")) {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                        new SchemaDataNodeDescriptor(key));
-                extractTypes(childNode, property.getObject("properties"));
-                parentNode.add(childNode);
-
-            } else if (type.equals("array")) {
-                try {
-                    JsonObject items = property.getObject("items");
-                    String itemTypeString = (String) items.get("type");
-                    if (itemTypeString != null) {
-                        DefaultMutableTreeNode childNode;
-                        if (itemTypeString.equals("object")) {
-                            //result.put(key, "array of " + extractTypes(items.getObject("properties")));
-                            childNode = new DefaultMutableTreeNode(
-                                    new SchemaDataNodeDescriptor(key, "array of objects", null));
-                            extractTypes(childNode, items.getObject("properties"));
-                        } else {
-                            childNode = new DefaultMutableTreeNode(
-                                    new SchemaDataNodeDescriptor(key, "array of " + itemTypeString + "s", null));
-                        }
-                        parentNode.add(childNode);
-                    } else {
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new SchemaDataNodeDescriptor(key, type, null));
-                        parentNode.add(childNode);
-                    }
-                } catch (ClassCastException cce) {
-                    JsonArray array = property.getArray("items");
-                    extractArray(parentNode, array);
-                }
-            } else {
-                addLeaf(parentNode, key, property);
-            }
-        }
-    }
-
-    private static void addLeaf(DefaultMutableTreeNode parentNode, String key, JsonObject property) {
-        String type = property.get("type").toString();
-        boolean containsNull = false;
-        if (type.contains("[")) {
-            type = type.replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .replace(",", " | ");
-
-            if (type.contains("null")) {
-                containsNull = true;
-            }
-        }
-
-        String samples = null;
-        JsonArray samplesArray = property.getArray("samples");
-        if (samplesArray != null) {
-            if (containsNull) {
-                if (samplesArray.size() > 1) {
-                    //ignoring the first array that will only contains null
-                    samplesArray = samplesArray.getArray(1);
-                } else {
-                    samplesArray = samplesArray.getArray(0);
-                }
-            }
-            samples = samplesArray.toList()
-                    .stream()
-                    .map(e -> e == null ? "null" : e.toString())
-                    .collect(Collectors.joining(" , "));
-
-        }
-
-        System.out.println(key + " - " + type + ", samples = " + samples);
-
-        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                new SchemaDataNodeDescriptor(key, type, samples));
-        parentNode.add(childNode);
-    }
-
-    private static JsonObject extractResult(JsonObject obj) {
-        JsonObject result = JsonObject.create();
-        result.put("isLeaf", true);
-        String type = obj.get("type").toString();
-        boolean containsNull = false;
-        if (type.contains("[")) {
-            type = type.replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .replace(",", " | ");
-
-            if (type.contains("null")) {
-                containsNull = true;
-            }
-            result.put("type", type);
-        } else {
-            result.put("type", type);
-        }
-
-        if (obj.getArray("samples") != null) {
-            if (containsNull) {
-                JsonArray array = obj.getArray("samples");
-                if (array.size() > 1) {
-                    //ignoring the first array that will only contains null
-                    result.put("samples", array.getArray(1));
-                } else {
-                    result.put("samples", array.getArray(0));
-                }
-            } else {
-                result.put("samples", obj.getArray("samples"));
-            }
-
-        }
-
-        return result;
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
