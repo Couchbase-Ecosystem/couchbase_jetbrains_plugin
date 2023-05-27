@@ -399,13 +399,15 @@ public class DataLoader {
                 } else {
                     samplesArray = samplesArray.getArray(0);
                 }
-
-                samples = samplesArray.toList()
-                        .stream()
-                        .map(e -> e == null ? "null" : e.toString())
-                        .collect(Collectors.joining(" , "));
             }
+            samples = samplesArray.toList()
+                    .stream()
+                    .map(e -> e == null ? "null" : e.toString())
+                    .collect(Collectors.joining(" , "));
+
         }
+
+        System.out.println(key + " - " + type + ", samples = " + samples);
 
         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
                 new SchemaDataNodeDescriptor(key, type, samples));

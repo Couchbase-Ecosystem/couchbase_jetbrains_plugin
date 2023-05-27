@@ -28,7 +28,7 @@
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
 
-        <toolWindow id="Couchbase Result" anchor="bottom"
+        <toolWindow id="Couchbase Output" anchor="bottom"
                     factoryClass="com.couchbase.intellij.workbench.QueryResultToolWindowFactory"/>
 
 

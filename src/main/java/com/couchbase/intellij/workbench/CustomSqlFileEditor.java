@@ -77,7 +77,6 @@ public class CustomSqlFileEditor implements FileEditor {
     @Override
     public JComponent getPreferredFocusedComponent() {
         return myEditor.getComponent();
-        //return myEditor.getPreferredFocusedComponent();
     }
 
     @NotNull

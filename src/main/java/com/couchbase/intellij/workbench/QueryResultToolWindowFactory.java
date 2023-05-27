@@ -1,8 +1,5 @@
 package com.couchbase.intellij.workbench;
 
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.query.QueryOptions;
-import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.QueryResult;
 import com.couchbase.intellij.result.JsonTableModel;
 import com.intellij.openapi.project.Project;
@@ -19,8 +16,6 @@ import com.intellij.ui.tabs.impl.JBTabsImpl;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
@@ -36,7 +31,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         JBScrollPane scrollPane = new JBScrollPane(table);
 
-        TabInfo outputTab = new TabInfo(new JPanel()).setText("Output");
+        TabInfo outputTab = new TabInfo(new JPanel()).setText("Log");
         queryResultTab = new TabInfo(scrollPane).setText("Query Result");
 
         tabs.addTab(outputTab);
