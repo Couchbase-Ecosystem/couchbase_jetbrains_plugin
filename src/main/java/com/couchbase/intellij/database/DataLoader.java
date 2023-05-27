@@ -28,16 +28,7 @@ import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
 import com.couchbase.intellij.persistence.PasswordStorage;
 import com.couchbase.intellij.persistence.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.SavedCluster;
-import com.couchbase.intellij.tree.BucketNodeDescriptor;
-import com.couchbase.intellij.tree.CollectionNodeDescriptor;
-import com.couchbase.intellij.tree.CollectionsNodeDescriptor;
-import com.couchbase.intellij.tree.ConnectionNodeDescriptor;
-import com.couchbase.intellij.tree.FileNodeDescriptor;
-import com.couchbase.intellij.tree.IndexesNodeDescriptor;
-import com.couchbase.intellij.tree.LoadingNodeDescriptor;
-import com.couchbase.intellij.tree.SchemaDataNodeDescriptor;
-import com.couchbase.intellij.tree.SchemaNodeDescriptor;
-import com.couchbase.intellij.tree.ScopeNodeDescriptor;
+import com.couchbase.intellij.tree.*;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -302,13 +293,9 @@ public class DataLoader {
 
                     // // Get the response body as a JsonObject
                     JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
-
-                    JsonObject inferSchemaRow = inferenceQueryResults.getArray("results").getArray(0).getObject(0);
-                    JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
-
-                    addSchemaToTree(inferSchemaProperties, parentNode);
+                    JsonArray array = inferenceQueryResults.getArray("results").getArray(0);
+                    extractArray(parentNode, array);
                     treeModel.nodeStructureChanged(parentNode);
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
@@ -320,102 +307,151 @@ public class DataLoader {
         }
     }
 
-    public static JsonObject extractTypes(JsonObject properties) {
-        JsonObject result = JsonObject.create();
+    private static void extractArray(DefaultMutableTreeNode parentNode, JsonArray array) {
+        for (int i = 0; i < array.size(); i++) {
+            JsonObject inferSchemaRow = array.getObject(i);
+
+            String tooltip = "#docs: " + inferSchemaRow.getNumber("#docs") + ", pattern: " + inferSchemaRow.getString("Flavor");
+            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern Found #" + (i + 1), tooltip);
+            DefaultMutableTreeNode flavorNode = new DefaultMutableTreeNode(sf);
+            parentNode.add(flavorNode);
+            JsonObject properties = inferSchemaRow.getObject("properties");
+
+            if (properties != null) {
+                extractTypes(flavorNode, inferSchemaRow.getObject("properties"));
+
+            } else {
+                JsonArray samples = inferSchemaRow.getArray("samples");
+                if (samples != null) {
+                    String additionalTooltip = samples.toList()
+                            .stream()
+                            .map(e -> e.toString()).collect(Collectors.joining(","));
+                    sf.setTooltip(sf.getTooltip() + ", samples: " + additionalTooltip);
+                } else {
+                    System.err.println("Infer reached an unexpected state");
+                }
+            }
+        }
+    }
+
+    public static void extractTypes(DefaultMutableTreeNode parentNode, JsonObject properties) {
         for (String key : properties.getNames()) {
             JsonObject property = properties.getObject(key);
-            if (property != null && property.containsKey("type")) {
-                Object type = property.get("type");
-                if (type instanceof String) {
-                    String typeString = (String) type;
-                    if (typeString.equalsIgnoreCase("object")) {
-                        result.put(key, extractTypes(property.getObject("properties")));
-                    } else if (typeString.equalsIgnoreCase("array")) {
-                        JsonObject items = property.getObject("items");
-                        if (items != null && items.containsKey("type")) {
-                            Object itemType = items.get("type");
-                            if (itemType instanceof String) {
-                                String itemTypeString = (String) itemType;
-                                if (itemTypeString.equalsIgnoreCase("object")) {
-                                    result.put(key, "array of " + extractTypes(items.getObject("properties")));
-                                } else {
-                                    result.put(key, "array of " + itemType);
-                                }
-                            } else if (itemType instanceof JsonArray) {
-                                result.put(key, "array of " + extractTypesFromArray((JsonArray) itemType));
-                            }
-                        } else if (items != null && items.containsKey("properties")) {
-                            result.put(key, "array of " + extractTypes(items.getObject("properties")));
+            String type = property.get("type").toString();
+            //if it is an Object
+            if (type.equals("object")) {
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                        new SchemaDataNodeDescriptor(key));
+                extractTypes(childNode, property.getObject("properties"));
+                parentNode.add(childNode);
+
+            } else if (type.equals("array")) {
+                try {
+                    JsonObject items = property.getObject("items");
+                    String itemTypeString = (String) items.get("type");
+                    if (itemTypeString != null) {
+                        DefaultMutableTreeNode childNode;
+                        if (itemTypeString.equals("object")) {
+                            //result.put(key, "array of " + extractTypes(items.getObject("properties")));
+                            childNode = new DefaultMutableTreeNode(
+                                    new SchemaDataNodeDescriptor(key, "array of objects", null));
+                            extractTypes(childNode, items.getObject("properties"));
                         } else {
-                            result.put(key, "array");
+                            childNode = new DefaultMutableTreeNode(
+                                    new SchemaDataNodeDescriptor(key, "array of " + itemTypeString + "s", null));
                         }
+                        parentNode.add(childNode);
                     } else {
-                        result.put(key, type);
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                new SchemaDataNodeDescriptor(key, type, null));
+                        parentNode.add(childNode);
                     }
-                } else if (type instanceof JsonArray) {
-                    result.put(key, extractTypesFromArray((JsonArray) type));
+                } catch (ClassCastException cce) {
+                    JsonArray array = property.getArray("items");
+                    extractArray(parentNode, array);
                 }
-            } else if (property != null && property.containsKey("properties")) {
-                result.put(key, extractTypes(property.getObject("properties")));
-            }
-        }
-        return result;
-    }
-    private static String extractTypesFromArray(JsonArray array) {
-        if (array.isEmpty()) {
-            return "array";
-        }
-        Set<String> types = new HashSet<>();
-        for (int i = 0; i < array.size(); i++) {
-            Object item = array.get(i);
-            if (item instanceof String) {
-                types.add("string");
-            } else if (item instanceof JsonObject) {
-                types.add("object (" + extractTypes((JsonObject) item).toString() + ")");
-            } else if (item instanceof JsonArray) {
-                types.add("array");
-            } else if (item instanceof Boolean) {
-                types.add("boolean");
-            } else if (item instanceof Long || item instanceof Integer) {
-                types.add("long");
-            } else if (item instanceof Double || item instanceof Float) {
-                types.add("double");
-            }
-        }
-        return "array of " + String.join(", ", types);
-    }
-
-
-    private static void addSchemaToTree(JsonObject schema, DefaultMutableTreeNode parentNode) {
-        for (String key : schema.getNames()) {
-            Object value = schema.get(key);
-            if (value instanceof JsonObject) {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key));
-                addSchemaToTree((JsonObject) value, childNode);
-                parentNode.add(childNode);
-            } else if (value instanceof String && ((String) value).startsWith("array of {")) {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                        new SchemaDataNodeDescriptor(key + ": array of objects"));
-                JsonObject arraySchema = JsonObject.fromJson(((String) value).substring(9));
-                addSchemaToTree(arraySchema, childNode);
-                parentNode.add(childNode);
             } else {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                        new SchemaDataNodeDescriptor(key + ": " + value.toString()));
-                parentNode.add(childNode);
+                addLeaf(parentNode, key, property);
             }
         }
     }
 
-    public static String prettyPrintJson(String json) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        JsonParser jp = new JsonParser();
-        JsonElement je = jp.parse(json);
-        return gson.toJson(je);
+    private static void addLeaf(DefaultMutableTreeNode parentNode, String key, JsonObject property) {
+        String type = property.get("type").toString();
+        boolean containsNull = false;
+        if (type.contains("[")) {
+            type = type.replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace(",", " | ");
+
+            if (type.contains("null")) {
+                containsNull = true;
+            }
+        }
+
+        String samples = null;
+        JsonArray samplesArray = property.getArray("samples");
+        if (samplesArray != null) {
+            if (containsNull) {
+                if (samplesArray.size() > 1) {
+                    //ignoring the first array that will only contains null
+                    samplesArray = samplesArray.getArray(1);
+                } else {
+                    samplesArray = samplesArray.getArray(0);
+                }
+
+                samples = samplesArray.toList()
+                        .stream()
+                        .map(e -> e==null?"null":e.toString())
+                        .collect(Collectors.joining(" , "));
+            }
+        }
+
+        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                new SchemaDataNodeDescriptor(key, type, samples));
+        parentNode.add(childNode);
+    }
+
+    private static JsonObject extractResult(JsonObject obj) {
+        JsonObject result = JsonObject.create();
+        result.put("isLeaf", true);
+        String type = obj.get("type").toString();
+        boolean containsNull = false;
+        if (type.contains("[")) {
+            type = type.replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace(",", " | ");
+
+            if (type.contains("null")) {
+                containsNull = true;
+            }
+            result.put("type", type);
+        } else {
+            result.put("type", type);
+        }
+
+        if (obj.getArray("samples") != null) {
+            if (containsNull) {
+                JsonArray array = obj.getArray("samples");
+                if (array.size() > 1) {
+                    //ignoring the first array that will only contains null
+                    result.put("samples", array.getArray(1));
+                } else {
+                    result.put("samples", array.getArray(0));
+                }
+            } else {
+                result.put("samples", obj.getArray("samples"));
+            }
+
+        }
+
+        return result;
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
-            String collection) {
+                                                   String collection) {
 
         String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
@@ -466,7 +502,7 @@ public class DataLoader {
     }
 
     public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username,
-            String password, String defaultBucket) {
+                                                       String password, String defaultBucket) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);

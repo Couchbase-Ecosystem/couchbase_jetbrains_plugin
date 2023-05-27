@@ -2,12 +2,12 @@ package com.couchbase.intellij.tree;
 
 import com.intellij.openapi.util.IconLoader;
 
-public class SchemaDataNodeDescriptor extends NodeDescriptor {
-    public SchemaDataNodeDescriptor(String schemaText) {
-        super("<html>" +
-                        schemaText.replace("\n", "<br/>")
-                                .replaceAll("([^:]+):", "<strong>$1</strong>:") +
-                        "</html>",
-                null);
+public class SchemaDataNodeDescriptor extends TooltipNodeDescriptor {
+
+    public SchemaDataNodeDescriptor(String key, String value, String tooltip) {
+        super("<html><strong>"+key+":</strong> "+value+"</html>", tooltip);
+    }
+    public SchemaDataNodeDescriptor(String key) {
+        super("<html><strong>"+key+"</strong></html>", null);
     }
 }

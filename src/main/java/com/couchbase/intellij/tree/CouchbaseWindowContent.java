@@ -238,7 +238,9 @@ public class CouchbaseWindowContent extends JPanel {
                         DataLoader.listDocuments(project, expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
-                    } else {
+                    } else if(expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
+                        //Do Nothing
+                    }else {
                         throw new UnsupportedOperationException("Not implemented yet");
                     }
                 }
@@ -367,7 +369,15 @@ public class CouchbaseWindowContent extends JPanel {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
 
-                if (userObject instanceof CollectionNodeDescriptor) {
+                if(userObject instanceof TooltipNodeDescriptor) {
+                    TooltipNodeDescriptor descriptor = (TooltipNodeDescriptor) userObject;
+                    setText(descriptor.getText());
+                    setIcon(descriptor.getIcon());
+                    if(descriptor.getTooltip()!=null) {
+                        setToolTipText(descriptor.getTooltip());
+                    }
+
+                } else if (userObject instanceof CollectionNodeDescriptor) {
                     CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
                     setText(descriptor.getText());
                     if (descriptor.getQueryFilter() == null
