@@ -2,11 +2,10 @@ package com.couchbase.intellij.database;
 
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
-import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
-import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.tree.*;
@@ -25,21 +24,16 @@ import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 public class DataLoader {
 
@@ -50,8 +44,7 @@ public class DataLoader {
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
-                    Set<String> buckets = ActiveCluster.getInstance().get()
-                            .buckets().getAllBuckets().keySet();
+                    Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
                     for (String bucket : buckets) {
 
@@ -85,10 +78,12 @@ public class DataLoader {
                     parentNode.removeAllChildren();
                     for (ScopeSpec scopeSpec : scopes) {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(), bucketName));
+                                new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(),
+                                        bucketName));
 
                         DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
-                                new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName, scopeSpec.name() ));
+                                new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName,
+                                        scopeSpec.name()));
                         collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         childNode.add(collections);
 
@@ -134,11 +129,12 @@ public class DataLoader {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
                                 new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
                                         cols.getBucket(), cols.getScope(), filter));
+
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                } catch(Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -156,25 +152,27 @@ public class DataLoader {
             CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) parentNode.getUserObject();
             // CompletableFuture.runAsync(() -> {
             try {
-                if(newOffset == 0) {
+                if (newOffset == 0) {
                     parentNode.removeAllChildren();
                     DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
                     schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                     parentNode.add(schemaNode);
                 } else {
-                    parentNode.remove(parentNode.getChildCount()-1);
+                    parentNode.remove(parentNode.getChildCount() - 1);
                 }
 
 
                 String filter = colNode.getQueryFilter();
                 String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).cas as cbCasNb, couchbaseAlias.* from `"
-                        +colNode.getText()+"` as couchbaseAlias "
-                        + ((filter == null || filter.isEmpty())?"": (" where " +filter))
-                        + (SQLPPQueryUtils.hasOrderBy(filter)?"":"  order by meta(couchbaseAlias).id ")
-                        + (newOffset==0?"":" OFFSET "+newOffset)
-                        +" limit 10";
 
-                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope())
+                        + colNode.getText() + "` as couchbaseAlias "
+                        + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter))
+                        + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ")
+                        + (newOffset == 0 ? "" : " OFFSET " + newOffset)
+                        + " limit 10";
+
+                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket())
+                        .scope(colNode.getScope())
                         .query(query)
                         .rowsAsObject();
 
@@ -225,9 +223,9 @@ public class DataLoader {
 
                 });
 
-                if(results.size() == 10) {
+                if (results.size() == 10) {
                     DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
-                            new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset+10));
+                            new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
                     parentNode.add(loadMoreNode);
                 }
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
@@ -251,39 +249,51 @@ public class DataLoader {
                 try {
                     parentNode.removeAllChildren();
 
-                    DefaultMutableTreeNode collectionNode = (DefaultMutableTreeNode) parentNode.getParent();
-                    String collectionName = ((CollectionNodeDescriptor) collectionNode.getUserObject()).getText();
-                    DefaultMutableTreeNode scopeNode = (DefaultMutableTreeNode) collectionNode.getParent().getParent();
-                    String scopeName = ((ScopeNodeDescriptor) scopeNode.getUserObject()).getText();
-                    String bucketName = ((BucketNodeDescriptor) ((DefaultMutableTreeNode) scopeNode.getParent())
-                            .getUserObject()).getText();
+                    CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) ((DefaultMutableTreeNode) parentNode
+                            .getParent()).getUserObject();
+                    String collectionName = colNode.getText();
+                    String scopeName = colNode.getScope();
+                    String bucketName = colNode.getBucket();
 
-                    // Replace with your schema inference query
-                    String inferSchemaQuery = "SELECT d.* FROM CURL(\"http://localhost:8093/query/service\", {\"data\": \"statement=INFER `"
-                            + bucketName + "`.`" + scopeName + "`.`" + collectionName
-                            + "` WITH {\\\"sample_size\\\": 1000}\", \"user\": \""
-                            + ActiveCluster.getInstance().getUsername() + ":"
-                            + ActiveCluster.getInstance().getPassword()
-                            + "\"}) d";
-
-                    // Execute the schema inference query
-                    final List<JsonObject> results = ActiveCluster.getInstance().get()
-                            .bucket(bucketName).scope(scopeName)
-                            .query(inferSchemaQuery, QueryOptions.queryOptions()).rowsAsObject();
-
-                    // Process the results and add them to the tree structure
-                    for (JsonObject obj : results) {
-                        // Replace with your code for processing the schema data and adding it to the
-                        // tree structure
-                        JsonObject inferSchemaRow = obj.getArray("results").getArray(0).getObject(0);
-                        JsonObject inferSchemaProperties = extractTypes(inferSchemaRow.getObject("properties"));
-                        String schemaString = inferSchemaProperties.toString();
-                        String prettySchemaString = prettyPrintJson(schemaString);
-
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new SchemaDataNodeDescriptor(prettySchemaString));
-                        parentNode.add(childNode);
+                    String clusterURL = ActiveCluster.getInstance().getClusterURL(); // couchbase://localhost
+                    String serverURI = "";
+                    if (ActiveCluster.getInstance().isSSLEnabled()) {
+                        serverURI = clusterURL.replace("couchbases://", "https://");
+                        serverURI += ":18093/query/service";
+                    } else {
+                        serverURI = clusterURL.replace("couchbase://", "http://");
+                        serverURI += ":8093/query/service";
                     }
+
+                    // Create an HttpClient
+                    HttpClient client = HttpClient.newHttpClient();
+
+                    // Build the request body
+                    String requestBody = "{\"statement\":\"INFER `" + bucketName + "`.`" +
+                            scopeName + "`.`"
+                            + collectionName + "` WITH {\\\"sample_size\\\": 1000}\"}";
+
+                    // Build the request
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create(serverURI))
+                            .header("Content-Type", "application/json")
+                            .header("Authorization",
+                                    "Basic " + Base64.getEncoder()
+                                            .encodeToString((ActiveCluster.getInstance().getUsername() + ":"
+                                                    + ActiveCluster.getInstance().getPassword()).getBytes()))
+                            .POST(HttpRequest.BodyPublishers.ofString(requestBody)).build();
+
+                    // Send the request and get the response
+                    HttpResponse<String> response = client.send(request,
+                            HttpResponse.BodyHandlers.ofString());
+
+                    // Get the response body
+                    String responseBody = response.body();
+
+                    // // Get the response body as a JsonObject
+                    JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
+                    JsonArray array = inferenceQueryResults.getArray("results").getArray(0);
+                    extractArray(parentNode, array);
                     treeModel.nodeStructureChanged(parentNode);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -296,67 +306,147 @@ public class DataLoader {
         }
     }
 
-    public static JsonObject extractTypes(JsonObject properties) {
-        JsonObject result = JsonObject.create();
+    private static void extractArray(DefaultMutableTreeNode parentNode, JsonArray array) {
+        for (int i = 0; i < array.size(); i++) {
+            JsonObject inferSchemaRow = array.getObject(i);
 
-        try {
-            for (String key : properties.getNames()) {
-                JsonObject property = properties.getObject(key);
-                if (property != null && property.containsKey("type")) {
-                    Object type = property.get("type");
-                    if (type instanceof String) {
-                        if (((String) type).equalsIgnoreCase("object")) {
-                            result.put(key, extractTypes(property.getObject("properties")));
-                        } else if (((String) type).equalsIgnoreCase("array")) {
-                            JsonObject items = property.getObject("items");
-                            if (items != null && items.containsKey("type")) {
-                                Object itemType = items.get("type");
-                                if (itemType instanceof String) {
-                                    if (((String) itemType).equalsIgnoreCase("object")) {
-                                        result.put(key, "array of " + extractTypes(items.getObject("properties")));
-                                    } else {
-                                        result.put(key, "array of " + itemType);
-                                    }
-                                } else if (itemType instanceof JsonArray) {
-                                    StringBuilder types = new StringBuilder();
-                                    for (int i = 0; i < ((JsonArray) itemType).size(); i++) {
-                                        types.append(((JsonArray) itemType).getString(i)).append(" | ");
-                                    }
+            String tooltip = "#docs: " + inferSchemaRow.getNumber("#docs") + ", pattern: " + inferSchemaRow.getString("Flavor");
+            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern Found #" + (i + 1), tooltip);
+            DefaultMutableTreeNode flavorNode = new DefaultMutableTreeNode(sf);
+            parentNode.add(flavorNode);
+            JsonObject properties = inferSchemaRow.getObject("properties");
 
-                                    types = new StringBuilder(types.substring(0, types.length() - 3));
-                                    result.put(key, "array of " + types.toString());
-                                }
-                            } else {
-                                result.put(key, "array");
-                            }
-                        } else {
-                            result.put(key, type);
-                        }
-                    } else if (type instanceof JsonArray) {
-                        StringBuilder types = new StringBuilder();
-                        for (int i = 0; i < ((JsonArray) type).size(); i++) {
-                            types.append(((JsonArray) type).getString(i)).append(" | ");
-                        }
+            if (properties != null) {
+                extractTypes(flavorNode, inferSchemaRow.getObject("properties"));
 
-                        types = new StringBuilder(types.substring(0, types.length() - 3));
-                        result.put(key, types.toString());
-                    }
-                } else if (property != null && property.containsKey("properties")) {
-                    result.put(key, extractTypes(property.getObject("properties")));
+            } else {
+                JsonArray samples = inferSchemaRow.getArray("samples");
+                if (samples != null) {
+                    String additionalTooltip = samples.toList()
+                            .stream()
+                            .map(e -> e.toString()).collect(Collectors.joining(","));
+                    sf.setTooltip(sf.getTooltip() + ", samples: " + additionalTooltip);
+                } else {
+                    System.err.println("Infer reached an unexpected state");
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        }
+    }
+
+    public static void extractTypes(DefaultMutableTreeNode parentNode, JsonObject properties) {
+        for (String key : properties.getNames()) {
+            JsonObject property = properties.getObject(key);
+            String type = property.get("type").toString();
+            //if it is an Object
+            if (type.equals("object")) {
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                        new SchemaDataNodeDescriptor(key));
+                extractTypes(childNode, property.getObject("properties"));
+                parentNode.add(childNode);
+
+            } else if (type.equals("array")) {
+                try {
+                    JsonObject items = property.getObject("items");
+                    String itemTypeString = (String) items.get("type");
+                    if (itemTypeString != null) {
+                        DefaultMutableTreeNode childNode;
+                        if (itemTypeString.equals("object")) {
+                            //result.put(key, "array of " + extractTypes(items.getObject("properties")));
+                            childNode = new DefaultMutableTreeNode(
+                                    new SchemaDataNodeDescriptor(key, "array of objects", null));
+                            extractTypes(childNode, items.getObject("properties"));
+                        } else {
+                            childNode = new DefaultMutableTreeNode(
+                                    new SchemaDataNodeDescriptor(key, "array of " + itemTypeString + "s", null));
+                        }
+                        parentNode.add(childNode);
+                    } else {
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                new SchemaDataNodeDescriptor(key, type, null));
+                        parentNode.add(childNode);
+                    }
+                } catch (ClassCastException cce) {
+                    JsonArray array = property.getArray("items");
+                    extractArray(parentNode, array);
+                }
+            } else {
+                addLeaf(parentNode, key, property);
+            }
+        }
+    }
+
+    private static void addLeaf(DefaultMutableTreeNode parentNode, String key, JsonObject property) {
+        String type = property.get("type").toString();
+        boolean containsNull = false;
+        if (type.contains("[")) {
+            type = type.replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace(",", " | ");
+
+            if (type.contains("null")) {
+                containsNull = true;
+            }
+        }
+
+        String samples = null;
+        JsonArray samplesArray = property.getArray("samples");
+        if (samplesArray != null) {
+            if (containsNull) {
+                if (samplesArray.size() > 1) {
+                    //ignoring the first array that will only contains null
+                    samplesArray = samplesArray.getArray(1);
+                } else {
+                    samplesArray = samplesArray.getArray(0);
+                }
+
+                samples = samplesArray.toList()
+                        .stream()
+                        .map(e -> e == null ? "null" : e.toString())
+                        .collect(Collectors.joining(" , "));
+            }
+        }
+
+        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                new SchemaDataNodeDescriptor(key, type, samples));
+        parentNode.add(childNode);
+    }
+
+    private static JsonObject extractResult(JsonObject obj) {
+        JsonObject result = JsonObject.create();
+        result.put("isLeaf", true);
+        String type = obj.get("type").toString();
+        boolean containsNull = false;
+        if (type.contains("[")) {
+            type = type.replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace(",", " | ");
+
+            if (type.contains("null")) {
+                containsNull = true;
+            }
+            result.put("type", type);
+        } else {
+            result.put("type", type);
+        }
+
+        if (obj.getArray("samples") != null) {
+            if (containsNull) {
+                JsonArray array = obj.getArray("samples");
+                if (array.size() > 1) {
+                    //ignoring the first array that will only contains null
+                    result.put("samples", array.getArray(1));
+                } else {
+                    result.put("samples", array.getArray(0));
+                }
+            } else {
+                result.put("samples", obj.getArray("samples"));
+            }
+
         }
 
         return result;
-    }
-
-    public static String prettyPrintJson(String json) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        JsonParser jp = new JsonParser();
-        JsonElement je = jp.parse(json);
-        return gson.toJson(je);
     }
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope,
@@ -396,8 +486,7 @@ public class DataLoader {
 
         Cluster cluster = null;
         try {
-            cluster = Cluster.connect(
-                    adjustClusterProtocol(clusterUrl, ssl),
+            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl),
                     ClusterOptions.clusterOptions(username, password).environment(env -> {
                         // env.applyProfile("wan-development");
                     }));
@@ -422,8 +511,7 @@ public class DataLoader {
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
 
-        Clusters clusters =
-                ClustersStorage.getInstance().getValue();
+        Clusters clusters = ClustersStorage.getInstance().getValue();
         if (clusters == null) {
             clusters = new Clusters();
         }
