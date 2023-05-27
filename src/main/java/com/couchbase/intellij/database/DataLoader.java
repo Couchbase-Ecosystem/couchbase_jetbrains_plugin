@@ -1,19 +1,5 @@
 package com.couchbase.intellij.database;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.json.JsonArray;
@@ -21,19 +7,9 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
-import com.couchbase.intellij.persistence.Clusters;
-import com.couchbase.intellij.persistence.ClustersStorage;
-import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
-import com.couchbase.intellij.persistence.PasswordStorage;
-import com.couchbase.intellij.persistence.QueryFiltersStorage;
-import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.tree.*;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -45,6 +21,19 @@ import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.ui.treeStructure.Tree;
+
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class DataLoader {
 
@@ -140,7 +129,7 @@ public class DataLoader {
                         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
                                 new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
                                         cols.getBucket(), cols.getScope(), filter));
-                        System.out.println("====== " + filter);
+
                         childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(childNode);
                     }
@@ -156,21 +145,30 @@ public class DataLoader {
         }
     }
 
-    public static void listDocuments(Project project, DefaultMutableTreeNode parentNode, Tree tree) {
+    public static void listDocuments(Project project, DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof CollectionNodeDescriptor) {
+            CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) parentNode.getUserObject();
             // CompletableFuture.runAsync(() -> {
             try {
-                parentNode.removeAllChildren();
+                if (newOffset == 0) {
+                    parentNode.removeAllChildren();
+                    DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
+                    schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                    parentNode.add(schemaNode);
+                } else {
+                    parentNode.remove(parentNode.getChildCount() - 1);
+                }
 
-                CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) userObject;
 
                 String filter = colNode.getQueryFilter();
                 String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).cas as cbCasNb, couchbaseAlias.* from `"
+
                         + colNode.getText() + "` as couchbaseAlias "
                         + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter))
                         + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ")
+                        + (newOffset == 0 ? "" : " OFFSET " + newOffset)
                         + " limit 10";
 
                 final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket())
@@ -182,11 +180,6 @@ public class DataLoader {
                     PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(),
                             colNode.getBucket(), colNode.getScope(),
                             colNode.getText());
-
-                    // Add a schema subfolder
-                    DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
-                    schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                    parentNode.add(schemaNode);
 
                     for (JsonObject obj : results) {
 
@@ -227,9 +220,15 @@ public class DataLoader {
                         DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                         parentNode.add(jsonFileNode);
                     }
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+
                 });
 
+                if (results.size() == 10) {
+                    DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
+                            new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                    parentNode.add(loadMoreNode);
+                }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw e;
@@ -403,7 +402,7 @@ public class DataLoader {
 
                 samples = samplesArray.toList()
                         .stream()
-                        .map(e -> e==null?"null":e.toString())
+                        .map(e -> e == null ? "null" : e.toString())
                         .collect(Collectors.joining(" , "));
             }
         }
