@@ -1,9 +1,6 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tree.node;
 
-import com.intellij.openapi.util.IconLoader;
-import com.intellij.ui.AnimatedIcon;
-
-import javax.swing.*;
+import com.couchbase.intellij.tree.NodeDescriptor;
 
 public class LoadingNodeDescriptor extends NodeDescriptor {
 

@@ -3,17 +3,15 @@ package com.couchbase.intellij.tree;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
+import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
 import java.util.Enumeration;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class TreeActionHandler {
 

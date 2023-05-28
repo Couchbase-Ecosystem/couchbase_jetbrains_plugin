@@ -1,6 +1,7 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tree.node;
 
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.NodeDescriptor;
 import com.intellij.openapi.util.IconLoader;
 
 public class ConnectionNodeDescriptor extends NodeDescriptor {

@@ -60,7 +60,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         init();
         setTitle("New Couchbase Connection");
         setResizable(true);
-        getPeer().getWindow().setMinimumSize(new Dimension(600, 400));
+        getPeer().getWindow().setMinimumSize(new Dimension(700, 500));
     }
 
     @Override
@@ -221,6 +221,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
     private List<String> validateForm() {
         List<String> errors = new ArrayList<>();
+        cleanURL();
 
         if (connectionNameTextField.getText().isEmpty()) {
             errors.add("Connection Name can't be empty");
@@ -391,5 +392,22 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
     private void hideErrorLabel() {
         errorLabel.setText("");
+    }
+
+    private void cleanURL() {
+
+        String text = hostTextField.getText();
+        if(text.endsWith("/")){
+            hostTextField.setText(text.substring(0, text.length() - 1));
+        }
+
+        if(text.startsWith("https://")) {
+            hostTextField.setText(text.replaceFirst("https://", ""));
+            enableSSLCheckBox.setSelected(true);
+        }
+
+        if(text.startsWith("http://")){
+            hostTextField.setText(text.replaceFirst("http://", ""));
+        }
     }
 }
