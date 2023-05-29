@@ -90,7 +90,6 @@ public class InferHelper {
                     if (itemTypeString != null) {
                         DefaultMutableTreeNode childNode;
                         if (itemTypeString.equals("object")) {
-                            //result.put(key, "array of " + extractTypes(items.getObject("properties")));
                             childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, "array of objects", null));
                             extractTypes(childNode, items.getObject("properties"));
                         } else {
