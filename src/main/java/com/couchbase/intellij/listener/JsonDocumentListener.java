@@ -28,8 +28,9 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         //filtering files from our plugin
         if (file != null && file.equals(file) && file.getUserData(VirtualFileKeys.CLUSTER) != null) {
             if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
-                Messages.showMessageDialog("Couchbase Plugin Error",
-                        "The file that you are trying to save belongs to a connection that is no longer active"
+                Messages.showMessageDialog(
+                        "The file that you are trying to save belongs to a connection that is no longer active",
+                        "Couchbase Plugin Error"
                         , Messages.getErrorIcon());
                 return false;
             } else {
@@ -75,8 +76,8 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
     }
 
     private void saveFile(Collection collection, VirtualFile file, Document document) {
-         MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), JsonObject.fromJson(document.getText()));
-         file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
+        MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), JsonObject.fromJson(document.getText()));
+        file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
     }
 
     private static Project getProject(VirtualFile virtualFile) {

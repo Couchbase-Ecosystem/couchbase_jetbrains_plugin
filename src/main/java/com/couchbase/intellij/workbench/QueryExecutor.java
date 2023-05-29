@@ -43,16 +43,16 @@ public class QueryExecutor {
     public static void executeQuery(String query, Project project) {
 
 
-        getOutputWindow(project).setStatusAsLoading();
         if (query == null || query.trim().isEmpty()) {
             return;
         }
-        if (ActiveCluster.getInstance() == null) {
-            Messages.showMessageDialog("Couchbase Plugin Error",
-                    "There is no active connection to run this query"
+        if (ActiveCluster.getInstance().get() == null) {
+            Messages.showMessageDialog(
+                    "There is no active connection to run this query", "Couchbase Plugin Error"
                     , Messages.getErrorIcon());
             return;
         }
+        getOutputWindow(project).setStatusAsLoading();
         SwingUtilities.invokeLater(() -> {
             long start = 0;
             try {
