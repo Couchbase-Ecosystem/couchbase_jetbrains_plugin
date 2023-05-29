@@ -133,7 +133,6 @@ public class InferHelper {
                 }
             }
             samples = samplesArray.toList().stream().map(e -> e == null ? "null" : e.toString()).collect(Collectors.joining(" , "));
-
         }
 
         System.out.println(key + " - " + type + ", samples = " + samples);

@@ -10,6 +10,7 @@ import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 
@@ -19,8 +20,6 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 public class QueryExecutor {
-
-    public static final List<String> emptyStatsList = Arrays.asList("-", "-", "-", "-", "-");
 
     private static ToolWindow toolWindow;
     private static QueryResultToolWindowFactory resultWindow;
@@ -45,12 +44,19 @@ public class QueryExecutor {
 
 
         getOutputWindow(project).setStatusAsLoading();
+        if (query == null || query.trim().isEmpty()) {
+            return;
+        }
         if (ActiveCluster.getInstance() == null) {
-            //dlksdjflkjfsjdfksdf
+            Messages.showMessageDialog("Couchbase Plugin Error",
+                    "There is no active connection to run this query"
+                    , Messages.getErrorIcon());
+            return;
         }
         SwingUtilities.invokeLater(() -> {
+            long start = 0;
             try {
-                long start = System.currentTimeMillis();
+                start = System.currentTimeMillis();
                 QueryResult result = ActiveCluster.getInstance().get().query(query, QueryOptions.queryOptions().metrics(true));
                 long end = System.currentTimeMillis();
 
@@ -95,7 +101,8 @@ public class QueryExecutor {
 
                 getOutputWindow(project).updateQueryStats(metricsList, resultList, null);
             } catch (CouchbaseException e) {
-                getOutputWindow(project).updateQueryStats(emptyStatsList, null, CouchbaseQueryErrorUtil.parseQueryError(e));
+                long end = System.currentTimeMillis();
+                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError(e));
             } catch (Exception e) {
                 e.printStackTrace();
             }
