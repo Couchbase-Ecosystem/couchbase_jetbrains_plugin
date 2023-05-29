@@ -4,8 +4,10 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -22,16 +24,23 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.persistence.QueryFiltersStorage;
-import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
-import com.couchbase.intellij.tree.node.*;
-import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
+import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.persistence.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.tree.node.BucketNodeDescriptor;
+import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
+import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
+import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
+import com.couchbase.intellij.tree.node.LoadMoreNodeDescriptor;
+import com.couchbase.intellij.tree.node.SchemaNodeDescriptor;
+import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -171,7 +180,8 @@ public class CouchbaseWindowContent extends JPanel {
                 } else {
                     TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
                     if (clickedPath != null) {
-                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath
+                                .getLastPathComponent();
                         if (SwingUtilities.isRightMouseButton(e)) {
                             Object userObject = clickedNode.getUserObject();
                             int row = tree.getClosestRowForLocation(e.getX(), e.getY());
@@ -181,24 +191,17 @@ public class CouchbaseWindowContent extends JPanel {
                                 handleConnectionRightClick(e, clickedNode, (ConnectionNodeDescriptor) userObject, tree);
                             } else if (userObject instanceof BucketNodeDescriptor) {
                                 handleBucketRightClick(e, clickedNode, tree);
+                            } else if (userObject instanceof ScopeNodeDescriptor) {
+                                handleScopeRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionsNodeDescriptor) {
-                                JPopupMenu popup = new JPopupMenu();
-                                popup.addSeparator();
-                                JMenuItem menuItem = new JMenuItem("Refresh Collections");
-                                popup.add(menuItem);
-                                menuItem.addActionListener(e12 -> {
-                                    TreePath treePath = new TreePath(clickedNode.getPath());
-                                    tree.collapsePath(treePath);
-                                    tree.expandPath(treePath);
-                                });
-                                popup.show(tree, e.getX(), e.getY());
+                                handleCollectionsRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionNodeDescriptor) {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
                             }
-
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
-                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
+                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree,
+                                    loadMore.getNewOffset());
                         }
                     }
                 }
@@ -252,9 +255,9 @@ public class CouchbaseWindowContent extends JPanel {
                         DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
                     } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
-                    } else if(expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
-                        //Do Nothing
-                    }else {
+                    } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
+                        // Do Nothing
+                    } else {
                         throw new UnsupportedOperationException("Not implemented yet");
                     }
                 }
@@ -271,135 +274,8 @@ public class CouchbaseWindowContent extends JPanel {
         add(new JScrollPane(tree), BorderLayout.CENTER);
     }
 
-    private static void handleCollectionsRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Refresh Collections");
-        popup.add(menuItem);
-        menuItem.addActionListener(e12 -> {
-            TreePath treePath = new TreePath(clickedNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-        popup.show(tree, e.getX(), e.getY());
-    }
-
-    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-        String filter = "Add Document Filter";
-        boolean hasDeleteFilter = false;
-        if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
-            filter = "Edit Document Filter";
-            hasDeleteFilter = true;
-        }
-        JMenuItem menuItem = new JMenuItem(filter);
-        popup.add(menuItem);
-        menuItem.addActionListener(e12 -> {
-            DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
-            dialog.show();
-        });
-
-        if (hasDeleteFilter) {
-            JMenuItem clearDocFilter = new JMenuItem("Clear Document Filter");
-            popup.add(clearDocFilter);
-            clearDocFilter.addActionListener(e12 -> {
-                QueryFiltersStorage.getInstance().getValue()
-                        .saveQueryFilter(
-                                ActiveCluster.getInstance().getId(),
-                                col.getBucket(),
-                                col.getScope(),
-                                col.getText(),
-                                null);
-
-                col.setQueryFilter(null);
-                TreePath treePath = new TreePath(clickedNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
-            });
-        }
-
-        popup.show(tree, e.getX(), e.getY());
-    }
-
-    private static void handleBucketRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Refresh Scopes");
-        popup.add(menuItem);
-        menuItem.addActionListener(e12 -> {
-            TreePath treePath = new TreePath(clickedNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-
-        // Add "Delete Scope" option
-        JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
-        deleteScopeItem.addActionListener(e1 -> {
-            // Code for deleting scope here
-            // Show confirmation dialog before deleting scope
-            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this scope?",
-                    "Delete Scope", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
-                // Code for deleting scope here
-            }
-        });
-        popup.add(deleteScopeItem);
-
-        // Add "Add New Scope" option
-        JMenuItem addNewScopeItem = new JMenuItem("Add New Scope");
-        addNewScopeItem.addActionListener(e1 -> {
-            // Code for adding new scope here
-            // Show dialog for entering name of new scope
-            String scopeName = JOptionPane.showInputDialog(tree, "Enter name of new scope:", "Add New Scope",
-                    JOptionPane.PLAIN_MESSAGE);
-            if (scopeName != null && !scopeName.isEmpty()) {
-                // Check if scope with this name already exists
-                // If it does, show error message
-                // Otherwise, add new scope
-            }
-        });
-        popup.add(addNewScopeItem);
-
-        popup.show(tree, e.getX(), e.getY());
-    }
-
-    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-
-        // Add "Delete Collection" option
-        JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
-        deleteCollectionItem.addActionListener(e1 -> {
-            // Code for deleting collection here
-            // Show confirmation dialog before deleting collection
-            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this collection?",
-                    "Delete Collection", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
-                // Code for deleting collection here
-            }
-        });
-        popup.add(deleteCollectionItem);
-        // Add "Add New Collection" option
-        JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
-        addNewCollectionItem.addActionListener(e1 -> {
-            // Code for adding new collection here
-            // Show dialog for entering name of new collection
-            String collectionName = JOptionPane.showInputDialog(tree, "Enter name of new collection:",
-                    "Add New Collection", JOptionPane.PLAIN_MESSAGE);
-            if (collectionName != null && !collectionName.isEmpty()) {
-                // Check if collection with this name already exists
-                // If it does, show error message
-                // Otherwise, add new collection
-            }
-        });
-        popup.add(addNewCollectionItem);
-
-        popup.show(tree, e.getX(), e.getY());
-    }
-
     private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-                                                   ConnectionNodeDescriptor userObject, Tree tree) {
+            ConnectionNodeDescriptor userObject, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         ConnectionNodeDescriptor con = userObject;
 
@@ -437,20 +313,208 @@ public class CouchbaseWindowContent extends JPanel {
         popup.show(tree, e.getX(), e.getY());
     }
 
+    private static void handleBucketRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Refresh Scopes");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            TreePath treePath = new TreePath(clickedNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+
+        // Add "Add New Scope" option
+        JMenuItem addNewScopeItem = new JMenuItem("Add New Scope");
+        addNewScopeItem.addActionListener(e1 -> {
+            // Code for adding new scope here
+            String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+            // Show dialog for entering name of new scope
+            String scopeName = JOptionPane.showInputDialog(tree, "Enter name of new scope:", "Add New Scope",
+                    JOptionPane.PLAIN_MESSAGE);
+            if (scopeName != null && !scopeName.isEmpty()) {
+                // Check if scope with this name already exists
+                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                        .getAllScopes();
+                for (ScopeSpec scope : scopes) {
+                    if (scope.name().equals(scopeName)) {
+                        // If it does, show error message
+                        JOptionPane.showMessageDialog(tree, "Scope with this name already exists", "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        throw new UnsupportedOperationException("Not implemented yet");
+                    }
+                }
+                // Otherwise, add new scope
+                ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
+
+                // Refresh scopes
+                TreePath treePath = new TreePath(clickedNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+
+            }
+        });
+        popup.add(addNewScopeItem);
+
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleScopeRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+
+        // Add "Delete Scope" option
+        JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
+        deleteScopeItem.addActionListener(e1 -> {
+            // Code for deleting scope here
+            ScopeNodeDescriptor scopeNodeDescriptor = (ScopeNodeDescriptor) clickedNode.getUserObject();
+            // Show confirmation dialog before deleting scope
+            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this scope?",
+                    "Delete Scope", JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                // Code for deleting scope here
+                ActiveCluster.getInstance().get().bucket(scopeNodeDescriptor.getBucket()).collections()
+                        .dropScope(scopeNodeDescriptor.getText());
+            }
+
+            // Refresh buckets
+            DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+            TreePath treePath = new TreePath(bucketTreeNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.add(deleteScopeItem);
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleCollectionsRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        JMenuItem menuItem = new JMenuItem("Refresh Collections");
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            TreePath treePath = new TreePath(clickedNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.addSeparator();
+
+        // Add "Add New Collection" option
+        JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
+        addNewCollectionItem.addActionListener(e1 -> {
+            // Code for adding new collection here
+            // Show dialog for entering name of new collection
+            String collectionName = JOptionPane.showInputDialog(tree, "Enter name of new collection:",
+                    "Add New Collection", JOptionPane.PLAIN_MESSAGE);
+            if (collectionName != null && !collectionName.isEmpty()) {
+                // Check if collection with this name already exists
+                CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) clickedNode.getUserObject();
+
+                List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(cols.getBucket())
+                        .collections().getAllScopes().stream()
+                        .filter(scope -> scope.name().equals(cols.getScope()))
+                        .flatMap(scope -> scope.collections().stream())
+                        .collect(Collectors.toList());
+
+                for (CollectionSpec collection : collections) {
+                    if (collection.name().equals(collectionName)) {
+                        // If it does, show error message
+                        JOptionPane.showMessageDialog(tree, "Collection with this name already exists", "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        throw new UnsupportedOperationException("Not implemented yet");
+                    }
+                }
+
+                // Otherwise, add new collection
+                ActiveCluster.getInstance().get().bucket(cols.getBucket()).collections()
+                        .createCollection(CollectionSpec.create(collectionName, cols.getScope()));
+
+                // Refresh collections
+                TreePath treePath = new TreePath(clickedNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            }
+        });
+        popup.add(addNewCollectionItem);
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
+            CollectionNodeDescriptor col, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.addSeparator();
+        String filter = "Add Document Filter";
+        boolean hasDeleteFilter = false;
+        if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
+            filter = "Edit Document Filter";
+            hasDeleteFilter = true;
+        }
+        JMenuItem menuItem = new JMenuItem(filter);
+        popup.add(menuItem);
+        menuItem.addActionListener(e12 -> {
+            DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(),
+                    col.getText());
+            dialog.show();
+        });
+
+        if (hasDeleteFilter) {
+            JMenuItem clearDocFilter = new JMenuItem("Clear Document Filter");
+            popup.add(clearDocFilter);
+            clearDocFilter.addActionListener(e12 -> {
+                QueryFiltersStorage.getInstance().getValue()
+                        .saveQueryFilter(
+                                ActiveCluster.getInstance().getId(),
+                                col.getBucket(),
+                                col.getScope(),
+                                col.getText(),
+                                null);
+
+                col.setQueryFilter(null);
+                TreePath treePath = new TreePath(clickedNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+        }
+
+        // Add "Delete Collection" option
+        JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
+        deleteCollectionItem.addActionListener(e1 -> {
+            // Code for deleting collection here
+            // Show confirmation dialog before deleting collection
+            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this collection?",
+                    "Delete Collection", JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                // Code for deleting collection here
+                ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
+                        .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
+            }
+
+            // Refresh collections
+            DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
+                    .getParent());
+            TreePath treePath = new TreePath(colsTreeNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.add(deleteCollectionItem);
+
+        popup.show(tree, e.getX(), e.getY());
+    }
+
     class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
-                                                      boolean leaf, int row, boolean hasFocus) {
+                boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
 
-                if(userObject instanceof TooltipNodeDescriptor) {
+                if (userObject instanceof TooltipNodeDescriptor) {
                     TooltipNodeDescriptor descriptor = (TooltipNodeDescriptor) userObject;
                     setText(descriptor.getText());
                     setIcon(descriptor.getIcon());
-                    if(descriptor.getTooltip()!=null) {
+                    if (descriptor.getTooltip() != null) {
                         setToolTipText(descriptor.getTooltip());
                     }
                 } else if (userObject instanceof CollectionNodeDescriptor) {
