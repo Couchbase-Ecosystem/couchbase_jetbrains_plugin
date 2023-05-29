@@ -1,41 +1,13 @@
 package com.couchbase.intellij.tree;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.Map;
-import java.util.TreeMap;
-
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JTree;
-import javax.swing.SwingUtilities;
-import javax.swing.event.MouseInputAdapter;
-import javax.swing.event.TreeExpansionEvent;
-import javax.swing.event.TreeExpansionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
-
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.persistence.QueryFiltersStorage;
-import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
-import com.couchbase.intellij.tree.node.*;
-import com.intellij.ui.JBColor;
-import org.jetbrains.annotations.NotNull;
-
 import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionToolbar;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.tree.node.*;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
@@ -45,6 +17,21 @@ import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
+import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
+import javax.swing.event.MouseInputAdapter;
+import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeExpansionListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CouchbaseWindowContent extends JPanel {
 
@@ -242,9 +229,9 @@ public class CouchbaseWindowContent extends JPanel {
                         DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
                     } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
-                    } else if(expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
+                    } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
                         //Do Nothing
-                    }else {
+                    } else {
                         throw new UnsupportedOperationException("Not implemented yet");
                     }
                 }
@@ -373,11 +360,11 @@ public class CouchbaseWindowContent extends JPanel {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
 
-                if(userObject instanceof TooltipNodeDescriptor) {
+                if (userObject instanceof TooltipNodeDescriptor) {
                     TooltipNodeDescriptor descriptor = (TooltipNodeDescriptor) userObject;
                     setText(descriptor.getText());
                     setIcon(descriptor.getIcon());
-                    if(descriptor.getTooltip()!=null) {
+                    if (descriptor.getTooltip() != null) {
                         setToolTipText(descriptor.getTooltip());
                     }
                 } else if (userObject instanceof CollectionNodeDescriptor) {

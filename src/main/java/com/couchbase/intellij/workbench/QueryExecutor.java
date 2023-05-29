@@ -8,6 +8,7 @@ import com.couchbase.client.java.query.QueryMetrics;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -40,17 +41,17 @@ public class QueryExecutor {
     }
 
 
-    public static void executeQuery(String query, Project project) {
+    public static boolean executeQuery(String query, int historyIndex, Project project) {
 
 
         if (query == null || query.trim().isEmpty()) {
-            return;
+            return false;
         }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog(
                     "There is no active connection to run this query", "Couchbase Plugin Error"
                     , Messages.getErrorIcon());
-            return;
+            return false;
         }
         getOutputWindow(project).setStatusAsLoading();
         SwingUtilities.invokeLater(() -> {
@@ -107,6 +108,8 @@ public class QueryExecutor {
                 e.printStackTrace();
             }
         });
+
+        return updateQueryHistory(query, historyIndex);
     }
 
     private static List<Map<String, Object>> getResults(List<JsonObject> objects) {
@@ -130,6 +133,36 @@ public class QueryExecutor {
             return size + " Bytes";
         } else {
             return df.format(size / 1024.0) + " KB";
+        }
+    }
+
+    private static boolean updateQueryHistory(String query, int currentIndex) {
+        List<String> hist = QueryHistoryStorage.getInstance()
+                .getValue().getHistory();
+        if (query == null) {
+            return false;
+        }
+        //running am old query
+        if (hist.size() >= currentIndex + 1) {
+            String histQuery = hist.get(currentIndex);
+            if (histQuery.equals(query.trim())) {
+                return false;
+            } else {
+                addQueryToHistory(query, hist);
+                return true;
+            }
+        } else {
+            addQueryToHistory(query, hist);
+            return true;
+        }
+    }
+
+    private static void addQueryToHistory(String query, List<String> hist) {
+        if (hist.size() < 100) {
+            hist.add(query.trim());
+        } else {
+            hist.remove(0);
+            hist.add(query.trim());
         }
     }
 }

@@ -3,19 +3,14 @@ package com.couchbase.intellij.tree.docfilter;
 import com.couchbase.client.core.error.CouchbaseException;
 import com.couchbase.intellij.color.ColorHelper;
 import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.persistence.QueryFiltersStorage;
+import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.editor.colors.EditorColorsManager;
-import com.intellij.openapi.editor.colors.EditorColorsScheme;
-import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.EditorEx;
-import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -231,7 +226,6 @@ public class DocumentFilterDialog extends DialogWrapper {
         editor.setBorder(BorderFactory.createEmptyBorder());
         return editor;
     }
-
 
 
     private static void showGotItTooltip(Component component, String tooltipText) {

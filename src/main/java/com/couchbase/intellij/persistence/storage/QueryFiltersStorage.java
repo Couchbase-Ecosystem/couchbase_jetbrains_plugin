@@ -1,5 +1,6 @@
-package com.couchbase.intellij.persistence;
+package com.couchbase.intellij.persistence.storage;
 
+import com.couchbase.intellij.persistence.QueryFilters;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -48,7 +49,7 @@ public class QueryFiltersStorage implements PersistentStateComponent<QueryFilter
     }
 
     public QueryFilters getValue() {
-        if(myState.queryFilters == null){
+        if (myState.queryFilters == null) {
             myState.queryFilters = new QueryFilters();
         }
         return myState.queryFilters;

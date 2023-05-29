@@ -1,5 +1,6 @@
-package com.couchbase.intellij.persistence;
+package com.couchbase.intellij.persistence.storage;
 
+import com.couchbase.intellij.persistence.Clusters;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
