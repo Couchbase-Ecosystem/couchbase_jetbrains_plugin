@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.docfilter;
 
+import com.couchbase.client.core.error.CouchbaseException;
 import com.couchbase.intellij.color.ColorHelper;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.QueryFiltersStorage;
@@ -142,7 +143,7 @@ public class DocumentFilterDialog extends DialogWrapper {
                     errorLabel.setText("");
                     resultsLabel.setText("The query ran successfully.");
                 }
-            } catch (Exception ex) {
+            } catch (CouchbaseException ex) {
                 resultsLabel.setText("");
                 try {
                     CouchbaseQueryResultError err = CouchbaseQueryErrorUtil.parseQueryError(ex);
@@ -169,7 +170,7 @@ public class DocumentFilterDialog extends DialogWrapper {
 
             try {
                 validateQueryFilters(bucket, scope, collectionName, filter);
-            } catch (Exception ex) {
+            } catch (CouchbaseException ex) {
                 resultsLabel.setText("");
                 try {
                     CouchbaseQueryResultError err = CouchbaseQueryErrorUtil.parseQueryError(ex);

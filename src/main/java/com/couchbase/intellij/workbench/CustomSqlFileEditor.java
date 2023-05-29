@@ -1,9 +1,6 @@
 package com.couchbase.intellij.workbench;
 
 
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.QueryResult;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -12,20 +9,16 @@ import com.intellij.openapi.fileEditor.FileEditorLocation;
 import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.FileEditorStateLevel;
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil;
-import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
-import java.util.List;
 
 public class CustomSqlFileEditor implements FileEditor {
     private final Editor myEditor;
@@ -55,14 +48,12 @@ public class CustomSqlFileEditor implements FileEditor {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         Icon icon = IconLoader.findIcon("./assets/icons/play.svg");
-        actionGroup.add(new AnAction("Button 1", "Button 1 description", icon) {
+        actionGroup.add(new AnAction("Execute", "Execute the query statement in the editor", icon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
 
                 String editorText = myEditor.getDocument().getText();
-                final List<JsonObject> results = ActiveCluster.getInstance().get().query(editorText).rowsAsObject();
-                QueryResult.show(results, project);
-
+                QueryExecutor.executeQuery(editorText, project);
             }
         });
         actionGroup.addSeparator();

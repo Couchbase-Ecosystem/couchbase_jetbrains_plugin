@@ -37,6 +37,7 @@ CLOSE_PAREN = \)
 OPEN_CURLY = \{
 CLOSE_CURLY = \}
 SEMICOLON = ";"
+COLON = ":"
 
 
 STRING_DOUBLE = "\"" ([^\"]|\\\")* "\""
@@ -119,6 +120,7 @@ BacktickString = "`" [^`\n\r]* "`"
       "IN" { return GeneratedTypes.SQL_KEYWORDS; }
       "INCLUDE" { return GeneratedTypes.SQL_KEYWORDS; }
       "INDEX" { return GeneratedTypes.SQL_KEYWORDS; }
+      "INFER" { return GeneratedTypes.SQL_KEYWORDS; }
       "INGESTION" { return GeneratedTypes.SQL_KEYWORDS; }
       "INNER" { return GeneratedTypes.SQL_KEYWORDS; }
       "INSERT" { return GeneratedTypes.SQL_KEYWORDS; }
@@ -210,6 +212,7 @@ BacktickString = "`" [^`\n\r]* "`"
       "FALSE" { return GeneratedTypes.BOOL; }
       {PLUS} { return GeneratedTypes.SIGNALS; }
       {SEMICOLON} { return GeneratedTypes.SIGNALS; }
+      {COLON} { return GeneratedTypes.SIGNALS; }
       "-" { return GeneratedTypes.SIGNALS; }
       "/" { return GeneratedTypes.SIGNALS; }
       "%" { return GeneratedTypes.SIGNALS; }

@@ -1,43 +1,51 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.core.api.query.CoreQueryResult;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.Base64;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class InferHelper {
 
-    public static String inferSchema(String collectionName, String scopeName, String bucketName, String clusterURL) throws IOException, InterruptedException {
-        String serverURI = "";
-        if (ActiveCluster.getInstance().isSSLEnabled()) {
-            serverURI = clusterURL.replace("couchbases://", "https://");
-            serverURI += ":18093/query/service";
-        } else {
-            serverURI = clusterURL.replace("couchbase://", "http://");
-            serverURI += ":8093/query/service";
+    public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) throws IOException, InterruptedException {
+        try {
+            String query = "INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\"sample_size\": 2000}";
+            QueryResult result = ActiveCluster.getInstance().get().query(query);
+
+            try {
+                result.rowsAsObject();
+                throw new IllegalStateException("Infer didn't throw an Exception, this indicates that a bug in the SDK has been fixed");
+            } catch (Exception ex) {
+                if (ex.getMessage().startsWith("Deserialization of content into target class com.couchbase.client.java.json.JsonObject failed")) {
+                    Field field = QueryResult.class.getDeclaredField("internal");
+                    field.setAccessible(true);
+                    CoreQueryResult internal = (CoreQueryResult) field.get(result);
+                    List<JsonObject> objList = new ArrayList<>();
+                    internal.rows().forEach(e -> {
+                                JsonObject obj = JsonObject.create();
+                                obj.put("content", JsonArray.fromJson(e.data()));
+                                objList.add(obj);
+                            }
+                    );
+                    return objList.get(0);
+                } else {
+                    throw ex;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Could not infer the schema of the collection " + e);
+            return null;
         }
-
-        HttpClient client = HttpClient.newHttpClient();
-        String requestBody = "{\"statement\":\"INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\\\"sample_size\\\": 1000}\"}";
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(serverURI)).header("Content-Type", "application/json")
-                .header("Authorization", "Basic " + Base64.getEncoder()
-                        .encodeToString((ActiveCluster.getInstance().getUsername() + ":"
-                                + ActiveCluster.getInstance().getPassword()).getBytes()))
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody)).build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        // Get the response body
-        String responseBody = response.body();
-        return responseBody;
     }
 
     public static void extractArray(DefaultMutableTreeNode parentNode, JsonArray array) {
