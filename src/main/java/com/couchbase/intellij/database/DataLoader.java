@@ -7,8 +7,14 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.persistence.*;
-import com.couchbase.intellij.tree.*;
+import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
+import com.couchbase.intellij.persistence.Clusters;
+import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
+import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.storage.ClustersStorage;
+import com.couchbase.intellij.persistence.storage.PasswordStorage;
+import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.tree.FileNodeDescriptor;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.intellij.openapi.application.ApplicationManager;
@@ -27,12 +33,11 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -256,12 +261,15 @@ public class DataLoader {
                     String scopeName = colNode.getScope();
                     String bucketName = colNode.getBucket();
 
-                    String clusterURL = ActiveCluster.getInstance().getClusterURL(); // couchbase://localhost
-                    String responseBody = InferHelper.inferSchema(collectionName, scopeName, bucketName, clusterURL);
+                    JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
 
-                    JsonObject inferenceQueryResults = JsonObject.fromJson(responseBody);
-                    JsonArray array = inferenceQueryResults.getArray("results").getArray(0);
-                    InferHelper.extractArray(parentNode, array);
+                    if (inferenceQueryResults != null) {
+                        JsonArray array = inferenceQueryResults.getArray("content");
+                        InferHelper.extractArray(parentNode, array);
+                    } else {
+                        System.err.println("Could not infer the schema for " + colNode.getText());
+                    }
+
                     treeModel.nodeStructureChanged(parentNode);
                 } catch (Exception e) {
                     e.printStackTrace();
