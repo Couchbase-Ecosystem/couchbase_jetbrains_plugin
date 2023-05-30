@@ -348,10 +348,7 @@ public class CouchbaseWindowContent extends JPanel {
                 ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
 
                 // Refresh scopes
-                TreePath treePath = new TreePath(clickedNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
-
+                DataLoader.listScopes(clickedNode, tree);
             }
         });
         popup.add(addNewScopeItem);
@@ -430,9 +427,7 @@ public class CouchbaseWindowContent extends JPanel {
                         .createCollection(CollectionSpec.create(collectionName, cols.getScope()));
 
                 // Refresh collections
-                TreePath treePath = new TreePath(clickedNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
+                DataLoader.listCollections(clickedNode, tree);
             }
         });
         popup.add(addNewCollectionItem);
