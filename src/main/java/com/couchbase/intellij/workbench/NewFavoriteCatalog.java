@@ -49,16 +49,13 @@ public class NewFavoriteCatalog extends DialogWrapper {
         gbc.insets = JBUI.insets(5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Label: "Give a name to your query"
         JLabel nameLabel = new JLabel("Name of the favorite  query: ");
         panel.add(nameLabel, gbc);
 
-        // Text Field
         gbc.gridy = 1;
         textField = new JTextField(20);
         panel.add(textField, gbc);
 
-        // Label: "This name already exists"
         gbc.gridy = 2;
         errorLabel = new JLabel("");
         errorLabel.setForeground(Color.decode("#FF4444"));
@@ -89,7 +86,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
 
         FavoriteQueryStorage.getInstance().getValue().getList().add(new FavoriteQuery(textField.getText(),
                 editor.getDocument().getText()));
-        
+
         SwingUtilities.invokeLater(() -> {
             AnAction updatedAction = new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-filled.svg")) {
                 @Override

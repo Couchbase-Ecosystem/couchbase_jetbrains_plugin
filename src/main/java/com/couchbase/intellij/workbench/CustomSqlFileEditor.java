@@ -86,6 +86,15 @@ public class CustomSqlFileEditor implements FileEditor {
             }
         });
 
+        executeGroup.addSeparator();
+        Icon formatCode = IconLoader.findIcon("./assets/icons/format.svg");
+        executeGroup.add(new AnAction("Format Code", "Formats a SQL++ code", formatCode) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                throw new UnsupportedOperationException("Not Implemented Yet");
+            }
+        });
+
         ActionToolbar executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
         executeToolbar.setTargetComponent(queryEditor.getComponent());
 
