@@ -17,6 +17,7 @@ import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.ui.JBUI;
+import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -91,7 +92,12 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Format Code", "Formats a SQL++ code", formatCode) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                throw new UnsupportedOperationException("Not Implemented Yet");
+                ApplicationManager.getApplication().runWriteAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        queryEditor.getDocument().setText(SQLPPFormatter.format(queryEditor.getDocument().getText()));
+                    }
+                });
             }
         });
 
