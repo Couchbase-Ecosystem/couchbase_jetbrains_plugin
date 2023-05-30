@@ -23,15 +23,13 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
 
 public class CustomSqlFileEditor implements FileEditor {
-    private final Editor myEditor;
+    private final Editor queryEditor;
     private final VirtualFile file;
     private final Project project;
     private JLabel historyLabel;
     private JComponent component;
-    private Document document;
 
     private int currentHistoryIndex;
     JPanel panel;
@@ -40,10 +38,9 @@ public class CustomSqlFileEditor implements FileEditor {
         this.file = file;
         this.project = project;
         EditorFactory editorFactory = EditorFactory.getInstance();
-        this.document = editorFactory.createDocument(LoadTextUtil.loadText(file));
-        this.myEditor = EditorFactory.getInstance().createEditor(this.document, project, file, false);
+        Document document = editorFactory.createDocument(LoadTextUtil.loadText(file));
+        this.queryEditor = EditorFactory.getInstance().createEditor(document, project, file, false);
         this.panel = new JPanel(new BorderLayout());
-        QueryHistoryStorage.getInstance().getValue().setHistory(new ArrayList<>());
         init();
 
     }
@@ -67,7 +64,7 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                String editorText = myEditor.getDocument().getText();
+                String editorText = queryEditor.getDocument().getText();
                 if (QueryExecutor.executeQuery(editorText, currentHistoryIndex, project)) {
                     int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
                     currentHistoryIndex = historySize - 1;
@@ -79,8 +76,18 @@ public class CustomSqlFileEditor implements FileEditor {
             }
         });
 
+        executeGroup.addSeparator();
+        Icon favoriteList = IconLoader.findIcon("./assets/icons/favorites-list.svg");
+        executeGroup.add(new AnAction("Favorite List", "List of favorite queries", favoriteList) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                FavoriteQueryDialog dialog = new FavoriteQueryDialog(queryEditor);
+                dialog.show();
+            }
+        });
+
         ActionToolbar executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
-        executeToolbar.setTargetComponent(myEditor.getComponent());
+        executeToolbar.setTargetComponent(queryEditor.getComponent());
 
         Icon leftIcon = IconLoader.findIcon("./assets/icons/chevron-left.svg");
         Icon rightIcon = IconLoader.findIcon("./assets/icons/chevron-right.svg");
@@ -94,7 +101,7 @@ public class CustomSqlFileEditor implements FileEditor {
                     ApplicationManager.getApplication().runWriteAction(new Runnable() {
                         @Override
                         public void run() {
-                            myEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex));
+                            queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex));
                         }
                     });
 
@@ -119,7 +126,7 @@ public class CustomSqlFileEditor implements FileEditor {
                     ApplicationManager.getApplication().runWriteAction(new Runnable() {
                         @Override
                         public void run() {
-                            myEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex));
+                            queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex));
                         }
                     });
 
@@ -156,7 +163,7 @@ public class CustomSqlFileEditor implements FileEditor {
         favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-empty.svg")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                NewFavoriteCatalog dialog = new NewFavoriteCatalog(myEditor,
+                NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor,
                         this, favoriteActionGroup, favToolbar);
                 dialog.show();
             }
@@ -172,14 +179,14 @@ public class CustomSqlFileEditor implements FileEditor {
         topPanel.add(leftPanel, BorderLayout.EAST);
 
         panel.add(topPanel, BorderLayout.NORTH);
-        panel.add(myEditor.getComponent(), BorderLayout.CENTER);
-        myEditor.getContentComponent().requestFocusInWindow();
+        panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
+        queryEditor.getContentComponent().requestFocusInWindow();
         component = panel;
     }
 
     @Override
     public JComponent getPreferredFocusedComponent() {
-        return myEditor.getComponent();
+        return queryEditor.getComponent();
     }
 
     @NotNull
@@ -195,7 +202,7 @@ public class CustomSqlFileEditor implements FileEditor {
 
     @Override
     public void dispose() {
-        EditorFactory.getInstance().releaseEditor(myEditor);
+        EditorFactory.getInstance().releaseEditor(queryEditor);
     }
 
     @Override
