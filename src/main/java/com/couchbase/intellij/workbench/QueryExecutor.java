@@ -64,12 +64,20 @@ public class QueryExecutor {
                 Optional<QueryMetrics> metrics = result.metaData().metrics();
 
                 List<String> metricsList = new ArrayList<>();
+                boolean isMutation = false;
                 if (metrics.isPresent()) {
                     metricsList.add(end - start + " MS");
                     metricsList.add(metrics.get().elapsedTime().toMillis() + " MS");
                     metricsList.add(metrics.get().executionTime().toMillis() + " MS");
-                    metricsList.add(String.valueOf(metrics.get().resultCount()));
-                    metricsList.add(getSizeText(metrics.get().resultSize()));
+                    if (metrics.get().mutationCount() > 0) {
+                        metricsList.add(String.valueOf(metrics.get().mutationCount()));
+                        metricsList.add("");
+                        isMutation = true;
+                    } else {
+                        metricsList.add(String.valueOf(metrics.get().resultCount()));
+                        metricsList.add(getSizeText(metrics.get().resultSize()));
+                    }
+
                 } else {
                     metricsList.add("-");
                     metricsList.add("-");
@@ -100,10 +108,10 @@ public class QueryExecutor {
                     }
                 }
 
-                getOutputWindow(project).updateQueryStats(metricsList, resultList, null);
+                getOutputWindow(project).updateQueryStats(isMutation, metricsList, resultList, null);
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
-                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError(e));
+                getOutputWindow(project).updateQueryStats(false, Arrays.asList((end - start) + " MS", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError(e));
             } catch (Exception e) {
                 e.printStackTrace();
             }

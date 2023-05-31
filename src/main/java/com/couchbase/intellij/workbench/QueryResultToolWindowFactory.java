@@ -57,7 +57,10 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private EditorEx editor;
 
     private List<JLabel> queryStatsList;
+    private List<JLabel> queryLabelsList;
     private List<Map<String, Object>> cachedResults;
+
+    private JPanel queryStatsPanel;
 
 
     @Override
@@ -77,32 +80,34 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         resultStats.add(statusIcon, BorderLayout.WEST);
 
         GridBagLayout layout = new GridBagLayout();
-        JPanel gridPanel = new JPanel(layout);
-        gridPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        queryStatsPanel = new JPanel(layout);
+        queryStatsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.WEST;
         c.ipadx = 25;
 
         queryStatsList = new ArrayList<>();
+        queryLabelsList = new ArrayList<>();
         String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, docsTooltip, docsSizeTooltip};
         String[] headers = {"RTT", "ELAPSED", "EXECUTION", "DOCS", "SIZE"};
 
         for (int i = 0; i < headers.length; i++) {
             c.gridy = 0;
             c.gridx = 2 * i;
-            JLabel title = new JLabel("<html><small style='font-weight:100'>" + headers[i] + "</small></html>");
+            JLabel title = new JLabel(getQueryStatHeader(headers[i]));
+            queryLabelsList.add(title);
             title.setToolTipText(tooltips[i]);
-            gridPanel.add(title, c);
+            queryStatsPanel.add(title, c);
 
             c.gridy = 1;
             c.gridx = 2 * i;
             JLabel valueLabel = new JLabel("<html><strong>-</strong></html>");
             valueLabel.setToolTipText(tooltips[i]);
             queryStatsList.add(valueLabel);
-            gridPanel.add(valueLabel, c);
+            queryStatsPanel.add(valueLabel, c);
         }
-        resultStats.add(gridPanel, BorderLayout.CENTER);
+        resultStats.add(queryStatsPanel, BorderLayout.CENTER);
         topPanel.add(resultStats, BorderLayout.WEST);
 
         JPopupMenu popupMenu = new JPopupMenu();
@@ -163,8 +168,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         contentManager.addContent(content);
     }
 
+    private String getQueryStatHeader(String title) {
+        return "<html><small style='font-weight:100'>" + title + "</small></html>";
+    }
 
-    public void updateQueryStats(List<String> queryValues, List<Map<String, Object>> results, CouchbaseQueryResultError error) {
+
+    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<Map<String, Object>> results, CouchbaseQueryResultError error) {
         if (results != null) {
 
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
@@ -175,6 +184,17 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 }
             });
             cachedResults = results;
+
+            if (isMutation) {
+                queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
+                queryLabelsList.get(4).setText("");
+            } else {
+                queryLabelsList.get(3).setText(getQueryStatHeader("DOCS"));
+                queryLabelsList.get(4).setText(getQueryStatHeader("SIZE"));
+            }
+
+            queryStatsPanel.revalidate();
+
             for (int i = 0; i < queryStatsList.size(); i++) {
                 queryStatsList.get(i).setText(queryValues.get(i));
             }
@@ -206,4 +226,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             }
         });
     }
+
+    //update  `travel-sample`.`inventory`.`landmark` set country = "United States" where country = "United States"
 }
