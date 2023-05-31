@@ -1,7 +1,7 @@
 package com.couchbase.intellij.result;
 
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
-import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.ItemRemovable;
 
 import javax.swing.table.AbstractTableModel;
@@ -19,13 +19,12 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         columns = new ArrayList<>();
     }
 
-    public void updateData(List<JsonObject> jsonObjects) {
+    public void updateData(List<Map<String, Object>> result) {
         data.clear();
         columns.clear();
 
-        jsonObjects = unnestResult( jsonObjects);
-        for (JsonObject jsonObject : jsonObjects) {
-            Map<String, Object> map = jsonObject.toMap();
+        result = unnestResult(result);
+        for (Map<String, Object> map : result) {
             data.add(map);
             for (String key : map.keySet()) {
                 if (!columns.contains(key)) {
@@ -40,24 +39,37 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
      * SQL++ sometimes returns the result nested inside an attribute
      * this mess up with the table rendering
      */
-    private List<JsonObject> unnestResult(List<JsonObject> jsonObjects) {
-        List<JsonObject> values = new ArrayList<>();
+    private List<Map<String, Object>> unnestResult(List<Map<String, Object>> result) {
+        List<Map<String, Object>> values = new ArrayList<>();
         String key = "";
-        for(JsonObject obj: jsonObjects) {
+        for (Map<String, Object> map : result) {
             //if contains more the one key at the top-level,
             // that is not the case we are looking for
-            if(obj.size() > 1) {
-                return jsonObjects;
+            if (map.size() != 1) {
+                return result;
             }
 
-            if("".equals(key)) {
-                key = obj.getNames().toArray()[0].toString();
-            } else if ( !key.equals(obj.getNames().toArray()[0].toString())) {
+            if ("".equals(key)) {
+                key = map.keySet().stream().findFirst().get();
+            } else if (!key.equals(map.keySet().stream().findFirst().get())) {
                 //one of they keys is not similar to the the others
                 //this is not the scenario that we are trying to solve on this method
-                return jsonObjects;
+                return result;
             }
-            values.add(obj.getObject(key));
+
+            Object obj = map.get(key);
+
+            if (obj instanceof JsonObject) {
+                JsonObject jo = (JsonObject) obj;
+                values.add(jo.toMap());
+            } else if (obj instanceof JsonArray) {
+                JsonObject jo = JsonObject.create();
+                jo.put("content", obj);
+                values.add(jo.toMap());
+            } else {
+                return result;
+            }
+
         }
 
         return values;

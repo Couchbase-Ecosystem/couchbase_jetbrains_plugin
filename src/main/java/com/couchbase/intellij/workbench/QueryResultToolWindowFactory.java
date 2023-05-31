@@ -1,7 +1,6 @@
 package com.couchbase.intellij.workbench;
 
 
-import com.couchbase.intellij.database.QueryResult;
 import com.couchbase.intellij.result.JsonTableModel;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.google.gson.Gson;
@@ -51,6 +50,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static JBTabs tabs;
     private static TabInfo queryResultTab;
 
+    private JsonTableModel model;
+
     private JLabel statusIcon;
 
     private EditorEx editor;
@@ -61,8 +62,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         tabs = new JBTabsImpl(project);
-        JsonTableModel model = new JsonTableModel();
-        QueryResult.init(model);
+        model = new JsonTableModel();
         JBTable table = new JBTable(model);
 
         JPanel topPanel = new JPanel();
@@ -163,6 +163,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             for (int i = 0; i < queryStatsList.size(); i++) {
                 queryStatsList.get(i).setText(queryValues.get(i));
             }
+
+            model.updateData(results);
+
         } else {
             cachedResults = null;
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
