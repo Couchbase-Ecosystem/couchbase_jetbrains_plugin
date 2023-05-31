@@ -6,6 +6,7 @@ import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.intellij.json.JsonFileType;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
@@ -24,12 +25,11 @@ import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.TabInfo;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +59,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<JLabel> queryStatsList;
     private List<Map<String, Object>> cachedResults;
 
+
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         tabs = new JBTabsImpl(project);
@@ -80,9 +81,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         gridPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.WEST; // Align elements to the left
-        c.ipadx = 25; // Padding between columns
-
+        c.anchor = GridBagConstraints.WEST;
+        c.ipadx = 25;
 
         queryStatsList = new ArrayList<>();
         String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, docsTooltip, docsSizeTooltip};
@@ -90,13 +90,13 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         for (int i = 0; i < headers.length; i++) {
             c.gridy = 0;
-            c.gridx = 2 * i; // To make room for values
+            c.gridx = 2 * i;
             JLabel title = new JLabel("<html><small style='font-weight:100'>" + headers[i] + "</small></html>");
             title.setToolTipText(tooltips[i]);
             gridPanel.add(title, c);
 
             c.gridy = 1;
-            c.gridx = 2 * i; // Same x coordinate to align vertically
+            c.gridx = 2 * i;
             JLabel valueLabel = new JLabel("<html><strong>-</strong></html>");
             valueLabel.setToolTipText(tooltips[i]);
             queryStatsList.add(valueLabel);
@@ -105,17 +105,31 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         resultStats.add(gridPanel, BorderLayout.CENTER);
         topPanel.add(resultStats, BorderLayout.WEST);
 
-        JButton exportButton = new JButton("Export");
         JPopupMenu popupMenu = new JPopupMenu();
-        popupMenu.add(new JMenuItem("CSV"));
-        popupMenu.add(new JMenuItem("JSON"));
-        exportButton.addActionListener(new ActionListener() {
+        JMenuItem jsonMenuItem = new JMenuItem("JSON");
+        JMenuItem csvMenuItem = new JMenuItem("CSV");
+        popupMenu.add(csvMenuItem);
+        popupMenu.add(jsonMenuItem);
+
+        csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
+
+        jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
+
+        DefaultActionGroup executeGroup = new DefaultActionGroup();
+        Icon executeIcon = IconLoader.findIcon("./assets/icons/export.svg");
+        executeGroup.add(new AnAction("Export", "Export", executeIcon) {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                popupMenu.show(exportButton, exportButton.getWidth() / 2, exportButton.getHeight() / 2);
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                Component component = e.getInputEvent().getComponent();
+                popupMenu.show(component, -10, component.getHeight());
             }
         });
-        topPanel.add(exportButton, BorderLayout.EAST);
+
+        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("QueryResultToolbar", executeGroup, true);
+        toolbar.getComponent().setBorder(JBUI.Borders.emptyRight(10));
+        toolbar.setTargetComponent(topPanel);
+
+        topPanel.add(toolbar.getComponent(), BorderLayout.EAST);
         Document document = EditorFactory.getInstance().createDocument("{\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"}");
         editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, false);
         EditorSettings editorSettings = editor.getSettings();
@@ -148,6 +162,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(content);
     }
+
 
     public void updateQueryStats(List<String> queryValues, List<Map<String, Object>> results, CouchbaseQueryResultError error) {
         if (results != null) {

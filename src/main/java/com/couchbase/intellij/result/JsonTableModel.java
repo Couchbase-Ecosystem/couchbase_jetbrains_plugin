@@ -102,4 +102,32 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         data.remove(idx);
         fireTableRowsDeleted(idx, idx);
     }
+
+    public String tableModelToCSV() {
+        StringBuilder csvData = new StringBuilder();
+
+        int colCount = getColumnCount();
+        int rowCount = getRowCount();
+
+        // Append column names
+        for (int i = 0; i < colCount; i++) {
+            csvData.append(getColumnName(i));
+            if (i < colCount - 1) {
+                csvData.append(",");
+            }
+        }
+        csvData.append("\n");
+
+        // Append rows data
+        for (int row = 0; row < rowCount; row++) {
+            for (int col = 0; col < colCount; col++) {
+                csvData.append(getValueAt(row, col));
+                if (col < colCount - 1) {
+                    csvData.append(",");
+                }
+            }
+            csvData.append("\n");
+        }
+        return csvData.toString();
+    }
 }
