@@ -61,7 +61,6 @@ public class QueryExecutor {
                 QueryResult result;
 
                 if (bucket != null) {
-                    System.out.println("RUNNING WITH CONTEXT " + bucket + " - " + scope);
                     result = ActiveCluster.getInstance().get().bucket(bucket).
                             scope(scope)
                             .query(query, QueryOptions.queryOptions().metrics(true));

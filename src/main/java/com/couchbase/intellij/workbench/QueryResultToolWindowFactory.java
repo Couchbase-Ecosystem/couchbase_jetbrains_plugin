@@ -204,12 +204,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         } else {
             cachedResults = null;
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    editor.getDocument().setText(gson.toJson(error.getErrors()));
-                }
-            });
+            ApplicationManager.getApplication().runWriteAction(() ->
+                    editor.getDocument().setText(gson.toJson(error.getErrors())));
         }
     }
 
