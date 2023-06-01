@@ -1,6 +1,10 @@
 package com.couchbase.intellij.workbench;
 
 
+import com.couchbase.client.java.manager.collection.ScopeSpec;
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -13,6 +17,8 @@ import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.FileEditorStateLevel;
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -23,9 +29,14 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class CustomSqlFileEditor implements FileEditor {
+    public static final String NO_QUERY_CONTEXT_SELECTED = "No Query Context Selected";
     private final Editor queryEditor;
     private final VirtualFile file;
     private final Project project;
@@ -33,6 +44,10 @@ public class CustomSqlFileEditor implements FileEditor {
     private JComponent component;
 
     private int currentHistoryIndex;
+
+    private String selectedBucketContext;
+    private String selectedScopeContext;
+    private String cachedPreviousSelectedConnection;
     JPanel panel;
 
     CustomSqlFileEditor(Project project, VirtualFile file) {
@@ -66,7 +81,8 @@ public class CustomSqlFileEditor implements FileEditor {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 String editorText = queryEditor.getDocument().getText();
-                if (QueryExecutor.executeQuery(editorText, currentHistoryIndex, project)) {
+                if (QueryExecutor.executeQuery(editorText, selectedBucketContext, selectedScopeContext,
+                        currentHistoryIndex, project)) {
                     int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
                     currentHistoryIndex = historySize - 1;
                     SwingUtilities.invokeLater(() -> {
@@ -100,6 +116,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 });
             }
         });
+        executeGroup.addSeparator();
 
         ActionToolbar executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
         executeToolbar.setTargetComponent(queryEditor.getComponent());
@@ -162,7 +179,7 @@ public class CustomSqlFileEditor implements FileEditor {
         int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
         currentHistoryIndex = Math.max((historySize - 1), 0);
         historyLabel = new JLabel("history (" + historySize + "/" + historySize + ")");
-        historyLabel.setFont(historyLabel.getFont().deriveFont(10.0f)); // set smaller font size
+        historyLabel.setFont(historyLabel.getFont().deriveFont(10.0f));
         historyLabel.setBorder(JBUI.Borders.emptyRight(12));
 
         JPanel historyPanel = new JPanel(new BorderLayout());
@@ -178,25 +195,156 @@ public class CustomSqlFileEditor implements FileEditor {
         favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-empty.svg")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor,
-                        this, favoriteActionGroup, favToolbar);
+                NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor, this, favoriteActionGroup, favToolbar);
                 dialog.show();
             }
         });
         favorite.add(favToolbar.getComponent(), BorderLayout.CENTER);
 
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.add(historyPanel, BorderLayout.CENTER);
+        rightPanel.add(favorite, BorderLayout.EAST);
+
+
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.add(historyPanel, BorderLayout.CENTER);
-        leftPanel.add(favorite, BorderLayout.EAST);
+        leftPanel.add(executeToolbar.getComponent(), BorderLayout.WEST);
+        leftPanel.add(getQueryContextPanel(), BorderLayout.CENTER);
 
         JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.add(executeToolbar.getComponent(), BorderLayout.WEST);
-        topPanel.add(leftPanel, BorderLayout.EAST);
+        topPanel.add(leftPanel, BorderLayout.WEST);
+        topPanel.add(rightPanel, BorderLayout.EAST);
 
         panel.add(topPanel, BorderLayout.NORTH);
         panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
         queryEditor.getContentComponent().requestFocusInWindow();
         component = panel;
+    }
+
+
+    private JPanel getQueryContextPanel() {
+        JPanel contextPanel = new JPanel(new FlowLayout());
+        JLabel conLabel = new JLabel("Connection:");
+        conLabel.setFont(conLabel.getFont().deriveFont(10.0f));
+        contextPanel.add(conLabel);
+
+        DefaultActionGroup option1Group = new DefaultActionGroup("Set Query Context", true);
+        option1Group.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/query_context.svg"));
+        DefaultActionGroup option1Action = new DefaultActionGroup(option1Group) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ActionManager.getInstance().createActionPopupMenu("Set Query Context", this).getComponent().show(e.getInputEvent().getComponent(), e.getInputEvent().getComponent().getWidth(), 0);
+            }
+        };
+
+        ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("QueryContext", option1Action, true);
+        actionToolbar.setTargetComponent(contextPanel);
+        JLabel contextLabel = new JLabel(NO_QUERY_CONTEXT_SELECTED);
+        contextLabel.setFont(conLabel.getFont().deriveFont(10.0f));
+
+        Map<String, SavedCluster> clusters = ClustersStorage.getInstance().getValue().getMap();
+
+        ComboBox<String> comboBox = new ComboBox<>();
+        comboBox.setFont(comboBox.getFont().deriveFont(10f));
+        Dimension maxSize = new Dimension(200, 20);
+        comboBox.setMaximumSize(maxSize);
+
+        for (Map.Entry<String, SavedCluster> entry : clusters.entrySet()) {
+            comboBox.addItem(entry.getValue().getId());
+        }
+        contextPanel.add(comboBox);
+        comboBox.addActionListener(e -> {
+            String selectedClusterId = (String) comboBox.getSelectedItem();
+
+            if (selectedClusterId == null) {
+                return;
+            }
+
+            option1Group.removeAll();
+            AnAction clearContextAction = new AnAction("Clear Context") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                    contextLabel.revalidate();
+                    selectedBucketContext = null;
+                    selectedScopeContext = null;
+                }
+            };
+
+            option1Group.add(clearContextAction);
+            option1Group.addSeparator("Buckets");
+
+            List<String> buckets = new ArrayList<>(ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet());
+            for (String bucket : buckets) {
+
+                DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket, true);
+                bucketsGroup.addSeparator("Scopes");
+
+                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes();
+                for (ScopeSpec spec : scopes) {
+                    AnAction scopeAction = new AnAction(spec.name()) {
+                        @Override
+                        public void actionPerformed(@NotNull AnActionEvent e) {
+                            contextLabel.setText(bucket + " > " + spec.name());
+                            contextLabel.revalidate();
+                            selectedBucketContext = bucket;
+                            selectedScopeContext = spec.name();
+                        }
+                    };
+
+                    bucketsGroup.add(scopeAction);
+                }
+
+                option1Group.add(bucketsGroup);
+            }
+        });
+
+        comboBox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                String item = (String) e.getItem();
+
+                if (item == null) {
+                    return;
+                }
+                if (ActiveCluster.getInstance().get() == null || !item.equals(ActiveCluster.getInstance().getId())) {
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected to", "Workbench Error"));
+
+                    SwingUtilities.invokeLater(() -> comboBox
+                            .setSelectedItem(cachedPreviousSelectedConnection));
+                } else {
+                    SwingUtilities.invokeLater(() -> {
+                        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                        contextLabel.revalidate();
+                    });
+                    selectedBucketContext = null;
+                    selectedScopeContext = null;
+                    cachedPreviousSelectedConnection = e.getItem().toString();
+                }
+            }
+        });
+
+        if (ActiveCluster.getInstance().get() == null) {
+            comboBox.setSelectedItem(null);
+            cachedPreviousSelectedConnection = null;
+        } else {
+            comboBox.setSelectedItem(ActiveCluster.getInstance().getId());
+            cachedPreviousSelectedConnection = ActiveCluster.getInstance().getId();
+        }
+
+
+        JPanel toolbarPanel = new JPanel(new BorderLayout());
+        toolbarPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+        toolbarPanel.setBorder(JBUI.Borders.emptyRight(-12)); // Adjust these values as per your requirement
+
+        JPanel myPanel = new JPanel();
+        myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.X_AXIS));
+        myPanel.add(toolbarPanel);
+        myPanel.add(Box.createRigidArea(new Dimension(0, 0))); // Adjust the value 5 as per your requirement
+        myPanel.add(contextLabel);
+        myPanel.setBorder(JBUI.Borders.emptyLeft(10));
+
+        contextPanel.add(myPanel);
+
+        return contextPanel;
     }
 
     @Override

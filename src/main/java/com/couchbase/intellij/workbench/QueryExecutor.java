@@ -25,7 +25,7 @@ public class QueryExecutor {
     private static ToolWindow toolWindow;
     private static QueryResultToolWindowFactory resultWindow;
 
-    private static DecimalFormat df = new DecimalFormat("#.00");
+    private static final DecimalFormat df = new DecimalFormat("#.00");
 
     private static QueryResultToolWindowFactory getOutputWindow(Project project) {
         if (toolWindow == null) {
@@ -41,7 +41,7 @@ public class QueryExecutor {
     }
 
 
-    public static boolean executeQuery(String query, int historyIndex, Project project) {
+    public static boolean executeQuery(String query, String bucket, String scope, int historyIndex, Project project) {
 
 
         if (query == null || query.trim().isEmpty()) {
@@ -58,7 +58,16 @@ public class QueryExecutor {
             long start = 0;
             try {
                 start = System.currentTimeMillis();
-                QueryResult result = ActiveCluster.getInstance().get().query(query, QueryOptions.queryOptions().metrics(true));
+                QueryResult result;
+
+                if (bucket != null) {
+                    System.out.println("RUNNING WITH CONTEXT " + bucket + " - " + scope);
+                    result = ActiveCluster.getInstance().get().bucket(bucket).
+                            scope(scope)
+                            .query(query, QueryOptions.queryOptions().metrics(true));
+                } else {
+                    result = ActiveCluster.getInstance().get().query(query, QueryOptions.queryOptions().metrics(true));
+                }
                 long end = System.currentTimeMillis();
 
                 Optional<QueryMetrics> metrics = result.metaData().metrics();
