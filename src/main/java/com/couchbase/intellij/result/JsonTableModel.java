@@ -45,7 +45,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         for (Map<String, Object> map : result) {
             //if contains more the one key at the top-level,
             // that is not the case we are looking for
-            if (map.size() != 1) {
+            if (map.keySet().size() != 1) {
                 return result;
             }
 
@@ -66,8 +66,10 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
                 JsonObject jo = JsonObject.create();
                 jo.put("content", obj);
                 values.add(jo.toMap());
+            } else if (obj instanceof Map) {
+                values.add((Map<String, Object>) obj);
             } else {
-                return result;
+                values.add(map);
             }
 
         }

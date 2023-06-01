@@ -200,7 +200,7 @@ public class CouchbaseWindowContent extends JPanel {
                                 DocumentFormatter.formatFile(project, virtualFile);
 
                             } else {
-                                System.out.println("virtual file is null");
+                                System.err.println("virtual file is null");
                             }
                         }
                     } else {

@@ -18,7 +18,10 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 public class QueryExecutor {
 
@@ -94,10 +97,10 @@ public class QueryExecutor {
                     metricsList.add("-");
                 }
 
-                List<Map<String, Object>> resultList = null;
+                List<JsonObject> resultList;
 
                 try {
-                    resultList = getResults(result.rowsAsObject());
+                    resultList = result.rowsAsObject();
                 } catch (Exception ex) {
                     if (ex.getMessage().startsWith("Deserialization of content into target class com.couchbase.client.java.json.JsonObject failed")) {
                         Field field = QueryResult.class.getDeclaredField("internal");
@@ -110,7 +113,7 @@ public class QueryExecutor {
                                     objList.add(obj);
                                 }
                         );
-                        resultList = getResults(objList);
+                        resultList = objList;
                     } else {
                         throw ex;
                     }
@@ -119,7 +122,8 @@ public class QueryExecutor {
                 getOutputWindow(project).updateQueryStats(isMutation, metricsList, resultList, null);
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
-                getOutputWindow(project).updateQueryStats(false, Arrays.asList((end - start) + " MS", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError(e));
+                getOutputWindow(project).updateQueryStats(false, Arrays.asList((end - start) + " MS", "-", "-", "-", "-"),
+                        null, CouchbaseQueryErrorUtil.parseQueryError(e));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -127,22 +131,23 @@ public class QueryExecutor {
 
         return updateQueryHistory(query, historyIndex);
     }
-
-    private static List<Map<String, Object>> getResults(List<JsonObject> objects) {
-        try {
-            Field field = JsonObject.class.getDeclaredField("content");
-            field.setAccessible(true);
-
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (JsonObject obj : objects) {
-                result.add((Map<String, Object>) field.get(obj));
-            }
-            return result;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return new ArrayList<>();
-    }
+//
+//    private static List<Map<String, Object>> getResults(List<JsonObject> objects) {
+//        try {
+//            Field field = JsonObject.class.getDeclaredField("content");
+//            field.setAccessible(true);
+//
+//            List<Map<String, Object>> result = new ArrayList<>();
+//            for (JsonObject obj : objects) {
+//                System.out.println(obj);
+//                result.add((Map<String, Object>) field.get(obj));
+//            }
+//            return result;
+//        } catch (NoSuchFieldException | IllegalAccessException e) {
+//            e.printStackTrace();
+//        }
+//        return new ArrayList<>();
+//    }
 
     private static String getSizeText(long size) {
         if (size < 1024) {

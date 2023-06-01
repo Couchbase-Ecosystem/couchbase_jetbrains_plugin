@@ -139,7 +139,6 @@ public class CustomSqlFileEditor implements FileEditor {
 
 
                     SwingUtilities.invokeLater(() -> {
-                        System.out.println(currentHistoryIndex + 1);
                         historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
                         historyLabel.revalidate();
                     });
@@ -163,7 +162,6 @@ public class CustomSqlFileEditor implements FileEditor {
                     });
 
                     SwingUtilities.invokeLater(() -> {
-                        System.out.println(currentHistoryIndex + 1);
                         historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
                         historyLabel.revalidate();
                     });

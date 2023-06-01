@@ -1,6 +1,8 @@
 package com.couchbase.intellij.workbench;
 
 
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.result.JsonTableModel;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.google.gson.Gson;
@@ -12,6 +14,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.editor.ex.FoldingModelEx;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindow;
@@ -31,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -139,12 +143,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, false);
         EditorSettings editorSettings = editor.getSettings();
         editorSettings.setVirtualSpace(false);
-        editorSettings.setLineMarkerAreaShown(false);
-        editorSettings.setIndentGuidesShown(false);
-        editorSettings.setFoldingOutlineShown(false);
         editorSettings.setAdditionalColumnsCount(3);
         editorSettings.setAdditionalLinesCount(8);
         editorSettings.setLineNumbersShown(true);
+
+        FoldingModelEx foldingModel = editor.getFoldingModel();
+        foldingModel.setFoldingEnabled(true);
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
@@ -172,18 +176,61 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return "<html><small style='font-weight:100'>" + title + "</small></html>";
     }
 
+    public Map<String, Object> jsonObjectToMap(JsonObject jsonObject) {
+        Map<String, Object> map = new HashMap<>();
 
-    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<Map<String, Object>> results, CouchbaseQueryResultError error) {
+        for (String key : jsonObject.getNames()) {
+            Object value = jsonObject.get(key);
+            if (value instanceof JsonObject) {
+                // If the value is a JsonObject, convert it to a Map recursively
+                map.put(key, jsonObjectToMap((JsonObject) value));
+            } else if (value instanceof JsonArray) {
+                // If the value is a JsonArray, convert it to a List
+                map.put(key, jsonArrayToList((JsonArray) value));
+            } else {
+                map.put(key, value);
+            }
+        }
+
+        return map;
+    }
+
+    public List<Object> jsonArrayToList(JsonArray jsonArray) {
+        List<Object> list = new ArrayList<>();
+
+        for (Object element : jsonArray) {
+            if (element instanceof JsonObject) {
+                // If the element is a JsonObject, convert it to a Map
+                list.add(jsonObjectToMap((JsonObject) element));
+            } else if (element instanceof JsonArray) {
+                // If the element is a JsonArray, convert it to a List recursively
+                list.add(jsonArrayToList((JsonArray) element));
+            } else {
+                list.add(element);
+            }
+        }
+
+        return list;
+    }
+
+    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error) {
         if (results != null) {
+
+            List<Map<String, Object>> convertedResults = new ArrayList<>();
+            for (JsonObject jsonObject : results) {
+                convertedResults.add(jsonObjectToMap(jsonObject));
+            }
+
+            cachedResults = convertedResults;
 
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
             ApplicationManager.getApplication().runWriteAction(new Runnable() {
                 @Override
                 public void run() {
-                    editor.getDocument().setText(gson.toJson(results));
+                    editor.getDocument().setText(gson.toJson(convertedResults));
                 }
             });
-            cachedResults = results;
+
 
             if (isMutation) {
                 queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
@@ -199,13 +246,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 queryStatsList.get(i).setText(queryValues.get(i));
             }
 
-            model.updateData(results);
+            model.updateData(convertedResults);
 
         } else {
             cachedResults = null;
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
-            ApplicationManager.getApplication().runWriteAction(() ->
-                    editor.getDocument().setText(gson.toJson(error.getErrors())));
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
         }
     }
 
@@ -222,6 +268,4 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             }
         });
     }
-
-    //update  `travel-sample`.`inventory`.`landmark` set country = "United States" where country = "United States"
 }
