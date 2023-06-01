@@ -182,10 +182,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         for (String key : jsonObject.getNames()) {
             Object value = jsonObject.get(key);
             if (value instanceof JsonObject) {
-                // If the value is a JsonObject, convert it to a Map recursively
                 map.put(key, jsonObjectToMap((JsonObject) value));
             } else if (value instanceof JsonArray) {
-                // If the value is a JsonArray, convert it to a List
                 map.put(key, jsonArrayToList((JsonArray) value));
             } else {
                 map.put(key, value);
@@ -200,10 +198,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         for (Object element : jsonArray) {
             if (element instanceof JsonObject) {
-                // If the element is a JsonObject, convert it to a Map
                 list.add(jsonObjectToMap((JsonObject) element));
             } else if (element instanceof JsonArray) {
-                // If the element is a JsonArray, convert it to a List recursively
                 list.add(jsonArrayToList((JsonArray) element));
             } else {
                 list.add(element);
@@ -261,11 +257,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         }
         statusIcon.setIcon(new AnimatedIcon.Big());
 
-        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-            @Override
-            public void run() {
-                editor.getDocument().setText("{ \"status\": \"Executing Statement\"}");
-            }
-        });
+        ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
     }
 }
