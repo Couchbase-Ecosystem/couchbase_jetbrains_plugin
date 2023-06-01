@@ -4,10 +4,8 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -27,7 +25,6 @@ import javax.swing.tree.TreePath;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
@@ -58,11 +55,11 @@ import com.intellij.ui.treeStructure.Tree;
 
 public class CouchbaseWindowContent extends JPanel {
 
-    private DefaultTreeModel treeModel;
-    private Project project;
+    private static DefaultTreeModel treeModel;
+    private static Project project;
 
     public CouchbaseWindowContent(Project project) {
-        this.project = project;
+        CouchbaseWindowContent.project = project;
         setLayout(new BorderLayout());
 
         treeModel = getTreeModel(project);
@@ -327,32 +324,20 @@ public class CouchbaseWindowContent extends JPanel {
         // Add "Add New Scope" option
         JMenuItem addNewScopeItem = new JMenuItem("Add New Scope");
         addNewScopeItem.addActionListener(e1 -> {
-            // Code for adding new scope here
             String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
-            // Show dialog for entering name of new scope
-            String scopeName = JOptionPane.showInputDialog(tree, "Enter name of new scope:", "Add New Scope",
-                    JOptionPane.PLAIN_MESSAGE);
-            if (scopeName != null && !scopeName.isEmpty()) {
-                // Check if scope with this name already exists
-                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                        .getAllScopes();
-                for (ScopeSpec scope : scopes) {
-                    if (scope.name().equals(scopeName)) {
-                        // If it does, show error message
-                        JOptionPane.showMessageDialog(tree, "Scope with this name already exists", "Error",
-                                JOptionPane.ERROR_MESSAGE);
-                        throw new UnsupportedOperationException("Not implemented yet");
-                    }
-                }
-                // Otherwise, add new scope
-                ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
 
-                // Refresh scopes
+            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE,
+                    bucketName);
+            entityCreationDialog.show();
+
+            if (entityCreationDialog.isOK()) {
+                String scopeName = entityCreationDialog.getEntityName();
+                ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
                 DataLoader.listScopes(clickedNode, tree);
             }
         });
-        popup.add(addNewScopeItem);
 
+        popup.add(addNewScopeItem);
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -366,7 +351,8 @@ public class CouchbaseWindowContent extends JPanel {
             // Code for deleting scope here
             ScopeNodeDescriptor scopeNodeDescriptor = (ScopeNodeDescriptor) clickedNode.getUserObject();
             // Show confirmation dialog before deleting scope
-            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this scope?",
+            int result = JOptionPane.showConfirmDialog(tree,
+                    "Are you sure you want to delete the scope " + scopeNodeDescriptor.getText() + "?",
                     "Delete Scope", JOptionPane.YES_NO_OPTION);
             if (result == JOptionPane.YES_OPTION) {
                 // Code for deleting scope here
@@ -399,37 +385,23 @@ public class CouchbaseWindowContent extends JPanel {
         // Add "Add New Collection" option
         JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
         addNewCollectionItem.addActionListener(e1 -> {
-            // Code for adding new collection here
-            // Show dialog for entering name of new collection
-            String collectionName = JOptionPane.showInputDialog(tree, "Enter name of new collection:",
-                    "Add New Collection", JOptionPane.PLAIN_MESSAGE);
-            if (collectionName != null && !collectionName.isEmpty()) {
-                // Check if collection with this name already exists
-                CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) clickedNode.getUserObject();
+            CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) clickedNode.getUserObject();
 
-                List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(cols.getBucket())
-                        .collections().getAllScopes().stream()
-                        .filter(scope -> scope.name().equals(cols.getScope()))
-                        .flatMap(scope -> scope.collections().stream())
-                        .collect(Collectors.toList());
+            String bucketName = cols.getBucket();
+            String scopeName = cols.getScope();
 
-                for (CollectionSpec collection : collections) {
-                    if (collection.name().equals(collectionName)) {
-                        // If it does, show error message
-                        JOptionPane.showMessageDialog(tree, "Collection with this name already exists", "Error",
-                                JOptionPane.ERROR_MESSAGE);
-                        throw new UnsupportedOperationException("Not implemented yet");
-                    }
-                }
+            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
+                    EntityType.COLLECTION, bucketName, scopeName);
+            entityCreationDialog.show();
 
-                // Otherwise, add new collection
-                ActiveCluster.getInstance().get().bucket(cols.getBucket()).collections()
-                        .createCollection(CollectionSpec.create(collectionName, cols.getScope()));
-
-                // Refresh collections
+            if (entityCreationDialog.isOK()) {
+                String collectionName = entityCreationDialog.getEntityName();
+                ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                        .createCollection(CollectionSpec.create(collectionName, scopeName));
                 DataLoader.listCollections(clickedNode, tree);
             }
         });
+
         popup.add(addNewCollectionItem);
         popup.show(tree, e.getX(), e.getY());
     }
@@ -476,7 +448,8 @@ public class CouchbaseWindowContent extends JPanel {
         deleteCollectionItem.addActionListener(e1 -> {
             // Code for deleting collection here
             // Show confirmation dialog before deleting collection
-            int result = JOptionPane.showConfirmDialog(tree, "Are you sure you want to delete this collection?",
+            int result = JOptionPane.showConfirmDialog(tree,
+                    "Are you sure you want to delete the collection " + col.getText() + "?",
                     "Delete Collection", JOptionPane.YES_NO_OPTION);
             if (result == JOptionPane.YES_OPTION) {
                 // Code for deleting collection here
