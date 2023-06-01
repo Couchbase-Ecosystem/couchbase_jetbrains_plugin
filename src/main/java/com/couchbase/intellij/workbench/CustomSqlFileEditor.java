@@ -154,12 +154,9 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (currentHistoryIndex + 1 < QueryHistoryStorage.getInstance().getValue().getHistory().size()) {
                     currentHistoryIndex++;
 
-                    ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                        @Override
-                        public void run() {
-                            queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex));
-                        }
-                    });
+                    ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument()
+                            .setText(QueryHistoryStorage.getInstance()
+                                    .getValue().getHistory().get(currentHistoryIndex)));
 
                     SwingUtilities.invokeLater(() -> {
                         historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
@@ -175,8 +172,8 @@ public class CustomSqlFileEditor implements FileEditor {
         nextToolbar.setTargetComponent(panel);
 
         int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-        currentHistoryIndex = Math.max((historySize - 1), 0);
-        historyLabel = new JLabel("history (" + historySize + "/" + historySize + ")");
+        currentHistoryIndex = Math.max((historySize - 1), 0) + 1;
+        historyLabel = new JLabel("history (" + (historySize + 1) + "/" + historySize + ")");
         historyLabel.setFont(historyLabel.getFont().deriveFont(10.0f));
         historyLabel.setBorder(JBUI.Borders.emptyRight(12));
 
