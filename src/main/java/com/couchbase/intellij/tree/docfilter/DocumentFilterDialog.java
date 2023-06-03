@@ -1,8 +1,8 @@
 package com.couchbase.intellij.tree.docfilter;
 
 import com.couchbase.client.core.error.CouchbaseException;
-import com.couchbase.intellij.color.ColorHelper;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.helpers.ColorHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;

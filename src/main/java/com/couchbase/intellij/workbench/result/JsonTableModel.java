@@ -1,4 +1,4 @@
-package com.couchbase.intellij.result;
+package com.couchbase.intellij.workbench.result;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;

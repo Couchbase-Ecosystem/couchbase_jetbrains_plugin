@@ -3,8 +3,8 @@ package com.couchbase.intellij.workbench;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.intellij.result.JsonTableModel;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
+import com.couchbase.intellij.workbench.result.JsonTableModel;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.intellij.json.JsonFileType;
@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
-import com.intellij.openapi.editor.ex.FoldingModelEx;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindow;
@@ -146,9 +145,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         editorSettings.setAdditionalColumnsCount(3);
         editorSettings.setAdditionalLinesCount(8);
         editorSettings.setLineNumbersShown(true);
+        editorSettings.setFoldingOutlineShown(true);
 
-        FoldingModelEx foldingModel = editor.getFoldingModel();
-        foldingModel.setFoldingEnabled(true);
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
@@ -162,9 +160,19 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         TabInfo outputTab = new TabInfo(new JPanel()).setText("Log");
         queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
+// TODO: Fix explain
+//        HtmlPanel htmlPanel = new HtmlPanel();
+//        htmlPanel.loadHTML("<html><body><script>alert('Hello, World!')</script></body></html>");
+//
+//        JPanel explainPanel = new JPanel(new BorderLayout());
+//        explainPanel.add(htmlPanel, BorderLayout.CENTER);
+//        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
+
         tabs.addTab(outputTab);
         tabs.addTab(queryResultTab);
+//        tabs.addTab(explainTab);
         tabs.select(queryResultTab, true);
+
 
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);

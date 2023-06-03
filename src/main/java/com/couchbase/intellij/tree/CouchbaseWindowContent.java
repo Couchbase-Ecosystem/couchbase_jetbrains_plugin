@@ -6,6 +6,7 @@ import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.tree.examples.CardDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -102,21 +103,20 @@ public class CouchbaseWindowContent extends JPanel {
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Open menu code here
                 JPopupMenu menu = new JPopupMenu();
-                JMenuItem item1 = new JMenuItem("Test 1");
+                JMenuItem item1 = new JMenuItem("New Project from Template");
                 JMenuItem item2 = new JMenuItem("Test 2");
                 menu.add(item1);
                 menu.add(item2);
 
-                // Add action listeners to menu items
                 item1.addActionListener(e1 -> {
-                    // Code for "Test 1" here
+                    CardDialog dialog = new CardDialog(project);
+                    dialog.show();
                 });
 
                 item2.addActionListener(e2 -> {
                     // Code for "Test 2" here
                 });
 
-                // Display the menu
                 Component component = e.getInputEvent().getComponent();
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
             }
@@ -125,7 +125,6 @@ public class CouchbaseWindowContent extends JPanel {
                 CouchbaseWindowContent.class, false, true));
         ellipsisAction.getTemplatePresentation().setDescription("More Options");
 
-        // add the actions to a DefaultActionGroup
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(addConnectionAction);
         leftActionGroup.addSeparator();
@@ -146,7 +145,6 @@ public class CouchbaseWindowContent extends JPanel {
         rightActionToolbar.setTargetComponent(this);
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
 
-        // add the toolbar panel to the main panel
         add(toolBarPanel, BorderLayout.NORTH);
 
         tree.addMouseListener(new MouseInputAdapter() {
@@ -244,7 +242,6 @@ public class CouchbaseWindowContent extends JPanel {
         });
         // tree.setShowsRootHandles(true);
 
-        // add the tree to the main panel
         add(new JScrollPane(tree), BorderLayout.CENTER);
     }
 
