@@ -134,9 +134,7 @@ public class InferHelper {
             }
             samples = samplesArray.toList().stream().map(e -> e == null ? "null" : e.toString()).collect(Collectors.joining(" , "));
         }
-
-        System.out.println(key + " - " + type + ", samples = " + samples);
-
+        
         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, type, samples));
         parentNode.add(childNode);
     }

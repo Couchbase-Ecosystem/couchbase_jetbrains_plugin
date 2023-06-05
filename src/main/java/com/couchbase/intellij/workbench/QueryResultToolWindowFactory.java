@@ -1,12 +1,14 @@
 package com.couchbase.intellij.workbench;
 
 
-import com.couchbase.intellij.database.QueryResult;
-import com.couchbase.intellij.result.JsonTableModel;
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
+import com.couchbase.intellij.workbench.result.JsonTableModel;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.intellij.json.JsonFileType;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
@@ -25,13 +27,13 @@ import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.TabInfo;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,18 +53,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static JBTabs tabs;
     private static TabInfo queryResultTab;
 
+    private JsonTableModel model;
+
     private JLabel statusIcon;
 
     private EditorEx editor;
 
     private List<JLabel> queryStatsList;
+    private List<JLabel> queryLabelsList;
     private List<Map<String, Object>> cachedResults;
+
+    private JPanel queryStatsPanel;
+
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         tabs = new JBTabsImpl(project);
-        JsonTableModel model = new JsonTableModel();
-        QueryResult.init(model);
+        model = new JsonTableModel();
         JBTable table = new JBTable(model);
 
         JPanel topPanel = new JPanel();
@@ -76,56 +83,70 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         resultStats.add(statusIcon, BorderLayout.WEST);
 
         GridBagLayout layout = new GridBagLayout();
-        JPanel gridPanel = new JPanel(layout);
-        gridPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        queryStatsPanel = new JPanel(layout);
+        queryStatsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.WEST; // Align elements to the left
-        c.ipadx = 25; // Padding between columns
-
+        c.anchor = GridBagConstraints.WEST;
+        c.ipadx = 25;
 
         queryStatsList = new ArrayList<>();
+        queryLabelsList = new ArrayList<>();
         String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, docsTooltip, docsSizeTooltip};
         String[] headers = {"RTT", "ELAPSED", "EXECUTION", "DOCS", "SIZE"};
 
         for (int i = 0; i < headers.length; i++) {
             c.gridy = 0;
-            c.gridx = 2 * i; // To make room for values
-            JLabel title = new JLabel("<html><small style='font-weight:100'>" + headers[i] + "</small></html>");
+            c.gridx = 2 * i;
+            JLabel title = new JLabel(getQueryStatHeader(headers[i]));
+            queryLabelsList.add(title);
             title.setToolTipText(tooltips[i]);
-            gridPanel.add(title, c);
+            queryStatsPanel.add(title, c);
 
             c.gridy = 1;
-            c.gridx = 2 * i; // Same x coordinate to align vertically
+            c.gridx = 2 * i;
             JLabel valueLabel = new JLabel("<html><strong>-</strong></html>");
             valueLabel.setToolTipText(tooltips[i]);
             queryStatsList.add(valueLabel);
-            gridPanel.add(valueLabel, c);
+            queryStatsPanel.add(valueLabel, c);
         }
-        resultStats.add(gridPanel, BorderLayout.CENTER);
+        resultStats.add(queryStatsPanel, BorderLayout.CENTER);
         topPanel.add(resultStats, BorderLayout.WEST);
 
-        JButton exportButton = new JButton("Export");
         JPopupMenu popupMenu = new JPopupMenu();
-        popupMenu.add(new JMenuItem("CSV"));
-        popupMenu.add(new JMenuItem("JSON"));
-        exportButton.addActionListener(new ActionListener() {
+        JMenuItem jsonMenuItem = new JMenuItem("JSON");
+        JMenuItem csvMenuItem = new JMenuItem("CSV");
+        popupMenu.add(csvMenuItem);
+        popupMenu.add(jsonMenuItem);
+
+        csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
+
+        jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
+
+        DefaultActionGroup executeGroup = new DefaultActionGroup();
+        Icon executeIcon = IconLoader.findIcon("./assets/icons/export.svg");
+        executeGroup.add(new AnAction("Export", "Export", executeIcon) {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                popupMenu.show(exportButton, exportButton.getWidth() / 2, exportButton.getHeight() / 2);
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                Component component = e.getInputEvent().getComponent();
+                popupMenu.show(component, -10, component.getHeight());
             }
         });
-        topPanel.add(exportButton, BorderLayout.EAST);
+
+        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("QueryResultToolbar", executeGroup, true);
+        toolbar.getComponent().setBorder(JBUI.Borders.emptyRight(10));
+        toolbar.setTargetComponent(topPanel);
+
+        topPanel.add(toolbar.getComponent(), BorderLayout.EAST);
         Document document = EditorFactory.getInstance().createDocument("{\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"}");
         editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, false);
         EditorSettings editorSettings = editor.getSettings();
         editorSettings.setVirtualSpace(false);
-        editorSettings.setLineMarkerAreaShown(false);
-        editorSettings.setIndentGuidesShown(false);
-        editorSettings.setFoldingOutlineShown(false);
         editorSettings.setAdditionalColumnsCount(3);
         editorSettings.setAdditionalLinesCount(8);
         editorSettings.setLineNumbersShown(true);
+        editorSettings.setFoldingOutlineShown(true);
+
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
@@ -139,9 +160,19 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         TabInfo outputTab = new TabInfo(new JPanel()).setText("Log");
         queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
+// TODO: Fix explain
+//        HtmlPanel htmlPanel = new HtmlPanel();
+//        htmlPanel.loadHTML("<html><body><script>alert('Hello, World!')</script></body></html>");
+//
+//        JPanel explainPanel = new JPanel(new BorderLayout());
+//        explainPanel.add(htmlPanel, BorderLayout.CENTER);
+//        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
+
         tabs.addTab(outputTab);
         tabs.addTab(queryResultTab);
+//        tabs.addTab(explainTab);
         tabs.select(queryResultTab, true);
+
 
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);
@@ -149,29 +180,82 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         contentManager.addContent(content);
     }
 
-    public void updateQueryStats(List<String> queryValues, List<Map<String, Object>> results, CouchbaseQueryResultError error) {
+    private String getQueryStatHeader(String title) {
+        return "<html><small style='font-weight:100'>" + title + "</small></html>";
+    }
+
+    public Map<String, Object> jsonObjectToMap(JsonObject jsonObject) {
+        Map<String, Object> map = new HashMap<>();
+
+        for (String key : jsonObject.getNames()) {
+            Object value = jsonObject.get(key);
+            if (value instanceof JsonObject) {
+                map.put(key, jsonObjectToMap((JsonObject) value));
+            } else if (value instanceof JsonArray) {
+                map.put(key, jsonArrayToList((JsonArray) value));
+            } else {
+                map.put(key, value);
+            }
+        }
+
+        return map;
+    }
+
+    public List<Object> jsonArrayToList(JsonArray jsonArray) {
+        List<Object> list = new ArrayList<>();
+
+        for (Object element : jsonArray) {
+            if (element instanceof JsonObject) {
+                list.add(jsonObjectToMap((JsonObject) element));
+            } else if (element instanceof JsonArray) {
+                list.add(jsonArrayToList((JsonArray) element));
+            } else {
+                list.add(element);
+            }
+        }
+
+        return list;
+    }
+
+    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error) {
         if (results != null) {
+
+            List<Map<String, Object>> convertedResults = new ArrayList<>();
+            for (JsonObject jsonObject : results) {
+                convertedResults.add(jsonObjectToMap(jsonObject));
+            }
+
+            cachedResults = convertedResults;
 
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
             ApplicationManager.getApplication().runWriteAction(new Runnable() {
                 @Override
                 public void run() {
-                    editor.getDocument().setText(gson.toJson(results));
+                    editor.getDocument().setText(gson.toJson(convertedResults));
                 }
             });
-            cachedResults = results;
+
+
+            if (isMutation) {
+                queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
+                queryLabelsList.get(4).setText("");
+            } else {
+                queryLabelsList.get(3).setText(getQueryStatHeader("DOCS"));
+                queryLabelsList.get(4).setText(getQueryStatHeader("SIZE"));
+            }
+
+            queryStatsPanel.revalidate();
+
             for (int i = 0; i < queryStatsList.size(); i++) {
                 queryStatsList.get(i).setText(queryValues.get(i));
             }
+
+            model.updateData(convertedResults);
+
         } else {
             cachedResults = null;
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    editor.getDocument().setText(gson.toJson(error.getErrors()));
-                }
-            });
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
         }
     }
 
@@ -181,11 +265,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         }
         statusIcon.setIcon(new AnimatedIcon.Big());
 
-        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-            @Override
-            public void run() {
-                editor.getDocument().setText("{ \"status\": \"Executing Statement\"}");
-            }
-        });
+        ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
     }
 }

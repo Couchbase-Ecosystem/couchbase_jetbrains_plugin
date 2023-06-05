@@ -8,7 +8,7 @@
     <name>Couchbase</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="support@yourcompany.com" url="https://www.couchbase.com">Couchbase</vendor>
+    <vendor email="support@couchbase.com" url="https://www.couchbase.com">Couchbase</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
@@ -26,6 +26,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
+
 
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
