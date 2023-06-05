@@ -141,7 +141,7 @@ public class DocumentFilterDialog extends DialogWrapper {
             } catch (CouchbaseException ex) {
                 resultsLabel.setText("");
                 try {
-                    CouchbaseQueryResultError err = CouchbaseQueryErrorUtil.parseQueryError(ex);
+                    CouchbaseQueryResultError err = CouchbaseQueryErrorUtil.parseQueryError((CouchbaseException) ex);
                     if (!err.getErrors().isEmpty()) {
                         errorLabel.setText("<html>" + addLineBreaks(err.getErrors().get(0).getMessage()) + "</html>");
                     } else {
@@ -168,7 +168,7 @@ public class DocumentFilterDialog extends DialogWrapper {
             } catch (CouchbaseException ex) {
                 resultsLabel.setText("");
                 try {
-                    CouchbaseQueryResultError err = CouchbaseQueryErrorUtil.parseQueryError(ex);
+                    CouchbaseQueryResultError err = CouchbaseQueryErrorUtil.parseQueryError((CouchbaseException) ex);
                     if (!err.getErrors().isEmpty()) {
                         errorLabel.setText("<html>" + addLineBreaks(err.getErrors().get(0).getMessage()) + "</html>");
                     } else {
