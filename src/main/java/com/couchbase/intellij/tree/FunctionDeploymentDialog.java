@@ -115,6 +115,7 @@
 package com.couchbase.intellij.tree;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -137,388 +138,494 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 
 public class FunctionDeploymentDialog extends DialogWrapper {
-    private Project project;
-    public Set<String> buckets;
+        private Project project;
+        public Set<String> buckets;
 
-    private JLabel errorLabel;
+        private JLabel errorLabel;
 
-    private JComboBox<String> bucketComboBox;
-    private JComboBox<String> scopeComboBox;
-    private JComboBox<String> collectionComboBox;
-    private JComboBox<String> deploymentFeedBoundaryComboBox;
-    private JComboBox<String> systemLogsLevelComboBox;
-    private JComboBox<String> n1qlConsistencyComboBox;
-    private JComboBox<String> languageCompatibilityComboBox;
+        private JComboBox<String> bucketComboBox;
+        private JComboBox<String> scopeComboBox;
+        private JComboBox<String> collectionComboBox;
+        private JComboBox<String> deploymentFeedBoundaryComboBox;
+        private JComboBox<String> systemLogsLevelComboBox;
+        private JComboBox<String> n1qlConsistencyComboBox;
+        private JComboBox<String> languageCompatibilityComboBox;
 
-    private JTextField functionNameField;
-    private JTextArea functionDescriptionArea;
-    private JTextField workersField;
-    private JTextField scriptTimeoutField;
-    private JTextField timerContextMaxSizeField;
+        private JTextField functionNameField;
+        private JTextArea functionDescriptionArea;
+        private JTextField workersField;
+        private JTextField scriptTimeoutField;
+        private JTextField timerContextMaxSizeField;
 
-    private JPanel settingsPanel;
-    private JPanel bindingsPanel;
+        private JPanel settingsPanel;
+        private JPanel bindingsPanel;
 
-    private boolean settingsPanelExpanded = false;
+        private boolean settingsPanelExpanded = false;
 
-    public FunctionDeploymentDialog(@Nullable Project project) {
-        super(project);
-        this.project = project;
-        this.buckets = null;
-        setTitle("Deploy as a Couchbase Function");
-        setSize(1000, 2000);
-        setResizable(true);
-        init();
-    }
+        public FunctionDeploymentDialog(@Nullable Project project) {
+                super(project);
+                this.project = project;
+                this.buckets = null;
+                setTitle("Deploy as a Couchbase Function");
+                setSize(1000, 2000);
+                setResizable(true);
+                init();
+        }
 
-    @Nullable
-    @Override
-    protected JComponent createCenterPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.anchor = GridBagConstraints.WEST;
+        @Nullable
+        @Override
+        protected JComponent createCenterPanel() {
+                JPanel panel = new JPanel(new GridBagLayout());
+                GridBagConstraints gbc = new GridBagConstraints();
+                gbc.insets = new Insets(5, 10, 5, 10);
+                gbc.anchor = GridBagConstraints.WEST;
 
-        // Function Scope label
-        JLabel functionScopeLabel = new JLabel("Function Scope");
-        functionScopeLabel.setFont(functionScopeLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(functionScopeLabel, gbc);
+                // Function Scope label
+                JLabel functionScopeLabel = new JLabel("Function Scope");
+                functionScopeLabel.setFont(functionScopeLabel.getFont().deriveFont(Font.BOLD));
+                gbc.gridx = 0;
+                gbc.gridy = 0;
+                panel.add(functionScopeLabel, gbc);
 
-        JLabel functionScopeInfoLabel = new JLabel("bucket.scope");
-        functionScopeInfoLabel.setForeground(Color.GRAY);
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        panel.add(functionScopeInfoLabel, gbc);
+                JLabel functionScopeInfoLabel = new JLabel("bucket.scope");
+                functionScopeInfoLabel.setForeground(Color.GRAY);
+                gbc.gridx = 1;
+                gbc.gridy = 0;
+                panel.add(functionScopeInfoLabel, gbc);
 
-        bucketComboBox = new JComboBox<>();
-        bucketComboBox.addActionListener(e -> updateScopes());
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(bucketComboBox, gbc);
+                bucketComboBox = new JComboBox<>();
+                bucketComboBox.addActionListener(e -> updateScopes());
+                gbc.gridx = 0;
+                gbc.gridy = 1;
+                panel.add(bucketComboBox, gbc);
 
-        scopeComboBox = new JComboBox<>();
-        scopeComboBox.setEnabled(false);
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        panel.add(scopeComboBox, gbc);
+                scopeComboBox = new JComboBox<>();
+                scopeComboBox.setEnabled(false);
+                gbc.gridx = 1;
+                gbc.gridy = 1;
+                panel.add(scopeComboBox, gbc);
 
-        // Function Scope error label
+                // Function Scope error label
 
-        errorLabel = new JLabel(
-                "Please specify a scope to which the function belongs. User should have Eventing Manage Scope Functions permission on this scope");
-        errorLabel.setForeground(Color.RED);
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 3;
-        panel.add(errorLabel, gbc);
+                errorLabel = new JLabel(
+                                "Please specify a scope to which the function belongs. User should have Eventing Manage Scope Functions permission on this scope");
+                errorLabel.setForeground(Color.RED);
+                gbc.gridx = 0;
+                gbc.gridy = 2;
+                gbc.gridwidth = 3;
+                panel.add(errorLabel, gbc);
 
-        // Listen to location label
-        JLabel listenToLocationLabel = new JLabel("Listen to location");
-        listenToLocationLabel.setFont(listenToLocationLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        panel.add(listenToLocationLabel, gbc);
+                // Listen to location label
+                JLabel listenToLocationLabel = new JLabel("Listen to location");
+                listenToLocationLabel.setFont(listenToLocationLabel.getFont().deriveFont(Font.BOLD));
+                gbc.gridx = 0;
+                gbc.gridy = 3;
+                panel.add(listenToLocationLabel, gbc);
 
-        JLabel listenToLocationInfoLabel = new JLabel("bucket.scope.collection");
-        listenToLocationInfoLabel.setForeground(Color.GRAY);
-        gbc.gridx = 1;
-        gbc.gridy = 3;
-        panel.add(listenToLocationInfoLabel, gbc);
+                JLabel listenToLocationInfoLabel = new JLabel("bucket.scope.collection");
+                listenToLocationInfoLabel.setForeground(Color.GRAY);
+                gbc.gridx = 1;
+                gbc.gridy = 3;
+                panel.add(listenToLocationInfoLabel, gbc);
 
-        bucketComboBox = new JComboBox<>();
-        bucketComboBox.addActionListener(e -> updateScopes());
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        panel.add(bucketComboBox, gbc);
+                bucketComboBox = new JComboBox<>();
+                bucketComboBox.addActionListener(e -> updateScopes());
+                gbc.gridx = 0;
+                gbc.gridy = 4;
+                panel.add(bucketComboBox, gbc);
 
-        scopeComboBox = new JComboBox<>();
-        scopeComboBox.setEnabled(false);
-        gbc.gridx = 1;
-        gbc.gridy = 4;
-        panel.add(scopeComboBox, gbc);
+                scopeComboBox = new JComboBox<>();
+                scopeComboBox.setEnabled(false);
+                gbc.gridx = 1;
+                gbc.gridy = 4;
+                panel.add(scopeComboBox, gbc);
 
-        collectionComboBox = new JComboBox<>();
-        collectionComboBox.setEnabled(false);
-        gbc.gridx = 2;
-        gbc.gridy = 4;
-        panel.add(collectionComboBox, gbc);
+                collectionComboBox = new JComboBox<>();
+                collectionComboBox.setEnabled(false);
+                gbc.gridx = 2;
+                gbc.gridy = 4;
+                panel.add(collectionComboBox, gbc);
 
-        // Listen to location error label
-        errorLabel = new JLabel(
-                "Please specify a source location for your function. User should have DCP Data Read permission on this keyspace");
-        errorLabel.setForeground(Color.RED);
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        gbc.gridwidth = 3;
-        panel.add(errorLabel, gbc);
+                // Listen to location error label
+                errorLabel = new JLabel(
+                                "Please specify a source location for your function. User should have DCP Data Read permission on this keyspace");
+                errorLabel.setForeground(Color.RED);
+                gbc.gridx = 0;
+                gbc.gridy = 5;
+                gbc.gridwidth = 3;
+                panel.add(errorLabel, gbc);
 
-        // Eventing Storage label
-        JLabel eventingStorageLabel = new JLabel("Eventing Storage");
-        eventingStorageLabel.setFont(eventingStorageLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
-        gbc.gridy = 6;
-        panel.add(eventingStorageLabel, gbc);
+                // Eventing Storage label
+                JLabel eventingStorageLabel = new JLabel("Eventing Storage");
+                eventingStorageLabel.setFont(eventingStorageLabel.getFont().deriveFont(Font.BOLD));
+                gbc.gridx = 0;
+                gbc.gridy = 6;
+                panel.add(eventingStorageLabel, gbc);
 
-        JLabel eventingStorageInfoLabel = new JLabel("bucket.scope.collection");
-        eventingStorageInfoLabel.setForeground(Color.GRAY);
-        gbc.gridx = 1;
-        gbc.gridy = 6;
-        gbc.ipadx = 1;
-        panel.add(eventingStorageInfoLabel, gbc);
+                JLabel eventingStorageInfoLabel = new JLabel("bucket.scope.collection");
+                eventingStorageInfoLabel.setForeground(Color.GRAY);
+                gbc.gridx = 1;
+                gbc.gridy = 6;
+                gbc.gridwidth = 2;
+                panel.add(eventingStorageInfoLabel, gbc);
 
-        bucketComboBox = new JComboBox<>();
-        bucketComboBox.addActionListener(e -> updateScopes());
-        gbc.gridx = 0;
-        gbc.gridy = 7;
-        panel.add(bucketComboBox, gbc);
+                bucketComboBox = new JComboBox<>();
+                bucketComboBox.addActionListener(e -> updateScopes());
+                gbc.gridx = 0;
+                gbc.gridy = 7;
+                panel.add(bucketComboBox, gbc);
 
-        scopeComboBox = new JComboBox<>();
-        scopeComboBox.setEnabled(false);
-        gbc.gridx = 1;
-        gbc.gridy = 7;
-        panel.add(scopeComboBox, gbc);
+                scopeComboBox = new JComboBox<>();
+                scopeComboBox.setEnabled(false);
+                gbc.gridx = 1;
+                gbc.gridy = 7;
+                panel.add(scopeComboBox, gbc);
 
-        collectionComboBox = new JComboBox<>();
-        collectionComboBox.setEnabled(false);
-        gbc.gridx = 2;
-        gbc.gridy = 7;
-        panel.add(collectionComboBox, gbc);
+                collectionComboBox = new JComboBox<>();
+                collectionComboBox.setEnabled(false);
+                gbc.gridx = 2;
+                gbc.gridy = 7;
+                panel.add(collectionComboBox, gbc);
 
-        // Eventing Storage error label
-        errorLabel = new JLabel(
-                "Please specify a location to store Eventing data. User should have read/write permission on this keyspace");
-        errorLabel.setForeground(Color.RED);
-        gbc.gridx = 0;
-        gbc.gridy = 8;
-        gbc.gridwidth = 3;
-        panel.add(errorLabel, gbc);
+                // Eventing Storage error label
+                errorLabel = new JLabel(
+                                "Please specify a location to store Eventing data. User should have read/write permission on this keyspace");
+                errorLabel.setForeground(Color.RED);
+                gbc.gridx = 0;
+                gbc.gridy = 8;
+                gbc.gridwidth = 3;
+                panel.add(errorLabel, gbc);
 
-        // Eventing Storage info label
-        JLabel eventingStorageInfoLabel2 = new JLabel(
-                "System data stored in this location will have the document ID prefixed with eventing. Using a persistent bucket type is recommended.");
-        eventingStorageInfoLabel2.setForeground(Color.GRAY);
-        gbc.gridx = 0;
-        gbc.gridy = 9;
-        gbc.gridwidth = 3;
-        panel.add(eventingStorageInfoLabel2, gbc);
+                // Function Name label and text field
+                JLabel functionNameLabel = new JLabel("Function Name");
+                functionNameLabel.setFont(functionNameLabel.getFont().deriveFont(Font.BOLD));
+                gbc.gridx = 0;
+                gbc.gridy = 9;
+                panel.add(functionNameLabel, gbc);
 
-        // Function Name label and text field
-        JLabel functionNameLabel = new JLabel("Function Name");
-        functionNameLabel.setFont(functionNameLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
-        gbc.gridy = 10;
-        panel.add(functionNameLabel, gbc);
+                functionNameField = new JTextField(20);
+                functionNameField.setToolTipText("Enter the name of the function.");
+                // functionNameField.getDocument().addDocumentListener(new DocumentListener() {
+                // @Override
+                // public void insertUpdate(DocumentEvent e) {
+                // validateFunctionName();
+                // }
 
-        gbc.gridx = 0;
-        gbc.gridy = 11;
-        functionNameField = new JTextField(20);
-        panel.add(functionNameField, gbc);
+                // @Override
+                // public void removeUpdate(DocumentEvent e) {
+                // validateFunctionName();
+                // }
 
-        // Deployment Feed Boundary label and combo box
-        // TODO: Add label and combo box for selecting deployment feed boundary
-        JLabel deploymentFeedBoundaryLabel = new JLabel("Deployment Feed Boundary");
-        deploymentFeedBoundaryLabel.setFont(deploymentFeedBoundaryLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
-        gbc.gridy = 12;
-        panel.add(deploymentFeedBoundaryLabel, gbc);
+                // @Override
+                // public void changedUpdate(DocumentEvent e) {
+                // validateFunctionName();
+                // }
+                // });
+                gbc.gridx = 0;
+                gbc.gridy = 10;
+                panel.add(functionNameField, gbc);
 
-        deploymentFeedBoundaryComboBox = new JComboBox<>();
-        deploymentFeedBoundaryComboBox.addItem("Everything");
-        deploymentFeedBoundaryComboBox.addItem("From Now");
-        gbc.gridx = 0;
-        gbc.gridy = 13;
-        panel.add(deploymentFeedBoundaryComboBox, gbc);
+                // Deployment Feed Boundary label and combo box
+                JLabel deploymentFeedBoundaryLabel = new JLabel("Deployment Feed Boundary");
+                deploymentFeedBoundaryLabel.setFont(deploymentFeedBoundaryLabel.getFont().deriveFont(Font.BOLD));
+                deploymentFeedBoundaryLabel.setToolTipText(
+                                "The preferred Deployment time Feed Boundary for the function.");
+                gbc.gridx = 0;
+                gbc.gridy = 11;
+                panel.add(deploymentFeedBoundaryLabel, gbc);
 
-        // Description label and text area
-        // TODO: Add label and text area for entering description
-        JLabel descriptionLabel = new JLabel("Description");
-        descriptionLabel.setFont(descriptionLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
-        gbc.gridy = 14;
-        panel.add(descriptionLabel, gbc);
+                deploymentFeedBoundaryComboBox = new JComboBox<>();
+                deploymentFeedBoundaryComboBox.addItem("Everything");
+                deploymentFeedBoundaryComboBox.addItem("From now");
+                deploymentFeedBoundaryComboBox.setToolTipText(
+                                "The preferred Deployment time Feed Boundary for the function.");
+                deploymentFeedBoundaryComboBox.addActionListener(e -> {
+                        if (deploymentFeedBoundaryComboBox.getSelectedItem().equals("From now")) {
+                                errorLabel.setText(
+                                                "Warning: Deploying with 'From now' will ignore all past mutations.");
+                        } else {
+                                errorLabel.setText("");
+                        }
+                });
+                gbc.gridx = 0;
+                gbc.gridy = 12;
+                panel.add(deploymentFeedBoundaryComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 15;
-        functionDescriptionArea = new JTextArea(5, 100);
-        panel.add(functionDescriptionArea, gbc);
+                // Description label and text area
+                JLabel descriptionLabel = new JLabel("Description");
+                descriptionLabel.setFont(descriptionLabel.getFont().deriveFont(Font.BOLD));
+                descriptionLabel.setToolTipText("Enter a description for the function (optional).");
+                descriptionLabel.setDisplayedMnemonic('D');
+                descriptionLabel.setDisplayedMnemonicIndex(0);
+                descriptionLabel.setLabelFor(functionDescriptionArea);
+                descriptionLabel.setHorizontalAlignment(JTextField.LEFT);
+                descriptionLabel.setVerticalAlignment(JTextField.CENTER);
+                descriptionLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                descriptionLabel.setVerticalTextPosition(JTextField.CENTER);
+                gbc.gridx = 0;
+                gbc.gridy = 13;
+                panel.add(descriptionLabel, gbc);
 
-        // Settings label and expandable panel
-        // Add a toggle button for the settings panel
-        JLabel settingsToggleButton = new JLabel("▶");
-        settingsToggleButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Toggle the expanded state of the settings panel
-                settingsPanelExpanded = !settingsPanelExpanded;
+                functionDescriptionArea = new JTextArea(5, 100);
+                functionDescriptionArea.setLineWrap(true);
+                functionDescriptionArea.setWrapStyleWord(true);
+                functionDescriptionArea.setToolTipText("Enter a description for the function (optional).");
 
-                // Show or hide the settings panel based on its expanded state
-                if (settingsPanelExpanded) {
-                    settingsToggleButton.setText("▼");
-                    settingsPanel.setVisible(true);
-                } else {
-                    settingsToggleButton.setText("▶");
-                    settingsPanel.setVisible(false);
-                }
-            }
-        });
-        gbc.gridx = 0;
-        gbc.gridy = 16;
-        panel.add(settingsToggleButton, gbc);
+                JScrollPane textJScrollPane = new JScrollPane(functionDescriptionArea);
+                textJScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+                textJScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                textJScrollPane.setPreferredSize(new Dimension(800, 200));
 
-        // TODO: Add label and expandable panel for settings
-        JLabel settingsLabel = new JLabel("Settings");
-        settingsLabel.setFont(settingsLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 1;
-        gbc.gridy = 16;
-        panel.add(settingsLabel, gbc);
+                gbc.gridx = 0;
+                gbc.gridy = 14;
+                panel.add(textJScrollPane, gbc);
 
-        settingsPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints settingsGbc = new GridBagConstraints();
-        settingsGbc.insets = new Insets(5, 5, 5, 5);
-        settingsGbc.anchor = GridBagConstraints.WEST;
+                // Settings label and expandable panel
+                // Add a toggle button for the settings panel
+                JLabel settingsToggleButton = new JLabel("▶");
+                settingsToggleButton.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                                // Toggle the expanded state of the settings panel
+                                settingsPanelExpanded = !settingsPanelExpanded;
 
-        // System logs level label and combo box
-        JLabel systemLogsLevelLabel = new JLabel("System Logs Level");
-        systemLogsLevelLabel.setFont(systemLogsLevelLabel.getFont().deriveFont(Font.BOLD));
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 0;
-        settingsPanel.add(systemLogsLevelLabel, settingsGbc);
+                                // Show or hide the settings panel based on its expanded state
+                                if (settingsPanelExpanded) {
+                                        settingsToggleButton.setText("▼");
+                                        settingsPanel.setVisible(true);
+                                } else {
+                                        settingsToggleButton.setText("▶");
+                                        settingsPanel.setVisible(false);
+                                }
+                        }
+                });
+                gbc.gridx = 0;
+                gbc.gridy = 15;
+                panel.add(settingsToggleButton, gbc);
 
-        systemLogsLevelComboBox = new JComboBox<>();
-        systemLogsLevelComboBox.addItem("Error");
-        systemLogsLevelComboBox.addItem("Warning");
-        systemLogsLevelComboBox.addItem("Info");
-        systemLogsLevelComboBox.addItem("Debug");
+                // TODO: Add label and expandable panel for settings
+                JLabel settingsLabel = new JLabel("Settings");
+                settingsLabel.setFont(settingsLabel.getFont().deriveFont(Font.BOLD));
+                settingsLabel.setToolTipText("Click to expand/collapse the Settings section.");
+                gbc.gridx = 1;
+                gbc.gridy = 15;
+                panel.add(settingsLabel, gbc);
 
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 1;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(systemLogsLevelComboBox, settingsGbc);
+                settingsPanel = new JPanel(new GridBagLayout());
+                GridBagConstraints settingsGbc = new GridBagConstraints();
+                settingsGbc.insets = new Insets(5, 10, 5, 10);
+                settingsGbc.anchor = GridBagConstraints.WEST;
 
-        JLabel systemLogsLevelInfoLabel = new JLabel(
-                "Application logs file for this function is at:");
-        systemLogsLevelInfoLabel.setForeground(Color.GRAY);
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 2;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(systemLogsLevelInfoLabel, settingsGbc);
+                // System logs level label and combo box
+                JLabel systemLogsLevelLabel = new JLabel("System Logs Level");
+                systemLogsLevelLabel.setFont(systemLogsLevelLabel.getFont().deriveFont(Font.BOLD));
+                systemLogsLevelLabel.setToolTipText(
+                                "Granularity of system events being captured in the log.");
+                systemLogsLevelLabel.setDisplayedMnemonic('L');
+                systemLogsLevelLabel.setDisplayedMnemonicIndex(7);
+                systemLogsLevelLabel.setLabelFor(systemLogsLevelComboBox);
+                systemLogsLevelLabel.setHorizontalAlignment(JTextField.LEFT);
+                systemLogsLevelLabel.setVerticalAlignment(JTextField.CENTER);
+                systemLogsLevelLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                systemLogsLevelLabel.setVerticalTextPosition(JTextField.CENTER);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 0;
+                settingsPanel.add(systemLogsLevelLabel, settingsGbc);
 
-        // N1QL Consistency label and combo box
-        JLabel n1QLConsistencyLabel = new JLabel("N1QL Consistency");
-        n1QLConsistencyLabel.setFont(n1QLConsistencyLabel.getFont().deriveFont(Font.BOLD));
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 3;
-        settingsPanel.add(n1QLConsistencyLabel, settingsGbc);
+                systemLogsLevelComboBox = new JComboBox<>();
+                systemLogsLevelComboBox.addItem("Error");
+                systemLogsLevelComboBox.addItem("Warning");
+                systemLogsLevelComboBox.addItem("Info");
+                systemLogsLevelComboBox.addItem("Debug");
+                systemLogsLevelComboBox.addItem("Trace");
+                systemLogsLevelComboBox.setToolTipText(
+                                "Granularity of system events being captured in the log.");
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 1;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(systemLogsLevelComboBox, settingsGbc);
 
-        n1qlConsistencyComboBox = new JComboBox<>();
-        n1qlConsistencyComboBox.addItem("Error");
-        n1qlConsistencyComboBox.addItem("Warning");
+                JLabel systemLogsLevelInfoLabel = new JLabel(
+                                "Application logs file for this function is at:");
+                systemLogsLevelInfoLabel.setForeground(Color.GRAY);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 2;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(systemLogsLevelInfoLabel, settingsGbc);
 
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 4;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(n1qlConsistencyComboBox, settingsGbc);
+                // N1QL Consistency label and combo box
+                JLabel n1QLConsistencyLabel = new JLabel("N1QL Consistency");
+                n1QLConsistencyLabel.setFont(n1QLConsistencyLabel.getFont().deriveFont(Font.BOLD));
+                n1QLConsistencyLabel.setToolTipText(
+                                "Consistency level of N1QL statements in the function.");
+                n1QLConsistencyLabel.setDisplayedMnemonic('N');
+                n1QLConsistencyLabel.setDisplayedMnemonicIndex(0);
+                n1QLConsistencyLabel.setLabelFor(n1qlConsistencyComboBox);
+                n1QLConsistencyLabel.setHorizontalAlignment(JTextField.LEFT);
+                n1QLConsistencyLabel.setVerticalAlignment(JTextField.CENTER);
+                n1QLConsistencyLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                n1QLConsistencyLabel.setVerticalTextPosition(JTextField.CENTER);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 3;
+                settingsPanel.add(n1QLConsistencyLabel, settingsGbc);
 
-        // Workers label and text field
-        JLabel workersLabel = new JLabel("Workers");
-        workersLabel.setFont(workersLabel.getFont().deriveFont(Font.BOLD));
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 5;
-        settingsPanel.add(workersLabel, settingsGbc);
+                n1qlConsistencyComboBox = new JComboBox<>();
+                n1qlConsistencyComboBox.addItem("Not bounded");
+                n1qlConsistencyComboBox.addItem("Request plus");
+                n1qlConsistencyComboBox.setToolTipText(
+                                "Consistency level of N1QL statements in the function.");
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 4;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(n1qlConsistencyComboBox, settingsGbc);
 
-        workersField = new JTextField(20);
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 6;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(workersField, settingsGbc);
+                // Workers label and text field
+                JLabel workersLabel = new JLabel("Workers");
+                workersLabel.setFont(workersLabel.getFont().deriveFont(Font.BOLD));
+                workersLabel.setToolTipText(
+                                "Number of worker threads processing this function.");
+                workersLabel.setDisplayedMnemonic('W');
+                workersLabel.setDisplayedMnemonicIndex(0);
+                workersLabel.setLabelFor(workersField);
+                workersLabel.setHorizontalAlignment(JTextField.LEFT);
+                workersLabel.setVerticalAlignment(JTextField.CENTER);
+                workersLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                workersLabel.setVerticalTextPosition(JTextField.CENTER);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 5;
+                settingsPanel.add(workersLabel, settingsGbc);
 
-        // Language Compatibility label and combo box
-        JLabel languageCompatibilityLabel = new JLabel("Language Compatibility");
-        languageCompatibilityLabel.setFont(languageCompatibilityLabel.getFont().deriveFont(Font.BOLD));
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 7;
-        settingsPanel.add(languageCompatibilityLabel, settingsGbc);
+                workersField = new JTextField(20);
+                workersField.setToolTipText(
+                                "Number of worker threads processing this function.");
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 6;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(workersField, settingsGbc);
 
-        languageCompatibilityComboBox = new JComboBox<>();
-        languageCompatibilityComboBox.addItem("6.0.0");
-        languageCompatibilityComboBox.addItem("6.5.0");
-        languageCompatibilityComboBox.addItem("6.6.2");
+                // Language Compatibility label and combo box
+                JLabel languageCompatibilityLabel = new JLabel("Language Compatibility");
+                languageCompatibilityLabel.setFont(languageCompatibilityLabel.getFont().deriveFont(Font.BOLD));
+                languageCompatibilityLabel.setToolTipText(
+                                "Language compatibility version for this function.");
+                languageCompatibilityLabel.setDisplayedMnemonic('C');
+                languageCompatibilityLabel.setDisplayedMnemonicIndex(9);
+                languageCompatibilityLabel.setLabelFor(languageCompatibilityComboBox);
+                languageCompatibilityLabel.setHorizontalAlignment(JTextField.LEFT);
+                languageCompatibilityLabel.setVerticalAlignment(JTextField.CENTER);
+                languageCompatibilityLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                languageCompatibilityLabel.setVerticalTextPosition(JTextField.CENTER);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 7;
+                settingsPanel.add(languageCompatibilityLabel, settingsGbc);
 
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 8;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(languageCompatibilityComboBox, settingsGbc);
+                languageCompatibilityComboBox = new JComboBox<>();
+                languageCompatibilityComboBox.addItem("6.0.0");
+                languageCompatibilityComboBox.addItem("6.5.0");
+                languageCompatibilityComboBox.addItem("6.6.2");
+                languageCompatibilityComboBox.setToolTipText(
+                                "Language compatibility version for this function.");
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 8;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(languageCompatibilityComboBox, settingsGbc);
 
-        // Script Timeout label and text field
-        JLabel scriptTimeoutLabel = new JLabel("Script Timeout");
-        scriptTimeoutLabel.setFont(scriptTimeoutLabel.getFont().deriveFont(Font.BOLD));
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 9;
-        settingsPanel.add(scriptTimeoutLabel, settingsGbc);
+                // Script Timeout label and text field
+                JLabel scriptTimeoutLabel = new JLabel("Script Timeout");
+                scriptTimeoutLabel.setFont(scriptTimeoutLabel.getFont().deriveFont(Font.BOLD));
+                scriptTimeoutLabel.setToolTipText(
+                                "Maximum execution time for each instance of the function.");
+                scriptTimeoutLabel.setDisplayedMnemonic('S');
+                scriptTimeoutLabel.setDisplayedMnemonicIndex(0);
+                scriptTimeoutLabel.setLabelFor(scriptTimeoutField);
+                scriptTimeoutLabel.setHorizontalAlignment(JTextField.LEFT);
+                scriptTimeoutLabel.setVerticalAlignment(JTextField.CENTER);
+                scriptTimeoutLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                scriptTimeoutLabel.setVerticalTextPosition(JTextField.CENTER);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 9;
+                settingsPanel.add(scriptTimeoutLabel, settingsGbc);
 
-        JLabel scriptTimeoutInfoLabel = new JLabel("in seconds.");
-        scriptTimeoutInfoLabel.setForeground(Color.GRAY);
-        settingsGbc.gridx = 1;
-        settingsGbc.gridy = 9;
-        settingsPanel.add(scriptTimeoutInfoLabel, settingsGbc);
+                JLabel scriptTimeoutInfoLabel = new JLabel("in seconds.");
+                scriptTimeoutInfoLabel.setForeground(Color.GRAY);
+                settingsGbc.gridx = 1;
+                settingsGbc.gridy = 9;
+                settingsPanel.add(scriptTimeoutInfoLabel, settingsGbc);
 
-        scriptTimeoutField = new JTextField(20);
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 10;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(scriptTimeoutField, settingsGbc);
+                scriptTimeoutField = new JTextField(20);
+                scriptTimeoutField.setToolTipText(
+                                "Maximum execution time for each instance of the function.");
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 10;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(scriptTimeoutField, settingsGbc);
 
-        // Timer Context Timeout label and text field
-        JLabel timerContextMaxSizeLabel = new JLabel("Timer Context Max Size");
-        timerContextMaxSizeLabel.setFont(timerContextMaxSizeLabel.getFont().deriveFont(Font.BOLD));
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 11;
-        settingsPanel.add(timerContextMaxSizeLabel, settingsGbc);
+                // Timer Context Timeout label and text field
+                JLabel timerContextMaxSizeLabel = new JLabel("Timer Context Max Size");
+                timerContextMaxSizeLabel.setFont(timerContextMaxSizeLabel.getFont().deriveFont(Font.BOLD));
+                timerContextMaxSizeLabel.setToolTipText(
+                                "Maximum size of context object for timers.");
+                timerContextMaxSizeLabel.setDisplayedMnemonic('T');
+                timerContextMaxSizeLabel.setDisplayedMnemonicIndex(0);
+                timerContextMaxSizeLabel.setLabelFor(timerContextMaxSizeField);
+                timerContextMaxSizeLabel.setHorizontalAlignment(JTextField.LEFT);
+                timerContextMaxSizeLabel.setVerticalAlignment(JTextField.CENTER);
+                timerContextMaxSizeLabel.setHorizontalTextPosition(JTextField.RIGHT);
+                timerContextMaxSizeLabel.setVerticalTextPosition(JTextField.CENTER);
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 11;
+                settingsPanel.add(timerContextMaxSizeLabel, settingsGbc);
 
-        timerContextMaxSizeField = new JTextField(20);
-        settingsGbc.gridx = 0;
-        settingsGbc.gridy = 12;
-        settingsGbc.gridwidth = 2;
-        settingsPanel.add(timerContextMaxSizeField, settingsGbc);
+                JLabel timerContextMaxSizeInfoLabel = new JLabel("in bytes.");
+                timerContextMaxSizeInfoLabel.setForeground(Color.GRAY);
+                settingsGbc.gridx = 1;
+                settingsGbc.gridy = 11;
+                settingsPanel.add(timerContextMaxSizeInfoLabel, settingsGbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 17;
-        panel.add(settingsPanel, gbc);
+                timerContextMaxSizeField = new JTextField(20);
+                timerContextMaxSizeField.setToolTipText(
+                                "Maximum size of context object for timers.");
+                settingsGbc.gridx = 0;
+                settingsGbc.gridy = 12;
+                settingsGbc.gridwidth = 2;
+                settingsPanel.add(timerContextMaxSizeField, settingsGbc);
 
-        // Binding Type label and expandable panel
-        // TODO: Add label and expandable panel for binding type
+                gbc.gridx = 0;
+                gbc.gridy = 16;
+                panel.add(settingsPanel, gbc);
 
-        return new JScrollPane(panel);
+                // Binding Type label and expandable panel
+                // TODO: Add label and expandable panel for binding type
 
-    }
+                return new JScrollPane(panel);
 
-    private void updateScopes() {
-        // Get selected bucket
-        String selectedBucket = (String) bucketComboBox.getSelectedItem();
+        }
 
-        // TODO: Get scopes for selected bucket and update scopeComboBox
-        // You can use the Couchbase Java SDK to get the list of scopes for the selected
-        // bucket
-        // For example:
-        // List<ScopeSpec> scopes =
-        // cluster.bucket(selectedBucket).collections().getAllScopes();
-        // Then you can update the scopeComboBox with the list of scopes
+        private void updateScopes() {
+                // Get selected bucket
+                String selectedBucket = (String) bucketComboBox.getSelectedItem();
 
-        // Enable scope combo box
-        scopeComboBox.setEnabled(true);
-    }
+                // TODO: Get scopes for selected bucket and update scopeComboBox
+                // You can use the Couchbase Java SDK to get the list of scopes for the selected
+                // bucket
+                // For example:
+                // List<ScopeSpec> scopes =
+                // cluster.bucket(selectedBucket).collections().getAllScopes();
+                // Then you can update the scopeComboBox with the list of scopes
 
-    public String getSelectedBucket() {
-        return (String) bucketComboBox.getSelectedItem();
-    }
+                // Enable scope combo box
+                scopeComboBox.setEnabled(true);
+        }
 
-    public String getSelectedScope() {
-        return (String) scopeComboBox.getSelectedItem();
-    }
+        public String getSelectedBucket() {
+                return (String) bucketComboBox.getSelectedItem();
+        }
 
-    public String getFunctionName() {
-        return functionNameField.getText();
-    }
+        public String getSelectedScope() {
+                return (String) scopeComboBox.getSelectedItem();
+        }
+
+        public String getFunctionName() {
+                return functionNameField.getText();
+        }
 }
