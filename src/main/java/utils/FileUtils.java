@@ -34,13 +34,4 @@ public class FileUtils {
         file.close();
         return lastLine;
     }
-
-    public static void main(String[] args) {
-        String filePath = "/Users/denisrosa/Documents/cb_export-landmark-2023-06-06-20-35-43.json";
-        try {
-            System.out.println(readLastLine(filePath));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }

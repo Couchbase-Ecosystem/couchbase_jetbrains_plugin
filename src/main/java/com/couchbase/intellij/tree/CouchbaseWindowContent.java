@@ -471,7 +471,6 @@ public class CouchbaseWindowContent extends JPanel {
                         .save(("cb_export-" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
                 if (wrapper != null) {
                     File file = wrapper.getFile();
-                    System.out.println(file.getAbsolutePath());
                     CBExport.quickExport(col.getBucket(), col.getScope(), col.getText(), file.getAbsolutePath(), null);
                 }
             });

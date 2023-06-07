@@ -131,23 +131,6 @@ public class QueryExecutor {
 
         return updateQueryHistory(query, historyIndex);
     }
-//
-//    private static List<Map<String, Object>> getResults(List<JsonObject> objects) {
-//        try {
-//            Field field = JsonObject.class.getDeclaredField("content");
-//            field.setAccessible(true);
-//
-//            List<Map<String, Object>> result = new ArrayList<>();
-//            for (JsonObject obj : objects) {
-//                System.out.println(obj);
-//                result.add((Map<String, Object>) field.get(obj));
-//            }
-//            return result;
-//        } catch (NoSuchFieldException | IllegalAccessException e) {
-//            e.printStackTrace();
-//        }
-//        return new ArrayList<>();
-//    }
 
     private static String getSizeText(long size) {
         if (size < 1024) {
