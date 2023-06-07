@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tools.github;
 
-import com.couchbase.intellij.helpers.ImageLoader;
 import com.couchbase.intellij.tree.examples.Card;
 import com.intellij.ide.impl.ProjectUtil;
 import com.intellij.openapi.application.ApplicationManager;
@@ -10,6 +9,7 @@ import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import utils.ImageLoader;
 
 import java.io.File;
 import java.util.ArrayList;

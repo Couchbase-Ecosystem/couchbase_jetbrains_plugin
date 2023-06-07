@@ -1,19 +1,34 @@
 package com.couchbase.intellij.tree;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.Map;
-import java.util.TreeMap;
+import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.tools.CBExport;
+import com.couchbase.intellij.tools.CBImport;
+import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.tree.examples.CardDialog;
+import com.couchbase.intellij.tree.node.*;
+import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.*;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileWrapper;
+import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.treeStructure.Tree;
+import org.jetbrains.annotations.NotNull;
+import utils.TimeUtils;
 
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JTree;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
@@ -21,38 +36,12 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
-
-import org.jetbrains.annotations.NotNull;
-
-import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.intellij.DocumentFormatter;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.DataLoader;
-import com.couchbase.intellij.persistence.SavedCluster;
-import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
-import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
-import com.couchbase.intellij.tree.examples.CardDialog;
-import com.couchbase.intellij.tree.node.BucketNodeDescriptor;
-import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
-import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
-import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
-import com.couchbase.intellij.tree.node.LoadMoreNodeDescriptor;
-import com.couchbase.intellij.tree.node.SchemaNodeDescriptor;
-import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionToolbar;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
-import com.intellij.openapi.fileTypes.FileTypeManager;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.testFramework.LightVirtualFile;
-import com.intellij.ui.treeStructure.Tree;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CouchbaseWindowContent extends JPanel {
 
@@ -269,7 +258,7 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
     private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-            ConnectionNodeDescriptor userObject, Tree tree) {
+                                                   ConnectionNodeDescriptor userObject, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         ConnectionNodeDescriptor con = userObject;
 
@@ -402,7 +391,7 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
     private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CollectionNodeDescriptor col, Tree tree) {
+                                                   CollectionNodeDescriptor col, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
         String filter = "Add Document Filter";
@@ -438,6 +427,7 @@ public class CouchbaseWindowContent extends JPanel {
             });
         }
 
+        popup.addSeparator();
         // Add "Delete Collection" option
         JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
         deleteCollectionItem.addActionListener(e1 -> {
@@ -458,13 +448,43 @@ public class CouchbaseWindowContent extends JPanel {
         });
         popup.add(deleteCollectionItem);
 
+        //cbexport and cbimport are installed together, so if one is available the other also is
+        if (CBTools.getCbExport().isAvailable()) {
+            popup.addSeparator();
+            JMenuItem quickImport = new JMenuItem("Quick Import");
+            quickImport.addActionListener(e12 -> {
+                FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+                VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+                if (file != null) {
+                    CBImport.quickImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(), null);
+                } else {
+                    Messages.showErrorDialog("Quick Import requires a .json file. Please try again.", "Quick Import Error");
+                }
+            });
+            popup.add(quickImport);
+
+            JMenuItem quickExport = new JMenuItem("Quick Export");
+            quickExport.addActionListener(e12 -> {
+                FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Collection Export", "Choose where you want to save the file:");
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
+                        .createSaveFileDialog(fsd, project)
+                        .save(("cb_export-" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+                if (wrapper != null) {
+                    File file = wrapper.getFile();
+                    System.out.println(file.getAbsolutePath());
+                    CBExport.quickExport(col.getBucket(), col.getScope(), col.getText(), file.getAbsolutePath(), null);
+                }
+            });
+            popup.add(quickExport);
+        }
+
         popup.show(tree, e.getX(), e.getY());
     }
 
     class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
-                boolean leaf, int row, boolean hasFocus) {
+                                                      boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;

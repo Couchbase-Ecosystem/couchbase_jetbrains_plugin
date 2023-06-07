@@ -2,7 +2,6 @@ package com.couchbase.intellij.tree.docfilter;
 
 import com.couchbase.client.core.error.CouchbaseException;
 import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.helpers.ColorHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
@@ -22,6 +21,7 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.UIUtil;
 import org.intellij.sdk.language.SQLPPFileType;
 import org.jetbrains.annotations.Nullable;
+import utils.ColorHelper;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
