@@ -112,10 +112,9 @@
 
 //       if it is constant alias, the first line is constant alias(the dropdown menu itself) and  two textfields containing placeholder texts of “Username..” and “password…” Respectively.
 // }
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.eventing;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -125,13 +124,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Set;
 
-import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -1016,32 +1013,5 @@ public class FunctionDeploymentDialog extends DialogWrapper {
 
         public String getFunctionName() {
                 return functionNameField.getText();
-        }
-}
-
-class CustomComboBox extends JComboBox<String> {
-        public CustomComboBox() {
-                setRenderer(new DefaultListCellRenderer() {
-                        @Override
-                        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                        boolean isSelected,
-                                        boolean cellHasFocus) {
-                                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index,
-                                                isSelected,
-                                                cellHasFocus);
-                                if (index == 0) {
-                                        label.setForeground(Color.GRAY);
-                                }
-                                return label;
-                        }
-                });
-        }
-
-        @Override
-        public void setPopupVisible(boolean v) {
-                if (v && getSelectedIndex() == 0) {
-                        return;
-                }
-                super.setPopupVisible(v);
         }
 }

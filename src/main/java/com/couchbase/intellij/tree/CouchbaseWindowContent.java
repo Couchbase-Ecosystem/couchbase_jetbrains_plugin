@@ -22,6 +22,9 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
+import com.couchbase.intellij.eventing.FunctionDeploymentDialog;
+import com.couchbase.intellij.eventing.FunctionDeploymentSettings;
+
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
@@ -125,8 +128,10 @@ public class CouchbaseWindowContent extends JPanel {
                 JPopupMenu menu = new JPopupMenu();
                 JMenuItem item1 = new JMenuItem("New Project from Template");
                 JMenuItem item2 = new JMenuItem("Deploy Function");
+                JMenuItem item3 = new JMenuItem("Function Settings");
                 menu.add(item1);
                 menu.add(item2);
+                menu.add(item3);
 
                 item1.addActionListener(e1 -> {
                     CardDialog dialog = new CardDialog(project);
@@ -134,9 +139,13 @@ public class CouchbaseWindowContent extends JPanel {
                 });
 
                 item2.addActionListener(e2 -> {
-                    // Code for "Test 2" here
                     FunctionDeploymentDialog dialog = new FunctionDeploymentDialog(project);
                     dialog.show();
+                });
+
+                item3.addActionListener(e3 -> {
+                    FunctionDeploymentSettings settings = new FunctionDeploymentSettings();
+                    settings.setVisible(true);
                 });
 
                 Component component = e.getInputEvent().getComponent();
