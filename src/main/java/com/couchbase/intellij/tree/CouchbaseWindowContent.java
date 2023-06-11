@@ -8,6 +8,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
+import com.couchbase.intellij.tools.CBShell;
 import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.examples.CardDialog;
@@ -26,6 +27,7 @@ import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
+import utils.OSUtil;
 import utils.TimeUtils;
 
 import javax.swing.*;
@@ -59,7 +61,7 @@ public class CouchbaseWindowContent extends JPanel {
 
         // create the toolbar
         JPanel toolBarPanel = new JPanel(new BorderLayout());
-        AnAction newWorkbench = new AnAction() {
+        AnAction newWorkbench = new AnAction("New Query Workbench") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().runWriteAction(() -> {
@@ -83,9 +85,8 @@ public class CouchbaseWindowContent extends JPanel {
 
         newWorkbench.getTemplatePresentation().setIcon(
                 IconLoader.findIcon("./assets/icons/new_query.svg", CouchbaseWindowContent.class, false, true));
-        newWorkbench.getTemplatePresentation().setDescription("Refresh");
 
-        AnAction addConnectionAction = new AnAction() {
+        AnAction addConnectionAction = new AnAction("Add New Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Add connection action code here
@@ -95,19 +96,23 @@ public class CouchbaseWindowContent extends JPanel {
         };
         addConnectionAction.getTemplatePresentation().setIcon(
                 IconLoader.findIcon("./assets/icons/new_database.svg", CouchbaseWindowContent.class, false, true));
-        addConnectionAction.getTemplatePresentation().setDescription("Add New Connection");
 
-        AnAction importDataAction = new AnAction() {
+        AnAction cbshellAction = new AnAction("Open New CB Shell") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                // Import data action code here
+
+                if (ActiveCluster.getInstance().get() != null) {
+                    CBShell.openNewTerminal();
+                } else {
+                    Messages.showErrorDialog("You need to connecto to a cluster first before running CB Shell"
+                            , "Couchbase Plugin Error");
+                }
             }
         };
-        importDataAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/database_import.svg", CouchbaseWindowContent.class, false, true));
-        importDataAction.getTemplatePresentation().setDescription("Import Data");
+        cbshellAction.getTemplatePresentation().setIcon(
+                IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
 
-        AnAction ellipsisAction = new AnAction() {
+        AnAction ellipsisAction = new AnAction("More Options") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Open menu code here
@@ -139,7 +144,10 @@ public class CouchbaseWindowContent extends JPanel {
         leftActionGroup.addSeparator();
         leftActionGroup.add(newWorkbench);
         leftActionGroup.addSeparator();
-        leftActionGroup.add(importDataAction);
+
+        if (OSUtil.isMacOS()) {
+            leftActionGroup.add(cbshellAction);
+        }
 
         DefaultActionGroup rightActionGroup = new DefaultActionGroup();
         rightActionGroup.add(ellipsisAction);
@@ -330,18 +338,17 @@ public class CouchbaseWindowContent extends JPanel {
     private static void handleScopeRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
-
+        ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         // Add "Delete Scope" option
         JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
         deleteScopeItem.addActionListener(e1 -> {
-            ScopeNodeDescriptor scopeNodeDescriptor = (ScopeNodeDescriptor) clickedNode.getUserObject();
             // Show confirmation dialog before deleting scope
             int result = JOptionPane.showConfirmDialog(tree,
-                    "Are you sure you want to delete the scope " + scopeNodeDescriptor.getText() + "?",
+                    "Are you sure you want to delete the scope " + scope.getText() + "?",
                     "Delete Scope", JOptionPane.YES_NO_OPTION);
             if (result == JOptionPane.YES_OPTION) {
-                ActiveCluster.getInstance().get().bucket(scopeNodeDescriptor.getBucket()).collections()
-                        .dropScope(scopeNodeDescriptor.getText());
+                ActiveCluster.getInstance().get().bucket(scope.getBucket()).collections()
+                        .dropScope(scope.getText());
             }
 
             // Refresh buckets
@@ -351,6 +358,34 @@ public class CouchbaseWindowContent extends JPanel {
             tree.expandPath(treePath);
         });
         popup.add(deleteScopeItem);
+        popup.addSeparator();
+
+        JMenuItem quickImport = new JMenuItem("Quick Import");
+        quickImport.addActionListener(e1 -> {
+            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+            VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+            if (file != null) {
+                CBImport.quickScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
+            } else {
+                Messages.showErrorDialog("Quick Import requires a .json file. Please try again.", "Quick Import Error");
+            }
+        });
+        popup.add(quickImport);
+
+        JMenuItem quickExport = new JMenuItem("Quick Export");
+        quickExport.addActionListener(e1 -> {
+            FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Scope Export", "Choose where you want to save the file:");
+            VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
+                    .createSaveFileDialog(fsd, project)
+                    .save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+            if (wrapper != null) {
+                File file = wrapper.getFile();
+                CBExport.quickScopeExport(scope.getBucket(), scope.getText(), file.getAbsolutePath());
+            }
+        });
+        popup.add(quickExport);
+
+
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -456,7 +491,7 @@ public class CouchbaseWindowContent extends JPanel {
                 FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
                 VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
                 if (file != null) {
-                    CBImport.quickImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(), null);
+                    CBImport.quickCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(), null);
                 } else {
                     Messages.showErrorDialog("Quick Import requires a .json file. Please try again.", "Quick Import Error");
                 }
@@ -468,10 +503,10 @@ public class CouchbaseWindowContent extends JPanel {
                 FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Collection Export", "Choose where you want to save the file:");
                 VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
                         .createSaveFileDialog(fsd, project)
-                        .save(("cb_export-" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+                        .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
                 if (wrapper != null) {
                     File file = wrapper.getFile();
-                    CBExport.quickExport(col.getBucket(), col.getScope(), col.getText(), file.getAbsolutePath(), null);
+                    CBExport.quickCollectionExport(col.getBucket(), col.getScope(), col.getText(), file.getAbsolutePath(), null);
                 }
             });
             popup.add(quickExport);

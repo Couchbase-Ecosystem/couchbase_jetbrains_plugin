@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
+
 public class CustomSqlFileEditor implements FileEditor {
     public static final String NO_QUERY_CONTEXT_SELECTED = "No Query Context Selected";
     private final Editor queryEditor;
@@ -81,7 +83,7 @@ public class CustomSqlFileEditor implements FileEditor {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 String editorText = queryEditor.getDocument().getText();
-                if (QueryExecutor.executeQuery(editorText, selectedBucketContext, selectedScopeContext,
+                if (QueryExecutor.executeQuery(NORMAL, editorText, selectedBucketContext, selectedScopeContext,
                         currentHistoryIndex, project)) {
                     int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
                     currentHistoryIndex = historySize - 1;
@@ -94,6 +96,31 @@ public class CustomSqlFileEditor implements FileEditor {
         });
 
         executeGroup.addSeparator();
+
+        Icon adviseIcon = IconLoader.findIcon("./assets/icons/advise.svg");
+        executeGroup.add(new AnAction("Advise", "Get index recommendations about your query", adviseIcon) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                String editorText = queryEditor.getDocument().getText();
+                QueryExecutor.executeQuery(ADVISE, editorText, selectedBucketContext, selectedScopeContext,
+                        -1, project);
+            }
+        });
+
+        Icon explainIcon = IconLoader.findIcon("assets/icons/explain.svg");
+        executeGroup.add(new AnAction("Explain", "Explains the query phases", explainIcon) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                String editorText = queryEditor.getDocument().getText();
+                QueryExecutor.executeQuery(EXPLAIN, editorText, selectedBucketContext, selectedScopeContext,
+                        -1, project);
+            }
+        });
+
+
+        executeGroup.addSeparator();
+
+
         Icon favoriteList = IconLoader.findIcon("./assets/icons/favorites-list.svg");
         executeGroup.add(new AnAction("Favorite List", "List of favorite queries", favoriteList) {
             @Override

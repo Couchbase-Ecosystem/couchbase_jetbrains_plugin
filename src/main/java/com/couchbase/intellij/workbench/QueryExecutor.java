@@ -6,6 +6,7 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryMetrics;
 import com.couchbase.client.java.query.QueryOptions;
+import com.couchbase.client.java.query.QueryProfile;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
@@ -44,19 +45,25 @@ public class QueryExecutor {
     }
 
 
-    public static boolean executeQuery(String query, String bucket, String scope, int historyIndex, Project project) {
-
+    public static boolean executeQuery(QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
 
         if (query == null || query.trim().isEmpty()) {
             return false;
         }
         if (ActiveCluster.getInstance().get() == null) {
-            Messages.showMessageDialog(
-                    "There is no active connection to run this query", "Couchbase Plugin Error"
-                    , Messages.getErrorIcon());
+            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
             return false;
         }
         getOutputWindow(project).setStatusAsLoading();
+
+        if (QueryType.EXPLAIN == type) {
+            query = "EXPLAIN " + query;
+        } else if (QueryType.ADVISE == type) {
+            query = "ADVISE " + query;
+        }
+
+        final String adjustedQuery = query;
+
         SwingUtilities.invokeLater(() -> {
             long start = 0;
             try {
@@ -64,16 +71,14 @@ public class QueryExecutor {
                 QueryResult result;
 
                 if (bucket != null) {
-                    result = ActiveCluster.getInstance().get().bucket(bucket).
-                            scope(scope)
-                            .query(query, QueryOptions.queryOptions().metrics(true));
+                    result = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(adjustedQuery,
+                            QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
                 } else {
-                    result = ActiveCluster.getInstance().get().query(query, QueryOptions.queryOptions().metrics(true));
+                    result = ActiveCluster.getInstance().get().query(adjustedQuery, QueryOptions.queryOptions().metrics(true));
                 }
                 long end = System.currentTimeMillis();
 
                 Optional<QueryMetrics> metrics = result.metaData().metrics();
-
                 List<String> metricsList = new ArrayList<>();
                 boolean isMutation = false;
                 if (metrics.isPresent()) {
@@ -108,28 +113,42 @@ public class QueryExecutor {
                         CoreQueryResult internal = (CoreQueryResult) field.get(result);
                         List<JsonObject> objList = new ArrayList<>();
                         internal.rows().forEach(e -> {
-                                    JsonObject obj = JsonObject.create();
-                                    obj.put("content", JsonArray.fromJson(e.data()));
-                                    objList.add(obj);
-                                }
-                        );
+                            JsonObject obj = JsonObject.create();
+                            obj.put("content", JsonArray.fromJson(e.data()));
+                            objList.add(obj);
+                        });
                         resultList = objList;
                     } else {
                         throw ex;
                     }
                 }
 
-                getOutputWindow(project).updateQueryStats(isMutation, metricsList, resultList, null);
+
+                String timings;
+                if (QueryType.EXPLAIN == type) {
+                    timings = result.rowsAsObject().get(0).get("plan").toString();
+                } else {
+                    timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
+                }
+
+                getOutputWindow(project).updateQueryStats(isMutation, metricsList, resultList, null, timings);
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
                 getOutputWindow(project).updateQueryStats(false, Arrays.asList((end - start) + " MS", "-", "-", "-", "-"),
-                        null, CouchbaseQueryErrorUtil.parseQueryError(e));
+                        null, CouchbaseQueryErrorUtil.parseQueryError(e), null);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
 
-        return updateQueryHistory(query, historyIndex);
+        //if historyIndex is negative, doesn't add it to the history
+        if (historyIndex >= 0) {
+            return updateQueryHistory(query, historyIndex);
+        } else {
+            return false;
+        }
+
+
     }
 
     private static String getSizeText(long size) {
@@ -141,8 +160,7 @@ public class QueryExecutor {
     }
 
     private static boolean updateQueryHistory(String query, int currentIndex) {
-        List<String> hist = QueryHistoryStorage.getInstance()
-                .getValue().getHistory();
+        List<String> hist = QueryHistoryStorage.getInstance().getValue().getHistory();
         if (query == null) {
             return false;
         }
@@ -168,5 +186,11 @@ public class QueryExecutor {
             hist.remove(0);
             hist.add(query.trim());
         }
+    }
+
+    public enum QueryType {
+        NORMAL,
+        EXPLAIN,
+        ADVISE
     }
 }

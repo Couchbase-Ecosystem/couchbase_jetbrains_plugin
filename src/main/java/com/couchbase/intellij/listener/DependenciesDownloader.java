@@ -7,12 +7,10 @@ import com.intellij.openapi.application.PathManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,44 +18,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static utils.FileUtils.*;
+import static utils.OSUtil.*;
+
 //TODO: This code is a little bit messy and definitely deserves some love in the future
 public class DependenciesDownloader {
 
-    public static final String MACOS_ARM = "macos-arm";
-    public static final String MACOS_64 = "macos-64";
-    public static final String WINDOWS_ARM = "windows-arm";
-    public static final String WINDOWS_64 = "windows-64";
-    public static final String LINUX_ARM = "linux-arm";
-    public static final String LINUX_64 = "linux-64";
     public static final String TOOL_SHELL = "shell";
     public static final String TOOL_IMPORT_EXPORT = "import_export";
 
-    private String getOSArch() {
-
-        String os = System.getProperty("os.name").toLowerCase();
-        String arch = System.getProperty("os.arch");
-
-        if (os.contains("mac")) {
-            if (arch.contains("arm")) {
-                return MACOS_ARM;
-            } else {
-                return MACOS_64;
-            }
-        } else if (os.contains("windows")) {
-            if (arch.contains("arm")) {
-                return WINDOWS_ARM;
-            } else {
-                return WINDOWS_64;
-            }
-        } else {
-            if (arch.contains("arm")) {
-                return LINUX_ARM;
-            } else {
-                return LINUX_64;
-            }
-        }
-
-    }
 
     private String getToolInstallPath(String toolKey) {
 
@@ -132,7 +101,6 @@ public class DependenciesDownloader {
 
     public void downloadDependencies() throws Exception {
         String toolsPath = PathManager.getConfigPath() + File.separator + "couchbase-intellij-plugin";
-        System.out.println(toolsPath);
         createFolder(toolsPath);
         toolsPath += File.separator + "tools";
         createFolder(toolsPath);
@@ -164,20 +132,6 @@ public class DependenciesDownloader {
         }
     }
 
-    public static void makeFilesExecutable(File directory) {
-        File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    makeFilesExecutable(file);
-                } else {
-                    if (!file.setExecutable(true)) {
-                        System.out.println("Could not set executable flag on file: " + file.getAbsolutePath());
-                    }
-                }
-            }
-        }
-    }
 
     private void setToolActive(String toolKey, ToolStatus status, String path, ToolSpec spec) {
         if (TOOL_SHELL.equals(toolKey)) {
@@ -224,34 +178,6 @@ public class DependenciesDownloader {
         });
     }
 
-    //TODO: Not TESTED ON WINDOWS YET
-    public void unzipFile(String zipFilePath, String destDir) throws IOException {
-        String osName = System.getProperty("os.name").toLowerCase();
-        String unzipCommand;
-
-        if (osName.contains("win")) {
-            unzipCommand = "powershell.exe -nologo -noprofile -command \"Expand-Archive -Path '" + zipFilePath + "' -DestinationPath '" + destDir + "' -Force\"";
-        } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
-            unzipCommand = "unzip -o -q " + zipFilePath + " -d " + destDir;
-        } else {
-            throw new UnsupportedOperationException("Unsupported operating system: " + osName);
-        }
-
-        Process process = Runtime.getRuntime().exec(unzipCommand);
-
-        try {
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new IOException("Command exited with code: " + exitCode);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Command execution was interrupted", e);
-        }
-
-        File zipFile = new File(zipFilePath);
-        zipFile.delete();
-    }
 
     //TODO: Keep this code until we have tested everything on windows
 //    private void unzipFile(String zipFilePath, String destDir) throws IOException {
@@ -285,18 +211,6 @@ public class DependenciesDownloader {
 //        }
 //    }
 
-    public void createFolder(String folderPath) throws Exception {
-        Path path = Paths.get(folderPath);
-        if (Files.exists(path)) {
-        } else {
-            try {
-                Files.createDirectory(path);
-            } catch (Exception e) {
-                System.out.println("Failed to create folder: " + e.getMessage());
-                throw e;
-            }
-        }
-    }
 
     public boolean isInstalled(String pluginPath, ToolSpec spec) {
         return Files.exists(Paths.get(pluginPath + File.separator

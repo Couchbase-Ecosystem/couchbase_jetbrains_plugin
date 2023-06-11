@@ -11,8 +11,9 @@ public class ToolWindowListener implements ToolWindowManagerListener {
     @Override
     public void toolWindowsRegistered(@NotNull List<String> ids, @NotNull ToolWindowManager toolWindowManager) {
         if (ids.contains("Couchbase")) {
-            DependenciesDownloader dep = new DependenciesDownloader();
             try {
+                FileConfigInitializer.start();
+                DependenciesDownloader dep = new DependenciesDownloader();
                 dep.downloadDependencies();
             } catch (Exception e) {
                 e.printStackTrace();
