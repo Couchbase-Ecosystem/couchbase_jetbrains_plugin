@@ -220,6 +220,18 @@ public class CouchbaseWindowContent extends JPanel {
                             } else {
                                 System.err.println("virtual file is null");
                             }
+                        } else if (userObject instanceof MissingIndexNodeDescriptor) {
+                            MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
+                            int result = Messages.showYesNoDialog(
+                                    "<html>Are you sure that you would like to create a primary index on <strong>"
+                                            + node.getBucket() + "." + node.getScope() + "." + node.getCollection() + "</strong>?<br><br>" +
+                                            "<small>We don't recommend primary indexes in production environments.</small><br>" +
+                                            "<small>This operation might take a while.</small></html>",
+                                    "Create New Index", Messages.getQuestionIcon());
+                            if (result == Messages.YES) {
+                                DataLoader.createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection());
+                                tree.collapsePath(clickedPath.getParentPath());
+                            }
                         }
                     } else {
                         // do nothing for now
@@ -339,26 +351,32 @@ public class CouchbaseWindowContent extends JPanel {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
-        // Add "Delete Scope" option
-        JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
-        deleteScopeItem.addActionListener(e1 -> {
-            // Show confirmation dialog before deleting scope
-            int result = JOptionPane.showConfirmDialog(tree,
-                    "Are you sure you want to delete the scope " + scope.getText() + "?",
-                    "Delete Scope", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
+
+        //can't delete the default scope
+        if (!"_default".equals(scope.getText())) {
+            // Add "Delete Scope" option
+            JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
+            deleteScopeItem.addActionListener(e1 -> {
+                // Show confirmation dialog before deleting scope
+                int result = Messages.showYesNoDialog(
+                        "Are you sure you want to delete the scope " + scope.getText() + "?",
+                        "Delete Scope", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
+                }
+
                 ActiveCluster.getInstance().get().bucket(scope.getBucket()).collections()
                         .dropScope(scope.getText());
-            }
+                // Refresh buckets
+                DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                TreePath treePath = new TreePath(bucketTreeNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+            popup.add(deleteScopeItem);
+            popup.addSeparator();
+        }
 
-            // Refresh buckets
-            DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-            TreePath treePath = new TreePath(bucketTreeNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-        popup.add(deleteScopeItem);
-        popup.addSeparator();
 
         JMenuItem quickImport = new JMenuItem("Quick Import");
         quickImport.addActionListener(e1 -> {
@@ -463,25 +481,29 @@ public class CouchbaseWindowContent extends JPanel {
         }
 
         popup.addSeparator();
-        // Add "Delete Collection" option
-        JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
-        deleteCollectionItem.addActionListener(e1 -> {
-            int result = JOptionPane.showConfirmDialog(tree,
-                    "Are you sure you want to delete the collection " + col.getText() + "?",
-                    "Delete Collection", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
+
+        if (!"_default".equals(col.getText()) && !"_default".equals(col.getScope())) {
+            // Add "Delete Collection" option
+            JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
+            deleteCollectionItem.addActionListener(e1 -> {
+                int result = Messages.showYesNoDialog(
+                        "Are you sure you want to delete the collection " + col.getText() + "?",
+                        "Delete Collection", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
+                }
+
                 ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
                         .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
-            }
-
-            // Refresh collections
-            DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
-                    .getParent());
-            TreePath treePath = new TreePath(colsTreeNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-        popup.add(deleteCollectionItem);
+                // Refresh collections
+                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
+                        .getParent());
+                TreePath treePath = new TreePath(colsTreeNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+            popup.add(deleteCollectionItem);
+        }
 
         //cbexport and cbimport are installed together, so if one is available the other also is
         if (CBTools.getCbExport().isAvailable()) {

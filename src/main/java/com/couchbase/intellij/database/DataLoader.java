@@ -1,5 +1,6 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.core.error.PlanningFailureException;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.json.JsonArray;
@@ -14,13 +15,13 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
-import com.couchbase.intellij.tree.FileNodeDescriptor;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -29,6 +30,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.ui.treeStructure.Tree;
 
+import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.io.File;
@@ -52,12 +54,17 @@ public class DataLoader {
                 try {
                     Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
-                    for (String bucket : buckets) {
 
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket,
-                                ActiveCluster.getInstance().getId()));
-                        childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                        parentNode.add(childNode);
+                    if (!buckets.isEmpty()) {
+                        for (String bucket : buckets) {
+
+                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket,
+                                    ActiveCluster.getInstance().getId()));
+                            childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                            parentNode.add(childNode);
+                        }
+                    } else {
+                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
@@ -82,22 +89,29 @@ public class DataLoader {
                     List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
                             .getAllScopes();
                     parentNode.removeAllChildren();
-                    for (ScopeSpec scopeSpec : scopes) {
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(),
-                                        bucketName));
 
-                        DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
-                                new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName,
-                                        scopeSpec.name()));
-                        collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                        childNode.add(collections);
+                    if (!scopes.isEmpty()) {
 
-                        DefaultMutableTreeNode indexes = new DefaultMutableTreeNode(new IndexesNodeDescriptor());
-                        indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                        childNode.add(indexes);
-                        parentNode.add(childNode);
+                        for (ScopeSpec scopeSpec : scopes) {
+                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                    new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(),
+                                            bucketName));
+
+                            DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
+                                    new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName,
+                                            scopeSpec.name()));
+                            collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                            childNode.add(collections);
+
+                            DefaultMutableTreeNode indexes = new DefaultMutableTreeNode(new IndexesNodeDescriptor());
+                            indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                            childNode.add(indexes);
+                            parentNode.add(childNode);
+                        }
+                    } else {
+                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
+
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -125,19 +139,23 @@ public class DataLoader {
                             .flatMap(scope -> scope.collections().stream())
                             .collect(Collectors.toList());
 
-                    for (CollectionSpec spec : collections) {
+                    if (!collections.isEmpty()) {
+                        for (CollectionSpec spec : collections) {
 
-                        String filter = QueryFiltersStorage.getInstance()
-                                .getValue()
-                                .getQueryFilter(ActiveCluster.getInstance().getId(),
-                                        cols.getBucket(), cols.getScope(), spec.name());
+                            String filter = QueryFiltersStorage.getInstance()
+                                    .getValue()
+                                    .getQueryFilter(ActiveCluster.getInstance().getId(),
+                                            cols.getBucket(), cols.getScope(), spec.name());
 
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
-                                new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
-                                        cols.getBucket(), cols.getScope(), filter));
+                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                                    new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(),
+                                            cols.getBucket(), cols.getScope(), filter));
 
-                        childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                        parentNode.add(childNode);
+                            childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                            parentNode.add(childNode);
+                        }
+                    } else {
+                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
@@ -182,58 +200,68 @@ public class DataLoader {
                         .query(query)
                         .rowsAsObject();
 
-                ApplicationManager.getApplication().runWriteAction(() -> {
-                    PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(),
-                            colNode.getBucket(), colNode.getScope(),
-                            colNode.getText());
+                if (!results.isEmpty()) {
+                    ApplicationManager.getApplication().runWriteAction(() -> {
+                        PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(),
+                                colNode.getBucket(), colNode.getScope(),
+                                colNode.getText());
 
-                    for (JsonObject obj : results) {
+                        for (JsonObject obj : results) {
 
-                        String docId = obj.getString("cbFileNameId");
-                        Long cas = obj.getLong("cbCasNb");
-                        obj.removeKey("cbFileNameId");
-                        obj.removeKey("cbCasNb");
+                            String docId = obj.getString("cbFileNameId");
+                            Long cas = obj.getLong("cbCasNb");
+                            obj.removeKey("cbFileNameId");
+                            obj.removeKey("cbCasNb");
 
-                        String fileName = docId + ".json";
-                        // removes the id that we added
+                            String fileName = docId + ".json";
+                            // removes the id that we added
 
-                        String fileContent = obj.toString(); // replace with actual JSON content if needed
+                            String fileContent = obj.toString(); // replace with actual JSON content if needed
 
-                        // Check if the file already exists before creating it
-                        PsiFile psiFile = psiDirectory.findFile(fileName);
-                        if (psiFile == null) {
-                            psiFile = psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())
-                                    .createFile(fileName);
+                            // Check if the file already exists before creating it
+                            PsiFile psiFile = psiDirectory.findFile(fileName);
+                            if (psiFile == null) {
+                                psiFile = psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())
+                                        .createFile(fileName);
+                            }
+
+                            // Get the Document associated with the PsiFile
+                            Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
+                            if (document != null) {
+                                document.setText(fileContent);
+                            }
+
+                            // Retrieve the VirtualFile from the PsiFile
+                            VirtualFile virtualFile = psiFile.getVirtualFile();
+                            virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
+                            virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
+                            virtualFile.putUserData(VirtualFileKeys.BUCKET, colNode.getBucket());
+                            virtualFile.putUserData(VirtualFileKeys.SCOPE, colNode.getScope());
+                            virtualFile.putUserData(VirtualFileKeys.COLLECTION, colNode.getText());
+                            virtualFile.putUserData(VirtualFileKeys.ID, docId);
+                            virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
+
+                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, virtualFile);
+                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                            parentNode.add(jsonFileNode);
                         }
 
-                        // Get the Document associated with the PsiFile
-                        Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
-                        if (document != null) {
-                            document.setText(fileContent);
-                        }
+                    });
 
-                        // Retrieve the VirtualFile from the PsiFile
-                        VirtualFile virtualFile = psiFile.getVirtualFile();
-                        virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
-                        virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
-                        virtualFile.putUserData(VirtualFileKeys.BUCKET, colNode.getBucket());
-                        virtualFile.putUserData(VirtualFileKeys.SCOPE, colNode.getScope());
-                        virtualFile.putUserData(VirtualFileKeys.COLLECTION, colNode.getText());
-                        virtualFile.putUserData(VirtualFileKeys.ID, docId);
-                        virtualFile.putUserData(VirtualFileKeys.CAS, cas.toString());
-
-                        FileNodeDescriptor node = new FileNodeDescriptor(fileName, virtualFile);
-                        DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
-                        parentNode.add(jsonFileNode);
+                    if (results.size() == 10) {
+                        DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
+                                new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                        parentNode.add(loadMoreNode);
                     }
-
-                });
-
-                if (results.size() == 10) {
-                    DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
-                            new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
-                    parentNode.add(loadMoreNode);
+                } else if (newOffset == 0) {
+                    parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                 }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+            } catch (PlanningFailureException e) {
+                parentNode.removeAllChildren();
+                MissingIndexNodeDescriptor idx = new MissingIndexNodeDescriptor(colNode.getBucket(),
+                        colNode.getScope(), colNode.getText());
+                parentNode.add(new DefaultMutableTreeNode(idx));
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -385,5 +413,23 @@ public class DataLoader {
     public static void deleteSavedCluster(SavedCluster sv) {
         PasswordStorage.savePassword(sv, null);
         ClustersStorage.getInstance().getValue().getMap().remove(sv.getId());
+    }
+
+    public static void createPrimaryIndex(String bucket, String scope, String collection) {
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                ActiveCluster.getInstance().get().bucket(bucket)
+                        .scope(scope).collection(collection)
+                        .queryIndexes().createPrimaryIndex();
+
+                SwingUtilities.invokeLater(() -> {
+                    Messages.showInfoMessage("The primary index for the collection "
+                            + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation");
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

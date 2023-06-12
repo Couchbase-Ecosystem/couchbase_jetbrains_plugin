@@ -1,7 +1,6 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tree.node;
 
 import com.intellij.json.JsonFileType;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 
 public class FileNodeDescriptor extends NodeDescriptor {

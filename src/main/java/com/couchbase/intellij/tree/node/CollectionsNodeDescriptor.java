@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree.node;
 
-import com.couchbase.intellij.tree.NodeDescriptor;
 import com.intellij.openapi.util.IconLoader;
 
 public class CollectionsNodeDescriptor extends NodeDescriptor {
@@ -8,6 +7,7 @@ public class CollectionsNodeDescriptor extends NodeDescriptor {
     private String connectionId;
     private String bucket;
     private String scope;
+
     public CollectionsNodeDescriptor(String connectionId, String bucket, String scope) {
         super("Collections", IconLoader.findIcon("./assets/icons/collections.svg", ScopeNodeDescriptor.class,
                 false, true));

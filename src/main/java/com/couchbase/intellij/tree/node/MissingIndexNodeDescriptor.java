@@ -1,20 +1,16 @@
 package com.couchbase.intellij.tree.node;
 
-import com.intellij.openapi.util.IconLoader;
-
-public class LoadMoreNodeDescriptor extends NodeDescriptor {
+public class MissingIndexNodeDescriptor extends NodeDescriptor {
 
     private String bucket;
     private String scope;
     private String collection;
-    private int newOffset;
 
-    public LoadMoreNodeDescriptor(String bucket, String scope, String collection, int newOffset) {
-        super("Load More", IconLoader.findIcon("./assets/icons/double-chevron-down.svg"));
+    public MissingIndexNodeDescriptor(String bucket, String scope, String collection) {
+        super("<html><small>No index found. Double click here to create one</small</html>", null);
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;
-        this.newOffset = newOffset;
     }
 
     public String getBucket() {
@@ -40,12 +36,5 @@ public class LoadMoreNodeDescriptor extends NodeDescriptor {
     public void setCollection(String collection) {
         this.collection = collection;
     }
-
-    public int getNewOffset() {
-        return newOffset;
-    }
-
-    public void setNewOffset(int newOffset) {
-        this.newOffset = newOffset;
-    }
 }
+
