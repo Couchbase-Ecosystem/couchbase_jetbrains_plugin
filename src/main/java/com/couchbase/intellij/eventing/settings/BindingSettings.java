@@ -11,6 +11,7 @@ import javax.swing.JButton;
 // import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 
 import com.couchbase.intellij.eventing.components.CustomComboBox;
 import com.intellij.ui.components.JBCheckBox;
@@ -20,7 +21,7 @@ import com.intellij.ui.components.JBTextField;
 
 public class BindingSettings {
 
-    private Integer bindingTypeCount = 0;
+    private Integer bindingTypeLineIndex = 0;
 
     private JPanel bindingsPanel;
     private JPanel bindingTypePanel;
@@ -82,15 +83,13 @@ public class BindingSettings {
     }
 
     private void addBindingType() {
-        // Increment the binding type count
-        bindingTypeCount++;
 
         // Create a new aliasPanel to hold the binding type components
         bindingTypePanel = new JPanel(new GridBagLayout());
-        GridBagConstraints bindingsGbc = new GridBagConstraints();
-        bindingsGbc.insets = new Insets(5, 5, 5, 5);
-        bindingsGbc.anchor = GridBagConstraints.WEST;
-        bindingsGbc.fill = GridBagConstraints.HORIZONTAL;
+        GridBagConstraints bindingsTypeGbc = new GridBagConstraints();
+        bindingsTypeGbc.insets = new Insets(5, 5, 5, 5);
+        bindingsTypeGbc.anchor = GridBagConstraints.WEST;
+        bindingsTypeGbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Create the binding type dropdown menu
         CustomComboBox bindingTypeComboBox = new CustomComboBox();
@@ -100,9 +99,9 @@ public class BindingSettings {
         bindingTypeComboBox.addItem("URL Alias");
         bindingTypeComboBox.addItem("Constant Alias");
 
-        bindingsGbc.gridx = 0;
-        bindingsGbc.gridy = 0;
-        bindingTypePanel.add(bindingTypeComboBox, bindingsGbc);
+        bindingsTypeGbc.gridx = 0;
+        bindingsTypeGbc.gridy = 0;
+        bindingTypePanel.add(bindingTypeComboBox, bindingsTypeGbc);
 
         // Create a aliasPanel to hold the alias-specific components
         aliasPanel = new JPanel(new GridBagLayout());
@@ -110,10 +109,10 @@ public class BindingSettings {
         aliasGbc.insets = new Insets(5, 5, 5, 5);
         aliasGbc.anchor = GridBagConstraints.WEST;
         aliasGbc.fill = GridBagConstraints.HORIZONTAL;
-        bindingsGbc.gridx = 1;
-        bindingsGbc.gridy = 0;
-        bindingsGbc.gridwidth = 2;
-        bindingTypePanel.add(aliasPanel, bindingsGbc);
+        bindingsTypeGbc.gridx = 1;
+        bindingsTypeGbc.gridy = 0;
+        bindingsTypeGbc.gridwidth = 2;
+        bindingTypePanel.add(aliasPanel, bindingsTypeGbc);
 
         // Update the alias aliasPanel when the selected binding type changes
         bindingTypeComboBox.addItemListener(e -> {
@@ -270,9 +269,9 @@ public class BindingSettings {
                 usernameLabel.setVerticalTextPosition(JBTextField.CENTER);
                 usernameLabel.setVisible(false);
                 usernameLabel.setEnabled(false);
-                bindingsGbc.gridx = 0;
-                bindingsGbc.gridy = 3;
-                aliasPanel.add(usernameLabel, bindingsGbc);
+                aliasGbc.gridx = 0;
+                aliasGbc.gridy = 3;
+                aliasPanel.add(usernameLabel, aliasGbc);
 
                 usernameField = new JBTextField(20);
                 usernameField.setToolTipText(
@@ -280,9 +279,9 @@ public class BindingSettings {
                 usernameField.getEmptyText().setText("Enter the username.");
                 usernameField.setVisible(false);
                 usernameField.setEnabled(false);
-                bindingsGbc.gridx = 1;
-                bindingsGbc.gridy = 3;
-                aliasPanel.add(usernameField, bindingsGbc);
+                aliasGbc.gridx = 1;
+                aliasGbc.gridy = 3;
+                aliasPanel.add(usernameField, aliasGbc);
 
                 // Create the password label and text field
                 passwordLabel = new JBLabel("Password");
@@ -297,9 +296,9 @@ public class BindingSettings {
                 passwordLabel.setVerticalTextPosition(JBTextField.CENTER);
                 passwordLabel.setVisible(false);
                 passwordLabel.setEnabled(false);
-                bindingsGbc.gridx = 0;
-                bindingsGbc.gridy = 4;
-                aliasPanel.add(passwordLabel, bindingsGbc);
+                aliasGbc.gridx = 0;
+                aliasGbc.gridy = 4;
+                aliasPanel.add(passwordLabel, aliasGbc);
 
                 JBPasswordField passwordField = new JBPasswordField();
                 passwordField.setToolTipText(
@@ -307,9 +306,9 @@ public class BindingSettings {
                 passwordField.getEmptyText().setText("Enter the password.");
                 passwordField.setVisible(false);
                 passwordField.setEnabled(false);
-                bindingsGbc.gridx = 1;
-                bindingsGbc.gridy = 4;
-                aliasPanel.add(passwordField, bindingsGbc);
+                aliasGbc.gridx = 1;
+                aliasGbc.gridy = 4;
+                aliasPanel.add(passwordField, aliasGbc);
 
                 // Create the bearer key label and text field
                 bearerKeyLabel = new JBLabel("Bearer Key");
@@ -324,9 +323,9 @@ public class BindingSettings {
                 bearerKeyLabel.setVerticalTextPosition(JBTextField.CENTER);
                 bearerKeyLabel.setVisible(false);
                 bearerKeyLabel.setEnabled(false);
-                bindingsGbc.gridx = 0;
-                bindingsGbc.gridy = 5;
-                aliasPanel.add(bearerKeyLabel, bindingsGbc);
+                aliasGbc.gridx = 0;
+                aliasGbc.gridy = 5;
+                aliasPanel.add(bearerKeyLabel, aliasGbc);
 
                 bearerKeyField = new JBTextField(20);
                 bearerKeyField.setToolTipText(
@@ -334,9 +333,9 @@ public class BindingSettings {
                 bearerKeyField.getEmptyText().setText("Enter the bearer key.");
                 bearerKeyField.setVisible(false);
                 bearerKeyField.setEnabled(false);
-                bindingsGbc.gridx = 1;
-                bindingsGbc.gridy = 5;
-                aliasPanel.add(bearerKeyField, bindingsGbc);
+                aliasGbc.gridx = 1;
+                aliasGbc.gridy = 5;
+                aliasPanel.add(bearerKeyField, aliasGbc);
 
                 // Create the auth dropdown menu listener
                 authComboBox.addActionListener(ee -> {
@@ -419,11 +418,13 @@ public class BindingSettings {
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 1;
                 aliasPanel.add(constantValueField, aliasGbc);
+
             }
 
             // Repaint the alias aliasPanel to show the updated components
             aliasPanel.revalidate();
             aliasPanel.repaint();
+
         });
         bindingTypeComboBox.setSelectedIndex(0);
 
@@ -432,9 +433,18 @@ public class BindingSettings {
         bindingsPanelGbc.insets = new Insets(5, 5, 5, 5);
         bindingsPanelGbc.anchor = GridBagConstraints.WEST;
         bindingsPanelGbc.gridx = 0;
-        bindingsPanelGbc.gridy = bindingTypeCount;
+        bindingsPanelGbc.gridy = ++bindingTypeLineIndex;
         bindingsPanelGbc.gridwidth = 3;
         bindingsPanel.add(bindingTypePanel, bindingsPanelGbc);
+
+        // Add a separator to the bindings aliasPanel
+        JSeparator separator = new JSeparator();
+        separator.setForeground(Color.GRAY);
+        bindingsPanelGbc.gridx = 0;
+        bindingsPanelGbc.gridy = ++bindingTypeLineIndex;
+        bindingsPanelGbc.gridwidth = 3;
+        bindingsPanelGbc.fill = GridBagConstraints.HORIZONTAL;
+        bindingsPanel.add(separator, bindingsPanelGbc);
 
         // Repaint the bindings aliasPanel to show the new binding type
         bindingsPanel.revalidate();
@@ -443,12 +453,15 @@ public class BindingSettings {
 
     private void removeBindingType() {
         // Get the number of binding types
-        int bindingTypeCount = bindingsPanel.getComponentCount();
+        int bindingTypeLineIndex = bindingsPanel.getComponentCount();
 
         // Check if there are any binding types to remove
-        if (bindingTypeCount > 0) {
+        if (bindingTypeLineIndex >= 2) {
+            // Remove the last horizontal separator
+            bindingsPanel.remove(bindingTypeLineIndex - 1);
+
             // Remove the last binding type aliasPanel
-            bindingsPanel.remove(bindingTypeCount - 1);
+            bindingsPanel.remove(bindingTypeLineIndex - 2);
 
             // Repaint the bindings aliasPanel to show the removed binding type
             bindingsPanel.revalidate();
