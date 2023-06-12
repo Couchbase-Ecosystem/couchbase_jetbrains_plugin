@@ -1,15 +1,15 @@
-package com.couchbase.intellij.eventing;
+package com.couchbase.intellij.eventing.components;
 
 import javax.swing.*;
 import java.awt.*;
 
-class CustomComboBox extends JComboBox<String> {
+public class CustomComboBox extends JComboBox<String> {
     public CustomComboBox() {
         setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                          boolean isSelected,
-                                                          boolean cellHasFocus) {
+                    boolean isSelected,
+                    boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index,
                         isSelected,
                         cellHasFocus);
