@@ -30,7 +30,6 @@ import javax.swing.event.DocumentListener;
 import com.couchbase.intellij.eventing.settings.AdvancedSettings;
 import com.couchbase.intellij.eventing.settings.BindingSettings;
 import com.couchbase.intellij.eventing.settings.GeneralSettings;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
@@ -62,7 +61,6 @@ public class FunctionDeploymentSettings extends JFrame {
                 // Create and configure the main panel
                 mainPanel = new JPanel();
                 mainPanel.setLayout(new BorderLayout());
-                // JScrollPane scrollPane = new JScrollPane(mainPanel);
                 setContentPane(mainPanel);
 
                 // Create and configure the left panel
@@ -70,19 +68,19 @@ public class FunctionDeploymentSettings extends JFrame {
                 leftPanel.setLayout(new BorderLayout());
                 leftPanel.setPreferredSize(new Dimension(400, 800));
                 // leftPanel.setForeground(JBColor.BLACK);
-                leftPanel.setBackground(Color.BLACK);
+                leftPanel.setBackground(new Color(62, 67, 76, 255)); // Jetbrains Darcula background color
 
                 // Add components to the left panel
                 titleLabel = new JBLabel("Project Structure");
-                titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
                 titleLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-                titleLabel.setBackground(Color.BLACK);
                 leftPanel.add(titleLabel, BorderLayout.NORTH);
 
                 String[] settings = { "General Settings", "Advanced Settings", "Binding Type" };
                 JList<String> settingsList = new JList<>(settings);
                 settingsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
                 settingsList.setSelectedIndex(0);
+                settingsList.setBackground(new Color(62, 67, 76, 255)); // Jetbrains Darcula background color
 
                 settingsList.setCellRenderer(new DefaultListCellRenderer() {
                         @Override
@@ -92,10 +90,11 @@ public class FunctionDeploymentSettings extends JFrame {
                                 setHorizontalAlignment(SwingConstants.LEFT);
                                 setForeground(Color.WHITE);
                                 if (isSelected) {
-                                        setBackground(new Color(98, 181, 229));
+                                        setBackground(new Color(98, 181, 229)); // Jetbrains Darcula selection color
                                 } else {
-                                        setBackground(Color.BLACK);
+                                        setBackground(new Color(62, 67, 76, 255)); // Jetbrains Darcula background color
                                 }
+                                setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0)); // Add left padding
                                 return this;
                         }
                 });
@@ -110,7 +109,6 @@ public class FunctionDeploymentSettings extends JFrame {
 
                 JBScrollPane leftScrollPane = new JBScrollPane(settingsList);
                 leftScrollPane.setBorder(BorderFactory.createEmptyBorder());
-                leftScrollPane.setBackground(JBColor.BLACK);
                 leftPanel.add(leftScrollPane, BorderLayout.CENTER);
 
                 // Create and configure the right panel
@@ -154,11 +152,14 @@ public class FunctionDeploymentSettings extends JFrame {
                 });
                 bottomPanel.add(cancelButton);
 
-                // Add the panels to the main panel
+                // Add the panels to the main panel with a splitter in the middle
                 JBSplitter splitter = new JBSplitter(false);
                 splitter.setFirstComponent(leftPanel);
                 splitter.setSecondComponent(rightPanel);
+                splitter.setDividerWidth(1);
+                splitter.getDivider().setBackground(new Color(62, 67, 76, 255));
                 mainPanel.add(splitter, BorderLayout.CENTER);
+
                 mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
                 // Add a window listener to handle unsaved changes
