@@ -124,7 +124,7 @@ public class CouchbaseWindowContent extends JPanel {
                 // Open menu code here
                 JPopupMenu menu = new JPopupMenu();
                 JMenuItem item1 = new JMenuItem("New Project from Template");
-                JMenuItem item2 = new JMenuItem("Test 2");
+                JMenuItem item2 = new JMenuItem("Pillow Fight");
                 menu.add(item1);
                 menu.add(item2);
 
@@ -134,7 +134,8 @@ public class CouchbaseWindowContent extends JPanel {
                 });
 
                 item2.addActionListener(e2 -> {
-                    // Code for "Test 2" here
+                    PillowFightDialog dialog = new PillowFightDialog(project);
+                    dialog.show();
                 });
 
                 Component component = e.getInputEvent().getComponent();
