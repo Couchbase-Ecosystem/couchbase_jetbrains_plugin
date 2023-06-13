@@ -2,6 +2,7 @@ package com.couchbase.intellij.workbench;
 
 
 import com.couchbase.client.java.manager.collection.ScopeSpec;
+import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
@@ -57,10 +58,16 @@ public class CustomSqlFileEditor implements FileEditor {
         this.project = project;
         EditorFactory editorFactory = EditorFactory.getInstance();
         Document document = editorFactory.createDocument(LoadTextUtil.loadText(file));
-        this.queryEditor = EditorFactory.getInstance().createEditor(document, project, file, false);
-        this.panel = new JPanel(new BorderLayout());
-        init();
 
+        boolean isViewer = false;
+        if ("true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) {
+            isViewer = true;
+        }
+
+        this.queryEditor = EditorFactory.getInstance().createEditor(document, project, file, isViewer);
+        this.panel = new JPanel(new BorderLayout());
+
+        init(isViewer);
     }
 
     @NotNull
@@ -75,7 +82,17 @@ public class CustomSqlFileEditor implements FileEditor {
         return this.component;
     }
 
-    public void init() {
+    public void init(boolean isViewer) {
+
+        if (!isViewer) {
+            buildToolbar();
+        }
+        panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
+        queryEditor.getContentComponent().requestFocusInWindow();
+        component = panel;
+    }
+
+    private void buildToolbar() {
         DefaultActionGroup executeGroup = new DefaultActionGroup();
 
         Icon executeIcon = IconLoader.findIcon("./assets/icons/play.svg");
@@ -237,9 +254,6 @@ public class CustomSqlFileEditor implements FileEditor {
         topPanel.add(rightPanel, BorderLayout.EAST);
 
         panel.add(topPanel, BorderLayout.NORTH);
-        panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
-        queryEditor.getContentComponent().requestFocusInWindow();
-        component = panel;
     }
 
 

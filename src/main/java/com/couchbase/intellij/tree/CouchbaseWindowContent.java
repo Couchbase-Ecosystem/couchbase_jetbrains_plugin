@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
@@ -185,8 +184,6 @@ public class CouchbaseWindowContent extends JPanel {
                                 handleBucketRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof ScopeNodeDescriptor) {
                                 handleScopeRightClick(e, clickedNode, tree);
-                            } else if (userObject instanceof CollectionsNodeDescriptor) {
-                                handleCollectionsRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionNodeDescriptor) {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
                             }
@@ -212,10 +209,19 @@ public class CouchbaseWindowContent extends JPanel {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
+                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                                fileEditorManager.openFile(virtualFile, true);
 
+                            } else {
+                                System.err.println("virtual file is null");
+                            }
+                        } else if (userObject instanceof IndexNodeDescriptor) {
+                            IndexNodeDescriptor descriptor = (IndexNodeDescriptor) userObject;
+                            VirtualFile virtualFile = descriptor.getVirtualFile();
+                            if (virtualFile != null) {
                                 OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
                                 FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
-                                DocumentFormatter.formatFile(project, virtualFile);
+
 
                             } else {
                                 System.err.println("virtual file is null");
@@ -252,8 +258,6 @@ public class CouchbaseWindowContent extends JPanel {
                     } else if (expandedTreeNode.getUserObject() instanceof BucketNodeDescriptor) {
                         DataLoader.listScopes(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
-                        // Do Nothing
-                    } else if (expandedTreeNode.getUserObject() instanceof CollectionsNodeDescriptor) {
                         DataLoader.listCollections(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
                         DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
@@ -261,6 +265,8 @@ public class CouchbaseWindowContent extends JPanel {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
                         // Do Nothing
+                    } else if (expandedTreeNode.getUserObject() instanceof IndexesNodeDescriptor) {
+                        DataLoader.listIndexes(project, expandedTreeNode, tree);
                     } else {
                         throw new UnsupportedOperationException("Not implemented yet");
                     }
@@ -351,6 +357,8 @@ public class CouchbaseWindowContent extends JPanel {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
+        String bucketName = scope.getBucket();
+        String scopeName = scope.getText();
 
         //can't delete the default scope
         if (!"_default".equals(scope.getText())) {
@@ -359,14 +367,14 @@ public class CouchbaseWindowContent extends JPanel {
             deleteScopeItem.addActionListener(e1 -> {
                 // Show confirmation dialog before deleting scope
                 int result = Messages.showYesNoDialog(
-                        "Are you sure you want to delete the scope " + scope.getText() + "?",
+                        "Are you sure you want to delete the scope " + scopeName + "?",
                         "Delete Scope", Messages.getQuestionIcon());
                 if (result != Messages.YES) {
                     return;
                 }
 
-                ActiveCluster.getInstance().get().bucket(scope.getBucket()).collections()
-                        .dropScope(scope.getText());
+                ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                        .dropScope(scopeName);
                 // Refresh buckets
                 DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                 TreePath treePath = new TreePath(bucketTreeNode.getPath());
@@ -375,8 +383,37 @@ public class CouchbaseWindowContent extends JPanel {
             });
             popup.add(deleteScopeItem);
             popup.addSeparator();
+
         }
 
+        JMenuItem refreshCollections = new JMenuItem("Refresh Collections");
+        popup.add(refreshCollections);
+        refreshCollections.addActionListener(e12 -> {
+            TreePath treePath = new TreePath(clickedNode.getPath());
+            tree.collapsePath(treePath);
+            tree.expandPath(treePath);
+        });
+        popup.add(refreshCollections);
+
+        // Add "Add New Collection" option
+        JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
+        addNewCollectionItem.addActionListener(e1 -> {
+
+            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
+                    EntityType.COLLECTION, bucketName, scopeName);
+            entityCreationDialog.show();
+
+            if (entityCreationDialog.isOK()) {
+                String collectionName = entityCreationDialog.getEntityName();
+                ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                        .createCollection(CollectionSpec.create(collectionName, scopeName));
+                DataLoader.listCollections(clickedNode, tree);
+            }
+        });
+
+        popup.add(addNewCollectionItem);
+
+        popup.addSeparator();
 
         JMenuItem quickImport = new JMenuItem("Quick Import");
         quickImport.addActionListener(e1 -> {
@@ -407,41 +444,6 @@ public class CouchbaseWindowContent extends JPanel {
         popup.show(tree, e.getX(), e.getY());
     }
 
-    private static void handleCollectionsRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Refresh Collections");
-        popup.add(menuItem);
-        menuItem.addActionListener(e12 -> {
-            TreePath treePath = new TreePath(clickedNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-        popup.addSeparator();
-
-        // Add "Add New Collection" option
-        JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
-        addNewCollectionItem.addActionListener(e1 -> {
-            CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) clickedNode.getUserObject();
-
-            String bucketName = cols.getBucket();
-            String scopeName = cols.getScope();
-
-            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
-                    EntityType.COLLECTION, bucketName, scopeName);
-            entityCreationDialog.show();
-
-            if (entityCreationDialog.isOK()) {
-                String collectionName = entityCreationDialog.getEntityName();
-                ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                        .createCollection(CollectionSpec.create(collectionName, scopeName));
-                DataLoader.listCollections(clickedNode, tree);
-            }
-        });
-
-        popup.add(addNewCollectionItem);
-        popup.show(tree, e.getX(), e.getY());
-    }
 
     private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
                                                    CollectionNodeDescriptor col, Tree tree) {
