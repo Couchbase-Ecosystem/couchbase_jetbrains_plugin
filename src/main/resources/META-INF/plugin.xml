@@ -56,8 +56,7 @@
 
         <fileDocumentSynchronizationVetoer implementation="com.couchbase.intellij.listener.JsonDocumentListener"/>
 
-        <completion.contributor language="sqlpp"
-                                implementationClass="org.intellij.sdk.language.SqlppCompletionContributor"/>
+
 
         <fileType name="SQL++ file" implementationClass="org.intellij.sdk.language.SQLPPFileType"
                   fieldName="INSTANCE"
@@ -73,6 +72,8 @@
                 language="sqlpp"
                 implementationClass="org.intellij.sdk.language.SqlppSyntaxHighlighterFactory"/>
 
+        <completion.contributor language="sqlpp"
+                                implementationClass="org.intellij.sdk.language.SqlppCompletionContributor"/>
 
     </extensions>
 

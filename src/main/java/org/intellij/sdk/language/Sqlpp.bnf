@@ -1,6 +1,9 @@
 {
 
+  parserClass="generated.GeneratedParser"
   extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  elementTypeHolderClass="generated.GeneratedTypes"
   elementTypeClass="org.intellij.sdk.language.psi.SqlppElementType"
   tokenTypeClass="org.intellij.sdk.language.psi.SqlppTokenType"
 }

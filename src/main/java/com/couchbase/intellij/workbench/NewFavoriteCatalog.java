@@ -7,7 +7,7 @@ import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -27,11 +27,11 @@ public class NewFavoriteCatalog extends DialogWrapper {
 
     private final DefaultActionGroup favoriteActionGroup;
     private final ActionToolbar favToolbar;
-    private final Editor editor;
+    private final Document document;
 
-    protected NewFavoriteCatalog(Editor editor, AnAction anAction, DefaultActionGroup favoriteActionGroup, ActionToolbar favToolbar) {
+    protected NewFavoriteCatalog(Document document, AnAction anAction, DefaultActionGroup favoriteActionGroup, ActionToolbar favToolbar) {
         super(null);
-        this.editor = editor;
+        this.document = document;
         this.anAction = anAction;
         this.favoriteActionGroup = favoriteActionGroup;
         this.favToolbar = favToolbar;
@@ -74,7 +74,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
             return;
         }
 
-        if (editor.getDocument().getText().trim().isEmpty()) {
+        if (document.getText().trim().isEmpty()) {
             errorLabel.setText("The query that you want to favorite can't be empty");
             return;
         }
@@ -85,7 +85,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
         }
 
         FavoriteQueryStorage.getInstance().getValue().getList().add(new FavoriteQuery(textField.getText(),
-                editor.getDocument().getText()));
+                document.getText()));
 
         SwingUtilities.invokeLater(() -> {
             AnAction updatedAction = new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-filled.svg")) {
@@ -101,12 +101,12 @@ public class NewFavoriteCatalog extends DialogWrapper {
             DocumentListener documentListener = new DocumentListener() {
                 @Override
                 public void documentChanged(@NotNull DocumentEvent event) {
-                    editor.getDocument().removeDocumentListener(this);
+                    document.removeDocumentListener(this);
 
                     AnAction newAction = new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-empty.svg")) {
                         @Override
                         public void actionPerformed(@NotNull AnActionEvent e) {
-                            NewFavoriteCatalog dialog = new NewFavoriteCatalog(editor, this, favoriteActionGroup, favToolbar);
+                            NewFavoriteCatalog dialog = new NewFavoriteCatalog(document, this, favoriteActionGroup, favToolbar);
                             dialog.show();
                         }
                     };
@@ -117,7 +117,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
                     parentContainer.revalidate();
                 }
             };
-            editor.getDocument().addDocumentListener(documentListener);
+            document.addDocumentListener(documentListener);
         });
         super.doOKAction();
     }

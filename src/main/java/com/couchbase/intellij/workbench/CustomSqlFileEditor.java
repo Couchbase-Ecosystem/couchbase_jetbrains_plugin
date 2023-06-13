@@ -12,11 +12,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorLocation;
-import com.intellij.openapi.fileEditor.FileEditorState;
-import com.intellij.openapi.fileEditor.FileEditorStateLevel;
+import com.intellij.openapi.fileEditor.*;
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil;
+import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
@@ -40,7 +38,7 @@ import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
 public class CustomSqlFileEditor implements FileEditor {
     public static final String NO_QUERY_CONTEXT_SELECTED = "No Query Context Selected";
-    private final Editor queryEditor;
+    private final EditorWrapper queryEditor;
     private final VirtualFile file;
     private final Project project;
     private JLabel historyLabel;
@@ -62,11 +60,12 @@ public class CustomSqlFileEditor implements FileEditor {
         boolean isViewer = false;
         if ("true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) {
             isViewer = true;
+            this.queryEditor = new EditorWrapper(EditorFactory.getInstance().createEditor(document, project, file, isViewer), null);
+        } else {
+            this.queryEditor = new EditorWrapper(null, (TextEditor) TextEditorProvider.getInstance().createEditor(project, file)); //Edit
         }
 
-        this.queryEditor = EditorFactory.getInstance().createEditor(document, project, file, isViewer);
         this.panel = new JPanel(new BorderLayout());
-
         init(isViewer);
     }
 
@@ -142,7 +141,7 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Favorite List", "List of favorite queries", favoriteList) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                FavoriteQueryDialog dialog = new FavoriteQueryDialog(queryEditor);
+                FavoriteQueryDialog dialog = new FavoriteQueryDialog(queryEditor.getDocument());
                 dialog.show();
             }
         });
@@ -234,7 +233,7 @@ public class CustomSqlFileEditor implements FileEditor {
         favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-empty.svg")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor, this, favoriteActionGroup, favToolbar);
+                NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor.getDocument(), this, favoriteActionGroup, favToolbar);
                 dialog.show();
             }
         });
@@ -401,7 +400,7 @@ public class CustomSqlFileEditor implements FileEditor {
 
     @Override
     public void dispose() {
-        EditorFactory.getInstance().releaseEditor(queryEditor);
+        queryEditor.release();
     }
 
     @Override
@@ -454,5 +453,37 @@ public class CustomSqlFileEditor implements FileEditor {
     @Override
     public <T> void putUserData(@NotNull Key<T> key, T value) {
     }
+
+
+    class EditorWrapper {
+        private Editor viewer;
+        private TextEditor textEditor;
+
+        public EditorWrapper(Editor viewer, TextEditor textEditor) {
+            this.textEditor = textEditor;
+            this.viewer = viewer;
+        }
+
+        public JComponent getComponent() {
+            return textEditor == null ? viewer.getComponent() : textEditor.getComponent();
+        }
+
+        public JComponent getContentComponent() {
+            return textEditor == null ? viewer.getContentComponent() : textEditor.getEditor().getContentComponent();
+        }
+
+        public Document getDocument() {
+            return textEditor == null ? viewer.getDocument() : textEditor.getEditor().getDocument();
+        }
+
+        public void release() {
+            if (viewer != null) {
+                EditorFactory.getInstance().releaseEditor(viewer);
+            } else {
+                EditorFactory.getInstance().releaseEditor(textEditor.getEditor());
+            }
+        }
+    }
+
 
 }
