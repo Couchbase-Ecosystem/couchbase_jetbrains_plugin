@@ -1,3 +1,9 @@
+{
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+  elementTypeClass="org.intellij.sdk.language.psi.SqlppElementType"
+  tokenTypeClass="org.intellij.sdk.language.psi.SqlppTokenType"
+}
 
 role ::= identifier
 user ::= identifier
