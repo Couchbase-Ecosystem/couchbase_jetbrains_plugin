@@ -6,6 +6,7 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
+import com.couchbase.intellij.workbench.Log;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.IOException;
@@ -42,6 +43,7 @@ public class InferHelper {
                 }
             }
         } catch (Exception e) {
+            Log.error(e);
             e.printStackTrace();
             System.err.println("Could not infer the schema of the collection " + e);
             return null;
@@ -134,7 +136,7 @@ public class InferHelper {
             }
             samples = samplesArray.toList().stream().map(e -> e == null ? "null" : e.toString()).collect(Collectors.joining(" , "));
         }
-        
+
         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, type, samples));
         parentNode.add(childNode);
     }

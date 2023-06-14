@@ -3,6 +3,7 @@ package com.couchbase.intellij.listener;
 import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.ToolSpec;
 import com.couchbase.intellij.tools.ToolStatus;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.PathManager;
 
 import java.io.File;
@@ -113,9 +114,11 @@ public class DependenciesDownloader {
         if (CBTools.getShell().getStatus() == ToolStatus.NOT_AVAILABLE
                 && !isInstalled(toolsPath, downloads.get(TOOL_SHELL))) {
             //avoiding 2 threads to install the same thing at the same time
+            Log.debug("Downloading CB Shell");
             CBTools.getShell().setStatus(ToolStatus.DOWNLOADING);
             downloadAndUnzip(TOOL_SHELL, shellPath, shell);
         } else {
+            Log.debug("CBShell is already downloaded");
             setToolActive(TOOL_SHELL, ToolStatus.AVAILABLE, shellPath, shell);
         }
 
@@ -124,10 +127,12 @@ public class DependenciesDownloader {
         if (CBTools.getCbImport().getStatus() == ToolStatus.NOT_AVAILABLE
                 && !isInstalled(toolsPath, downloads.get(TOOL_IMPORT_EXPORT))) {
             //avoiding 2 threads to install the same thing at the same time
+            Log.debug("Downloading CB Import/Export");
             CBTools.getCbExport().setStatus(ToolStatus.DOWNLOADING);
             CBTools.getCbImport().setStatus(ToolStatus.DOWNLOADING);
             downloadAndUnzip(TOOL_IMPORT_EXPORT, cbImportDir, cbImport);
         } else {
+            Log.debug("CB Import/Export is already downloaded");
             setToolActive(TOOL_IMPORT_EXPORT, ToolStatus.AVAILABLE, cbImportDir, cbImport);
         }
     }
@@ -173,6 +178,7 @@ public class DependenciesDownloader {
                 setToolActive(toolKey, ToolStatus.AVAILABLE, targetDir, spec);
             } catch (Exception e) {
                 setToolActive(toolKey, ToolStatus.NOT_AVAILABLE, null, null);
+                Log.error(e);
                 e.printStackTrace();
             }
         });

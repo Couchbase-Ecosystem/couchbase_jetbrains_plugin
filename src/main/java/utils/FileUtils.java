@@ -1,5 +1,7 @@
 package utils;
 
+import com.couchbase.intellij.workbench.Log;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -46,6 +48,7 @@ public class FileUtils {
             try {
                 Files.createDirectory(path);
             } catch (Exception e) {
+                Log.error(e);
                 System.out.println("Failed to create folder: " + e.getMessage());
                 throw e;
             }

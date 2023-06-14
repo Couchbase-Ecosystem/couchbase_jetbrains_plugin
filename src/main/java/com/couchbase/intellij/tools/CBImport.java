@@ -3,6 +3,7 @@ package com.couchbase.intellij.tools;
 import com.couchbase.client.java.manager.collection.CollectionManager;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -92,11 +93,13 @@ public class CBImport {
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Messages.showErrorDialog("An error occurred while trying to import the dataset", "Quick Import Error");
                         });
+                        Log.error(e);
                         e.printStackTrace();
                     }
                 }
             });
         } catch (Exception e) {
+            Log.error(e);
             e.printStackTrace();
         }
 
@@ -147,10 +150,12 @@ public class CBImport {
                     CollectionManager collectionManager = ActiveCluster.getInstance().get().bucket(bucket).collections();
                     try {
                         for (String newCollection : datasetCols) {
+                            Log.debug("Creating collection " + newCollection);
                             collectionManager.createCollection(CollectionSpec.create(newCollection, scope));
                         }
                     } catch (Exception e) {
                         Messages.showErrorDialog("An error occurred while trying to create the collections. Please try again", "Quick Import Error");
+                        Log.error(e);
                         e.printStackTrace();
                     }
                 }
@@ -185,11 +190,13 @@ public class CBImport {
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Messages.showErrorDialog("An error occurred while trying to import the dataset", "Quick Import Error");
                         });
+                        Log.error(e);
                         e.printStackTrace();
                     }
                 }
             });
         } catch (Exception e) {
+            Log.error(e);
             e.printStackTrace();
         }
 

@@ -1,6 +1,7 @@
 package com.couchbase.intellij.listener;
 
 import com.couchbase.intellij.tools.CBFolders;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.PathManager;
 
 import java.io.File;
@@ -32,10 +33,13 @@ public class FileConfigInitializer {
         Path dest = Paths.get(path);
 
         if (!Files.exists(dest)) {
+            Log.debug("Copying CBShell autopass.sh script");
             createFolder(path);
             copyFile("/tools/cbshell.zip", Paths.get(toolsPath + File.separator + "cbshell.zip"));
             unzipFile(toolsPath + File.separator + "cbshell.zip", toolsPath);
             makeFilesExecutable(new File(path));
+        } else {
+            Log.debug("The script for cbshell is already copied to the config");
         }
 
         CBFolders.getInstance().setCbShellPath(path);
@@ -45,9 +49,12 @@ public class FileConfigInitializer {
         String path = toolsPath + File.separator + "explain";
         Path dest = Paths.get(path);
         if (!Files.exists(dest)) {
+            Log.debug("Copying explain files");
             createFolder(path);
             copyFile("/tools/explain.zip", Paths.get(toolsPath + File.separator + "explain.zip"));
             unzipFile(toolsPath + File.separator + "explain.zip", toolsPath);
+        } else {
+            Log.debug("The script for explain is already copied to the config");
         }
         CBFolders.getInstance().setExplainPath(path);
     }

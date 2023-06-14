@@ -17,6 +17,7 @@ import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -75,6 +76,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -114,6 +116,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -150,6 +153,7 @@ public class DataLoader {
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -247,6 +251,7 @@ public class DataLoader {
                 parentNode.add(new DefaultMutableTreeNode(idx));
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
             } catch (Exception e) {
+                Log.error(e);
                 e.printStackTrace();
                 throw e;
             } finally {
@@ -282,6 +287,7 @@ public class DataLoader {
 
                     treeModel.nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -303,6 +309,7 @@ public class DataLoader {
             return PsiManager.getInstance(project).findDirectory(directory);
 
         } catch (IOException e) {
+            Log.error(e);
             e.printStackTrace();
             throw new RuntimeException(e);
         }
@@ -334,6 +341,7 @@ public class DataLoader {
 
             return cluster.buckets().getAllBuckets().keySet();
         } catch (Exception e) {
+            Log.error(e);
             cluster.disconnect();
             throw e;
         }
@@ -402,6 +410,7 @@ public class DataLoader {
                     Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation");
                 });
             } catch (Exception e) {
+                Log.error(e);
                 e.printStackTrace();
             }
         });

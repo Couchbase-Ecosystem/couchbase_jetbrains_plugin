@@ -1,5 +1,6 @@
 package com.couchbase.intellij;
 
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.project.Project;
@@ -23,7 +24,7 @@ public class DocumentFormatter {
                         try {
                             CodeStyleManager.getInstance(project).reformat(psiFile);
                         } catch (IncorrectOperationException ioe) {
-                            // handle exception
+                            Log.error(ioe);
                             ioe.printStackTrace();
                         }
                     });

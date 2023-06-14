@@ -2,6 +2,7 @@ package com.couchbase.intellij.tools;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -46,6 +47,7 @@ public class CBExport {
                         Files.write(Paths.get(filePath), (System.lineSeparator() + metadata).getBytes(), StandardOpenOption.APPEND);
 
                         ApplicationManager.getApplication().invokeLater(() -> {
+                            Log.info("File " + filePath + " from collection " + collection + " was exported successfully");
                             Messages.showInfoMessage("File saved successfully.", "Quick Export");
                         });
                     }
@@ -54,6 +56,7 @@ public class CBExport {
                     ApplicationManager.getApplication().invokeLater(() -> {
                         Messages.showErrorDialog("An error occurred while trying to export the dataset", "Quick Export Error");
                     });
+                    Log.error(e);
                     e.printStackTrace();
                 }
 
@@ -96,6 +99,7 @@ public class CBExport {
                         Files.write(Paths.get(filePath), (System.lineSeparator() + metadata).getBytes(), StandardOpenOption.APPEND);
 
                         ApplicationManager.getApplication().invokeLater(() -> {
+                            Log.info("File " + filePath + " from scope " + scope + " was exported successfully");
                             Messages.showInfoMessage("File saved successfully.", "Quick Export");
                         });
                     }
@@ -104,6 +108,7 @@ public class CBExport {
                     ApplicationManager.getApplication().invokeLater(() -> {
                         Messages.showErrorDialog("An error occurred while trying to export the dataset", "Quick Export Error");
                     });
+                    Log.error(e);
                     e.printStackTrace();
                 }
 

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.listener;
 
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener;
 import org.jetbrains.annotations.NotNull;
@@ -16,6 +17,7 @@ public class ToolWindowListener implements ToolWindowManagerListener {
                 DependenciesDownloader dep = new DependenciesDownloader();
                 dep.downloadDependencies();
             } catch (Exception e) {
+                Log.error(e);
                 e.printStackTrace();
             }
         }

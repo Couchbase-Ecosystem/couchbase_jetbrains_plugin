@@ -8,7 +8,6 @@ import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.actionSystem.*;
@@ -18,6 +17,7 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -69,8 +69,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
 
     private JPanel queryStatsPanel;
-
-    private ConsoleView console;
 
 
     @Override
@@ -172,13 +170,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         queryResultPanel.setLayout(new BorderLayout());
         queryResultPanel.add(topPanel, BorderLayout.NORTH);
         queryResultPanel.add(resultTabs.getComponent(), BorderLayout.CENTER);
+        
 
-        //TODO: add console.clear();
-        console = TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
-        JPanel consolePanel = new JPanel(new BorderLayout());
-        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
-
-        TabInfo outputTab = new TabInfo(consolePanel).setText("Log");
+        TabInfo outputTab = new TabInfo(getConsolePanel()).setText("Log");
         queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
 
@@ -191,6 +185,58 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(content);
+    }
+
+
+    public JPanel getConsolePanel() {
+        ConsoleView console = Log.getLogger();
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+        AnAction clearAction = new AnAction("Clear Log") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                console.clear();
+            }
+        };
+        clearAction.getTemplatePresentation().setIcon(
+                IconLoader.findIcon("./assets/icons/clear.svg"));
+        actionGroup.add(clearAction);
+
+        ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
+        actionToolbar.setLayoutPolicy(ActionToolbar.WRAP_LAYOUT_POLICY);
+        JPanel actionPanel = new JPanel(new FlowLayout());
+        actionPanel.add(actionToolbar.getComponent());
+
+        actionToolbar.setTargetComponent(actionPanel);
+
+
+        String[] options = {"Error", "Info", "Debug"};
+        ComboBox<String> comboBox = new ComboBox<>(options);
+        comboBox.setSelectedItem("Info");
+        comboBox.addActionListener(e -> {
+            String selectedValue = (String) comboBox.getSelectedItem();
+            if ("Error".equals(selectedValue)) {
+                Log.setLevel(1);
+            } else if ("Info".equals(selectedValue)) {
+                Log.setLevel(2);
+            } else {
+                Log.setLevel(3);
+            }
+        });
+
+        JPanel comboboxPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        comboboxPanel.add(new JLabel("Log Level:"));
+        comboboxPanel.add(comboBox);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(actionPanel, BorderLayout.LINE_END);
+        panel.add(comboboxPanel, BorderLayout.CENTER);
+
+        JPanel consolePanel = new JPanel(new BorderLayout());
+        consolePanel.add(panel, BorderLayout.NORTH);
+        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
+
+        return consolePanel;
     }
 
     @NotNull

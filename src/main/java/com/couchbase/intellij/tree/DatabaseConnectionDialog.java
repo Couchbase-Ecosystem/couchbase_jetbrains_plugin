@@ -7,6 +7,7 @@ import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.doctor.SDKDoctorTableCellRenderer;
 import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -118,6 +119,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                         return;
                     }
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                     showErrorLabel("<html>Connection failed.<br>Please double-check your credentials"
                             + (defaultBucketTextField.getText().trim().isEmpty() ? " or inform a 'Default Bucket' and click again on 'Test Connection' to run the SDK Doctor" : "")
@@ -155,6 +157,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                         return;
                     }
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                     showErrorLabel("<html>Could not connect to the cluster.<br>Please double-check your credentials or"
                             + (defaultBucketTextField.getText().isEmpty() ? " inform a <strong>Default Bucket</strong> and" : "")
@@ -178,6 +181,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                     messageLabel.setText("");
                     showErrorLabel("The Couchbase cluster URL and username already exists.");
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                     messageLabel.setText("");
                     showErrorLabel("Could not save the database credentials");
@@ -277,6 +281,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 try {
                     Desktop.getDesktop().browse(new URI("https://cloud.couchbase.com/sign-up"));
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                 }
             }

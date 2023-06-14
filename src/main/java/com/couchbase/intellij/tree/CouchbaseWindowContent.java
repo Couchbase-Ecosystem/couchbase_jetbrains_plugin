@@ -12,6 +12,7 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.examples.CardDialog;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.*;
@@ -76,6 +77,7 @@ public class CouchbaseWindowContent extends JPanel {
                             fileEditorManager.openFile(virtualFile, true);
                         }
                     } catch (Exception ex) {
+                        Log.error(ex);
                         ex.printStackTrace();
                     }
                 });
