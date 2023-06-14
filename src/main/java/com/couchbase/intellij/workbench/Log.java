@@ -7,10 +7,9 @@ import com.intellij.openapi.project.ProjectManager;
 
 public class Log {
 
-    private static ConsoleView console;
-
     //1 - errors, 2 - errors and info, 3-debug,infos,errors
     public static int logLevel = 2;
+    private static ConsoleView console;
 
     public static void setLevel(int level) {
         logLevel = level;
@@ -26,26 +25,26 @@ public class Log {
 
     public static void info(String message) {
         if (logLevel >= 2) {
-            getLogger().print(message, ConsoleViewContentType.LOG_INFO_OUTPUT);
+            getLogger().print("\n" + message, ConsoleViewContentType.LOG_INFO_OUTPUT);
         }
     }
 
     public static void debug(String message) {
         if (logLevel >= 3) {
-            getLogger().print(message, ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+            getLogger().print("\n" + message, ConsoleViewContentType.LOG_DEBUG_OUTPUT);
         }
     }
 
     public static void error(Class c, String message, Exception e) {
 
         String exception = getCause(e);
-        getLogger().print(c.getSimpleName() + ":" + message + " error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        getLogger().print("\n" + c.getSimpleName() + ":" + message + " error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     public static void error(Exception e) {
 
         String exception = getCause(e);
-        getLogger().print("error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        getLogger().print("\n" + "error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     private static String getCause(Exception e) {
@@ -59,11 +58,11 @@ public class Log {
     }
 
     public static void error(String message, Exception e) {
-        getLogger().print(message + " error: " + getCause(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        getLogger().print("\n" + message + " error: " + getCause(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     public static void error(String message) {
-        getLogger().print(message, ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        getLogger().print("\n" + message, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
 }

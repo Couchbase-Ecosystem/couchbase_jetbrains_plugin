@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tools;
 
+import com.couchbase.client.core.error.IndexExistsException;
 import com.couchbase.client.java.manager.collection.CollectionManager;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.ActiveCluster;
@@ -13,9 +14,7 @@ import com.intellij.openapi.ui.Messages;
 import org.jetbrains.annotations.NotNull;
 import utils.FileUtils;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CBImport {
@@ -26,69 +25,47 @@ public class CBImport {
             String lastLine = FileUtils.readLastLine(filePath);
 
             if (!lastLine.startsWith("//type:quickimport")) {
-                Messages.showErrorDialog("The file selected was not exported using the Quick Export function."
-                        + " Please import it using the Import/Export feature", "Quick Import Error");
+                Messages.showErrorDialog("The file selected was not exported using the Quick Export function." + " Please import it using the Import/Export feature", "Quick Import Error");
                 return;
             }
 
-            String[] meta = lastLine.split(";");
-            String metaScope = null;
-            String metaCol = null;
+            ExportedMetadata meta = partLastLine(lastLine);
+            String originalCol = meta.getCollections().get(0);
 
-            for (String m : meta) {
-                if (m.startsWith("scope:")) {
-                    metaScope = m.split(":")[1];
-                } else if (m.startsWith("col:")) {
-                    metaCol = m.split(":")[1];
-                }
-            }
 
-            if (metaCol.contains(",")) {
-                Messages.showErrorDialog("The file selected is an export of a scope and can't be imported inside a collection"
-                        , "Quick Import Error");
+            if (meta.getCollections().size() > 1) {
+                Messages.showErrorDialog("The file selected is an export of a scope and can't be imported inside a collection", "Quick Import Error");
                 return;
             }
 
+            if (!scope.equals(meta.getScope()) || !collection.equals(meta.getCollections().get(0))) {
 
-            if (!scope.equals(metaScope) || !collection.equals(metaCol)) {
-
-                int result = Messages.showYesNoDialog("<html>The dataset was originally exported from collection <strong>'" + metaCol + "'</strong>" +
-                                " and scope <strong>'" + metaScope + "'</strong>, but you are importing it into the collection <strong>'" + collection + "'</strong> " +
-                                "and scope <strong>'" + scope + "'</strong>. Are you sure that you want to proceed?</html>",
-                        "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>The dataset was originally exported from collection <strong>'" + originalCol + "'</strong>" + " and scope <strong>'" + meta.getScope() + "'</strong>, but you are importing it into the collection <strong>'" + collection + "'</strong> " + "and scope <strong>'" + scope + "'</strong>. Are you sure that you want to proceed?</html>", "Quick Import", Messages.getQuestionIcon());
 
                 if (result != Messages.YES) {
                     return;
                 }
             } else {
                 String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
-                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>"
-                                + fileName + "</strong> into the collection <strong>'" + collection + "'</strong> " +
-                                "of the scope <strong>'" + scope + "'</strong>?</html>",
-                        "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>" + fileName + "</strong> into the collection <strong>'" + collection + "'</strong> " + "of the scope <strong>'" + scope + "'</strong>?</html>", "Quick Import", Messages.getQuestionIcon());
 
                 if (result != Messages.YES) {
                     return;
                 }
             }
 
+            final boolean createIndexes = shouldImportIndexes(meta);
 
             ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing '" + collection + "'", false) {
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(true);
                     try {
-                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(),
-                                "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(),
-                                "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(),
-                                "-b", bucket,
-                                "--format", "list",
-                                "-d", "file://" + filePath,
-                                "--scope-collection-exp", scope + "." + collection,
-                                "-g", "%cbmid%",
-                                "--ignore-fields", "cbmid,cbms,cbmc",
-                                "-t", "4");
-                        executeProcess(processBuilder);
+                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + "." + collection, "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
 
+                        if (createIndexes) {
+                            createIndexes(bucket, scope, originalCol, collection, meta.getIndexes().get(originalCol));
+                        }
+                        executeProcess(processBuilder);
                     } catch (Exception e) {
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Messages.showErrorDialog("An error occurred while trying to import the dataset", "Quick Import Error");
@@ -112,78 +89,56 @@ public class CBImport {
             String lastLine = FileUtils.readLastLine(filePath);
 
             if (!lastLine.startsWith("//type:quickimport")) {
-                Messages.showErrorDialog("The file selected was not exported using the Quick Export function."
-                        + " Please import it using the Import/Export feature", "Quick Import Error");
+                Messages.showErrorDialog("The file selected was not exported using the Quick Export function." + " Please import it using the Import/Export feature", "Quick Import Error");
                 return;
             }
 
-            String[] meta = lastLine.split(";");
-            String metaScope = null;
-            String metaCol = null;
-
-            for (String m : meta) {
-                if (m.startsWith("scope:")) {
-                    metaScope = m.split(":")[1];
-                } else if (m.startsWith("col:")) {
-                    metaCol = m.split(":")[1];
-                }
-            }
-
-            Set<String> datasetCols = new HashSet<>(Arrays.asList(metaCol.split(",")));
-
-            Set<String> currentCollections = ActiveCluster.getInstance().get().bucket(bucket)
-                    .collections().getAllScopes().stream()
-                    .filter(s -> s.name().equals(scope))
-                    .flatMap(s -> s.collections().stream())
-                    .map(cs -> cs.name())
-                    .collect(Collectors.toSet());
-
+            ExportedMetadata meta = partLastLine(lastLine);
+            Set<String> datasetCols = new HashSet<>(meta.getCollections());
+            Set<String> currentCollections = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(cs -> cs.name()).collect(Collectors.toSet());
             datasetCols.removeAll(currentCollections);
 
+            boolean skipCols = false;
             if (!datasetCols.isEmpty()) {
 
-                int result = Messages.showYesNoDialog("<html>This dataset contains " + datasetCols.size() + " collection(s) " +
-                                "that don't exist in the scope that you are importing into. Would you like to also create them?</html>",
-                        "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>This dataset contains " + datasetCols.size() + " collection(s) " + "that don't exist in the scope that you are importing into. Would you like to also create them?</html>", "Quick Import", Messages.getQuestionIcon());
 
                 if (result == Messages.YES) {
                     CollectionManager collectionManager = ActiveCluster.getInstance().get().bucket(bucket).collections();
                     try {
                         for (String newCollection : datasetCols) {
-                            Log.debug("Creating collection " + newCollection);
                             collectionManager.createCollection(CollectionSpec.create(newCollection, scope));
+                            Log.info("Collection " + newCollection + " was created successfully");
                         }
                     } catch (Exception e) {
                         Messages.showErrorDialog("An error occurred while trying to create the collections. Please try again", "Quick Import Error");
-                        Log.error(e);
+                        Log.error("An error occurred while creating a collection ", e);
                         e.printStackTrace();
                     }
+                } else {
+                    skipCols = true;
                 }
             } else {
                 String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
-                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>"
-                                + fileName + "</strong> into the the scope <strong>'" + scope + "'</strong>?</html>",
-                        "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>" + fileName + "</strong> into the the scope <strong>'" + scope + "'</strong>?</html>", "Quick Import", Messages.getQuestionIcon());
 
                 if (result != Messages.YES) {
                     return;
                 }
             }
 
+            final boolean createIndexes = shouldImportIndexes(meta);
+            final Set<String> skippedCollections = skipCols ? datasetCols : new HashSet<>();
+
             ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing '" + scope + "'", false) {
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(true);
                     try {
-                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(),
-                                "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(),
-                                "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(),
-                                "-b", bucket,
-                                "--format", "list",
-                                "-d", "file://" + filePath,
-                                "--scope-collection-exp", "%cbms%.%cbmc%",
-                                "-g", "%cbmid%",
-                                "--ignore-fields", "cbmid,cbms,cbmc",
-                                "-t", "4");
+                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", "%cbms%.%cbmc%", "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
+
+                        if (createIndexes) {
+                            createIndexes(bucket, meta.getScope(), scope, meta.getIndexes(), skippedCollections);
+                        }
                         executeProcess(processBuilder);
 
                     } catch (Exception e) {
@@ -202,6 +157,77 @@ public class CBImport {
 
     }
 
+    private static boolean shouldImportIndexes(ExportedMetadata meta) {
+        boolean idx = false;
+        if (!meta.getIndexes().isEmpty()) {
+            int result = Messages.showYesNoDialog("<html>This dataset contain indexes. Would you like to also create them?" + "<br><small>If the indexes already exist in your environment, they won't be recreated.</small></html>", "Quick Import", Messages.getQuestionIcon());
+
+            if (result == Messages.YES) {
+                idx = true;
+            }
+        }
+        return idx;
+    }
+
+    private static void createIndexes(String bucket, String originalScope, String newScope, Map<String, String> indexes, Set<String> skipCols) {
+        boolean replaceScope = false;
+        if (!originalScope.equals(newScope)) {
+            replaceScope = true;
+        }
+        for (Map.Entry<String, String> entry : indexes.entrySet()) {
+
+            if (skipCols.contains(entry.getKey())) {
+                continue;
+            }
+
+            byte[] decodedBytes = Base64.getDecoder().decode(entry.getValue());
+            String decodedString = new String(decodedBytes);
+            String[] idxArray = decodedString.split("#");
+
+            for (int i = 0; i < idxArray.length; i++) {
+                String query = idxArray[i];
+                if (replaceScope) {
+                    query = query.replace("`" + originalScope + "`", "`" + newScope + "`");
+                }
+                try {
+                    ActiveCluster.getInstance().get().bucket(bucket).scope(newScope).query(query);
+                    Log.info("Index " + query + " created successfully.");
+                } catch (IndexExistsException ex) {
+                    Log.info("Index " + query + " already exists.");
+                } catch (Exception e) {
+                    Log.error("Could not create index " + query, e);
+                }
+            }
+        }
+    }
+
+    private static void createIndexes(String bucket, String scope, String originalCol, String newCol, String indexes) {
+
+        boolean replaceCol = false;
+        if (!originalCol.equals(newCol)) {
+            replaceCol = true;
+        }
+        byte[] decodedBytes = Base64.getDecoder().decode(indexes);
+        String decodedString = new String(decodedBytes);
+        String[] idxArray = decodedString.split("#");
+
+        for (int i = 0; i < idxArray.length; i++) {
+            String query = idxArray[i];
+            if (replaceCol) {
+                query = query.replace("`" + originalCol + "`", "`" + newCol + "`");
+            }
+            try {
+                ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(query);
+                Log.info("Index " + query + " created successfully.");
+            } catch (IndexExistsException ex) {
+                Log.info("Index " + query + " already exists.");
+            } catch (Exception e) {
+                Log.error("Could not create index " + query, e);
+            }
+        }
+
+    }
+
     private static void executeProcess(ProcessBuilder processBuilder) throws Exception {
         Process process = processBuilder.start();
         int exitCode = process.waitFor();
@@ -214,6 +240,67 @@ public class CBImport {
             ApplicationManager.getApplication().invokeLater(() -> {
                 Messages.showInfoMessage("Dataset imported successfully.", "Quick Import");
             });
+        }
+    }
+
+
+    private static ExportedMetadata partLastLine(String lastLine) {
+        String[] meta = lastLine.split(";");
+        List<String> metaCol = new ArrayList<>();
+        String metaScope = null;
+        Map<String, String> indexes = new HashMap<>();
+
+        for (String m : meta) {
+            if (m.startsWith("scope:")) {
+                metaScope = m.split(":")[1];
+            } else if (m.startsWith("col:")) {
+                String colSplit = m.split(":")[1];
+                if (colSplit.contains(",")) {
+                    metaCol.addAll(Arrays.asList(colSplit.split(",")));
+                } else {
+                    metaCol.add(colSplit);
+                }
+            } else if (m.startsWith("idx:")) {
+                String content = m.split(":")[1];
+                if (content.contains("#")) {
+                    String[] colIndexes = content.split("#");
+                    for (int i = 0; i < colIndexes.length; i++) {
+                        String[] ix = colIndexes[i].split("\\|");
+                        if (ix.length > 1) {
+                            indexes.put(ix[0], ix[1]);
+                        }
+                    }
+                } else {
+                    String[] ix = content.split("\\|");
+                    indexes.put(ix[0], ix[1]);
+                }
+            }
+        }
+
+        return new ExportedMetadata(metaScope, metaCol, indexes);
+    }
+
+    static class ExportedMetadata {
+        private String scope;
+        private List<String> collections;
+        private Map<String, String> indexes;
+
+        public ExportedMetadata(String scope, List<String> collections, Map<String, String> indexes) {
+            this.scope = scope;
+            this.collections = collections;
+            this.indexes = indexes;
+        }
+
+        public String getScope() {
+            return scope;
+        }
+
+        public List<String> getCollections() {
+            return collections;
+        }
+
+        public Map<String, String> getIndexes() {
+            return indexes;
         }
     }
 }

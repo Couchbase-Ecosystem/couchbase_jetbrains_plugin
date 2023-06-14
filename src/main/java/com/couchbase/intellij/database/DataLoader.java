@@ -445,6 +445,9 @@ public class DataLoader {
         }
     }
 
+    public static List<QueryIndex> listIndexes(String bucket, String scope, String collection) {
+        return ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().getAllIndexes();
+    }
 
     public static String getDocMetadata(String bucket, String scope, String collection, String docId) {
 
