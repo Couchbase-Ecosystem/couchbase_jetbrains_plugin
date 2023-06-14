@@ -6,6 +6,10 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JButton;
 // import javax.swing.JCheckBox;
@@ -24,7 +28,7 @@ public class BindingSettings {
     private Integer bindingTypeLineIndex = 0;
 
     private JPanel bindingsPanel;
-    private JPanel bindingTypePanel;
+    // private JPanel bindingTypePanel;
     private JPanel aliasPanel;
     private JPanel bucketPanel;
 
@@ -51,6 +55,9 @@ public class BindingSettings {
     private JBTextField bearerKeyField;
     private JBTextField constantAliasNameField;
     private JBTextField constantValueField;
+
+    private Map<JPanel, JSeparator> separatorMap = new HashMap<>();
+    private List<JPanel> bindingTypePanels = new ArrayList<>();
 
     // Constructor
     public BindingSettings() {
@@ -85,7 +92,7 @@ public class BindingSettings {
     private void addBindingType() {
 
         // Create a new aliasPanel to hold the binding type components
-        bindingTypePanel = new JPanel(new GridBagLayout());
+        final JPanel bindingTypePanel = new JPanel(new GridBagLayout());
         GridBagConstraints bindingsTypeGbc = new GridBagConstraints();
         bindingsTypeGbc.insets = new Insets(5, 5, 5, 5);
         bindingsTypeGbc.anchor = GridBagConstraints.WEST;
@@ -103,13 +110,38 @@ public class BindingSettings {
         bindingsTypeGbc.gridy = 0;
         bindingTypePanel.add(bindingTypeComboBox, bindingsTypeGbc);
 
+        // Create a delete button
+        JButton deleteButton = new JButton("Delete");
+        deleteButton.addActionListener(e -> {
+            // Remove the binding type panel and its associated separator
+            JSeparator separator = separatorMap.get(bindingTypePanel);
+            if (separator != null) {
+                bindingsPanel.remove(separator);
+                separatorMap.remove(bindingTypePanel);
+            }
+            bindingsPanel.remove(bindingTypePanel);
+
+            // Remove the binding type panel from the bindingTypePanels list
+            bindingTypePanels.remove(bindingTypePanel);
+
+            // Rebuild the bindings panel
+            rebuildBindingsPanel();
+
+            // Repaint the bindings panel to show the removed binding type
+            bindingsPanel.revalidate();
+            bindingsPanel.repaint();
+        });
+        bindingsTypeGbc.gridx = 1;
+        bindingsTypeGbc.gridy = 0;
+        bindingTypePanel.add(deleteButton, bindingsTypeGbc);
+
         // Create a aliasPanel to hold the alias-specific components
         aliasPanel = new JPanel(new GridBagLayout());
         GridBagConstraints aliasGbc = new GridBagConstraints();
         aliasGbc.insets = new Insets(5, 5, 5, 5);
         aliasGbc.anchor = GridBagConstraints.WEST;
         aliasGbc.fill = GridBagConstraints.HORIZONTAL;
-        bindingsTypeGbc.gridx = 1;
+        bindingsTypeGbc.gridx = 2;
         bindingsTypeGbc.gridy = 0;
         bindingsTypeGbc.gridwidth = 2;
         bindingTypePanel.add(aliasPanel, bindingsTypeGbc);
@@ -446,6 +478,12 @@ public class BindingSettings {
         bindingsPanelGbc.fill = GridBagConstraints.HORIZONTAL;
         bindingsPanel.add(separator, bindingsPanelGbc);
 
+        // Add the binding type panel to the bindingTypePanels list
+        bindingTypePanels.add(bindingTypePanel);
+
+        // Store a reference to the separator in the separatorMap
+        separatorMap.put(bindingTypePanel, separator);
+
         // Repaint the bindings aliasPanel to show the new binding type
         bindingsPanel.revalidate();
         bindingsPanel.repaint();
@@ -466,6 +504,36 @@ public class BindingSettings {
             // Repaint the bindings aliasPanel to show the removed binding type
             bindingsPanel.revalidate();
             bindingsPanel.repaint();
+        }
+    }
+
+    private void rebuildBindingsPanel() {
+        // Remove all components from the bindings panel except for the first row
+        for (int i = bindingsPanel.getComponentCount() - 1; i >= 3; i--) {
+            bindingsPanel.remove(i);
+        }
+
+        // Reset the binding type line index
+        bindingTypeLineIndex = 0;
+
+        // Add all remaining binding type panels to the bindings panel
+        for (JPanel bindingTypePanel : bindingTypePanels) {
+            GridBagConstraints bindingsPanelGbc = new GridBagConstraints();
+            bindingsPanelGbc.insets = new Insets(5, 5, 5, 5);
+            bindingsPanelGbc.anchor = GridBagConstraints.WEST;
+            bindingsPanelGbc.gridx = 0;
+            bindingsPanelGbc.gridy = ++bindingTypeLineIndex;
+            bindingsPanelGbc.gridwidth = 3;
+            bindingsPanel.add(bindingTypePanel, bindingsPanelGbc);
+
+            JSeparator separator = separatorMap.get(bindingTypePanel);
+            if (separator != null) {
+                bindingsPanelGbc.gridx = 0;
+                bindingsPanelGbc.gridy = ++bindingTypeLineIndex;
+                bindingsPanelGbc.gridwidth = 3;
+                bindingsPanelGbc.fill = GridBagConstraints.HORIZONTAL;
+                bindingsPanel.add(separator, bindingsPanelGbc);
+            }
         }
     }
 

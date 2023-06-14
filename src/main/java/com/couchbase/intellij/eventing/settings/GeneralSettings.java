@@ -1,5 +1,6 @@
 package com.couchbase.intellij.eventing.settings;
 
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -267,6 +268,7 @@ public class GeneralSettings {
         descriptionTextArea.setLineWrap(true);
         descriptionTextArea.setWrapStyleWord(true);
         descriptionTextArea.setToolTipText("Enter a description for the function (optional).");
+        descriptionTextArea.setPreferredSize(new Dimension(200, 100));
         descriptionLabel.setLabelFor(descriptionTextArea);
         JBScrollPane descriptionScrollPane = new JBScrollPane(descriptionTextArea);
         generalSettingsPanelConstraints.gridx = 0;

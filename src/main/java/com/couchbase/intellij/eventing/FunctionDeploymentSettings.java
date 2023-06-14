@@ -19,6 +19,7 @@ import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 // import javax.swing.JScrollPane;
 // import javax.swing.JTextArea;
 // import javax.swing.JTextField;
@@ -48,14 +49,14 @@ public class FunctionDeploymentSettings extends JFrame {
         private JButton applyButton;
         private JButton cancelButton;
 
-        private CardLayout cardLayout;
         private Map<String, Boolean> changedSettings;
 
         public FunctionDeploymentSettings() {
                 // Set up the main frame
                 setTitle("Project Structure");
                 setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-                setSize(1000, 800);
+                // setSize(1000, 800);
+                setMinimumSize(new Dimension(1000, 800));
                 setLocationRelativeTo(null);
 
                 // Create and configure the main panel
@@ -98,6 +99,31 @@ public class FunctionDeploymentSettings extends JFrame {
                                 return this;
                         }
                 });
+                JBScrollPane leftScrollPane = new JBScrollPane(settingsList);
+                leftScrollPane.setBorder(BorderFactory.createEmptyBorder());
+                leftPanel.add(leftScrollPane, BorderLayout.CENTER);
+
+                // Create and configure the right panel
+                rightPanel = new JPanel(new CardLayout());
+
+                // Add components to the right panel
+                GeneralSettings generalSettings = new GeneralSettings();
+                generalSettingsPanel = generalSettings.getPanel();
+                JPanel generalSettingsWrapper = new JPanel(new BorderLayout());
+                generalSettingsWrapper.add(generalSettingsPanel, BorderLayout.NORTH);
+                rightPanel.add(generalSettingsWrapper, "General Settings");
+
+                // Advanced Settings panel
+                AdvancedSettings advancedSettings = new AdvancedSettings();
+                advancedSettingsPanel = advancedSettings.getPanel();
+                JPanel advancedSettingsWrapper = new JPanel(new BorderLayout());
+                advancedSettingsWrapper.add(advancedSettingsPanel, BorderLayout.NORTH);
+                rightPanel.add(advancedSettingsWrapper, "Advanced Settings");
+
+                // Binding Type panel
+                BindingSettings bindingSettings = new BindingSettings();
+                bindingsPanel = bindingSettings.getPanel();
+                rightPanel.add(new JScrollPane(bindingsPanel), "Binding Type"); // No need to wrap this panel
 
                 settingsList.addListSelectionListener(e -> {
                         if (!e.getValueIsAdjusting()) {
@@ -106,32 +132,6 @@ public class FunctionDeploymentSettings extends JFrame {
                                 cardLayout.show(rightPanel, selectedValue);
                         }
                 });
-
-                JBScrollPane leftScrollPane = new JBScrollPane(settingsList);
-                leftScrollPane.setBorder(BorderFactory.createEmptyBorder());
-                leftPanel.add(leftScrollPane, BorderLayout.CENTER);
-
-                // Create and configure the right panel
-                rightPanel = new JPanel();
-                cardLayout = new CardLayout();
-                rightPanel.setLayout(cardLayout);
-
-                // Add components to the right panel
-                GeneralSettings generalSettings = new GeneralSettings();
-                generalSettingsPanel = generalSettings.getPanel();
-
-                // Advanced Settings panel
-                AdvancedSettings advancedSettings = new AdvancedSettings();
-                advancedSettingsPanel = advancedSettings.getPanel();
-
-                // Binding Type panel
-                BindingSettings bindingSettings = new BindingSettings();
-                bindingsPanel = bindingSettings.getPanel();
-
-                // Add the panels to the right panel
-                rightPanel.add(generalSettingsPanel, "General Settings");
-                rightPanel.add(advancedSettingsPanel, "Advanced Settings");
-                rightPanel.add(new JBScrollPane(bindingsPanel), "Binding Type");
 
                 // Create and configure the bottom panel
                 bottomPanel = new JPanel();
