@@ -40,6 +40,10 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                 try {
                     GetResult getResult = collection.get(file.getUserData(VirtualFileKeys.ID));
 
+                    if ("true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) {
+                        return true;
+                    }
+
                     //cas is null or different from the one in the server
                     if (file.getUserData(VirtualFileKeys.CAS) == null
                             || getResult.cas() != Long.parseLong(file.getUserData(VirtualFileKeys.CAS))) {

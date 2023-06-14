@@ -1,4 +1,4 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tree.node;
 
 import javax.swing.*;
 

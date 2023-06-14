@@ -10,8 +10,10 @@ import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.table.JBTable;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -19,14 +21,11 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.Cursor;
-import java.awt.Desktop;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,17 +36,17 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
     private JPanel mainPanel;
     private JPanel thirdPanel;
-    private JTextField connectionNameTextField;
-    private JTextField hostTextField;
+    private JBTextField connectionNameTextField;
+    private JBTextField hostTextField;
     private JCheckBox enableSSLCheckBox;
-    private JTextField usernameTextField;
+    private JBTextField usernameTextField;
     private JPasswordField passwordField;
     private JButton testConnectionButton;
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
 
     JLabel defaultBucketLabel;
-    JTextField defaultBucketTextField;
+    JBTextField defaultBucketTextField;
 
     private JBTable eventLogTable;
     private Tree tree;
@@ -60,7 +59,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         init();
         setTitle("New Couchbase Connection");
         setResizable(true);
-        getPeer().getWindow().setMinimumSize(new Dimension(700, 500));
+        getPeer().getWindow().setMinimumSize(new Dimension(600, 400));
     }
 
     @Override
@@ -252,20 +251,23 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         JPanel firstPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = JBUI.insets(5);
 
         // Add TitledBorder to the firstPanel
         TitledBorder databaseBorder = BorderFactory.createTitledBorder("Database");
         firstPanel.setBorder(databaseBorder);
 
         JLabel connectionNameLabel = new JLabel("Connection Name");
-        connectionNameTextField = new JTextField(20);
+        connectionNameTextField = new JBTextField(20);
+        connectionNameTextField.getEmptyText().setText("Give a name to your connection");
         connectionNameTextField.addFocusListener(new TextFieldFocusListener(connectionNameTextField));
         JLabel hostLabel = new JLabel("Couchbase Server URL");
-        hostTextField = new JTextField(20);
+        hostTextField = new JBTextField(20);
+        hostTextField.getEmptyText().setText("Your cluster URL");
         hostTextField.addFocusListener(new TextFieldFocusListener(hostTextField));
-        defaultBucketLabel = new JLabel("(Optional) Default Bucket");
-        defaultBucketTextField = new JTextField(20);
+        defaultBucketLabel = new JLabel("Default Bucket");
+        defaultBucketTextField = new JBTextField(20);
+        defaultBucketTextField.getEmptyText().setText("Optional");
         JPanel signupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel signupLabel = new JLabel("<html><a href=\"https://cloud.couchbase.com/sign-up\">Sign up to Capella</a></html>");
         signupLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -329,7 +331,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         gbcCredentials.insets = new Insets(5, -20, 5, 30);
 
         JLabel usernameLabel = new JLabel("Username");
-        usernameTextField = new JTextField(20);
+        usernameTextField = new JBTextField(20);
         JLabel passwordLabel = new JLabel("Password");
         passwordField = new JPasswordField(20);
 
@@ -397,16 +399,16 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     private void cleanURL() {
 
         String text = hostTextField.getText();
-        if(text.endsWith("/")){
+        if (text.endsWith("/")) {
             hostTextField.setText(text.substring(0, text.length() - 1));
         }
 
-        if(text.startsWith("https://")) {
+        if (text.startsWith("https://")) {
             hostTextField.setText(text.replaceFirst("https://", ""));
             enableSSLCheckBox.setSelected(true);
         }
 
-        if(text.startsWith("http://")){
+        if (text.startsWith("http://")) {
             hostTextField.setText(text.replaceFirst("http://", ""));
         }
     }

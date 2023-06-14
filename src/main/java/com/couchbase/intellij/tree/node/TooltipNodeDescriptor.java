@@ -1,10 +1,11 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tree.node;
 
-public class TooltipNodeDescriptor extends NodeDescriptor{
+public class TooltipNodeDescriptor extends NodeDescriptor {
 
     private String tooltip;
+
     public TooltipNodeDescriptor(String text, String tooltip) {
-        super(text,null);
+        super(text, null);
         this.tooltip = tooltip;
     }
 

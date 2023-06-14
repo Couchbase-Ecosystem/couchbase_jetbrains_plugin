@@ -4,11 +4,11 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
 
 import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -22,40 +22,57 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
-import com.couchbase.intellij.eventing.FunctionDeploymentDialog;
-import com.couchbase.intellij.eventing.FunctionDeploymentSettings;
-
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.eventing.FunctionDeploymentDialog;
+import com.couchbase.intellij.eventing.FunctionDeploymentSettings;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.tools.CBExport;
+import com.couchbase.intellij.tools.CBImport;
+import com.couchbase.intellij.tools.CBShell;
+import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.examples.CardDialog;
 import com.couchbase.intellij.tree.node.BucketNodeDescriptor;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
-import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
 import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
+import com.couchbase.intellij.tree.node.FileNodeDescriptor;
+import com.couchbase.intellij.tree.node.IndexNodeDescriptor;
+import com.couchbase.intellij.tree.node.IndexesNodeDescriptor;
 import com.couchbase.intellij.tree.node.LoadMoreNodeDescriptor;
+import com.couchbase.intellij.tree.node.MissingIndexNodeDescriptor;
+import com.couchbase.intellij.tree.node.NodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaNodeDescriptor;
 import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
+import com.couchbase.intellij.tree.node.TooltipNodeDescriptor;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.fileChooser.FileChooserFactory;
+import com.intellij.openapi.fileChooser.FileSaverDescriptor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
+
+import utils.OSUtil;
+import utils.TimeUtils;
 
 public class CouchbaseWindowContent extends JPanel {
 
@@ -73,7 +90,7 @@ public class CouchbaseWindowContent extends JPanel {
 
         // create the toolbar
         JPanel toolBarPanel = new JPanel(new BorderLayout());
-        AnAction newWorkbench = new AnAction() {
+        AnAction newWorkbench = new AnAction("New Query Workbench") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().runWriteAction(() -> {
@@ -97,9 +114,8 @@ public class CouchbaseWindowContent extends JPanel {
 
         newWorkbench.getTemplatePresentation().setIcon(
                 IconLoader.findIcon("./assets/icons/new_query.svg", CouchbaseWindowContent.class, false, true));
-        newWorkbench.getTemplatePresentation().setDescription("Refresh");
 
-        AnAction addConnectionAction = new AnAction() {
+        AnAction addConnectionAction = new AnAction("Add New Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Add connection action code here
@@ -109,19 +125,23 @@ public class CouchbaseWindowContent extends JPanel {
         };
         addConnectionAction.getTemplatePresentation().setIcon(
                 IconLoader.findIcon("./assets/icons/new_database.svg", CouchbaseWindowContent.class, false, true));
-        addConnectionAction.getTemplatePresentation().setDescription("Add New Connection");
 
-        AnAction importDataAction = new AnAction() {
+        AnAction cbshellAction = new AnAction("Open New CB Shell") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                // Import data action code here
+
+                if (ActiveCluster.getInstance().get() != null) {
+                    CBShell.openNewTerminal();
+                } else {
+                    Messages.showErrorDialog("You need to connecto to a cluster first before running CB Shell",
+                            "Couchbase Plugin Error");
+                }
             }
         };
-        importDataAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/database_import.svg", CouchbaseWindowContent.class, false, true));
-        importDataAction.getTemplatePresentation().setDescription("Import Data");
+        cbshellAction.getTemplatePresentation().setIcon(
+                IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
 
-        AnAction ellipsisAction = new AnAction() {
+        AnAction ellipsisAction = new AnAction("More Options") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Open menu code here
@@ -161,7 +181,10 @@ public class CouchbaseWindowContent extends JPanel {
         leftActionGroup.addSeparator();
         leftActionGroup.add(newWorkbench);
         leftActionGroup.addSeparator();
-        leftActionGroup.add(importDataAction);
+
+        if (OSUtil.isMacOS()) {
+            leftActionGroup.add(cbshellAction);
+        }
 
         DefaultActionGroup rightActionGroup = new DefaultActionGroup();
         rightActionGroup.add(ellipsisAction);
@@ -199,8 +222,6 @@ public class CouchbaseWindowContent extends JPanel {
                                 handleBucketRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof ScopeNodeDescriptor) {
                                 handleScopeRightClick(e, clickedNode, tree);
-                            } else if (userObject instanceof CollectionsNodeDescriptor) {
-                                handleCollectionsRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionNodeDescriptor) {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
                             }
@@ -226,13 +247,35 @@ public class CouchbaseWindowContent extends JPanel {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
-
-                                OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
-                                FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
-                                DocumentFormatter.formatFile(project, virtualFile);
+                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                                fileEditorManager.openFile(virtualFile, true);
 
                             } else {
                                 System.err.println("virtual file is null");
+                            }
+                        } else if (userObject instanceof IndexNodeDescriptor) {
+                            IndexNodeDescriptor descriptor = (IndexNodeDescriptor) userObject;
+                            VirtualFile virtualFile = descriptor.getVirtualFile();
+                            if (virtualFile != null) {
+                                OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
+                                FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
+
+                            } else {
+                                System.err.println("virtual file is null");
+                            }
+                        } else if (userObject instanceof MissingIndexNodeDescriptor) {
+                            MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
+                            int result = Messages.showYesNoDialog(
+                                    "<html>Are you sure that you would like to create a primary index on <strong>"
+                                            + node.getBucket() + "." + node.getScope() + "." + node.getCollection()
+                                            + "</strong>?<br><br>" +
+                                            "<small>We don't recommend primary indexes in production environments.</small><br>"
+                                            +
+                                            "<small>This operation might take a while.</small></html>",
+                                    "Create New Index", Messages.getQuestionIcon());
+                            if (result == Messages.YES) {
+                                DataLoader.createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection());
+                                tree.collapsePath(clickedPath.getParentPath());
                             }
                         }
                     } else {
@@ -254,8 +297,6 @@ public class CouchbaseWindowContent extends JPanel {
                     } else if (expandedTreeNode.getUserObject() instanceof BucketNodeDescriptor) {
                         DataLoader.listScopes(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
-                        // Do Nothing
-                    } else if (expandedTreeNode.getUserObject() instanceof CollectionsNodeDescriptor) {
                         DataLoader.listCollections(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
                         DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
@@ -263,6 +304,8 @@ public class CouchbaseWindowContent extends JPanel {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
                         // Do Nothing
+                    } else if (expandedTreeNode.getUserObject() instanceof IndexesNodeDescriptor) {
+                        DataLoader.listIndexes(project, expandedTreeNode, tree);
                     } else {
                         throw new UnsupportedOperationException("Not implemented yet");
                     }
@@ -352,49 +395,48 @@ public class CouchbaseWindowContent extends JPanel {
     private static void handleScopeRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
+        ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
+        String bucketName = scope.getBucket();
+        String scopeName = scope.getText();
 
-        // Add "Delete Scope" option
-        JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
-        deleteScopeItem.addActionListener(e1 -> {
-            ScopeNodeDescriptor scopeNodeDescriptor = (ScopeNodeDescriptor) clickedNode.getUserObject();
-            // Show confirmation dialog before deleting scope
-            int result = JOptionPane.showConfirmDialog(tree,
-                    "Are you sure you want to delete the scope " + scopeNodeDescriptor.getText() + "?",
-                    "Delete Scope", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
-                ActiveCluster.getInstance().get().bucket(scopeNodeDescriptor.getBucket()).collections()
-                        .dropScope(scopeNodeDescriptor.getText());
-            }
+        // can't delete the default scope
+        if (!"_default".equals(scope.getText())) {
+            // Add "Delete Scope" option
+            JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
+            deleteScopeItem.addActionListener(e1 -> {
+                // Show confirmation dialog before deleting scope
+                int result = Messages.showYesNoDialog(
+                        "Are you sure you want to delete the scope " + scopeName + "?",
+                        "Delete Scope", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
+                }
 
-            // Refresh buckets
-            DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-            TreePath treePath = new TreePath(bucketTreeNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-        popup.add(deleteScopeItem);
-        popup.show(tree, e.getX(), e.getY());
-    }
+                ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                        .dropScope(scopeName);
+                // Refresh buckets
+                DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                TreePath treePath = new TreePath(bucketTreeNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+            popup.add(deleteScopeItem);
+            popup.addSeparator();
 
-    private static void handleCollectionsRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Refresh Collections");
-        popup.add(menuItem);
-        menuItem.addActionListener(e12 -> {
+        }
+
+        JMenuItem refreshCollections = new JMenuItem("Refresh Collections");
+        popup.add(refreshCollections);
+        refreshCollections.addActionListener(e12 -> {
             TreePath treePath = new TreePath(clickedNode.getPath());
             tree.collapsePath(treePath);
             tree.expandPath(treePath);
         });
-        popup.addSeparator();
+        popup.add(refreshCollections);
 
         // Add "Add New Collection" option
         JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
         addNewCollectionItem.addActionListener(e1 -> {
-            CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) clickedNode.getUserObject();
-
-            String bucketName = cols.getBucket();
-            String scopeName = cols.getScope();
 
             NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
                     EntityType.COLLECTION, bucketName, scopeName);
@@ -409,6 +451,35 @@ public class CouchbaseWindowContent extends JPanel {
         });
 
         popup.add(addNewCollectionItem);
+
+        popup.addSeparator();
+
+        JMenuItem quickImport = new JMenuItem("Quick Import");
+        quickImport.addActionListener(e1 -> {
+            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+            VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+            if (file != null) {
+                CBImport.quickScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
+            } else {
+                Messages.showErrorDialog("Quick Import requires a .json file. Please try again.", "Quick Import Error");
+            }
+        });
+        popup.add(quickImport);
+
+        JMenuItem quickExport = new JMenuItem("Quick Export");
+        quickExport.addActionListener(e1 -> {
+            FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Scope Export",
+                    "Choose where you want to save the file:");
+            VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
+                    .createSaveFileDialog(fsd, project)
+                    .save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+            if (wrapper != null) {
+                File file = wrapper.getFile();
+                CBExport.quickScopeExport(scope.getBucket(), scope.getText(), file.getAbsolutePath());
+            }
+        });
+        popup.add(quickExport);
+
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -449,25 +520,65 @@ public class CouchbaseWindowContent extends JPanel {
             });
         }
 
-        // Add "Delete Collection" option
-        JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
-        deleteCollectionItem.addActionListener(e1 -> {
-            int result = JOptionPane.showConfirmDialog(tree,
-                    "Are you sure you want to delete the collection " + col.getText() + "?",
-                    "Delete Collection", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
+        popup.addSeparator();
+
+        if (!"_default".equals(col.getText()) && !"_default".equals(col.getScope())) {
+            // Add "Delete Collection" option
+            JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
+            deleteCollectionItem.addActionListener(e1 -> {
+                int result = Messages.showYesNoDialog(
+                        "Are you sure you want to delete the collection " + col.getText() + "?",
+                        "Delete Collection", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
+                }
+
                 ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
                         .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
-            }
+                // Refresh collections
+                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
+                        .getParent());
+                TreePath treePath = new TreePath(colsTreeNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+            popup.add(deleteCollectionItem);
+        }
 
-            // Refresh collections
-            DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
-                    .getParent());
-            TreePath treePath = new TreePath(colsTreeNode.getPath());
-            tree.collapsePath(treePath);
-            tree.expandPath(treePath);
-        });
-        popup.add(deleteCollectionItem);
+        // cbexport and cbimport are installed together, so if one is available the
+        // other also is
+        if (CBTools.getCbExport().isAvailable()) {
+            popup.addSeparator();
+            JMenuItem quickImport = new JMenuItem("Quick Import");
+            quickImport.addActionListener(e12 -> {
+                FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+                VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+                if (file != null) {
+                    CBImport.quickCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(),
+                            null);
+                } else {
+                    Messages.showErrorDialog("Quick Import requires a .json file. Please try again.",
+                            "Quick Import Error");
+                }
+            });
+            popup.add(quickImport);
+
+            JMenuItem quickExport = new JMenuItem("Quick Export");
+            quickExport.addActionListener(e12 -> {
+                FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Collection Export",
+                        "Choose where you want to save the file:");
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
+                        .createSaveFileDialog(fsd, project)
+                        .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-"
+                                + TimeUtils.getCurrentDateTime() + ".json"));
+                if (wrapper != null) {
+                    File file = wrapper.getFile();
+                    CBExport.quickCollectionExport(col.getBucket(), col.getScope(), col.getText(),
+                            file.getAbsolutePath(), null);
+                }
+            });
+            popup.add(quickExport);
+        }
 
         popup.show(tree, e.getX(), e.getY());
     }

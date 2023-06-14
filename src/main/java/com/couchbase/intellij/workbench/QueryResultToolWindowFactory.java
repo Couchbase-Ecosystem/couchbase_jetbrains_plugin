@@ -4,9 +4,12 @@ package com.couchbase.intellij.workbench;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
+import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.intellij.execution.filters.TextConsoleBuilderFactory;
+import com.intellij.execution.ui.ConsoleView;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -53,6 +56,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static JBTabs tabs;
     private static TabInfo queryResultTab;
 
+    private HtmlPanel htmlPanel;
+
     private JsonTableModel model;
 
     private JLabel statusIcon;
@@ -64,6 +69,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
 
     private JPanel queryStatsPanel;
+
+    private ConsoleView console;
 
 
     @Override
@@ -147,30 +154,36 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         editorSettings.setLineNumbersShown(true);
         editorSettings.setFoldingOutlineShown(true);
 
+        htmlPanel = new HtmlPanel();
+        htmlPanel.loadHTML(getEmptyExplain());
+
+        JPanel explainPanel = new JPanel(new BorderLayout());
+        explainPanel.add(htmlPanel, BorderLayout.CENTER);
+        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
+
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
+        resultTabs.addTab(explainTab);
+
 
         JPanel queryResultPanel = new JPanel();
         queryResultPanel.setLayout(new BorderLayout());
         queryResultPanel.add(topPanel, BorderLayout.NORTH);
         queryResultPanel.add(resultTabs.getComponent(), BorderLayout.CENTER);
 
-        TabInfo outputTab = new TabInfo(new JPanel()).setText("Log");
+        //TODO: add console.clear();
+        console = TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
+        JPanel consolePanel = new JPanel(new BorderLayout());
+        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
+
+        TabInfo outputTab = new TabInfo(consolePanel).setText("Log");
         queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
-// TODO: Fix explain
-//        HtmlPanel htmlPanel = new HtmlPanel();
-//        htmlPanel.loadHTML("<html><body><script>alert('Hello, World!')</script></body></html>");
-//
-//        JPanel explainPanel = new JPanel(new BorderLayout());
-//        explainPanel.add(htmlPanel, BorderLayout.CENTER);
-//        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
 
         tabs.addTab(outputTab);
         tabs.addTab(queryResultTab);
-//        tabs.addTab(explainTab);
         tabs.select(queryResultTab, true);
 
 
@@ -178,6 +191,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(content);
+    }
+
+    @NotNull
+    private static String getEmptyExplain() {
+        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
     }
 
     private String getQueryStatHeader(String title) {
@@ -217,7 +235,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error) {
+    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, String explain) {
         if (results != null) {
 
             List<Map<String, Object>> convertedResults = new ArrayList<>();
@@ -235,6 +253,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 }
             });
 
+            htmlPanel.loadHTML(explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
 
             if (isMutation) {
                 queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));

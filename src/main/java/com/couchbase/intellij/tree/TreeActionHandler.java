@@ -42,8 +42,11 @@ public class TreeActionHandler {
             try {
                 ActiveCluster.getInstance().connect(savedCluster);
             } catch (Exception e) {
-                Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
-                        " if the cluster is active or if the credentials are still valid.", "Couchbase Plugin Error");
+                SwingUtilities.invokeLater(() -> {
+                    Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
+                            " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error");
+                });
+                return;
             }
 
             if (newActiveNode == null) {

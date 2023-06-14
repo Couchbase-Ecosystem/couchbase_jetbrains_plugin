@@ -78,7 +78,7 @@ public class CardDialog extends DialogWrapper {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = JBUI.insets(5);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
