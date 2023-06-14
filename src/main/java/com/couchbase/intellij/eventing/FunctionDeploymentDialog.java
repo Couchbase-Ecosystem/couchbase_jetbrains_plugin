@@ -108,29 +108,4 @@ public class FunctionDeploymentDialog extends DialogWrapper {
 
         }
 
-        // private void updateScopes() {
-        // // Get selected bucket
-        // String selectedBucket = (String) bucketComboBox.getSelectedItem();
-
-        // // TODO: Get scopes for selected bucket and update scopeComboBox
-        // // You can use the Couchbase Java SDK to get the list of scopes for the
-        // selected
-        // // bucket
-        // // For example:
-        // // List<ScopeSpec> scopes =
-        // // cluster.bucket(selectedBucket).collections().getAllScopes();
-        // // Then you can update the scopeComboBox with the list of scopes
-
-        // // Enable scope combo box
-        // scopeComboBox.setEnabled(true);
-        // }
-
-        // public String getSelectedBucket() {
-        // return (String) bucketComboBox.getSelectedItem();
-        // }
-
-        // public String getSelectedScope() {
-        // return (String) scopeComboBox.getSelectedItem();
-        // }
-
 }

@@ -6,10 +6,20 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
 
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.manager.bucket.BucketSettings;
+import com.couchbase.client.java.manager.collection.CollectionManager;
+import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.collection.ScopeSpec;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
@@ -48,6 +58,10 @@ public class GeneralSettings {
     private JComboBox<String> deploymentFeedBoundaryComboBox;
 
     public GeneralSettings() {
+
+        // Connect to the Couchbase cluster
+        Cluster cluster = Cluster.connect("couchbase://localhost", "kaustav", "password");
+
         generalSettingsPanel = new JPanel();
         generalSettingsPanel.setLayout(new GridBagLayout());
 
@@ -86,9 +100,7 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridx = 1;
         generalSettingsPanelConstraints.gridy = 1;
         generalSettingsPanel.add(functionScopeScopeComboBox, generalSettingsPanelConstraints);
-
         // Function Scope error label
-
         helpLabel1 = new JBLabel(
                 "Please specify a scope to which the function belongs. User should have Eventing Manage Scope Functions permission on this scope");
         helpLabel1.setForeground(JBColor.GRAY);
@@ -275,6 +287,187 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridy = 15;
         generalSettingsPanelConstraints.fill = GridBagConstraints.BOTH;
         generalSettingsPanel.add(descriptionScrollPane, generalSettingsPanelConstraints);
+
+        // Adding all the event listeners
+        // Get the list of buckets in the cluster
+        Map<String, BucketSettings> buckets = cluster.buckets().getAllBuckets();
+
+        // Populate the bucket combo boxes
+        functionScopeBucketComboBox.addItem("*");
+        listenToLocationBucketComboBox.addItem("*");
+        eventingStorageBucketComboBox.addItem("*");
+        for (String bucketName : buckets.keySet()) {
+            functionScopeBucketComboBox.addItem(bucketName);
+            listenToLocationBucketComboBox.addItem(bucketName);
+            eventingStorageBucketComboBox.addItem(bucketName);
+        }
+
+        // Add action listeners to the bucket combo boxes
+        functionScopeBucketComboBox.addActionListener(e -> {
+            // Get the selected bucket
+            String selectedBucket = (String) functionScopeBucketComboBox.getSelectedItem();
+
+            // Clear and repopulate the functionScopeScopeComboBox
+            functionScopeScopeComboBox.removeAllItems();
+            if (selectedBucket != null && !selectedBucket.equals("*")) {
+                // Get the list of scopes for the selected bucket
+                List<ScopeSpec> scopes = cluster.bucket(selectedBucket).collections().getAllScopes();
+
+                functionScopeScopeComboBox.addItem("*");
+                for (ScopeSpec scope : scopes) {
+                    functionScopeScopeComboBox.addItem(scope.name());
+                }
+
+                // Enable the functionScopeScopeComboBox
+                functionScopeScopeComboBox.setEnabled(true);
+            } else {
+                // Disable the functionScopeScopeComboBox
+                functionScopeScopeComboBox.setEnabled(false);
+            }
+        });
+        listenToLocationBucketComboBox.addActionListener(e -> {
+            // Get the selected bucket
+            String selectedBucket = (String) listenToLocationBucketComboBox.getSelectedItem();
+
+            // Clear and repopulate the listenToLocationScopeComboBox
+            listenToLocationScopeComboBox.removeAllItems();
+            if (selectedBucket != null && !selectedBucket.equals("*")) {
+                // Get the list of scopes for the selected bucket
+                List<ScopeSpec> scopes = cluster.bucket(selectedBucket).collections().getAllScopes();
+
+                listenToLocationScopeComboBox.addItem("*");
+                for (ScopeSpec scope : scopes) {
+                    listenToLocationScopeComboBox.addItem(scope.name());
+                }
+
+                // Enable the listenToLocationScopeComboBox
+                listenToLocationScopeComboBox.setEnabled(true);
+            } else {
+                // Disable the listenToLocationScopeComboBox
+                listenToLocationScopeComboBox.setEnabled(false);
+            }
+        });
+        eventingStorageBucketComboBox.addActionListener(e -> {
+            // Get the selected bucket
+            String selectedBucket = (String) eventingStorageBucketComboBox.getSelectedItem();
+
+            // Clear and repopulate the eventingStorageScopeComboBox
+            eventingStorageScopeComboBox.removeAllItems();
+            if (selectedBucket != null && !selectedBucket.equals("*")) {
+                // Get the list of scopes for the selected bucket
+                List<ScopeSpec> scopes = cluster.bucket(selectedBucket).collections().getAllScopes();
+
+                eventingStorageScopeComboBox.addItem("*");
+                for (ScopeSpec scope : scopes) {
+                    eventingStorageScopeComboBox.addItem(scope.name());
+                }
+
+                // Enable the eventingStorageScopeComboBox
+                eventingStorageScopeComboBox.setEnabled(true);
+            } else {
+                // Disable the eventingStorageScopeComboBox
+                eventingStorageScopeComboBox.setEnabled(false);
+            }
+        });
+
+        listenToLocationScopeComboBox.addActionListener(e -> {
+            // Get the selected bucket and scope
+            String selectedBucket = (String) listenToLocationBucketComboBox.getSelectedItem();
+            String selectedScope = (String) listenToLocationScopeComboBox.getSelectedItem();
+
+            // Clear and repopulate the listenToLocationCollectionComboBox
+            listenToLocationCollectionComboBox.removeAllItems();
+            if (selectedBucket != null && !selectedBucket.equals("*") && selectedScope != null
+                    && !selectedScope.equals("*")) {
+                // Get the list of collections for the selected scope
+                Cluster activeCluster = ActiveCluster.getInstance().get();
+                if (activeCluster != null) {
+                    Bucket bucket = activeCluster.bucket(selectedBucket);
+                    if (bucket != null) {
+                        CollectionManager collectionManager = bucket.collections();
+                        if (collectionManager != null) {
+                            List<ScopeSpec> scopes = collectionManager.getAllScopes();
+                            if (scopes != null) {
+                                List<CollectionSpec> collections = scopes.stream()
+                                        .filter(scope -> scope.name().equals(selectedScope))
+                                        .flatMap(scope -> scope.collections().stream())
+                                        .collect(Collectors.toList());
+
+                                listenToLocationCollectionComboBox.addItem("*");
+                                for (CollectionSpec collection : collections) {
+                                    listenToLocationCollectionComboBox.addItem(collection.name());
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Enable the listenToLocationCollectionComboBox
+                listenToLocationCollectionComboBox.setEnabled(true);
+            } else {
+                // Disable the listenToLocationCollectionComboBox
+                listenToLocationCollectionComboBox.setEnabled(false);
+            }
+        });
+        eventingStorageScopeComboBox.addActionListener(e -> {
+            // Get the selected bucket and scope
+            String selectedBucket = (String) eventingStorageBucketComboBox.getSelectedItem();
+            String selectedScope = (String) eventingStorageScopeComboBox.getSelectedItem();
+
+            // Clear and repopulate the eventingStorageCollectionComboBox
+            eventingStorageCollectionComboBox.removeAllItems();
+            if (selectedBucket != null && !selectedBucket.equals("*") && selectedScope != null
+                    && !selectedScope.equals("*")) {
+                // Get the list of collections for the selected scope
+                Cluster activeCluster = ActiveCluster.getInstance().get();
+                if (activeCluster != null) {
+                    Bucket bucket = activeCluster.bucket(selectedBucket);
+                    if (bucket != null) {
+                        CollectionManager collectionManager = bucket.collections();
+                        if (collectionManager != null) {
+                            List<ScopeSpec> scopes = collectionManager.getAllScopes();
+                            if (scopes != null) {
+                                List<CollectionSpec> collections = scopes.stream()
+                                        .filter(scope -> scope.name().equals(selectedScope))
+                                        .flatMap(scope -> scope.collections().stream())
+                                        .collect(Collectors.toList());
+
+                                eventingStorageCollectionComboBox.addItem("*");
+                                for (CollectionSpec collection : collections) {
+                                    eventingStorageCollectionComboBox.addItem(collection.name());
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Enable the eventingStorageCollectionComboBox
+                eventingStorageCollectionComboBox.setEnabled(true);
+            } else {
+                // Disable the eventingStorageCollectionComboBox
+                eventingStorageCollectionComboBox.setEnabled(false);
+            }
+        });
+
+        listenToLocationCollectionComboBox.addActionListener(e -> {
+            // Get the selected bucket, scope, and collection
+            String selectedBucket = (String) listenToLocationBucketComboBox.getSelectedItem();
+            String selectedScope = (String) listenToLocationScopeComboBox.getSelectedItem();
+            String selectedCollection = (String) listenToLocationCollectionComboBox.getSelectedItem();
+
+            // Perform any necessary actions when the selected collection changes
+            // ...
+
+        });
+        eventingStorageCollectionComboBox.addActionListener(e -> {
+            // Get the selected bucket, scope, and collection
+            String selectedBucket = (String) eventingStorageBucketComboBox.getSelectedItem();
+            String selectedScope = (String) eventingStorageScopeComboBox.getSelectedItem();
+            String selectedCollection = (String) eventingStorageCollectionComboBox.getSelectedItem();
+
+            // Perform any necessary actions when the selected collection changes
+            // ...
+        });
 
     }
 
