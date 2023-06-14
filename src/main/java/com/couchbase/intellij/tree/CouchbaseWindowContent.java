@@ -1,6 +1,8 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
@@ -188,6 +190,8 @@ public class CouchbaseWindowContent extends JPanel {
                                 handleScopeRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionNodeDescriptor) {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
+                            } else if (userObject instanceof FileNodeDescriptor) {
+                                handleDocumentRightClick(e, clickedNode, (FileNodeDescriptor) userObject, tree);
                             }
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
@@ -441,6 +445,31 @@ public class CouchbaseWindowContent extends JPanel {
             }
         });
         popup.add(quickExport);
+
+
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+
+    private static void handleDocumentRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
+                                                 FileNodeDescriptor col, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem viewMetaData = new JMenuItem("View Metadata");
+        String bucket = col.getVirtualFile().getUserData(VirtualFileKeys.BUCKET);
+        String scope = col.getVirtualFile().getUserData(VirtualFileKeys.SCOPE);
+        String collection = col.getVirtualFile().getUserData(VirtualFileKeys.COLLECTION);
+        String docId = col.getVirtualFile().getUserData(VirtualFileKeys.ID);
+        viewMetaData.addActionListener(e12 -> {
+            String metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
+            if (metadata != null) {
+                VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json",
+                        FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                DocumentFormatter.formatFile(project, virtualFile);
+                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                fileEditorManager.openFile(virtualFile, true);
+            }
+        });
+        popup.add(viewMetaData);
 
 
         popup.show(tree, e.getX(), e.getY());

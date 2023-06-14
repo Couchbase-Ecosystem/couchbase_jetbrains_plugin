@@ -444,4 +444,19 @@ public class DataLoader {
             throw new IllegalStateException("The expected parent was IndexesNodeDescriptor but got something else");
         }
     }
+
+
+    public static String getDocMetadata(String bucket, String scope, String collection, String docId) {
+
+        try {
+            String query = "Select meta().* from `" + collection + "` use keys \"" + docId + "\"";
+            final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(query).rowsAsObject();
+
+            return results.get(0).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.error("Failed to load the metadata for document " + docId, e);
+            return null;
+        }
+    }
 }

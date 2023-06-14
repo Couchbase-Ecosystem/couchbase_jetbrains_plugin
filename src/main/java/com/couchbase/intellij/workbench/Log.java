@@ -38,25 +38,28 @@ public class Log {
 
     public static void error(Class c, String message, Exception e) {
 
-        String exception = "";
-        if (e.getCause() != null) {
-            exception = e.getCause().getMessage();
-        } else {
-            exception = e.getMessage();
-        }
-
+        String exception = getCause(e);
         getLogger().print(c.getSimpleName() + ":" + message + " error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     public static void error(Exception e) {
 
+        String exception = getCause(e);
+        getLogger().print("error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
+    }
+
+    private static String getCause(Exception e) {
         String exception = "";
         if (e.getCause() != null) {
             exception = e.getCause().getMessage();
         } else {
             exception = e.getMessage();
         }
-        getLogger().print("error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        return exception;
+    }
+
+    public static void error(String message, Exception e) {
+        getLogger().print(message + " error: " + getCause(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     public static void error(String message) {
