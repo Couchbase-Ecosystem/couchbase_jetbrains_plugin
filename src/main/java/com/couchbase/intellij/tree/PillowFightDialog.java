@@ -23,7 +23,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -195,8 +199,81 @@ public class PillowFightDialog extends DialogWrapper {
 
         if (errors.isEmpty()) {
             super.doOKAction();
+            try {
+                PillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), persistToTextField.getText());
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         } else {
             errorMessage.setText("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+        }
+    }
+
+    public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
+        Runtime rt = Runtime.getRuntime();
+        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s --persist-to %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField);
+        //System.out.println(command);
+        Process proc = rt.exec(command);
+
+        //BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+        //BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+
+        //System.out.println(proc);
+
+        StopButtonDialog stopButtonDialog = new StopButtonDialog(proc);
+        stopButtonDialog.setVisible(true);
+
+        /*
+        stopButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (proc != null) {
+                    proc.destroy(); // Stop the process if it is running
+                }
+            }
+        });
+         */
+
+        /*
+        Thread outputThread = new Thread(() -> {
+            try {
+                String line;
+                while ((line = stdInput.readLine()) != null) {
+                    if (line.contains("OPS/SEC:")) {
+                        String opsSecValue = line.split("OPS/SEC:")[1].trim();
+                        System.out.println("OPS/SEC: " + opsSecValue);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        */
+    }
+
+    public class StopButtonDialog extends JDialog {
+        //TODO: Fix frame sizing of stop button to accomodate full title
+        //TODO: Get OPS/SEC from proc PID and display above stop button
+        private JButton stopButton;
+
+        public StopButtonDialog(Process proc) {
+            super();
+            setTitle("Stop Pillow Fight");
+            stopButton = new JButton("Stop");
+
+            JPanel panel = new JPanel();
+            panel.add(stopButton);
+
+            add(panel);
+            pack();
+
+            setLocationRelativeTo(null);
+
+            stopButton.addActionListener(e -> {
+                if (proc != null) {
+                    proc.destroy();
+                }
+                dispose();
+            });
         }
     }
 }
