@@ -49,6 +49,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField percentageTextField;
     private ComboBox<String> noPopulationComboBox;
     private ComboBox<String> populateOnlyComboBox;
+    private JTextField minSizeTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -184,6 +185,26 @@ public class PillowFightDialog extends DialogWrapper {
         populateOnlyComboBox.addItem("enable");
         populateOnlyComboBox.addItem("disable");
 
+        minSizeTextField = new JTextField();
+        minSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = minSizeTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateMinSizeTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateMinSizeTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateMinSizeTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -303,6 +324,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateMinSizeTextField(Color originalColor) {
+        String input = minSizeTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                minSizeTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                minSizeTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            minSizeTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -393,6 +430,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 10;
+        panel.add(new JLabel("Min Size (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 10;
+        panel.add(minSizeTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 11;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -442,6 +487,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Percentage value must be 0 or greater");
         }
 
+        if (minSizeTextField.getText().equals("")) {
+            errors.add("Min Size value is empty");
+        } else if (Integer.parseInt(minSizeTextField.getText()) < 0){
+            errors.add("Min Size value must be 0 or greater");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -462,6 +513,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      percentage
      *      no population
      *      populate only
+     *      min size
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
