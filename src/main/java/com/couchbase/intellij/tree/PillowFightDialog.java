@@ -50,6 +50,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> noPopulationComboBox;
     private ComboBox<String> populateOnlyComboBox;
     private JTextField minSizeTextField;
+    private JTextField maxSizeTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -205,6 +206,26 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
+        maxSizeTextField = new JTextField();
+        maxSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = maxSizeTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateMaxSizeTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateMaxSizeTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateMaxSizeTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -340,6 +361,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateMaxSizeTextField(Color originalColor) {
+        String input = maxSizeTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                maxSizeTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                maxSizeTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            maxSizeTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -438,6 +475,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 11;
+        panel.add(new JLabel("Max Size (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 11;
+        panel.add(maxSizeTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 12;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -492,6 +537,11 @@ public class PillowFightDialog extends DialogWrapper {
         } else if (Integer.parseInt(minSizeTextField.getText()) < 0){
             errors.add("Min Size value must be 0 or greater");
         }
+        if (maxSizeTextField.getText().equals("")) {
+            errors.add("Max Size value is empty");
+        } else if (Integer.parseInt(maxSizeTextField.getText()) < 0) {
+            errors.add("Max Size value must be 0 or greater");
+        }
 
         if (errors.isEmpty()) {
             super.doOKAction();
@@ -514,6 +564,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      no population
      *      populate only
      *      min size
+     *      max size
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
