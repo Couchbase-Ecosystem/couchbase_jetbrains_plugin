@@ -46,6 +46,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField numberItemsTextField;
     private JTextField keyPrefixTextField;
     private JTextField numberThreadsTextField;
+    private JTextField percentageTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -153,6 +154,26 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
+        percentageTextField = new JTextField();
+        percentageTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = percentageTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validatePercentageTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validatePercentageTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validatePercentageTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -256,6 +277,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validatePercentageTextField(Color originalColor) {
+        String input = percentageTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                percentageTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                percentageTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            percentageTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -322,6 +359,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 7;
+        panel.add(new JLabel("Percentage (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 7;
+        panel.add(percentageTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 8;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -365,6 +410,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Number of Threads value must be 0 or greater");
         }
 
+        if (percentageTextField.getText().equals("")) {
+            errors.add("Percentage value is empty");
+        } else if (Integer.parseInt(percentageTextField.getText()) < 0){
+            errors.add("Percentage value must be 0 or greater");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -382,6 +433,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      number items
      *      key prefix
      *      number threads
+     *      percentage
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
