@@ -51,6 +51,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> populateOnlyComboBox;
     private JTextField minSizeTextField;
     private JTextField maxSizeTextField;
+    private ComboBox<String> pauseAtEndComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -225,6 +226,10 @@ public class PillowFightDialog extends DialogWrapper {
                 validateMaxSizeTextField(originalColor);
             }
         });
+
+        pauseAtEndComboBox = new ComboBox<>();
+        pauseAtEndComboBox.addItem("enable");
+        pauseAtEndComboBox.addItem("disable");
 
         init();
 
@@ -483,6 +488,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 12;
+        panel.add(new JLabel("Pause At End: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 12;
+        panel.add(pauseAtEndComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 13;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
