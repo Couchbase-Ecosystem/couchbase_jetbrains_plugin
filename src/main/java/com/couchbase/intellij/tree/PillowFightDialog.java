@@ -42,6 +42,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
     private ComboBox<String> durabilityComboBox;
     private JTextField persistToTextField;
+    private JTextField batchSizeTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -84,6 +85,26 @@ public class PillowFightDialog extends DialogWrapper {
             @Override
             public void changedUpdate(DocumentEvent documentEvent) {
                 validatePersistToTextField(originalColor);
+            }
+        });
+
+        batchSizeTextField = new JTextField();
+        batchSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = batchSizeTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateBatchSizeTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateBatchSizeTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateBatchSizeTextField(originalColor);
             }
         });
 
@@ -142,6 +163,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateBatchSizeTextField(Color originalColor) {
+        String input = batchSizeTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                batchSizeTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                batchSizeTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            batchSizeTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -176,6 +213,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 3;
+        panel.add(new JLabel("Batch Size (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        panel.add(batchSizeTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -197,6 +242,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Persist-to value must be -1 or greater");
         }
 
+        if (batchSizeTextField.getText().equals("")) {
+            errors.add("Batch size value is empty");
+        } else if (Integer.parseInt(batchSizeTextField.getText()) < 0){
+            errors.add("Batch size value must be 0 or greater");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -209,6 +260,9 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    /*TODO: Add more options to command
+     *      batch size
+     */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
         String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s --persist-to %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField);
