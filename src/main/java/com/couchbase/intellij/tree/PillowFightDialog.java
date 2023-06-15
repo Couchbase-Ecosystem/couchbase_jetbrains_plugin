@@ -48,6 +48,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField numberThreadsTextField;
     private JTextField percentageTextField;
     private ComboBox<String> noPopulationComboBox;
+    private ComboBox<String> populateOnlyComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -178,6 +179,10 @@ public class PillowFightDialog extends DialogWrapper {
         noPopulationComboBox = new ComboBox<>();
         noPopulationComboBox.addItem("enable");
         noPopulationComboBox.addItem("disable");
+
+        populateOnlyComboBox = new ComboBox<>();
+        populateOnlyComboBox.addItem("enable");
+        populateOnlyComboBox.addItem("disable");
 
         init();
 
@@ -380,6 +385,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 9;
+        panel.add(new JLabel("Populate only: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 9;
+        panel.add(populateOnlyComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 10;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -447,6 +460,8 @@ public class PillowFightDialog extends DialogWrapper {
      *      key prefix
      *      number threads
      *      percentage
+     *      no population
+     *      populate only
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
