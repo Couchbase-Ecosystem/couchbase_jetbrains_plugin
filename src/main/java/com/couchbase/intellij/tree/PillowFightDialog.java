@@ -54,6 +54,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> pauseAtEndComboBox;
     private JTextField numberCyclesTextField;
     private ComboBox<String> sequentialComboBox;
+    private JTextField startAtTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -257,6 +258,26 @@ public class PillowFightDialog extends DialogWrapper {
         sequentialComboBox.addItem("enable");
         sequentialComboBox.addItem("disable");
 
+        startAtTextField = new JTextField();
+        startAtTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = startAtTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateStartAtTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateStartAtTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateStartAtTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -424,6 +445,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateStartAtTextField(Color originalColor) {
+        String input = startAtTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                startAtTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                startAtTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            startAtTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -554,6 +591,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 15;
+        panel.add(new JLabel("Start At (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 15;
+        panel.add(startAtTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 16;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -617,8 +662,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         if (numberCyclesTextField.getText().equals("")) {
             errors.add("Number of Cycles value is empty");
-        } else if (Integer.parseInt(numberCyclesTextField.getText()) < 0) {
+        } else if (Integer.parseInt(numberCyclesTextField.getText()) < -1) {
             errors.add("Number of Cycles value must be -1 or greater");
+        }
+
+        if (startAtTextField.getText().equals("")) {
+            errors.add("Start At value is empty");
+        } else if (Integer.parseInt(numberCyclesTextField.getText()) < 0) {
+            errors.add("Start At value must be 0 or greater");
         }
 
         if (errors.isEmpty()) {
@@ -646,6 +697,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      pause at end
      *      number cycles
      *      sequential
+     *      start at
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
