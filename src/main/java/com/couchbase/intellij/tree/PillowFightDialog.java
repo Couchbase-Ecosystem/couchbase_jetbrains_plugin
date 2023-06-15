@@ -44,6 +44,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField persistToTextField;
     private JTextField batchSizeTextField;
     private JTextField numberItemsTextField;
+    private JTextField keyPrefixTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -128,6 +129,8 @@ public class PillowFightDialog extends DialogWrapper {
                 validateNumberItemsTextField(originalColor);
             }
         });
+
+        keyPrefixTextField = new JTextField();
 
         init();
 
@@ -266,6 +269,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 5;
+        panel.add(new JLabel("Key prefix: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 5;
+        panel.add(keyPrefixTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -299,6 +310,10 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Number of Items value must be 0 or greater");
         }
 
+        if (keyPrefixTextField.getText().equals("")) {
+            errors.add("Key prefix value is empty");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -314,6 +329,7 @@ public class PillowFightDialog extends DialogWrapper {
     /*TODO: Add more options to command
      *      batch size
      *      number items
+     *      key prefix
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
