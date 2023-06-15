@@ -32,9 +32,10 @@ import java.util.stream.Collectors;
 
 public class DatabaseConnectionDialog extends DialogWrapper {
 
+    JLabel defaultBucketLabel;
+    JBTextField defaultBucketTextField;
     private JLabel errorLabel;
     private JLabel messageLabel;
-
     private JPanel mainPanel;
     private JPanel thirdPanel;
     private JBTextField connectionNameTextField;
@@ -45,10 +46,6 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     private JButton testConnectionButton;
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
-
-    JLabel defaultBucketLabel;
-    JBTextField defaultBucketTextField;
-
     private JBTable eventLogTable;
     private Tree tree;
 
@@ -172,7 +169,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                             usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
                             defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
                     messageLabel.setText("Connection was successful");
-                    TreeActionHandler.connectToCluster(sc, tree);
+                    TreeActionHandler.connectToCluster(sc, tree, null);
                     close(DialogWrapper.CANCEL_EXIT_CODE);
                 } catch (DuplicatedClusterNameAndUserException cae) {
                     messageLabel.setText("");

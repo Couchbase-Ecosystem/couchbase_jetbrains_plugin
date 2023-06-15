@@ -27,12 +27,15 @@ import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.ColorChooser;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import utils.OSUtil;
 import utils.TimeUtils;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
@@ -52,17 +55,21 @@ public class CouchbaseWindowContent extends JPanel {
     private static DefaultTreeModel treeModel;
     private static Project project;
 
+    private static JPanel toolBarPanel;
+
     public CouchbaseWindowContent(Project project) {
         CouchbaseWindowContent.project = project;
         setLayout(new BorderLayout());
-
         treeModel = getTreeModel(project);
         Tree tree = new Tree(treeModel);
+
         tree.setRootVisible(false);
         tree.setCellRenderer(new NodeDescriptorRenderer());
 
+
         // create the toolbar
-        JPanel toolBarPanel = new JPanel(new BorderLayout());
+        toolBarPanel = new JPanel(new BorderLayout());
+
         AnAction newWorkbench = new AnAction("New Query Workbench") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -71,8 +78,7 @@ public class CouchbaseWindowContent extends JPanel {
                         Project project = e.getProject();
 
                         String fileName = "virtual.sqlpp";
-                        VirtualFile virtualFile = new LightVirtualFile(fileName,
-                                FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), "");
+                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), "");
                         if (virtualFile != null) {
                             // Open the file in the editor
                             FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -86,8 +92,7 @@ public class CouchbaseWindowContent extends JPanel {
             }
         };
 
-        newWorkbench.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/new_query.svg", CouchbaseWindowContent.class, false, true));
+        newWorkbench.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/new_query.svg", CouchbaseWindowContent.class, false, true));
 
         AnAction addConnectionAction = new AnAction("Add New Connection") {
             @Override
@@ -97,8 +102,7 @@ public class CouchbaseWindowContent extends JPanel {
                 dialog.show();
             }
         };
-        addConnectionAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/new_database.svg", CouchbaseWindowContent.class, false, true));
+        addConnectionAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/new_database.svg", CouchbaseWindowContent.class, false, true));
 
         AnAction cbshellAction = new AnAction("Open New CB Shell") {
             @Override
@@ -107,13 +111,11 @@ public class CouchbaseWindowContent extends JPanel {
                 if (ActiveCluster.getInstance().get() != null) {
                     CBShell.openNewTerminal();
                 } else {
-                    Messages.showErrorDialog("You need to connecto to a cluster first before running CB Shell"
-                            , "Couchbase Plugin Error");
+                    Messages.showErrorDialog("You need to connecto to a cluster first before running CB Shell", "Couchbase Plugin Error");
                 }
             }
         };
-        cbshellAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
+        cbshellAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
 
         AnAction ellipsisAction = new AnAction("More Options") {
             @Override
@@ -138,8 +140,7 @@ public class CouchbaseWindowContent extends JPanel {
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
             }
         };
-        ellipsisAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/ellipsis_horizontal.svg",
-                CouchbaseWindowContent.class, false, true));
+        ellipsisAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/ellipsis_horizontal.svg", CouchbaseWindowContent.class, false, true));
         ellipsisAction.getTemplatePresentation().setDescription("More Options");
 
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
@@ -155,13 +156,11 @@ public class CouchbaseWindowContent extends JPanel {
         DefaultActionGroup rightActionGroup = new DefaultActionGroup();
         rightActionGroup.add(ellipsisAction);
 
-        ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup,
-                true);
+        ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
         leftActionToolbar.setTargetComponent(this);
         toolBarPanel.add(leftActionToolbar.getComponent(), BorderLayout.WEST);
 
-        ActionToolbar rightActionToolbar = ActionManager.getInstance().createActionToolbar("MoreOptions",
-                rightActionGroup, true);
+        ActionToolbar rightActionToolbar = ActionManager.getInstance().createActionToolbar("MoreOptions", rightActionGroup, true);
         rightActionToolbar.setTargetComponent(this);
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
 
@@ -175,8 +174,7 @@ public class CouchbaseWindowContent extends JPanel {
                 } else {
                     TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
                     if (clickedPath != null) {
-                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath
-                                .getLastPathComponent();
+                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
                         if (SwingUtilities.isRightMouseButton(e)) {
                             Object userObject = clickedNode.getUserObject();
                             int row = tree.getClosestRowForLocation(e.getX(), e.getY());
@@ -195,8 +193,7 @@ public class CouchbaseWindowContent extends JPanel {
                             }
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
-                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree,
-                                    loadMore.getNewOffset());
+                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
                         }
                     }
                 }
@@ -234,12 +231,7 @@ public class CouchbaseWindowContent extends JPanel {
                             }
                         } else if (userObject instanceof MissingIndexNodeDescriptor) {
                             MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
-                            int result = Messages.showYesNoDialog(
-                                    "<html>Are you sure that you would like to create a primary index on <strong>"
-                                            + node.getBucket() + "." + node.getScope() + "." + node.getCollection() + "</strong>?<br><br>" +
-                                            "<small>We don't recommend primary indexes in production environments.</small><br>" +
-                                            "<small>This operation might take a while.</small></html>",
-                                    "Create New Index", Messages.getQuestionIcon());
+                            int result = Messages.showYesNoDialog("<html>Are you sure that you would like to create a primary index on <strong>" + node.getBucket() + "." + node.getScope() + "." + node.getCollection() + "</strong>?<br><br>" + "<small>We don't recommend primary indexes in production environments.</small><br>" + "<small>This operation might take a while.</small></html>", "Create New Index", Messages.getQuestionIcon());
                             if (result == Messages.YES) {
                                 DataLoader.createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection());
                                 tree.collapsePath(clickedPath.getParentPath());
@@ -289,8 +281,7 @@ public class CouchbaseWindowContent extends JPanel {
         add(new JScrollPane(tree), BorderLayout.CENTER);
     }
 
-    private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-                                                   ConnectionNodeDescriptor userObject, Tree tree) {
+    private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         ConnectionNodeDescriptor con = userObject;
 
@@ -310,11 +301,45 @@ public class CouchbaseWindowContent extends JPanel {
                 TreeActionHandler.disconnectFromCluster(clickedNode, con, tree);
             });
 
+
+            JMenu settings = new JMenu("Settings");
+            JMenu colors = new JMenu("Connection Colors");
+
+            JMenuItem colorAction = new JMenuItem("Set Connection Color");
+            colorAction.addActionListener(event -> {
+                Color initialColor = Color.RED;  // the color initially selected in the dialog
+                boolean enableOpacity = true;    // whether to allow the user to choose an opacity
+                String title = "Choose a Color for This Connection"; // the title of the dialog
+
+                Color chosenColor = ColorChooser.chooseColor(tree, title, initialColor, enableOpacity);
+                if (chosenColor != null) {
+                    Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, chosenColor);
+                    Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                    Border compound = BorderFactory.createCompoundBorder(margin, line);
+                    toolBarPanel.setBorder(compound);
+                    toolBarPanel.revalidate();
+                    ActiveCluster.getInstance().setColor(chosenColor);
+                }
+            });
+            colors.add(colorAction);
+
+            if (ActiveCluster.getInstance().getColor() != null) {
+                JMenuItem clearConnectionColor = new JMenuItem("Clear");
+                clearConnectionColor.addActionListener(event -> {
+                    toolBarPanel.setBorder(JBUI.Borders.empty());
+                    toolBarPanel.revalidate();
+                    ActiveCluster.getInstance().setColor(null);
+                });
+                colors.add(clearConnectionColor);
+            }
+
+            settings.add(colors);
+            popup.add(settings);
         } else {
             JMenuItem menuItem = new JMenuItem("Connect");
             popup.add(menuItem);
             menuItem.addActionListener(e12 -> {
-                TreeActionHandler.connectToCluster(con.getSavedCluster(), tree);
+                TreeActionHandler.connectToCluster(con.getSavedCluster(), tree, toolBarPanel);
             });
         }
 
@@ -324,6 +349,8 @@ public class CouchbaseWindowContent extends JPanel {
         menuItem.addActionListener(e12 -> {
             TreeActionHandler.deleteConnection(clickedNode, con, tree);
         });
+        popup.addSeparator();
+
 
         popup.show(tree, e.getX(), e.getY());
     }
@@ -344,8 +371,7 @@ public class CouchbaseWindowContent extends JPanel {
         addNewScopeItem.addActionListener(e1 -> {
             String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE,
-                    bucketName);
+            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE, bucketName);
             entityCreationDialog.show();
 
             if (entityCreationDialog.isOK()) {
@@ -372,15 +398,12 @@ public class CouchbaseWindowContent extends JPanel {
             JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
             deleteScopeItem.addActionListener(e1 -> {
                 // Show confirmation dialog before deleting scope
-                int result = Messages.showYesNoDialog(
-                        "Are you sure you want to delete the scope " + scopeName + "?",
-                        "Delete Scope", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
                 if (result != Messages.YES) {
                     return;
                 }
 
-                ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                        .dropScope(scopeName);
+                ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
                 // Refresh buckets
                 DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                 TreePath treePath = new TreePath(bucketTreeNode.getPath());
@@ -405,14 +428,12 @@ public class CouchbaseWindowContent extends JPanel {
         JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
         addNewCollectionItem.addActionListener(e1 -> {
 
-            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
-                    EntityType.COLLECTION, bucketName, scopeName);
+            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION, bucketName, scopeName);
             entityCreationDialog.show();
 
             if (entityCreationDialog.isOK()) {
                 String collectionName = entityCreationDialog.getEntityName();
-                ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                        .createCollection(CollectionSpec.create(collectionName, scopeName));
+                ActiveCluster.getInstance().get().bucket(bucketName).collections().createCollection(CollectionSpec.create(collectionName, scopeName));
                 DataLoader.listCollections(clickedNode, tree);
             }
         });
@@ -436,9 +457,7 @@ public class CouchbaseWindowContent extends JPanel {
         JMenuItem quickExport = new JMenuItem("Quick Export");
         quickExport.addActionListener(e1 -> {
             FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Scope Export", "Choose where you want to save the file:");
-            VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
-                    .createSaveFileDialog(fsd, project)
-                    .save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+            VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project).save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
             if (wrapper != null) {
                 File file = wrapper.getFile();
                 CBExport.quickScopeExport(scope.getBucket(), scope.getText(), file.getAbsolutePath());
@@ -451,8 +470,7 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
 
-    private static void handleDocumentRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-                                                 FileNodeDescriptor col, Tree tree) {
+    private static void handleDocumentRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, FileNodeDescriptor col, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         JMenuItem viewMetaData = new JMenuItem("View Metadata");
         String bucket = col.getVirtualFile().getUserData(VirtualFileKeys.BUCKET);
@@ -462,8 +480,7 @@ public class CouchbaseWindowContent extends JPanel {
         viewMetaData.addActionListener(e12 -> {
             String metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
             if (metadata != null) {
-                VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json",
-                        FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json", FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
                 DocumentFormatter.formatFile(project, virtualFile);
                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                 fileEditorManager.openFile(virtualFile, true);
@@ -476,8 +493,7 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
 
-    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
-                                                   CollectionNodeDescriptor col, Tree tree) {
+    private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
         popup.addSeparator();
         String filter = "Add Document Filter";
@@ -489,8 +505,7 @@ public class CouchbaseWindowContent extends JPanel {
         JMenuItem menuItem = new JMenuItem(filter);
         popup.add(menuItem);
         menuItem.addActionListener(e12 -> {
-            DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(),
-                    col.getText());
+            DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
             dialog.show();
         });
 
@@ -498,13 +513,7 @@ public class CouchbaseWindowContent extends JPanel {
             JMenuItem clearDocFilter = new JMenuItem("Clear Document Filter");
             popup.add(clearDocFilter);
             clearDocFilter.addActionListener(e12 -> {
-                QueryFiltersStorage.getInstance().getValue()
-                        .saveQueryFilter(
-                                ActiveCluster.getInstance().getId(),
-                                col.getBucket(),
-                                col.getScope(),
-                                col.getText(),
-                                null);
+                QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(), col.getBucket(), col.getScope(), col.getText(), null);
 
                 col.setQueryFilter(null);
                 TreePath treePath = new TreePath(clickedNode.getPath());
@@ -519,18 +528,14 @@ public class CouchbaseWindowContent extends JPanel {
             // Add "Delete Collection" option
             JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
             deleteCollectionItem.addActionListener(e1 -> {
-                int result = Messages.showYesNoDialog(
-                        "Are you sure you want to delete the collection " + col.getText() + "?",
-                        "Delete Collection", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());
                 if (result != Messages.YES) {
                     return;
                 }
 
-                ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
-                        .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
+                ActiveCluster.getInstance().get().bucket(col.getBucket()).collections().dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
                 // Refresh collections
-                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
-                        .getParent());
+                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                 TreePath treePath = new TreePath(colsTreeNode.getPath());
                 tree.collapsePath(treePath);
                 tree.expandPath(treePath);
@@ -556,9 +561,7 @@ public class CouchbaseWindowContent extends JPanel {
             JMenuItem quickExport = new JMenuItem("Quick Export");
             quickExport.addActionListener(e12 -> {
                 FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Collection Export", "Choose where you want to save the file:");
-                VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
-                        .createSaveFileDialog(fsd, project)
-                        .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project).save(("cb_export-" + col.getScope() + "_" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
                 if (wrapper != null) {
                     File file = wrapper.getFile();
                     CBExport.quickCollectionExport(col.getBucket(), col.getScope(), col.getText(), file.getAbsolutePath(), null);
@@ -570,10 +573,20 @@ public class CouchbaseWindowContent extends JPanel {
         popup.show(tree, e.getX(), e.getY());
     }
 
+    public static DefaultTreeModel getTreeModel(Project project) {
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
+
+        Map<String, SavedCluster> sortedClusters = new TreeMap<>(DataLoader.getSavedClusters());
+        for (Map.Entry<String, SavedCluster> entry : sortedClusters.entrySet()) {
+            DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(new ConnectionNodeDescriptor(entry.getKey(), entry.getValue(), false));
+            root.add(adminLocal);
+        }
+        return new DefaultTreeModel(root);
+    }
+
     class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
-        public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
-                                                      boolean leaf, int row, boolean hasFocus) {
+        public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
@@ -589,8 +602,7 @@ public class CouchbaseWindowContent extends JPanel {
                 } else if (userObject instanceof CollectionNodeDescriptor) {
                     CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
                     setText(descriptor.getText());
-                    if (descriptor.getQueryFilter() == null
-                            || descriptor.getQueryFilter().trim().isEmpty()) {
+                    if (descriptor.getQueryFilter() == null || descriptor.getQueryFilter().trim().isEmpty()) {
                         setIcon(descriptor.getIcon());
                     } else {
                         setIcon(IconLoader.findIcon("./assets/icons/filter.svg"));
@@ -603,18 +615,6 @@ public class CouchbaseWindowContent extends JPanel {
             }
             return this;
         }
-    }
-
-    public static DefaultTreeModel getTreeModel(Project project) {
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-
-        Map<String, SavedCluster> sortedClusters = new TreeMap<>(DataLoader.getSavedClusters());
-        for (Map.Entry<String, SavedCluster> entry : sortedClusters.entrySet()) {
-            DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(
-                    new ConnectionNodeDescriptor(entry.getKey(), entry.getValue(), false));
-            root.add(adminLocal);
-        }
-        return new DefaultTreeModel(root);
     }
 
 }

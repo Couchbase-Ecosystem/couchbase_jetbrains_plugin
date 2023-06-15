@@ -27,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
@@ -41,15 +42,14 @@ public class CustomSqlFileEditor implements FileEditor {
     private final EditorWrapper queryEditor;
     private final VirtualFile file;
     private final Project project;
+    JPanel panel;
     private JLabel historyLabel;
     private JComponent component;
-
     private int currentHistoryIndex;
-
     private String selectedBucketContext;
     private String selectedScopeContext;
     private String cachedPreviousSelectedConnection;
-    JPanel panel;
+    private JPanel topPanel;
 
     CustomSqlFileEditor(Project project, VirtualFile file) {
         this.file = file;
@@ -248,9 +248,16 @@ public class CustomSqlFileEditor implements FileEditor {
         leftPanel.add(executeToolbar.getComponent(), BorderLayout.WEST);
         leftPanel.add(getQueryContextPanel(), BorderLayout.CENTER);
 
-        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel = new JPanel(new BorderLayout());
         topPanel.add(leftPanel, BorderLayout.WEST);
         topPanel.add(rightPanel, BorderLayout.EAST);
+
+        if (ActiveCluster.getInstance().getColor() != null) {
+            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0);
+            Border compound = BorderFactory.createCompoundBorder(margin, line);
+            topPanel.setBorder(compound);
+        }
 
         panel.add(topPanel, BorderLayout.NORTH);
     }
@@ -341,7 +348,7 @@ public class CustomSqlFileEditor implements FileEditor {
                     return;
                 }
                 if (ActiveCluster.getInstance().get() == null || !item.equals(ActiveCluster.getInstance().getId())) {
-                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected to", "Workbench Error"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected.", "Workbench Error"));
 
                     SwingUtilities.invokeLater(() -> comboBox
                             .setSelectedItem(cachedPreviousSelectedConnection));
@@ -349,6 +356,17 @@ public class CustomSqlFileEditor implements FileEditor {
                     SwingUtilities.invokeLater(() -> {
                         contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
                         contextLabel.revalidate();
+
+                        if (ActiveCluster.getInstance().getColor() != null) {
+                            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+                            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                            Border compound = BorderFactory.createCompoundBorder(margin, line);
+                            topPanel.setBorder(compound);
+                            topPanel.revalidate();
+                        } else {
+                            topPanel.setBorder(JBUI.Borders.empty());
+                            topPanel.revalidate();
+                        }
                     });
                     selectedBucketContext = null;
                     selectedScopeContext = null;

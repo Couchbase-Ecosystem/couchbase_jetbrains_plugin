@@ -3,7 +3,9 @@ package com.couchbase.intellij.database;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.intellij.ui.ColorUtil;
 
+import java.awt.*;
 import java.time.Duration;
 
 public class ActiveCluster {
@@ -12,6 +14,8 @@ public class ActiveCluster {
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
+
+    private Color color;
 
     private ActiveCluster() {
     }
@@ -45,6 +49,9 @@ public class ActiveCluster {
         this.cluster = cluster;
         this.savedCluster = savedCluster;
         this.password = password;
+        if (savedCluster.getColor() != null) {
+            this.color = Color.decode(savedCluster.getColor());
+        }
     }
 
     public void disconnect() {
@@ -52,6 +59,7 @@ public class ActiveCluster {
         this.savedCluster = null;
         this.cluster = null;
         this.password = null;
+        this.color = null;
     }
 
     public boolean isCapella() {
@@ -70,16 +78,33 @@ public class ActiveCluster {
     }
 
     public boolean isSSLEnabled() {
-       if (this.savedCluster == null) {
+        if (this.savedCluster == null) {
             return false;
         }
         return this.savedCluster.isSslEnable();
     }
 
     public String getClusterURL() {
-       if (this.savedCluster == null) {
+        if (this.savedCluster == null) {
             return null;
         }
         return this.savedCluster.getUrl();
+    }
+
+    public Color getColor() {
+        return color;
+    }
+
+    public void setColor(Color color) {
+        if (color != null) {
+            this.savedCluster.setColor(ColorUtil.toHtmlColor(color));
+        } else {
+            this.savedCluster.setColor(null);
+        }
+        this.color = color;
+    }
+
+    public SavedCluster getSavedCluster() {
+        return savedCluster;
     }
 }
