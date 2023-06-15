@@ -47,6 +47,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField keyPrefixTextField;
     private JTextField numberThreadsTextField;
     private JTextField percentageTextField;
+    private ComboBox<String> noPopulationComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -173,6 +174,10 @@ public class PillowFightDialog extends DialogWrapper {
                 validatePercentageTextField(originalColor);
             }
         });
+
+        noPopulationComboBox = new ComboBox<>();
+        noPopulationComboBox.addItem("enable");
+        noPopulationComboBox.addItem("disable");
 
         init();
 
@@ -367,6 +372,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 8;
+        panel.add(new JLabel("No population: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 8;
+        panel.add(noPopulationComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 9;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
