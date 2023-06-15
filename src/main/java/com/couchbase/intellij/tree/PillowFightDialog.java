@@ -45,6 +45,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField batchSizeTextField;
     private JTextField numberItemsTextField;
     private JTextField keyPrefixTextField;
+    private JTextField numberThreadsTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -131,6 +132,26 @@ public class PillowFightDialog extends DialogWrapper {
         });
 
         keyPrefixTextField = new JTextField();
+
+        numberThreadsTextField = new JTextField();
+        numberThreadsTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = numberThreadsTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateNumberThreadsTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateNumberThreadsTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateNumberThreadsTextField(originalColor);
+            }
+        });
 
         init();
 
@@ -219,6 +240,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateNumberThreadsTextField(Color originalColor) {
+        String input = numberThreadsTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                numberThreadsTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                numberThreadsTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            numberThreadsTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -277,6 +314,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 6;
+        panel.add(new JLabel("Number of Threads (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 6;
+        panel.add(numberThreadsTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -314,6 +359,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Key prefix value is empty");
         }
 
+        if (numberThreadsTextField.getText().equals("")) {
+            errors.add("Number of Threads value is empty");
+        } else if (Integer.parseInt(numberThreadsTextField.getText()) < 0){
+            errors.add("Number of Threads value must be 0 or greater");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -330,6 +381,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      batch size
      *      number items
      *      key prefix
+     *      number threads
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
