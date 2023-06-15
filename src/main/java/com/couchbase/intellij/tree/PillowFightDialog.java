@@ -52,6 +52,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField minSizeTextField;
     private JTextField maxSizeTextField;
     private ComboBox<String> pauseAtEndComboBox;
+    private JTextField numberCyclesTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -231,6 +232,26 @@ public class PillowFightDialog extends DialogWrapper {
         pauseAtEndComboBox.addItem("enable");
         pauseAtEndComboBox.addItem("disable");
 
+        numberCyclesTextField = new JTextField();
+        numberCyclesTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = numberCyclesTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateNumberCyclesTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateNumberCyclesTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateNumberCyclesTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -382,6 +403,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateNumberCyclesTextField(Color originalColor) {
+        String input = numberCyclesTextField.getText();
+        try {
+            if (Integer.parseInt(input) < -1) {
+                numberCyclesTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                numberCyclesTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            numberCyclesTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -496,6 +533,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 13;
+        panel.add(new JLabel("Number of Cycles: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 13;
+        panel.add(numberCyclesTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 14;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -550,10 +595,17 @@ public class PillowFightDialog extends DialogWrapper {
         } else if (Integer.parseInt(minSizeTextField.getText()) < 0){
             errors.add("Min Size value must be 0 or greater");
         }
+
         if (maxSizeTextField.getText().equals("")) {
             errors.add("Max Size value is empty");
         } else if (Integer.parseInt(maxSizeTextField.getText()) < 0) {
             errors.add("Max Size value must be 0 or greater");
+        }
+
+        if (numberCyclesTextField.getText().equals("")) {
+            errors.add("Number of Cycles value is empty");
+        } else if (Integer.parseInt(numberCyclesTextField.getText()) < 0) {
+            errors.add("Number of Cycles value must be -1 or greater");
         }
 
         if (errors.isEmpty()) {
@@ -578,6 +630,8 @@ public class PillowFightDialog extends DialogWrapper {
      *      populate only
      *      min size
      *      max size
+     *      pause at end
+     *      number cycles
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
