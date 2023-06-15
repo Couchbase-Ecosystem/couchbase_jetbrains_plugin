@@ -55,6 +55,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField numberCyclesTextField;
     private ComboBox<String> sequentialComboBox;
     private JTextField startAtTextField;
+    private ComboBox<String> timingsComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -277,6 +278,10 @@ public class PillowFightDialog extends DialogWrapper {
                 validateStartAtTextField(originalColor);
             }
         });
+
+        timingsComboBox = new ComboBox<>();
+        timingsComboBox.addItem("enable");
+        timingsComboBox.addItem("disable");
 
         init();
 
@@ -599,6 +604,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 16;
+        panel.add(new JLabel("Timings: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 16;
+        panel.add(timingsComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 17;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -698,6 +711,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      number cycles
      *      sequential
      *      start at
+     *      timings
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
