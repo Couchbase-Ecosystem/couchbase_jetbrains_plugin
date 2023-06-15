@@ -43,6 +43,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> durabilityComboBox;
     private JTextField persistToTextField;
     private JTextField batchSizeTextField;
+    private JTextField numberItemsTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -105,6 +106,26 @@ public class PillowFightDialog extends DialogWrapper {
             @Override
             public void changedUpdate(DocumentEvent documentEvent) {
                 validateBatchSizeTextField(originalColor);
+            }
+        });
+
+        numberItemsTextField = new JTextField();
+        numberItemsTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = numberItemsTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateNumberItemsTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateNumberItemsTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateNumberItemsTextField(originalColor);
             }
         });
 
@@ -179,6 +200,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateNumberItemsTextField(Color originalColor) {
+        String input = numberItemsTextField.getText();
+        try {
+            if (Integer.parseInt(input) < 0) {
+                numberItemsTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                numberItemsTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            numberItemsTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -221,6 +258,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 4;
+        panel.add(new JLabel("Number of Items (Enter a number 0 or greater): "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 4;
+        panel.add(numberItemsTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -248,6 +293,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Batch size value must be 0 or greater");
         }
 
+        if (numberItemsTextField.getText().equals("")) {
+            errors.add("Number of Items value is empty");
+        } else if (Integer.parseInt(numberItemsTextField.getText()) < 0){
+            errors.add("Number of Items value must be 0 or greater");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -262,6 +313,7 @@ public class PillowFightDialog extends DialogWrapper {
 
     /*TODO: Add more options to command
      *      batch size
+     *      number items
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
