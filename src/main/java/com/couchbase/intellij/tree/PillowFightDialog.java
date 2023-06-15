@@ -214,53 +214,27 @@ public class PillowFightDialog extends DialogWrapper {
         String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s --persist-to %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField);
         //System.out.println(command);
         Process proc = rt.exec(command);
-
-        //BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        //BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-
         //System.out.println(proc);
 
         StopButtonDialog stopButtonDialog = new StopButtonDialog(proc);
         stopButtonDialog.setVisible(true);
-
-        /*
-        stopButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (proc != null) {
-                    proc.destroy(); // Stop the process if it is running
-                }
-            }
-        });
-         */
-
-        /*
-        Thread outputThread = new Thread(() -> {
-            try {
-                String line;
-                while ((line = stdInput.readLine()) != null) {
-                    if (line.contains("OPS/SEC:")) {
-                        String opsSecValue = line.split("OPS/SEC:")[1].trim();
-                        System.out.println("OPS/SEC: " + opsSecValue);
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-        */
     }
 
     public class StopButtonDialog extends JDialog {
-        //TODO: Fix frame sizing of stop button to accomodate full title
-        //TODO: Get OPS/SEC from proc PID and display above stop button
+        //TODO: Fix frame sizing of stop button to accomodate full title\
         private JButton stopButton;
+        private JTextArea opsPerSecLabel;
 
-        public StopButtonDialog(Process proc) {
+        public StopButtonDialog(Process proc) throws IOException {
             super();
+            setModal(true);
             setTitle("Stop Pillow Fight");
+            opsPerSecLabel = new JTextArea("OPS/SEC: ");
+            opsPerSecLabel.setEditable(false);
             stopButton = new JButton("Stop");
 
             JPanel panel = new JPanel();
+            panel.add(opsPerSecLabel);
             panel.add(stopButton);
 
             add(panel);
@@ -274,6 +248,20 @@ public class PillowFightDialog extends DialogWrapper {
                 }
                 dispose();
             });
+
+            new Thread(() -> {
+                try {
+                    BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+                    String line;
+                    while ((line = stdError.readLine()) != null) {
+                        //System.out.println(line);
+                        opsPerSecLabel.setText(line);
+                    }
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+            }).start();
+
         }
     }
 }
