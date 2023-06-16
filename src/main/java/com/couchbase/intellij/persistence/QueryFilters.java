@@ -55,11 +55,4 @@ public class QueryFilters {
         }
     }
 
-    public Map<String, Map<String, Map<String, Map<String, String>>>> getFilters() {
-        return filters;
-    }
-
-    public void setFilters(Map<String, Map<String, Map<String, Map<String, String>>>> filters) {
-        this.filters = filters;
-    }
 }

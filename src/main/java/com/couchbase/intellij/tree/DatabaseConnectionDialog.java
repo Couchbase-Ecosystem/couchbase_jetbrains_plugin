@@ -17,7 +17,6 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -28,10 +27,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class DatabaseConnectionDialog extends DialogWrapper {
 
+    private final Tree tree;
     JLabel defaultBucketLabel;
     JBTextField defaultBucketTextField;
     private JLabel errorLabel;
@@ -47,7 +46,6 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
     private JBTable eventLogTable;
-    private Tree tree;
 
     public DatabaseConnectionDialog(Tree tree) {
         super(false);
@@ -75,9 +73,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener((ActionEvent e) -> {
-            close(DialogWrapper.CANCEL_EXIT_CODE);
-        });
+        cancelButton.addActionListener((ActionEvent e) -> close(DialogWrapper.CANCEL_EXIT_CODE));
         buttonPanel.add(cancelButton);
 
         // Test Connection Button
@@ -89,7 +85,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 hideErrorLabel();
                 messageLabel.setText("");
             } else {
-                showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+                showErrorLabel("<html>" + String.join("<br>", errors) + "</html>");
                 return;
             }
             testConnectionButton.setEnabled(false);
@@ -141,7 +137,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 hideErrorLabel();
                 messageLabel.setText("");
             } else {
-                showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+                showErrorLabel("<html>" + String.join("<br>", errors) + "</html>");
                 saveButton.setEnabled(true);
                 return;
             }
@@ -194,7 +190,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         errorLabel = new JLabel();
         errorLabel.setForeground(Color.decode("#FF4444"));
         messageLabel = new JLabel();
-        messageLabel.setBorder(new EmptyBorder(5, 0, 0, 0));
+        messageLabel.setBorder(JBUI.Borders.emptyTop(5));
         messageLabel.setForeground(JBColor.GREEN);
         notificationPanel.add(messageLabel, BorderLayout.NORTH);
         notificationPanel.add(errorLabel, BorderLayout.SOUTH);
@@ -330,7 +326,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         JPanel credentialsPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbcCredentials = new GridBagConstraints();
         gbcCredentials.anchor = GridBagConstraints.WEST;
-        gbcCredentials.insets = new Insets(5, -20, 5, 30);
+        gbcCredentials.insets = JBUI.insets(5, -20, 5, 30);
 
         JLabel usernameLabel = new JLabel("Username");
         usernameTextField = new JBTextField(20);

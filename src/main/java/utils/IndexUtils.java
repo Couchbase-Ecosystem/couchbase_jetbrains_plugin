@@ -20,14 +20,14 @@ public class IndexUtils {
 
         sb.append("`").append(qi.bucketName()).append("`");
 
-        if (qi.scopeName().isPresent()) {
+        if (qi.scopeName().isPresent() && qi.collectionName().isPresent()) {
             sb.append(".`").append(qi.scopeName().get()).append("`.`")
                     .append(qi.collectionName().get()).append("`");
         }
 
         if (!qi.indexKey().isEmpty()) {
             sb.append("(");
-            sb.append(qi.indexKey().toList().stream().map(e -> e.toString()).collect(Collectors.joining(", ")));
+            sb.append(qi.indexKey().toList().stream().map(Object::toString).collect(Collectors.joining(", ")));
             sb.append(")");
         }
 

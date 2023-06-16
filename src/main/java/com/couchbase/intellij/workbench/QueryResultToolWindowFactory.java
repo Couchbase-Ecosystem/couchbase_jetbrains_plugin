@@ -41,39 +41,34 @@ import java.util.List;
 import java.util.Map;
 
 public class QueryResultToolWindowFactory implements ToolWindowFactory {
-    public static QueryResultToolWindowFactory instance;
-    public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-    public QueryResultToolWindowFactory() {
-        instance = this;
-    }
-
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
     private static final String elapsedToolTip = "Elapsed is the time taken by the server to process the request";
     private static final String executionTooltip = "Execution is the time taken by the server to execute the query";
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
-    private static JBTabs tabs;
-    private static TabInfo queryResultTab;
-
+    public static QueryResultToolWindowFactory instance;
+    public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private HtmlPanel htmlPanel;
-
     private JsonTableModel model;
-
     private JLabel statusIcon;
-
     private EditorEx editor;
-
     private List<JLabel> queryStatsList;
     private List<JLabel> queryLabelsList;
     private List<Map<String, Object>> cachedResults;
-
     private JPanel queryStatsPanel;
 
+    public QueryResultToolWindowFactory() {
+        instance = this;
+    }
+
+    @NotNull
+    private static String getEmptyExplain() {
+        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
+    }
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        tabs = new JBTabsImpl(project);
+        JBTabs tabs = new JBTabsImpl(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
 
@@ -170,10 +165,10 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         queryResultPanel.setLayout(new BorderLayout());
         queryResultPanel.add(topPanel, BorderLayout.NORTH);
         queryResultPanel.add(resultTabs.getComponent(), BorderLayout.CENTER);
-        
+
 
         TabInfo outputTab = new TabInfo(getConsolePanel()).setText("Log");
-        queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
+        TabInfo queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
 
         tabs.addTab(outputTab);
@@ -186,7 +181,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(content);
     }
-
 
     public JPanel getConsolePanel() {
         ConsoleView console = Log.getLogger();
@@ -239,11 +233,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return consolePanel;
     }
 
-    @NotNull
-    private static String getEmptyExplain() {
-        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
-    }
-
     private String getQueryStatHeader(String title) {
         return "<html><small style='font-weight:100'>" + title + "</small></html>";
     }
@@ -292,12 +281,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             cachedResults = convertedResults;
 
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    editor.getDocument().setText(gson.toJson(convertedResults));
-                }
-            });
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(convertedResults)));
 
             htmlPanel.loadHTML(explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
 

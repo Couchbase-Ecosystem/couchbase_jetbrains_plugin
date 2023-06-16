@@ -19,16 +19,14 @@ public class DocumentFormatter {
             }
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
             if (psiFile != null) {
-                CommandProcessor.getInstance().executeCommand(project, () -> {
-                    ApplicationManager.getApplication().runWriteAction(() -> {
-                        try {
-                            CodeStyleManager.getInstance(project).reformat(psiFile);
-                        } catch (IncorrectOperationException ioe) {
-                            Log.error(ioe);
-                            ioe.printStackTrace();
-                        }
-                    });
-                }, "Format File", null);
+                CommandProcessor.getInstance().executeCommand(project, () -> ApplicationManager.getApplication().runWriteAction(() -> {
+                    try {
+                        CodeStyleManager.getInstance(project).reformat(psiFile);
+                    } catch (IncorrectOperationException ioe) {
+                        Log.error(ioe);
+                        ioe.printStackTrace();
+                    }
+                }), "Format File", null);
             }
         });
     }

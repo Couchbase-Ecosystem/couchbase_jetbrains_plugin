@@ -19,13 +19,13 @@ import java.util.stream.Collectors;
 
 public class CBImport {
 
-    public static void quickCollectionImport(String bucket, String scope, String collection, String filePath, Project project) {
+    public static void simpleCollectionImport(String bucket, String scope, String collection, String filePath, Project project) {
 
         try {
             String lastLine = FileUtils.readLastLine(filePath);
 
-            if (!lastLine.startsWith("//type:quickimport")) {
-                Messages.showErrorDialog("The file selected was not exported using the Quick Export function." + " Please import it using the Import/Export feature", "Quick Import Error");
+            if (!lastLine.startsWith("//type:simpleimport")) {
+                Messages.showErrorDialog("The file selected was not exported using the Simple Export function." + " Please import it using the Import/Export feature", "Simple Import Error");
                 return;
             }
 
@@ -34,20 +34,22 @@ public class CBImport {
 
 
             if (meta.getCollections().size() > 1) {
-                Messages.showErrorDialog("The file selected is an export of a scope and can't be imported inside a collection", "Quick Import Error");
+                Messages.showErrorDialog("The file selected is an export of a scope and can't be imported inside a collection", "Simple Import Error");
                 return;
             }
 
             if (!scope.equals(meta.getScope()) || !collection.equals(meta.getCollections().get(0))) {
 
-                int result = Messages.showYesNoDialog("<html>The dataset was originally exported from collection <strong>'" + originalCol + "'</strong>" + " and scope <strong>'" + meta.getScope() + "'</strong>, but you are importing it into the collection <strong>'" + collection + "'</strong> " + "and scope <strong>'" + scope + "'</strong>. Are you sure that you want to proceed?</html>", "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>The dataset was originally exported from collection <strong>'" + originalCol + "'</strong>" + " and scope <strong>'" + meta.getScope() + "'</strong>, but you are importing it into the collection <strong>'" + collection + "'</strong> " + "and scope <strong>'" + scope + "'</strong>. Are you sure that you want to proceed?" +
+                        "<br><br><small>Keys that already exists in the database will be overwritten by the ones in the dataset</small></html>", "Simple Import", Messages.getQuestionIcon());
 
                 if (result != Messages.YES) {
                     return;
                 }
             } else {
                 String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
-                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>" + fileName + "</strong> into the collection <strong>'" + collection + "'</strong> " + "of the scope <strong>'" + scope + "'</strong>?</html>", "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>" + fileName + "</strong> into the collection <strong>'" + collection + "'</strong> " + "of the scope <strong>'" + scope + "'</strong>?" +
+                        "<br><br><small>Keys that already exists in the database will be overwritten by the ones in the dataset</small></html>", "Simple Import", Messages.getQuestionIcon());
 
                 if (result != Messages.YES) {
                     return;
@@ -67,9 +69,7 @@ public class CBImport {
                         }
                         executeProcess(processBuilder);
                     } catch (Exception e) {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            Messages.showErrorDialog("An error occurred while trying to import the dataset", "Quick Import Error");
-                        });
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to import the dataset", "Simple Import Error"));
                         Log.error(e);
                         e.printStackTrace();
                     }
@@ -83,25 +83,25 @@ public class CBImport {
     }
 
 
-    public static void quickScopeImport(String bucket, String scope, String filePath, Project project) {
+    public static void simpleScopeImport(String bucket, String scope, String filePath, Project project) {
 
         try {
             String lastLine = FileUtils.readLastLine(filePath);
 
-            if (!lastLine.startsWith("//type:quickimport")) {
-                Messages.showErrorDialog("The file selected was not exported using the Quick Export function." + " Please import it using the Import/Export feature", "Quick Import Error");
+            if (!lastLine.startsWith("//type:simpleimport")) {
+                Messages.showErrorDialog("The file selected was not exported using the Simple Export function." + " Please import it using the Import/Export feature", "Simple Import Error");
                 return;
             }
 
             ExportedMetadata meta = partLastLine(lastLine);
             Set<String> datasetCols = new HashSet<>(meta.getCollections());
-            Set<String> currentCollections = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(cs -> cs.name()).collect(Collectors.toSet());
+            Set<String> currentCollections = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(CollectionSpec::name).collect(Collectors.toSet());
             datasetCols.removeAll(currentCollections);
 
             boolean skipCols = false;
             if (!datasetCols.isEmpty()) {
 
-                int result = Messages.showYesNoDialog("<html>This dataset contains " + datasetCols.size() + " collection(s) " + "that don't exist in the scope that you are importing into. Would you like to also create them?</html>", "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>This dataset contains " + datasetCols.size() + " collection(s) " + "that don't exist in the scope that you are importing into. Would you like to also create them?</html>", "Simple Import", Messages.getQuestionIcon());
 
                 if (result == Messages.YES) {
                     CollectionManager collectionManager = ActiveCluster.getInstance().get().bucket(bucket).collections();
@@ -111,7 +111,7 @@ public class CBImport {
                             Log.info("Collection " + newCollection + " was created successfully");
                         }
                     } catch (Exception e) {
-                        Messages.showErrorDialog("An error occurred while trying to create the collections. Please try again", "Quick Import Error");
+                        Messages.showErrorDialog("An error occurred while trying to create the collections. Please try again", "Simple Import Error");
                         Log.error("An error occurred while creating a collection ", e);
                         e.printStackTrace();
                     }
@@ -120,7 +120,8 @@ public class CBImport {
                 }
             } else {
                 String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
-                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>" + fileName + "</strong> into the the scope <strong>'" + scope + "'</strong>?</html>", "Quick Import", Messages.getQuestionIcon());
+                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to import the file <strong>" + fileName + "</strong> into the the scope <strong>'" + scope + "'</strong>?" +
+                        "<br><br><small>Keys that already exists in the database will be overwritten by the ones in the dataset</small></html>", "Simple Import", Messages.getQuestionIcon());
 
                 if (result != Messages.YES) {
                     return;
@@ -142,9 +143,7 @@ public class CBImport {
                         executeProcess(processBuilder);
 
                     } catch (Exception e) {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            Messages.showErrorDialog("An error occurred while trying to import the dataset", "Quick Import Error");
-                        });
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to import the dataset", "Simple Import Error"));
                         Log.error(e);
                         e.printStackTrace();
                     }
@@ -160,7 +159,7 @@ public class CBImport {
     private static boolean shouldImportIndexes(ExportedMetadata meta) {
         boolean idx = false;
         if (!meta.getIndexes().isEmpty()) {
-            int result = Messages.showYesNoDialog("<html>This dataset contain indexes. Would you like to also create them?" + "<br><small>If the indexes already exist in your environment, they won't be recreated.</small></html>", "Quick Import", Messages.getQuestionIcon());
+            int result = Messages.showYesNoDialog("<html>This dataset contain indexes. Would you like to also create them?" + "<br><small>If the indexes already exist in your environment, they won't be recreated.</small></html>", "Simple Import", Messages.getQuestionIcon());
 
             if (result == Messages.YES) {
                 idx = true;
@@ -170,10 +169,7 @@ public class CBImport {
     }
 
     private static void createIndexes(String bucket, String originalScope, String newScope, Map<String, String> indexes, Set<String> skipCols) {
-        boolean replaceScope = false;
-        if (!originalScope.equals(newScope)) {
-            replaceScope = true;
-        }
+        boolean replaceScope = !originalScope.equals(newScope);
         for (Map.Entry<String, String> entry : indexes.entrySet()) {
 
             if (skipCols.contains(entry.getKey())) {
@@ -184,8 +180,8 @@ public class CBImport {
             String decodedString = new String(decodedBytes);
             String[] idxArray = decodedString.split("#");
 
-            for (int i = 0; i < idxArray.length; i++) {
-                String query = idxArray[i];
+            for (String s : idxArray) {
+                String query = s;
                 if (replaceScope) {
                     query = query.replace("`" + originalScope + "`", "`" + newScope + "`");
                 }
@@ -203,16 +199,13 @@ public class CBImport {
 
     private static void createIndexes(String bucket, String scope, String originalCol, String newCol, String indexes) {
 
-        boolean replaceCol = false;
-        if (!originalCol.equals(newCol)) {
-            replaceCol = true;
-        }
+        boolean replaceCol = !originalCol.equals(newCol);
         byte[] decodedBytes = Base64.getDecoder().decode(indexes);
         String decodedString = new String(decodedBytes);
         String[] idxArray = decodedString.split("#");
 
-        for (int i = 0; i < idxArray.length; i++) {
-            String query = idxArray[i];
+        for (String s : idxArray) {
+            String query = s;
             if (replaceCol) {
                 query = query.replace("`" + originalCol + "`", "`" + newCol + "`");
             }
@@ -232,14 +225,10 @@ public class CBImport {
         Process process = processBuilder.start();
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                Messages.showErrorDialog("The error '" + exitCode + "' occurred while trying to import the dataset", "Quick Import Error");
-            });
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("The error '" + exitCode + "' occurred while trying to import the dataset", "Simple Import Error"));
         } else {
 
-            ApplicationManager.getApplication().invokeLater(() -> {
-                Messages.showInfoMessage("Dataset imported successfully.", "Quick Import");
-            });
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("Dataset imported successfully.", "Simple Import"));
         }
     }
 
@@ -264,8 +253,8 @@ public class CBImport {
                 String content = m.split(":")[1];
                 if (content.contains("#")) {
                     String[] colIndexes = content.split("#");
-                    for (int i = 0; i < colIndexes.length; i++) {
-                        String[] ix = colIndexes[i].split("\\|");
+                    for (String colIndex : colIndexes) {
+                        String[] ix = colIndex.split("\\|");
                         if (ix.length > 1) {
                             indexes.put(ix[0], ix[1]);
                         }
@@ -281,9 +270,9 @@ public class CBImport {
     }
 
     static class ExportedMetadata {
-        private String scope;
-        private List<String> collections;
-        private Map<String, String> indexes;
+        private final String scope;
+        private final List<String> collections;
+        private final Map<String, String> indexes;
 
         public ExportedMetadata(String scope, List<String> collections, Map<String, String> indexes) {
             this.scope = scope;

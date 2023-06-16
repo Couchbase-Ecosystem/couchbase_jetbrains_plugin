@@ -10,7 +10,7 @@ import java.time.Duration;
 
 public class ActiveCluster {
 
-    private static ActiveCluster activeCluster = new ActiveCluster();
+    private static final ActiveCluster activeCluster = new ActiveCluster();
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
@@ -62,10 +62,6 @@ public class ActiveCluster {
         this.color = null;
     }
 
-    public boolean isCapella() {
-        return this.savedCluster.getUrl().contains("cloud.couchbase.com");
-    }
-
     public String getUsername() {
         if (this.savedCluster == null) {
             return null;
@@ -102,9 +98,5 @@ public class ActiveCluster {
             this.savedCluster.setColor(null);
         }
         this.color = color;
-    }
-
-    public SavedCluster getSavedCluster() {
-        return savedCluster;
     }
 }

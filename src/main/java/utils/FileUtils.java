@@ -43,8 +43,7 @@ public class FileUtils {
 
     public static void createFolder(String folderPath) throws Exception {
         Path path = Paths.get(folderPath);
-        if (Files.exists(path)) {
-        } else {
+        if (!Files.exists(path)) {
             try {
                 Files.createDirectory(path);
             } catch (Exception e) {

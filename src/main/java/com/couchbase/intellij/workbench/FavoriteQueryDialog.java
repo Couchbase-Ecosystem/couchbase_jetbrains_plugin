@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import org.intellij.sdk.language.SQLPPFileType;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -104,18 +105,15 @@ public class FavoriteQueryDialog extends DialogWrapper {
         return panel;
     }
 
-    protected Action[] createActions() {
+    protected Action @NotNull [] createActions() {
         Action cancelAction = getCancelAction();
         Action pasteAction = new DialogWrapperAction("Paste") {
             @Override
             protected void doAction(ActionEvent e) {
-                ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!editor.getDocument().getText().isEmpty()) {
-                            document.setText(editor.getDocument().getText());
-                            close(0);
-                        }
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    if (!editor.getDocument().getText().isEmpty()) {
+                        document.setText(editor.getDocument().getText());
+                        close(0);
                     }
                 });
             }

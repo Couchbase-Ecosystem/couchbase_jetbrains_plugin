@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class CBExport {
 
-    public static void quickCollectionExport(String bucket, String scope, String collection, String filePath, Project project) {
+    public static void simpleCollectionExport(String bucket, String scope, String collection, String filePath, Project project) {
 
         final List<QueryIndex> indexes = DataLoader.listIndexes(bucket, scope, collection);
 
@@ -35,7 +35,7 @@ public class CBExport {
                             + " Would you like to include"
                             + (indexes.size() > 1 ? " them" : " it")
                             + " in the exported file?</html>",
-                    "Quick Export", Messages.getQuestionIcon());
+                    "Simple Export", Messages.getQuestionIcon());
 
             if (result == Messages.YES) {
                 idx = true;
@@ -59,12 +59,10 @@ public class CBExport {
 
                     int exitCode = process.waitFor();
                     if (exitCode != 0) {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            Messages.showErrorDialog("The error " + exitCode + " occurred while trying to export the data", "Quick Export Error");
-                        });
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("The error " + exitCode + " occurred while trying to export the data", "Simple Export Error"));
                     } else {
 
-                        String metadata = "//type:quickimport;scope:" + scope + ";col:" + collection;
+                        String metadata = "//type:simpleimport;scope:" + scope + ";col:" + collection;
                         if (includeIndexes) {
                             metadata += ";idx:" + collection + "|" + getEncodedIndexes(indexes);
                         }
@@ -72,14 +70,12 @@ public class CBExport {
 
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Log.info("File " + filePath + " from collection " + collection + " was exported successfully");
-                            Messages.showInfoMessage("File saved successfully.", "Quick Export");
+                            Messages.showInfoMessage("File saved successfully.", "Simple Export");
                         });
                     }
 
                 } catch (Exception e) {
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        Messages.showErrorDialog("An error occurred while trying to export the dataset", "Quick Export Error");
-                    });
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to export the dataset", "Simple Export Error"));
                     Log.error(e);
                     e.printStackTrace();
                 }
@@ -89,7 +85,7 @@ public class CBExport {
     }
 
 
-    public static void quickScopeExport(String bucket, String scope, String filePath) {
+    public static void simpleScopeExport(String bucket, String scope, String filePath) {
 
         final List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucket)
                 .collections().getAllScopes().stream()
@@ -100,7 +96,7 @@ public class CBExport {
         boolean idx = false;
         if (hasIndexes(bucket, scope, collections)) {
             int result = Messages.showYesNoDialog("<html>Would you like to also export the indexes of the scope <strong>" + scope + "</strong>?</html>",
-                    "Quick Export", Messages.getQuestionIcon());
+                    "Simple Export", Messages.getQuestionIcon());
 
             if (result == Messages.YES) {
                 idx = true;
@@ -123,9 +119,7 @@ public class CBExport {
 
                     int exitCode = process.waitFor();
                     if (exitCode != 0) {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            Messages.showErrorDialog("The error " + exitCode + " occurred while trying to export the scope", "Quick Export Error");
-                        });
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("The error " + exitCode + " occurred while trying to export the scope", "Simple Export Error"));
                     } else {
 
                         String indexes = "";
@@ -136,23 +130,21 @@ public class CBExport {
                                 List<QueryIndex> result = DataLoader.listIndexes(bucket, scope, spec.name());
                                 encodedIndexes.add(spec.name() + "|" + getEncodedIndexes(result));
                             }
-                            indexes += encodedIndexes.stream().collect(Collectors.joining("#"));
+                            indexes += String.join("#", encodedIndexes);
                         }
 
-                        String metadata = "//type:quickimport;scope:" + scope + ";col:" + collections.stream()
-                                .map(e -> e.name()).collect(Collectors.joining(",")) + indexes;
+                        String metadata = "//type:simpleimport;scope:" + scope + ";col:" + collections.stream()
+                                .map(CollectionSpec::name).collect(Collectors.joining(",")) + indexes;
                         Files.write(Paths.get(filePath), (System.lineSeparator() + metadata).getBytes(), StandardOpenOption.APPEND);
 
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Log.info("File " + filePath + " from scope " + scope + " was exported successfully");
-                            Messages.showInfoMessage("File saved successfully.", "Quick Export");
+                            Messages.showInfoMessage("File saved successfully.", "Simple Export");
                         });
                     }
 
                 } catch (Exception e) {
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        Messages.showErrorDialog("An error occurred while trying to export the dataset", "Quick Export Error");
-                    });
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to export the dataset", "Simple Export Error"));
                     Log.error(e);
                     e.printStackTrace();
                 }
@@ -163,7 +155,7 @@ public class CBExport {
 
     private static boolean hasIndexes(String bucket, String scope, List<CollectionSpec> cols) {
 
-        int tries = cols.size() < 20 ? cols.size() : 20;
+        int tries = Math.min(cols.size(), 20);
         for (int i = 0; i < tries; i++) {
             List<QueryIndex> result = DataLoader.listIndexes(bucket, scope, cols.get(i).name());
             if (!result.isEmpty()) {

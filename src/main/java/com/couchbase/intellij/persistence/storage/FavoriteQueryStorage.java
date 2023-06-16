@@ -21,18 +21,10 @@ import java.util.ArrayList;
 )
 public class FavoriteQueryStorage implements PersistentStateComponent<FavoriteQueryStorage.State> {
 
-    private FavoriteQueryStorage.State myState = new FavoriteQueryStorage.State();
+    private final FavoriteQueryStorage.State myState = new FavoriteQueryStorage.State();
 
-    public static class State {
-        public FavoriteQueries favQueries = null;
-
-        public FavoriteQueries getFavQueries() {
-            return favQueries;
-        }
-
-        public void setFavQueries(FavoriteQueries favQueries) {
-            this.favQueries = favQueries;
-        }
+    public static FavoriteQueryStorage getInstance() {
+        return ApplicationManager.getApplication().getService(FavoriteQueryStorage.class);
     }
 
     @Nullable
@@ -46,10 +38,6 @@ public class FavoriteQueryStorage implements PersistentStateComponent<FavoriteQu
         XmlSerializerUtil.copyBean(state, myState);
     }
 
-    public void setValue(FavoriteQueries newValue) {
-        myState.favQueries = newValue;
-    }
-
     public FavoriteQueries getValue() {
         if (myState.favQueries == null) {
             myState.favQueries = new FavoriteQueries();
@@ -58,7 +46,19 @@ public class FavoriteQueryStorage implements PersistentStateComponent<FavoriteQu
         return myState.favQueries;
     }
 
-    public static FavoriteQueryStorage getInstance() {
-        return ApplicationManager.getApplication().getService(FavoriteQueryStorage.class);
+    public void setValue(FavoriteQueries newValue) {
+        myState.favQueries = newValue;
+    }
+
+    public static class State {
+        public FavoriteQueries favQueries = null;
+
+        public FavoriteQueries getFavQueries() {
+            return favQueries;
+        }
+
+        public void setFavQueries(FavoriteQueries favQueries) {
+            this.favQueries = favQueries;
+        }
     }
 }

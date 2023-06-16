@@ -48,7 +48,7 @@ public class Log {
     }
 
     private static String getCause(Exception e) {
-        String exception = "";
+        String exception;
         if (e.getCause() != null) {
             exception = e.getCause().getMessage();
         } else {

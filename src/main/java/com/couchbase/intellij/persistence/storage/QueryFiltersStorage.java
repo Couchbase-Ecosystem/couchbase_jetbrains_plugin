@@ -19,18 +19,10 @@ import org.jetbrains.annotations.Nullable;
 )
 public class QueryFiltersStorage implements PersistentStateComponent<QueryFiltersStorage.State> {
 
-    private State myState = new State();
+    private final State myState = new State();
 
-    public static class State {
-        public QueryFilters queryFilters = null;
-
-        public QueryFilters getQueryFilters() {
-            return queryFilters;
-        }
-
-        public void setQueryFilters(QueryFilters queryFilters) {
-            this.queryFilters = queryFilters;
-        }
+    public static QueryFiltersStorage getInstance() {
+        return ApplicationManager.getApplication().getService(QueryFiltersStorage.class);
     }
 
     @Nullable
@@ -44,10 +36,6 @@ public class QueryFiltersStorage implements PersistentStateComponent<QueryFilter
         XmlSerializerUtil.copyBean(state, myState);
     }
 
-    public void setValue(QueryFilters newValue) {
-        myState.queryFilters = newValue;
-    }
-
     public QueryFilters getValue() {
         if (myState.queryFilters == null) {
             myState.queryFilters = new QueryFilters();
@@ -55,7 +43,19 @@ public class QueryFiltersStorage implements PersistentStateComponent<QueryFilter
         return myState.queryFilters;
     }
 
-    public static QueryFiltersStorage getInstance() {
-        return ApplicationManager.getApplication().getService(QueryFiltersStorage.class);
+    public void setValue(QueryFilters newValue) {
+        myState.queryFilters = newValue;
+    }
+
+    public static class State {
+        public QueryFilters queryFilters = null;
+
+        public QueryFilters getQueryFilters() {
+            return queryFilters;
+        }
+
+        public void setQueryFilters(QueryFilters queryFilters) {
+            this.queryFilters = queryFilters;
+        }
     }
 }

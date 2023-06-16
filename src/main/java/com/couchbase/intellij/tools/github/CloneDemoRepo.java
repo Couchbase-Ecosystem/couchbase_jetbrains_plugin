@@ -32,6 +32,7 @@ public class CloneDemoRepo {
                 }
 
                 ApplicationManager.getApplication().invokeLater(() -> {
+                    assert vf != null;
                     ProjectUtil.openOrImport(vf.getPath(), null, true);
                 });
 

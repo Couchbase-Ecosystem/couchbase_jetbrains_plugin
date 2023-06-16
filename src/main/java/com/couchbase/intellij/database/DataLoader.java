@@ -300,7 +300,7 @@ public class DataLoader {
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope, String collection) {
 
-        String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
+        String basePath = project.getBasePath();
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
         try {
@@ -321,7 +321,7 @@ public class DataLoader {
             return cluster;
         }
 
-        String protocol = "";
+        String protocol;
         if (ssl) {
             protocol = "couchbases://";
         } else {
@@ -342,6 +342,7 @@ public class DataLoader {
             return cluster.buckets().getAllBuckets().keySet();
         } catch (Exception e) {
             Log.error(e);
+            assert cluster != null;
             cluster.disconnect();
             throw e;
         }
@@ -406,9 +407,7 @@ public class DataLoader {
             try {
                 ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().createPrimaryIndex();
 
-                SwingUtilities.invokeLater(() -> {
-                    Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation");
-                });
+                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation"));
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
@@ -416,7 +415,7 @@ public class DataLoader {
         });
     }
 
-    public static void listIndexes(Project project, DefaultMutableTreeNode parentNode, Tree tree) {
+    public static void listIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof IndexesNodeDescriptor) {

@@ -13,6 +13,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 import java.util.Enumeration;
 
 public class TreeActionHandler {
@@ -21,7 +22,7 @@ public class TreeActionHandler {
         tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
-            Enumeration children = selectedNode.children();
+            Enumeration<TreeNode> children = selectedNode.children();
             DefaultMutableTreeNode newActiveNode = null;
 
             //Disconnect First and find the node that we want to connect to
@@ -65,10 +66,8 @@ public class TreeActionHandler {
                 }
 
             } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> {
-                    Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
-                            " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error");
-                });
+                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
+                        " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
                 return;
             }
 

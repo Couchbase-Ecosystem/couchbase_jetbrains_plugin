@@ -21,18 +21,10 @@ import java.util.ArrayList;
 )
 public class QueryHistoryStorage implements PersistentStateComponent<QueryHistoryStorage.State> {
 
-    private QueryHistoryStorage.State myState = new QueryHistoryStorage.State();
+    private final QueryHistoryStorage.State myState = new QueryHistoryStorage.State();
 
-    public static class State {
-        public QueryHistory history = null;
-
-        public QueryHistory getHistory() {
-            return history;
-        }
-
-        public void setHistory(QueryHistory history) {
-            this.history = history;
-        }
+    public static QueryHistoryStorage getInstance() {
+        return ApplicationManager.getApplication().getService(QueryHistoryStorage.class);
     }
 
     @Nullable
@@ -46,10 +38,6 @@ public class QueryHistoryStorage implements PersistentStateComponent<QueryHistor
         XmlSerializerUtil.copyBean(state, myState);
     }
 
-    public void setValue(QueryHistory newValue) {
-        myState.history = newValue;
-    }
-
     public QueryHistory getValue() {
         if (myState.history == null) {
             myState.history = new QueryHistory();
@@ -58,7 +46,19 @@ public class QueryHistoryStorage implements PersistentStateComponent<QueryHistor
         return myState.history;
     }
 
-    public static QueryHistoryStorage getInstance() {
-        return ApplicationManager.getApplication().getService(QueryHistoryStorage.class);
+    public void setValue(QueryHistory newValue) {
+        myState.history = newValue;
+    }
+
+    public static class State {
+        public QueryHistory history = null;
+
+        public QueryHistory getHistory() {
+            return history;
+        }
+
+        public void setHistory(QueryHistory history) {
+            this.history = history;
+        }
     }
 }

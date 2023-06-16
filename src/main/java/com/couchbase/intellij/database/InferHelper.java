@@ -9,7 +9,6 @@ import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 
 import javax.swing.tree.DefaultMutableTreeNode;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class InferHelper {
 
-    public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) throws IOException, InterruptedException {
+    public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) {
         try {
             String query = "INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\"sample_size\": 2000}";
             QueryResult result = ActiveCluster.getInstance().get().query(query);
@@ -66,7 +65,7 @@ public class InferHelper {
             } else {
                 JsonArray samples = inferSchemaRow.getArray("samples");
                 if (samples != null) {
-                    String additionalTooltip = samples.toList().stream().map(e -> e.toString()).collect(Collectors.joining(","));
+                    String additionalTooltip = samples.toList().stream().map(Object::toString).collect(Collectors.joining(","));
                     sf.setTooltip(sf.getTooltip() + ", samples: " + additionalTooltip);
                 } else {
                     System.err.println("Infer reached an unexpected state");
