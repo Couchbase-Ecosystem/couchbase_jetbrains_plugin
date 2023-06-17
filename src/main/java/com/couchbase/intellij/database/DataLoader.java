@@ -431,7 +431,7 @@ public class DataLoader {
                             FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), SQLPPFormatter.format(IndexUtils.getIndexDefinition(qi)));
                     virtualFile.putUserData(READ_ONLY, "true");
 
-                    IndexNodeDescriptor node = new IndexNodeDescriptor(fileName, virtualFile);
+                    IndexNodeDescriptor node = new IndexNodeDescriptor(idxs.getBucket(), idxs.getScope(), idxs.getCollection(), fileName, virtualFile);
                     DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                     parentNode.add(jsonFileNode);
                 }

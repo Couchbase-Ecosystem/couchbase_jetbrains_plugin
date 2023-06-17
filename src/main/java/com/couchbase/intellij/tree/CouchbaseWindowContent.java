@@ -14,6 +14,7 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.examples.CardDialog;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
 import com.couchbase.intellij.tree.overview.ServerOverviewDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.actionSystem.*;
@@ -189,6 +190,8 @@ public class CouchbaseWindowContent extends JPanel {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
                             } else if (userObject instanceof FileNodeDescriptor) {
                                 handleDocumentRightClick(e, clickedNode, (FileNodeDescriptor) userObject, tree);
+                            } else if (userObject instanceof IndexNodeDescriptor) {
+                                handleIndexRightClick(e, clickedNode, (IndexNodeDescriptor) userObject, tree);
                             }
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
@@ -492,6 +495,17 @@ public class CouchbaseWindowContent extends JPanel {
         popup.add(viewMetaData);
 
 
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleIndexRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, IndexNodeDescriptor idx, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem viewIdxStats = new JMenuItem("View Stats");
+        viewIdxStats.addActionListener(l -> {
+            IndexOverviewDialog dialog = new IndexOverviewDialog(idx.getBucket(), idx.getScope(), idx.getCollection(), idx.getText().substring(0, idx.getText().lastIndexOf('.')));
+            dialog.show();
+        });
+        popup.add(viewIdxStats);
         popup.show(tree, e.getX(), e.getY());
     }
 

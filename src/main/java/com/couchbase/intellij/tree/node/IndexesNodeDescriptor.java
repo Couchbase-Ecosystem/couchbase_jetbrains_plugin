@@ -4,9 +4,9 @@ import com.intellij.openapi.util.IconLoader;
 
 public class IndexesNodeDescriptor extends NodeDescriptor {
 
-    private String bucket;
-    private String scope;
-    private String collection;
+    private final String bucket;
+    private final String scope;
+    private final String collection;
 
     public IndexesNodeDescriptor(String bucket, String scope, String collection) {
         super("Indexes", IconLoader.findIcon("./assets/icons/indexes.svg"));
