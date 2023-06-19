@@ -53,7 +53,7 @@ public class FunctionDeploymentSettings extends JFrame {
 
         public FunctionDeploymentSettings() {
                 // Set up the main frame
-                setTitle("Project Structure");
+                setTitle("Function Configuration");
                 setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
                 // setSize(1000, 800);
                 setMinimumSize(new Dimension(1000, 800));
@@ -72,12 +72,16 @@ public class FunctionDeploymentSettings extends JFrame {
                 leftPanel.setBackground(new Color(62, 67, 76, 255)); // Jetbrains Darcula background color
 
                 // Add components to the left panel
-                titleLabel = new JBLabel("Project Structure");
+                titleLabel = new JBLabel("Function Configuration");
                 titleLabel.setHorizontalAlignment(SwingConstants.LEFT);
                 titleLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
                 leftPanel.add(titleLabel, BorderLayout.NORTH);
 
-                String[] settings = { "General Settings", "Advanced Settings", "Binding Type" };
+                String[] settings = {
+                                "General", // General settings
+                                "Settings", // Advanced settings
+                                "Binding Types" // Binding settings
+                };
                 JList<String> settingsList = new JList<>(settings);
                 settingsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
                 settingsList.setSelectedIndex(0);
@@ -111,19 +115,19 @@ public class FunctionDeploymentSettings extends JFrame {
                 generalSettingsPanel = generalSettings.getPanel();
                 JPanel generalSettingsWrapper = new JPanel(new BorderLayout());
                 generalSettingsWrapper.add(generalSettingsPanel, BorderLayout.NORTH);
-                rightPanel.add(generalSettingsWrapper, "General Settings");
+                rightPanel.add(generalSettingsWrapper, "General");
 
-                // Advanced Settings panel
+                // Settings panel
                 AdvancedSettings advancedSettings = new AdvancedSettings();
                 advancedSettingsPanel = advancedSettings.getPanel();
                 JPanel advancedSettingsWrapper = new JPanel(new BorderLayout());
                 advancedSettingsWrapper.add(advancedSettingsPanel, BorderLayout.NORTH);
-                rightPanel.add(advancedSettingsWrapper, "Advanced Settings");
+                rightPanel.add(advancedSettingsWrapper, "Settings");
 
-                // Binding Type panel
+                // Binding Types panel
                 BindingSettings bindingSettings = new BindingSettings();
                 bindingsPanel = bindingSettings.getPanel();
-                rightPanel.add(new JScrollPane(bindingsPanel), "Binding Type"); // No need to wrap this panel
+                rightPanel.add(new JScrollPane(bindingsPanel), "Binding Types"); // No need to wrap this panel
 
                 settingsList.addListSelectionListener(e -> {
                         if (!e.getValueIsAdjusting()) {
@@ -186,31 +190,31 @@ public class FunctionDeploymentSettings extends JFrame {
 
                 // Initialize the changed settings map
                 changedSettings = new HashMap<>();
-                changedSettings.put("General Settings", false);
-                changedSettings.put("Advanced Settings", false);
-                changedSettings.put("Binding Type", false);
+                changedSettings.put("General", false);
+                changedSettings.put("Settings", false);
+                changedSettings.put("Binding Types", false);
 
                 // Add document listeners to track changes
                 DocumentListener documentListener = new DocumentListener() {
                         @Override
                         public void insertUpdate(DocumentEvent e) {
-                                changedSettings.put("General Settings", true);
+                                changedSettings.put("General", true);
                         }
 
                         @Override
                         public void removeUpdate(DocumentEvent e) {
-                                changedSettings.put("General Settings", true);
+                                changedSettings.put("General", true);
                         }
 
                         @Override
                         public void changedUpdate(DocumentEvent e) {
-                                changedSettings.put("General Settings", true);
+                                changedSettings.put("General", true);
                         }
                 };
                 // functionNameField.getDocument().addDocumentListener(documentListener);
                 // descriptionTextArea.getDocument().addDocumentListener(documentListener);
 
-                // ActionListener actionListener = e -> changedSettings.put("General Settings",
+                // ActionListener actionListener = e -> changedSettings.put("General",
                 // true);
                 // deploymentFeedBoundaryComboBox.addActionListener(actionListener);
 

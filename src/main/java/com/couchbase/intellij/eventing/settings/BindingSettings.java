@@ -1,6 +1,8 @@
 package com.couchbase.intellij.eventing.settings;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -11,9 +13,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 // import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 
@@ -28,20 +33,8 @@ public class BindingSettings {
     private Integer bindingTypeLineIndex = 0;
 
     private JPanel bindingsPanel;
-    // private JPanel bindingTypePanel;
-    private JPanel aliasPanel;
-    private JPanel bucketPanel;
 
     private JBLabel bindingTypeLabel;
-    private JBLabel bucketLabel;
-    private JBLabel bucketInfoLabel;
-    private JBLabel accessLabel;
-    private JBLabel authenticationLabel;
-    private JBLabel usernameLabel;
-    private JBLabel passwordLabel;
-    private JBLabel bearerKeyLabel;
-    private JBLabel constantAliasNameLabel;
-    private JBLabel constantValueLabel;
 
     private JComboBox<String> bucketComboBox;
     private JComboBox<String> scopeComboBox;
@@ -58,6 +51,9 @@ public class BindingSettings {
 
     private Map<JPanel, JSeparator> separatorMap = new HashMap<>();
     private List<JPanel> bindingTypePanels = new ArrayList<>();
+
+    // Keep track of all the aliasPanels
+    private List<JPanel> aliasPanels = new ArrayList<>();
 
     // Constructor
     public BindingSettings() {
@@ -131,20 +127,51 @@ public class BindingSettings {
             bindingsPanel.revalidate();
             bindingsPanel.repaint();
         });
-        bindingsTypeGbc.gridx = 1;
+        bindingsTypeGbc.gridx = 4; // because of the wide alias panel
         bindingsTypeGbc.gridy = 0;
+        bindingsTypeGbc.anchor = GridBagConstraints.NORTHWEST;
         bindingTypePanel.add(deleteButton, bindingsTypeGbc);
+        deleteButton.setVisible(false); // initially hide the delete button
 
         // Create a aliasPanel to hold the alias-specific components
-        aliasPanel = new JPanel(new GridBagLayout());
+        JPanel aliasPanel = new JPanel(new GridBagLayout());
         GridBagConstraints aliasGbc = new GridBagConstraints();
         aliasGbc.insets = new Insets(5, 5, 5, 5);
         aliasGbc.anchor = GridBagConstraints.WEST;
-        aliasGbc.fill = GridBagConstraints.HORIZONTAL;
-        bindingsTypeGbc.gridx = 2;
+        aliasGbc.fill = GridBagConstraints.BOTH;
+
+        bindingsTypeGbc.gridx = 1;
         bindingsTypeGbc.gridy = 0;
-        bindingsTypeGbc.gridwidth = 2;
+        bindingsTypeGbc.gridwidth = 1; // initially set to 1, will set to 3 when a binding type is selected
+        bindingsTypeGbc.gridheight = 2;
         bindingTypePanel.add(aliasPanel, bindingsTypeGbc);
+
+        // Add the aliasPanel to the list of aliasPanels
+        aliasPanels.add(aliasPanel);
+
+        // Set a custom renderer for the bindingTypeComboBox
+        bindingTypeComboBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
+                        cellHasFocus);
+
+                if ("Choose Binding Type".equals(value)) {
+                    label.setEnabled(false);
+                    bindingsTypeGbc.gridwidth = 1; // set a smaller gridwidth value when nothing is selected
+                    deleteButton.setVisible(false);
+                    deleteButton.setEnabled(false);
+                } else {
+                    label.setEnabled(true);
+                    bindingsTypeGbc.gridwidth = 3;
+                    deleteButton.setVisible(true);
+                    deleteButton.setEnabled(true);
+                }
+
+                return label;
+            }
+        });
 
         // Update the alias aliasPanel when the selected binding type changes
         bindingTypeComboBox.addItemListener(e -> {
@@ -153,6 +180,15 @@ public class BindingSettings {
 
             // Get the selected binding type
             String selectedBindingType = (String) bindingTypeComboBox.getSelectedItem();
+
+            // Show or hide the delete button based on the selected item
+            if (!selectedBindingType.equals("Choose Binding Type")) {
+                deleteButton.setVisible(true); // show the delete button
+                deleteButton.setEnabled(true); // enable the delete button
+            } else {
+                deleteButton.setVisible(false); // hide the delete button
+                deleteButton.setEnabled(false); // disable the delete button
+            }
 
             if (selectedBindingType.equals("Bucket Alias")) {
                 // Create the alias name text field
@@ -165,22 +201,13 @@ public class BindingSettings {
                 aliasPanel.add(bucketAliasNameField, aliasGbc);
 
                 // Create the bucket label
-                bucketLabel = new JBLabel("Bucket");
+                JBLabel bucketLabel = new JBLabel("Bucket");
                 bucketLabel.setFont(bucketLabel.getFont().deriveFont(Font.BOLD));
-                // aliasGbc.gridx = 0;
-                // aliasGbc.gridy = 1;
-                // aliasGbc.gridwidth = 1;
-                // aliasPanel.add(bucketLabel, aliasGbc);
 
-                // Create the bucket info label
-                bucketInfoLabel = new JBLabel("bucket.scope.collection");
+                JBLabel bucketInfoLabel = new JBLabel("bucket.scope.collection");
                 bucketInfoLabel.setForeground(Color.GRAY);
-                // aliasGbc.gridx = 1;
-                // aliasGbc.gridy = 1;
-                // aliasPanel.add(bucketInfoLabel, aliasGbc);
 
-                // Add both labels to a flow layout panel
-                bucketPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                JPanel bucketPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 bucketPanel.add(bucketLabel);
                 bucketPanel.add(bucketInfoLabel);
                 aliasGbc.gridx = 0;
@@ -188,38 +215,30 @@ public class BindingSettings {
                 aliasGbc.gridwidth = 3;
                 aliasPanel.add(bucketPanel, aliasGbc);
 
-                // Create the access label
-                accessLabel = new JBLabel("Access");
+                JBLabel accessLabel = new JBLabel("Access");
                 accessLabel.setFont(accessLabel.getFont().deriveFont(Font.BOLD));
                 aliasGbc.gridx = 3;
                 aliasGbc.gridy = 1;
                 aliasGbc.gridwidth = 1;
                 aliasPanel.add(accessLabel, aliasGbc);
 
-                // Create the bucket dropdown menu
                 bucketComboBox = new JComboBox<>();
-                // TODO: Populate the bucketComboBox with available buckets
                 aliasGbc.gridx = 0;
                 aliasGbc.gridy = 2;
                 aliasPanel.add(bucketComboBox, aliasGbc);
 
-                // Create the scope dropdown menu
                 scopeComboBox = new JComboBox<>();
                 scopeComboBox.setEnabled(false);
-                // TODO: Update the scopeComboBox when the selected bucket changes
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 2;
                 aliasPanel.add(scopeComboBox, aliasGbc);
 
-                // Create the collection dropdown menu
                 collectionComboBox = new JComboBox<>();
                 collectionComboBox.setEnabled(false);
-                // TODO: Update the collectionComboBox when the selected scope changes
                 aliasGbc.gridx = 2;
                 aliasGbc.gridy = 2;
                 aliasPanel.add(collectionComboBox, aliasGbc);
 
-                // Create access dropdown menu
                 accessComboBox = new JComboBox<>();
                 accessComboBox.addItem("Read Only");
                 accessComboBox.addItem("Read and Write");
@@ -230,8 +249,9 @@ public class BindingSettings {
                 aliasGbc.gridy = 2;
                 aliasPanel.add(accessComboBox, aliasGbc);
 
+                aliasPanel.setPreferredSize(new Dimension(500, 120));
+
             } else if (selectedBindingType.equals("URL Alias")) {
-                // Create the alias name text field
                 urlAliasNameField = new JBTextField(20);
                 urlAliasNameField.setToolTipText("Enter the alias name.");
                 urlAliasNameField.getEmptyText().setText("Enter the alias name.");
@@ -239,7 +259,6 @@ public class BindingSettings {
                 aliasGbc.gridy = 0;
                 aliasPanel.add(urlAliasNameField, aliasGbc);
 
-                // Create the URL text field
                 urlField = new JBTextField(20);
                 urlField.setToolTipText("Enter the URL.");
                 urlField.getEmptyText().setText("Enter the URL.");
@@ -247,22 +266,19 @@ public class BindingSettings {
                 aliasGbc.gridy = 0;
                 aliasPanel.add(urlField, aliasGbc);
 
-                // Create the allow cookies checkbox
                 JBCheckBox allowCookiesCheckBox = new JBCheckBox("Allow cookies");
                 allowCookiesCheckBox.setToolTipText("Allow cookies for this URL.");
                 aliasGbc.gridx = 0;
                 aliasGbc.gridy = 1;
                 aliasPanel.add(allowCookiesCheckBox, aliasGbc);
 
-                // Create the validate SSL certificate checkbox
                 JBCheckBox validateSslCertificateCheckBox = new JBCheckBox("Validate SSL certificate");
                 validateSslCertificateCheckBox.setToolTipText("Validate SSL certificate for this URL.");
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 1;
                 aliasPanel.add(validateSslCertificateCheckBox, aliasGbc);
 
-                // Create the authentication label
-                authenticationLabel = new JBLabel("Authentication");
+                JBLabel authenticationLabel = new JBLabel("Authentication");
                 authenticationLabel.setFont(authenticationLabel.getFont().deriveFont(Font.BOLD));
                 authenticationLabel.setToolTipText("Select authentication method for this URL.");
                 authenticationLabel.setDisplayedMnemonic('A');
@@ -275,7 +291,6 @@ public class BindingSettings {
                 aliasGbc.gridy = 2;
                 aliasPanel.add(authenticationLabel, aliasGbc);
 
-                // Create the auth dropdown menu
                 CustomComboBox authComboBox = new CustomComboBox();
                 authComboBox.addItem("No Auth");
                 authComboBox.addItem("Basic");
@@ -289,8 +304,7 @@ public class BindingSettings {
                 aliasGbc.gridy = 2;
                 aliasPanel.add(authComboBox, aliasGbc);
 
-                // Create the username label and text field
-                usernameLabel = new JBLabel("Username");
+                JBLabel usernameLabel = new JBLabel("Username");
                 usernameLabel.setFont(usernameLabel.getFont().deriveFont(Font.BOLD));
                 usernameLabel.setToolTipText("Enter the username for basic or digest authentication.");
                 usernameLabel.setDisplayedMnemonic('U');
@@ -315,8 +329,7 @@ public class BindingSettings {
                 aliasGbc.gridy = 3;
                 aliasPanel.add(usernameField, aliasGbc);
 
-                // Create the password label and text field
-                passwordLabel = new JBLabel("Password");
+                JBLabel passwordLabel = new JBLabel("Password");
                 passwordLabel.setFont(passwordLabel.getFont().deriveFont(Font.BOLD));
                 passwordLabel.setToolTipText(
                         "Enter the password for basic or digest authentication.");
@@ -342,8 +355,7 @@ public class BindingSettings {
                 aliasGbc.gridy = 4;
                 aliasPanel.add(passwordField, aliasGbc);
 
-                // Create the bearer key label and text field
-                bearerKeyLabel = new JBLabel("Bearer Key");
+                JBLabel bearerKeyLabel = new JBLabel("Bearer Key");
                 bearerKeyLabel.setFont(bearerKeyLabel.getFont().deriveFont(Font.BOLD));
                 bearerKeyLabel.setToolTipText(
                         "Enter the bearer key for bearer token authentication.");
@@ -356,7 +368,7 @@ public class BindingSettings {
                 bearerKeyLabel.setVisible(false);
                 bearerKeyLabel.setEnabled(false);
                 aliasGbc.gridx = 0;
-                aliasGbc.gridy = 5;
+                aliasGbc.gridy = 3; // should be in the same row as usernameLabel
                 aliasPanel.add(bearerKeyLabel, aliasGbc);
 
                 bearerKeyField = new JBTextField(20);
@@ -366,12 +378,11 @@ public class BindingSettings {
                 bearerKeyField.setVisible(false);
                 bearerKeyField.setEnabled(false);
                 aliasGbc.gridx = 1;
-                aliasGbc.gridy = 5;
+                aliasGbc.gridy = 3; // should be in the same row as usernameField
                 aliasPanel.add(bearerKeyField, aliasGbc);
+                aliasPanel.setPreferredSize(new Dimension(500, 160));
 
-                // Create the auth dropdown menu listener
                 authComboBox.addActionListener(ee -> {
-                    // Update the visibility of the authentication fields based on the selected
                     String selectedAuth = (String) authComboBox.getSelectedItem();
                     if (selectedAuth.equals("Basic") || selectedAuth.equals("Digest")) {
                         usernameLabel.setVisible(true);
@@ -388,6 +399,7 @@ public class BindingSettings {
                         bearerKeyField.setVisible(false);
                         bearerKeyLabel.setEnabled(false);
                         bearerKeyField.setEnabled(false);
+                        aliasPanel.setPreferredSize(new Dimension(500, 200));
                     } else if (selectedAuth.equals("Bearer")) {
                         usernameLabel.setVisible(false);
                         usernameField.setVisible(false);
@@ -403,6 +415,7 @@ public class BindingSettings {
                         bearerKeyField.setVisible(true);
                         bearerKeyLabel.setEnabled(true);
                         bearerKeyField.setEnabled(true);
+                        aliasPanel.setPreferredSize(new Dimension(500, 180));
                     } else {
                         usernameLabel.setVisible(false);
                         usernameField.setVisible(false);
@@ -418,18 +431,15 @@ public class BindingSettings {
                         bearerKeyField.setVisible(false);
                         bearerKeyLabel.setEnabled(false);
                         bearerKeyField.setEnabled(false);
+                        aliasPanel.setPreferredSize(new Dimension(500, 160));
                     }
-
                 });
-
             } else if (selectedBindingType.equals("Constant Alias")) {
-                // Create the alias name label
-                constantAliasNameLabel = new JBLabel("Alias Name:");
+                JBLabel constantAliasNameLabel = new JBLabel("Alias Name:");
                 aliasGbc.gridx = 0;
                 aliasGbc.gridy = 0;
                 aliasPanel.add(constantAliasNameLabel, aliasGbc);
 
-                // Create the alias name text field
                 constantAliasNameField = new JBTextField(20);
                 constantAliasNameField.setToolTipText("Enter the alias name.");
                 constantAliasNameField.getEmptyText().setText("Enter the alias name.");
@@ -437,19 +447,19 @@ public class BindingSettings {
                 aliasGbc.gridy = 0;
                 aliasPanel.add(constantAliasNameField, aliasGbc);
 
-                // Create the value label
-                constantValueLabel = new JBLabel("Value:");
+                JBLabel constantValueLabel = new JBLabel("Value:");
                 aliasGbc.gridx = 0;
                 aliasGbc.gridy = 1;
                 aliasPanel.add(constantValueLabel, aliasGbc);
 
-                // Create the value text field
                 constantValueField = new JBTextField(20);
                 constantValueField.setToolTipText("Enter the constant value.");
                 constantValueField.getEmptyText().setText("Enter the constant value.");
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 1;
                 aliasPanel.add(constantValueField, aliasGbc);
+
+                aliasPanel.setPreferredSize(new Dimension(500, 80));
 
             }
 
