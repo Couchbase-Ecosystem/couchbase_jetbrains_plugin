@@ -57,6 +57,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField startAtTextField;
     private ComboBox<String> timingsComboBox;
     private JTextField expiryTextField;
+    private JTextField replicateToTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -304,6 +305,26 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
+        replicateToTextField = new JTextField();
+        replicateToTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = replicateToTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateReplicateToTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateReplicateToTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateReplicateToTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -503,6 +524,22 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validateReplicateToTextField(Color originalColor) {
+        String input = replicateToTextField.getText();
+        try {
+            if (Integer.parseInt(input) < -1) {
+                replicateToTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                replicateToTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (IllegalArgumentException e) {
+            replicateToTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -657,6 +694,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 18;
+        panel.add(new JLabel("Replicate To: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 18;
+        panel.add(replicateToTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 19;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -736,6 +781,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Start At value must be 0 or greater");
         }
 
+        if (replicateToTextField.getText().equals("")) {
+            errors.add("Start At value is empty");
+        } else if (Integer.parseInt(replicateToTextField.getText()) < -1) {
+            errors.add("Start At value must be -1 or greater");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -764,6 +815,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      start at
      *      timings
      *      expiry
+     *      replicate to
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
