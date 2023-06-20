@@ -427,6 +427,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validatePersistToTextField(Color originalColor) {
         String input = persistToTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                persistToTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < -1) {
                 persistToTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -434,7 +439,7 @@ public class PillowFightDialog extends DialogWrapper {
                 persistToTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             persistToTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -443,6 +448,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateBatchSizeTextField(Color originalColor) {
         String input = batchSizeTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                batchSizeTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 batchSizeTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -450,7 +460,7 @@ public class PillowFightDialog extends DialogWrapper {
                 batchSizeTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             batchSizeTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -459,6 +469,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateNumberItemsTextField(Color originalColor) {
         String input = numberItemsTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                numberItemsTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 numberItemsTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -466,7 +481,7 @@ public class PillowFightDialog extends DialogWrapper {
                 numberItemsTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             numberItemsTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -475,6 +490,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateNumberThreadsTextField(Color originalColor) {
         String input = numberThreadsTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                numberThreadsTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 numberThreadsTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -482,7 +502,7 @@ public class PillowFightDialog extends DialogWrapper {
                 numberThreadsTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             numberThreadsTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -491,6 +511,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validatePercentageTextField(Color originalColor) {
         String input = percentageTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                percentageTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 percentageTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -498,7 +523,7 @@ public class PillowFightDialog extends DialogWrapper {
                 percentageTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             percentageTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -507,6 +532,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateMinSizeTextField(Color originalColor) {
         String input = minSizeTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                minSizeTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 minSizeTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -514,7 +544,7 @@ public class PillowFightDialog extends DialogWrapper {
                 minSizeTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             minSizeTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -523,6 +553,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateMaxSizeTextField(Color originalColor) {
         String input = maxSizeTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                maxSizeTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 maxSizeTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -530,7 +565,7 @@ public class PillowFightDialog extends DialogWrapper {
                 maxSizeTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             maxSizeTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -560,6 +595,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateStartAtTextField(Color originalColor) {
         String input = startAtTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                startAtTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 startAtTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -567,7 +607,7 @@ public class PillowFightDialog extends DialogWrapper {
                 startAtTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             startAtTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -576,6 +616,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateExpiryTextField(Color originalColor) {
         String input = expiryTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                expiryTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 expiryTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -583,7 +628,7 @@ public class PillowFightDialog extends DialogWrapper {
                 expiryTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             expiryTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -592,6 +637,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateReplicateToTextField(Color originalColor) {
         String input = replicateToTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                replicateToTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < -1) {
                 replicateToTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -599,7 +649,7 @@ public class PillowFightDialog extends DialogWrapper {
                 replicateToTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             replicateToTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -608,6 +658,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateLockTextField(Color originalColor) {
         String input = lockTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                lockTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < 0) {
                 lockTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -615,7 +670,7 @@ public class PillowFightDialog extends DialogWrapper {
                 lockTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             lockTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -623,14 +678,12 @@ public class PillowFightDialog extends DialogWrapper {
 
     private void validatePathcountTextField(Color originalColor) {
         String input = pathcountTextField.getText();
-
         try {
             if (input == null || input.trim().isEmpty()) {
                 pathcountTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
                 return;
             }
-
             if (Integer.parseInt(input) < 0) {
                 pathcountTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -863,50 +916,88 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("No available buckets. Please connect to a cluster.");
         }
 
-        if (persistToTextField.getText().equals("")) {
-            errors.add("Persist-to value is empty");
-        } else if (Integer.parseInt(persistToTextField.getText()) < -1){
-            errors.add("Persist-to value must be -1 or greater");
+        if (persistToTextField.getText() == null || persistToTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(persistToTextField.getText()) < -1){
+                    errors.add("Persist-to value must be -1 or greater");
+                }
+            } catch (NumberFormatException e){
+
+            }
         }
 
-        if (batchSizeTextField.getText().equals("")) {
-            errors.add("Batch size value is empty");
-        } else if (Integer.parseInt(batchSizeTextField.getText()) < 0){
-            errors.add("Batch size value must be 0 or greater");
+        if (batchSizeTextField.getText() == null || batchSizeTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(batchSizeTextField.getText()) < 0){
+                    errors.add("Batch size value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (numberItemsTextField.getText().equals("")) {
-            errors.add("Number of Items value is empty");
-        } else if (Integer.parseInt(numberItemsTextField.getText()) < 0){
-            errors.add("Number of Items value must be 0 or greater");
+        if (numberItemsTextField.getText() == null || numberItemsTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(numberItemsTextField.getText()) < 0){
+                    errors.add("Number of Items value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (keyPrefixTextField.getText().equals("")) {
-            errors.add("Key prefix value is empty");
+        if (numberThreadsTextField.getText() == null || numberThreadsTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(numberThreadsTextField.getText()) < 0){
+                    errors.add("Number of Threads value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (numberThreadsTextField.getText().equals("")) {
-            errors.add("Number of Threads value is empty");
-        } else if (Integer.parseInt(numberThreadsTextField.getText()) < 0){
-            errors.add("Number of Threads value must be 0 or greater");
+        if (percentageTextField.getText() == null || percentageTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(percentageTextField.getText()) < 0){
+                    errors.add("Percentage value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (percentageTextField.getText().equals("")) {
-            errors.add("Percentage value is empty");
-        } else if (Integer.parseInt(percentageTextField.getText()) < 0){
-            errors.add("Percentage value must be 0 or greater");
+        if (minSizeTextField.getText() == null || minSizeTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(minSizeTextField.getText()) < 0){
+                    errors.add("Min Size value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (minSizeTextField.getText().equals("")) {
-            errors.add("Min Size value is empty");
-        } else if (Integer.parseInt(minSizeTextField.getText()) < 0){
-            errors.add("Min Size value must be 0 or greater");
-        }
+        if (maxSizeTextField.getText() == null || maxSizeTextField.getText().trim().isEmpty()) {
 
-        if (maxSizeTextField.getText().equals("")) {
-            errors.add("Max Size value is empty");
-        } else if (Integer.parseInt(maxSizeTextField.getText()) < 0) {
-            errors.add("Max Size value must be 0 or greater");
+        } else {
+            try {
+                if (Integer.parseInt(maxSizeTextField.getText()) < 0) {
+                    errors.add("Max Size value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
         if (numberCyclesTextField.getText() == null || numberCyclesTextField.getText().trim().isEmpty()) {
@@ -923,28 +1014,52 @@ public class PillowFightDialog extends DialogWrapper {
             }
         }
 
-        if (startAtTextField.getText().equals("")) {
-            errors.add("Start At value is empty");
-        } else if (Integer.parseInt(startAtTextField.getText()) < 0) {
-            errors.add("Start At value must be 0 or greater");
+        if (startAtTextField.getText() == null || startAtTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(startAtTextField.getText()) < 0) {
+                    errors.add("Start At value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (expiryTextField.getText().equals("")) {
-            errors.add("Expiry value is empty");
-        } else if (Integer.parseInt(expiryTextField.getText()) < 0) {
-            errors.add("Expiry value must be 0 or greater");
+        if (expiryTextField.getText() == null || expiryTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(expiryTextField.getText()) < 0) {
+                    errors.add("Expiry value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (replicateToTextField.getText().equals("")) {
-            errors.add("Replicate To value is empty");
-        } else if (Integer.parseInt(replicateToTextField.getText()) < -1) {
-            errors.add("Replicate To value must be -1 or greater");
+        if (replicateToTextField.getText() == null || replicateToTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(replicateToTextField.getText()) < -1) {
+                    errors.add("Replicate To value must be -1 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
-        if (lockTextField.getText().equals("")) {
-            errors.add("Lock value is empty");
-        } else if (Integer.parseInt(lockTextField.getText()) < 0) {
-            errors.add("Lock value must be 0 or greater");
+        if (lockTextField.getText() == null || lockTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(lockTextField.getText()) < 0) {
+                    errors.add("Lock value must be 0 or greater");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
         if (subdocComboBox.getItem() == "enable" && jsonComboBox.getItem() == "disable") {
@@ -981,6 +1096,36 @@ public class PillowFightDialog extends DialogWrapper {
         Runtime rt = Runtime.getRuntime();
         System.out.println(noPopulation);
 
+        if (selectedPersistToTextField.isEmpty()) {
+            selectedPersistToTextField = "";
+        } else {
+            selectedPersistToTextField = "--persist-to " + selectedPersistToTextField;
+        }
+        if (batchSizeTextField.isEmpty()) {
+            batchSizeTextField = "";
+        } else {
+            batchSizeTextField = "--batch-size " + batchSizeTextField;
+        }
+        if (numberItemsTextField.isEmpty()) {
+            numberItemsTextField = "";
+        } else {
+            numberItemsTextField = "--num-items " + numberItemsTextField;
+        }
+        if (keyPrefixTextField.isEmpty()) {
+            keyPrefixTextField = "";
+        } else {
+            keyPrefixTextField = "--key-prefix " + keyPrefixTextField;
+        }
+        if (numberThreadsTextField.isEmpty()) {
+            numberThreadsTextField = "";
+        } else {
+            numberThreadsTextField = "--num-threads " + numberThreadsTextField;
+        }
+        if (percentageTextField.isEmpty()) {
+            percentageTextField = "";
+        } else {
+            percentageTextField = "--set-pct " + percentageTextField;
+        }
         if (noPopulation.equals("enable")) {
             noPopulation = "--no-population";
         } else {
@@ -990,6 +1135,16 @@ public class PillowFightDialog extends DialogWrapper {
             populateOnly = "--populate-only";
         } else {
             populateOnly = "";
+        }
+        if (minSizeTextField.isEmpty()) {
+            minSizeTextField = "";
+        } else {
+            minSizeTextField = "--min-size " + minSizeTextField;
+        }
+        if (maxSizeTextField.isEmpty()) {
+            maxSizeTextField = "";
+        } else {
+            maxSizeTextField = "--max-size " + maxSizeTextField;
         }
         /*
         if (pauseAtEnd.equals("enable")) {
@@ -1003,10 +1158,30 @@ public class PillowFightDialog extends DialogWrapper {
         } else {
             sequential = "";
         }
+        if (startAtTextField.isEmpty()) {
+            startAtTextField = "";
+        } else {
+            startAtTextField = "--start-at " + startAtTextField;
+        }
         if (timings.equals("enable")) {
             timings = "--timings";
         } else {
             timings = "";
+        }
+        if (expiryTextField.isEmpty()) {
+            expiryTextField = "";
+        } else {
+            expiryTextField = "--expiry " + expiryTextField;
+        }
+        if (replicateToTextField.isEmpty()) {
+            replicateToTextField = "";
+        } else {
+            replicateToTextField = "--replicate-to " + replicateToTextField;
+        }
+        if (lockTextField.isEmpty()) {
+            lockTextField = "";
+        } else {
+            lockTextField = "--lock " + lockTextField;
         }
         if (json.equals("enable")) {
             json = "--json";
@@ -1034,7 +1209,7 @@ public class PillowFightDialog extends DialogWrapper {
             numberCyclesTextField = "--num-cycles " + numberCyclesTextField;
         }
 
-        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s --persist-to %s --batch-size %s --num-items %s --key-prefix %s --num-threads %s --set-pct %s %s %s --min-size %s --max-size %s %s %s --start-at %s %s --expiry %s --replicate-to %s --lock %s %s %s %s %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
+        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
         System.out.println(command);
         Process proc = rt.exec(command);
         //System.out.println(proc);
