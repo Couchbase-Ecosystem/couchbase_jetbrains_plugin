@@ -1099,52 +1099,52 @@ public class PillowFightDialog extends DialogWrapper {
         if (selectedPersistToTextField.isEmpty()) {
             selectedPersistToTextField = "";
         } else {
-            selectedPersistToTextField = "--persist-to " + selectedPersistToTextField;
+            selectedPersistToTextField = " --persist-to " + selectedPersistToTextField;
         }
         if (batchSizeTextField.isEmpty()) {
             batchSizeTextField = "";
         } else {
-            batchSizeTextField = "--batch-size " + batchSizeTextField;
+            batchSizeTextField = " --batch-size " + batchSizeTextField;
         }
         if (numberItemsTextField.isEmpty()) {
             numberItemsTextField = "";
         } else {
-            numberItemsTextField = "--num-items " + numberItemsTextField;
+            numberItemsTextField = " --num-items " + numberItemsTextField;
         }
         if (keyPrefixTextField.isEmpty()) {
             keyPrefixTextField = "";
         } else {
-            keyPrefixTextField = "--key-prefix " + keyPrefixTextField;
+            keyPrefixTextField = " --key-prefix " + keyPrefixTextField;
         }
         if (numberThreadsTextField.isEmpty()) {
             numberThreadsTextField = "";
         } else {
-            numberThreadsTextField = "--num-threads " + numberThreadsTextField;
+            numberThreadsTextField = " --num-threads " + numberThreadsTextField;
         }
         if (percentageTextField.isEmpty()) {
             percentageTextField = "";
         } else {
-            percentageTextField = "--set-pct " + percentageTextField;
+            percentageTextField = " --set-pct " + percentageTextField;
         }
         if (noPopulation.equals("enable")) {
-            noPopulation = "--no-population";
+            noPopulation = " --no-population";
         } else {
             noPopulation = "";
         }
         if (populateOnly.equals("enable")) {
-            populateOnly = "--populate-only";
+            populateOnly = " --populate-only";
         } else {
             populateOnly = "";
         }
         if (minSizeTextField.isEmpty()) {
             minSizeTextField = "";
         } else {
-            minSizeTextField = "--min-size " + minSizeTextField;
+            minSizeTextField = " --min-size " + minSizeTextField;
         }
         if (maxSizeTextField.isEmpty()) {
             maxSizeTextField = "";
         } else {
-            maxSizeTextField = "--max-size " + maxSizeTextField;
+            maxSizeTextField = " --max-size " + maxSizeTextField;
         }
         /*
         if (pauseAtEnd.equals("enable")) {
@@ -1154,62 +1154,62 @@ public class PillowFightDialog extends DialogWrapper {
         }
         */
         if (sequential.equals("enable")) {
-            sequential = "--sequential";
+            sequential = " --sequential";
         } else {
             sequential = "";
         }
         if (startAtTextField.isEmpty()) {
             startAtTextField = "";
         } else {
-            startAtTextField = "--start-at " + startAtTextField;
+            startAtTextField = " --start-at " + startAtTextField;
         }
         if (timings.equals("enable")) {
-            timings = "--timings";
+            timings = " --timings";
         } else {
             timings = "";
         }
         if (expiryTextField.isEmpty()) {
             expiryTextField = "";
         } else {
-            expiryTextField = "--expiry " + expiryTextField;
+            expiryTextField = " --expiry " + expiryTextField;
         }
         if (replicateToTextField.isEmpty()) {
             replicateToTextField = "";
         } else {
-            replicateToTextField = "--replicate-to " + replicateToTextField;
+            replicateToTextField = " --replicate-to " + replicateToTextField;
         }
         if (lockTextField.isEmpty()) {
             lockTextField = "";
         } else {
-            lockTextField = "--lock " + lockTextField;
+            lockTextField = " --lock " + lockTextField;
         }
         if (json.equals("enable")) {
-            json = "--json";
+            json = " --json";
         } else {
             json = "";
         }
         if (noop.equals("enable")) {
-            noop = "--noop";
+            noop = " --noop";
         } else {
             noop = "";
         }
         if (subdoc.equals("enable")) {
-            subdoc = "--subdoc";
+            subdoc = " --subdoc";
         } else {
             subdoc = "";
         }
         if (pathcountTextField == null || pathcountTextField.trim().isEmpty()) {
             pathcountTextField = "";
         } else {
-            pathcountTextField = "--pathcount " + pathcountTextField;
+            pathcountTextField = " --pathcount " + pathcountTextField;
         }
         if (numberCyclesTextField == null || numberCyclesTextField.trim().isEmpty()) {
             numberCyclesTextField = "";
         } else {
-            numberCyclesTextField = "--num-cycles " + numberCyclesTextField;
+            numberCyclesTextField = " --num-cycles " + numberCyclesTextField;
         }
 
-        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
+        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
         System.out.println(command);
         Process proc = rt.exec(command);
         //System.out.println(proc);
