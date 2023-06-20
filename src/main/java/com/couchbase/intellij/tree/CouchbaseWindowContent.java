@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -8,12 +9,15 @@ import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.swing.BorderFactory;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
@@ -25,6 +29,8 @@ import javax.swing.tree.TreePath;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.eventing.FunctionDeploymentDialog;
@@ -49,6 +55,9 @@ import com.couchbase.intellij.tree.node.NodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaNodeDescriptor;
 import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
 import com.couchbase.intellij.tree.node.TooltipNodeDescriptor;
+import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
+import com.couchbase.intellij.tree.overview.ServerOverviewDialog;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -69,7 +78,9 @@ import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.ColorChooser;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 
 import utils.OSUtil;
 import utils.TimeUtils;
@@ -79,17 +90,20 @@ public class CouchbaseWindowContent extends JPanel {
     private static DefaultTreeModel treeModel;
     private static Project project;
 
+    private static JPanel toolBarPanel;
+
     public CouchbaseWindowContent(Project project) {
         CouchbaseWindowContent.project = project;
         setLayout(new BorderLayout());
-
         treeModel = getTreeModel(project);
         Tree tree = new Tree(treeModel);
+
         tree.setRootVisible(false);
         tree.setCellRenderer(new NodeDescriptorRenderer());
 
         // create the toolbar
-        JPanel toolBarPanel = new JPanel(new BorderLayout());
+        toolBarPanel = new JPanel(new BorderLayout());
+
         AnAction newWorkbench = new AnAction("New Query Workbench") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -100,12 +114,11 @@ public class CouchbaseWindowContent extends JPanel {
                         String fileName = "virtual.sqlpp";
                         VirtualFile virtualFile = new LightVirtualFile(fileName,
                                 FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), "");
-                        if (virtualFile != null) {
-                            // Open the file in the editor
-                            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                            fileEditorManager.openFile(virtualFile, true);
-                        }
+                        // Open the file in the editor
+                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                        fileEditorManager.openFile(virtualFile, true);
                     } catch (Exception ex) {
+                        Log.error(ex);
                         ex.printStackTrace();
                     }
                 });
@@ -138,8 +151,8 @@ public class CouchbaseWindowContent extends JPanel {
                 }
             }
         };
-        cbshellAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
+        cbshellAction.getTemplatePresentation()
+                .setIcon(IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
 
         AnAction ellipsisAction = new AnAction("More Options") {
             @Override
@@ -174,7 +187,7 @@ public class CouchbaseWindowContent extends JPanel {
         };
         ellipsisAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/ellipsis_horizontal.svg",
                 CouchbaseWindowContent.class, false, true));
-        ellipsisAction.getTemplatePresentation().setDescription("More Options");
+        ellipsisAction.getTemplatePresentation().setDescription("More options");
 
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(addConnectionAction);
@@ -224,6 +237,10 @@ public class CouchbaseWindowContent extends JPanel {
                                 handleScopeRightClick(e, clickedNode, tree);
                             } else if (userObject instanceof CollectionNodeDescriptor) {
                                 handleCollectionRightClick(e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
+                            } else if (userObject instanceof FileNodeDescriptor) {
+                                handleDocumentRightClick(e, clickedNode, (FileNodeDescriptor) userObject, tree);
+                            } else if (userObject instanceof IndexNodeDescriptor) {
+                                handleIndexRightClick(e, clickedNode, (IndexNodeDescriptor) userObject, tree);
                             }
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
@@ -278,9 +295,8 @@ public class CouchbaseWindowContent extends JPanel {
                                 tree.collapsePath(clickedPath.getParentPath());
                             }
                         }
-                    } else {
-                        // do nothing for now
                     }
+
                 }
             }
         });
@@ -305,7 +321,7 @@ public class CouchbaseWindowContent extends JPanel {
                     } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
                         // Do Nothing
                     } else if (expandedTreeNode.getUserObject() instanceof IndexesNodeDescriptor) {
-                        DataLoader.listIndexes(project, expandedTreeNode, tree);
+                        DataLoader.listIndexes(expandedTreeNode, tree);
                     } else {
                         throw new UnsupportedOperationException("Not implemented yet");
                     }
@@ -325,9 +341,17 @@ public class CouchbaseWindowContent extends JPanel {
     private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
             ConnectionNodeDescriptor userObject, Tree tree) {
         JPopupMenu popup = new JPopupMenu();
-        ConnectionNodeDescriptor con = userObject;
 
-        if (con.isActive()) {
+        if (userObject.isActive()) {
+
+            JMenuItem clusterOverview = new JMenuItem("Cluster Overview");
+            clusterOverview.addActionListener(l -> {
+                ServerOverviewDialog overview = new ServerOverviewDialog(true);
+                overview.show();
+            });
+            popup.add(clusterOverview);
+            popup.addSeparator();
+
             JMenuItem refreshBuckets = new JMenuItem("Refresh Buckets");
             refreshBuckets.addActionListener(e12 -> {
                 TreePath treePath = new TreePath(clickedNode.getPath());
@@ -339,24 +363,55 @@ public class CouchbaseWindowContent extends JPanel {
 
             JMenuItem menuItem = new JMenuItem("Disconnect");
             popup.add(menuItem);
-            menuItem.addActionListener(event -> {
-                TreeActionHandler.disconnectFromCluster(clickedNode, con, tree);
-            });
+            menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
 
+            JMenu settings = new JMenu("Settings");
+            JMenu colors = new JMenu("Connection Colors");
+
+            JMenuItem colorAction = new JMenuItem("Set Connection Color");
+            colorAction.addActionListener(event -> {
+                Color initialColor = Color.RED; // the color initially selected in the dialog
+                boolean enableOpacity = true; // whether to allow the user to choose an opacity
+                String title = "Choose a Color for This Connection"; // the title of the dialog
+
+                Color chosenColor = ColorChooser.chooseColor(tree, title, initialColor, enableOpacity);
+                if (chosenColor != null) {
+                    Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, chosenColor);
+                    Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                    Border compound = BorderFactory.createCompoundBorder(margin, line);
+                    toolBarPanel.setBorder(compound);
+                    toolBarPanel.revalidate();
+                    ActiveCluster.getInstance().setColor(chosenColor);
+                }
+            });
+            colors.add(colorAction);
+
+            if (ActiveCluster.getInstance().getColor() != null) {
+                JMenuItem clearConnectionColor = new JMenuItem("Clear");
+                clearConnectionColor.addActionListener(event -> {
+                    toolBarPanel.setBorder(JBUI.Borders.empty());
+                    toolBarPanel.revalidate();
+                    ActiveCluster.getInstance().setColor(null);
+                });
+                colors.add(clearConnectionColor);
+            }
+
+            settings.add(colors);
+            popup.add(settings);
         } else {
             JMenuItem menuItem = new JMenuItem("Connect");
             popup.add(menuItem);
-            menuItem.addActionListener(e12 -> {
-                TreeActionHandler.connectToCluster(con.getSavedCluster(), tree);
-            });
+            menuItem.addActionListener(
+                    e12 -> TreeActionHandler.connectToCluster(userObject.getSavedCluster(), tree, toolBarPanel));
         }
 
         popup.addSeparator();
         JMenuItem menuItem = new JMenuItem("Delete Connection");
         popup.add(menuItem);
         menuItem.addActionListener(e12 -> {
-            TreeActionHandler.deleteConnection(clickedNode, con, tree);
+            TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
         });
+        popup.addSeparator();
 
         popup.show(tree, e.getX(), e.getY());
     }
@@ -405,15 +460,13 @@ public class CouchbaseWindowContent extends JPanel {
             JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
             deleteScopeItem.addActionListener(e1 -> {
                 // Show confirmation dialog before deleting scope
-                int result = Messages.showYesNoDialog(
-                        "Are you sure you want to delete the scope " + scopeName + "?",
+                int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?",
                         "Delete Scope", Messages.getQuestionIcon());
                 if (result != Messages.YES) {
                     return;
                 }
 
-                ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                        .dropScope(scopeName);
+                ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
                 // Refresh buckets
                 DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                 TreePath treePath = new TreePath(bucketTreeNode.getPath());
@@ -438,8 +491,8 @@ public class CouchbaseWindowContent extends JPanel {
         JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
         addNewCollectionItem.addActionListener(e1 -> {
 
-            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
-                    EntityType.COLLECTION, bucketName, scopeName);
+            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION,
+                    bucketName, scopeName);
             entityCreationDialog.show();
 
             if (entityCreationDialog.isOK()) {
@@ -454,32 +507,68 @@ public class CouchbaseWindowContent extends JPanel {
 
         popup.addSeparator();
 
-        JMenuItem quickImport = new JMenuItem("Quick Import");
-        quickImport.addActionListener(e1 -> {
+        JMenuItem simpleImport = new JMenuItem("Simple Import");
+        simpleImport.addActionListener(e1 -> {
             FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
             VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
             if (file != null) {
-                CBImport.quickScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
+                CBImport.simpleScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
             } else {
-                Messages.showErrorDialog("Quick Import requires a .json file. Please try again.", "Quick Import Error");
+                Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
+                        "Simple Import Error");
             }
         });
-        popup.add(quickImport);
+        popup.add(simpleImport);
 
-        JMenuItem quickExport = new JMenuItem("Quick Export");
-        quickExport.addActionListener(e1 -> {
-            FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Scope Export",
+        JMenuItem simpleExport = new JMenuItem("Simple Export");
+        simpleExport.addActionListener(e1 -> {
+            FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export",
                     "Choose where you want to save the file:");
-            VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
-                    .createSaveFileDialog(fsd, project)
+            VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project)
                     .save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
             if (wrapper != null) {
                 File file = wrapper.getFile();
-                CBExport.quickScopeExport(scope.getBucket(), scope.getText(), file.getAbsolutePath());
+                CBExport.simpleScopeExport(scope.getBucket(), scope.getText(), file.getAbsolutePath());
             }
         });
-        popup.add(quickExport);
+        popup.add(simpleExport);
 
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleDocumentRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
+            FileNodeDescriptor col, Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem viewMetaData = new JMenuItem("View Metadata");
+        String bucket = col.getVirtualFile().getUserData(VirtualFileKeys.BUCKET);
+        String scope = col.getVirtualFile().getUserData(VirtualFileKeys.SCOPE);
+        String collection = col.getVirtualFile().getUserData(VirtualFileKeys.COLLECTION);
+        String docId = col.getVirtualFile().getUserData(VirtualFileKeys.ID);
+        viewMetaData.addActionListener(e12 -> {
+            String metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
+            if (metadata != null) {
+                VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json",
+                        FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                DocumentFormatter.formatFile(project, virtualFile);
+                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                fileEditorManager.openFile(virtualFile, true);
+            }
+        });
+        popup.add(viewMetaData);
+
+        popup.show(tree, e.getX(), e.getY());
+    }
+
+    private static void handleIndexRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, IndexNodeDescriptor idx,
+            Tree tree) {
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem viewIdxStats = new JMenuItem("View Stats");
+        viewIdxStats.addActionListener(l -> {
+            IndexOverviewDialog dialog = new IndexOverviewDialog(idx.getBucket(), idx.getScope(), idx.getCollection(),
+                    idx.getText().substring(0, idx.getText().lastIndexOf('.')));
+            dialog.show();
+        });
+        popup.add(viewIdxStats);
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -505,13 +594,8 @@ public class CouchbaseWindowContent extends JPanel {
             JMenuItem clearDocFilter = new JMenuItem("Clear Document Filter");
             popup.add(clearDocFilter);
             clearDocFilter.addActionListener(e12 -> {
-                QueryFiltersStorage.getInstance().getValue()
-                        .saveQueryFilter(
-                                ActiveCluster.getInstance().getId(),
-                                col.getBucket(),
-                                col.getScope(),
-                                col.getText(),
-                                null);
+                QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(),
+                        col.getBucket(), col.getScope(), col.getText(), null);
 
                 col.setQueryFilter(null);
                 TreePath treePath = new TreePath(clickedNode.getPath());
@@ -527,8 +611,8 @@ public class CouchbaseWindowContent extends JPanel {
             JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
             deleteCollectionItem.addActionListener(e1 -> {
                 int result = Messages.showYesNoDialog(
-                        "Are you sure you want to delete the collection " + col.getText() + "?",
-                        "Delete Collection", Messages.getQuestionIcon());
+                        "Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection",
+                        Messages.getQuestionIcon());
                 if (result != Messages.YES) {
                     return;
                 }
@@ -536,8 +620,7 @@ public class CouchbaseWindowContent extends JPanel {
                 ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
                         .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
                 // Refresh collections
-                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode
-                        .getParent());
+                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                 TreePath treePath = new TreePath(colsTreeNode.getPath());
                 tree.collapsePath(treePath);
                 tree.expandPath(treePath);
@@ -549,41 +632,52 @@ public class CouchbaseWindowContent extends JPanel {
         // other also is
         if (CBTools.getCbExport().isAvailable()) {
             popup.addSeparator();
-            JMenuItem quickImport = new JMenuItem("Quick Import");
-            quickImport.addActionListener(e12 -> {
+            JMenuItem simpleImport = new JMenuItem("Simple Import");
+            simpleImport.addActionListener(e12 -> {
                 FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
                 VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
                 if (file != null) {
-                    CBImport.quickCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(),
+                    CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(),
                             null);
                 } else {
-                    Messages.showErrorDialog("Quick Import requires a .json file. Please try again.",
-                            "Quick Import Error");
+                    Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
+                            "Simple Import Error");
                 }
             });
-            popup.add(quickImport);
+            popup.add(simpleImport);
 
-            JMenuItem quickExport = new JMenuItem("Quick Export");
-            quickExport.addActionListener(e12 -> {
-                FileSaverDescriptor fsd = new FileSaverDescriptor("Quick Collection Export",
+            JMenuItem simpleExport = new JMenuItem("Simple Export");
+            simpleExport.addActionListener(e12 -> {
+                FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",
                         "Choose where you want to save the file:");
-                VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
-                        .createSaveFileDialog(fsd, project)
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project)
                         .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-"
                                 + TimeUtils.getCurrentDateTime() + ".json"));
                 if (wrapper != null) {
                     File file = wrapper.getFile();
-                    CBExport.quickCollectionExport(col.getBucket(), col.getScope(), col.getText(),
+                    CBExport.simpleCollectionExport(col.getBucket(), col.getScope(), col.getText(),
                             file.getAbsolutePath(), null);
                 }
             });
-            popup.add(quickExport);
+            popup.add(simpleExport);
         }
 
         popup.show(tree, e.getX(), e.getY());
     }
 
-    class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
+    public static DefaultTreeModel getTreeModel(Project project) {
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
+
+        Map<String, SavedCluster> sortedClusters = new TreeMap<>(DataLoader.getSavedClusters());
+        for (Map.Entry<String, SavedCluster> entry : sortedClusters.entrySet()) {
+            DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(
+                    new ConnectionNodeDescriptor(entry.getKey(), entry.getValue(), false));
+            root.add(adminLocal);
+        }
+        return new DefaultTreeModel(root);
+    }
+
+    static class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
                 boolean leaf, int row, boolean hasFocus) {
@@ -602,8 +696,7 @@ public class CouchbaseWindowContent extends JPanel {
                 } else if (userObject instanceof CollectionNodeDescriptor) {
                     CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
                     setText(descriptor.getText());
-                    if (descriptor.getQueryFilter() == null
-                            || descriptor.getQueryFilter().trim().isEmpty()) {
+                    if (descriptor.getQueryFilter() == null || descriptor.getQueryFilter().trim().isEmpty()) {
                         setIcon(descriptor.getIcon());
                     } else {
                         setIcon(IconLoader.findIcon("./assets/icons/filter.svg"));
@@ -616,18 +709,6 @@ public class CouchbaseWindowContent extends JPanel {
             }
             return this;
         }
-    }
-
-    public static DefaultTreeModel getTreeModel(Project project) {
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-
-        Map<String, SavedCluster> sortedClusters = new TreeMap<>(DataLoader.getSavedClusters());
-        for (Map.Entry<String, SavedCluster> entry : sortedClusters.entrySet()) {
-            DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(
-                    new ConnectionNodeDescriptor(entry.getKey(), entry.getValue(), false));
-            root.add(adminLocal);
-        }
-        return new DefaultTreeModel(root);
     }
 
 }

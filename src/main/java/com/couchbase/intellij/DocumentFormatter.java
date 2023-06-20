@@ -1,5 +1,6 @@
 package com.couchbase.intellij;
 
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.project.Project;
@@ -18,16 +19,14 @@ public class DocumentFormatter {
             }
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
             if (psiFile != null) {
-                CommandProcessor.getInstance().executeCommand(project, () -> {
-                    ApplicationManager.getApplication().runWriteAction(() -> {
-                        try {
-                            CodeStyleManager.getInstance(project).reformat(psiFile);
-                        } catch (IncorrectOperationException ioe) {
-                            // handle exception
-                            ioe.printStackTrace();
-                        }
-                    });
-                }, "Format File", null);
+                CommandProcessor.getInstance().executeCommand(project, () -> ApplicationManager.getApplication().runWriteAction(() -> {
+                    try {
+                        CodeStyleManager.getInstance(project).reformat(psiFile);
+                    } catch (IncorrectOperationException ioe) {
+                        Log.error(ioe);
+                        ioe.printStackTrace();
+                    }
+                }), "Format File", null);
             }
         });
     }

@@ -27,12 +27,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
@@ -41,15 +43,14 @@ public class CustomSqlFileEditor implements FileEditor {
     private final EditorWrapper queryEditor;
     private final VirtualFile file;
     private final Project project;
+    JPanel panel;
     private JLabel historyLabel;
     private JComponent component;
-
     private int currentHistoryIndex;
-
     private String selectedBucketContext;
     private String selectedScopeContext;
     private String cachedPreviousSelectedConnection;
-    JPanel panel;
+    private JPanel topPanel;
 
     CustomSqlFileEditor(Project project, VirtualFile file) {
         this.file = file;
@@ -151,12 +152,7 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Format Code", "Formats a SQL++ code", formatCode) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        queryEditor.getDocument().setText(SQLPPFormatter.format(queryEditor.getDocument().getText()));
-                    }
-                });
+                ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(SQLPPFormatter.format(queryEditor.getDocument().getText())));
             }
         });
         executeGroup.addSeparator();
@@ -173,12 +169,7 @@ public class CustomSqlFileEditor implements FileEditor {
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (currentHistoryIndex - 1 >= 0) {
                     currentHistoryIndex--;
-                    ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                        @Override
-                        public void run() {
-                            queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex));
-                        }
-                    });
+                    ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex)));
 
 
                     SwingUtilities.invokeLater(() -> {
@@ -248,9 +239,16 @@ public class CustomSqlFileEditor implements FileEditor {
         leftPanel.add(executeToolbar.getComponent(), BorderLayout.WEST);
         leftPanel.add(getQueryContextPanel(), BorderLayout.CENTER);
 
-        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel = new JPanel(new BorderLayout());
         topPanel.add(leftPanel, BorderLayout.WEST);
         topPanel.add(rightPanel, BorderLayout.EAST);
+
+        if (ActiveCluster.getInstance().getColor() != null) {
+            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0);
+            Border compound = BorderFactory.createCompoundBorder(margin, line);
+            topPanel.setBorder(compound);
+        }
 
         panel.add(topPanel, BorderLayout.NORTH);
     }
@@ -341,7 +339,7 @@ public class CustomSqlFileEditor implements FileEditor {
                     return;
                 }
                 if (ActiveCluster.getInstance().get() == null || !item.equals(ActiveCluster.getInstance().getId())) {
-                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected to", "Workbench Error"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected.", "Workbench Error"));
 
                     SwingUtilities.invokeLater(() -> comboBox
                             .setSelectedItem(cachedPreviousSelectedConnection));
@@ -349,6 +347,17 @@ public class CustomSqlFileEditor implements FileEditor {
                     SwingUtilities.invokeLater(() -> {
                         contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
                         contextLabel.revalidate();
+
+                        if (ActiveCluster.getInstance().getColor() != null) {
+                            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+                            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                            Border compound = BorderFactory.createCompoundBorder(margin, line);
+                            topPanel.setBorder(compound);
+                            topPanel.revalidate();
+                        } else {
+                            topPanel.setBorder(JBUI.Borders.empty());
+                            topPanel.revalidate();
+                        }
                     });
                     selectedBucketContext = null;
                     selectedScopeContext = null;
@@ -437,12 +446,7 @@ public class CustomSqlFileEditor implements FileEditor {
     @NotNull
     @Override
     public FileEditorState getState(@NotNull FileEditorStateLevel level) {
-        return new FileEditorState() {
-            @Override
-            public boolean canBeMergedWith(FileEditorState otherState, FileEditorStateLevel level) {
-                return false;
-            }
-        };
+        return (otherState, level1) -> false;
     }
 
     @Override
@@ -455,9 +459,9 @@ public class CustomSqlFileEditor implements FileEditor {
     }
 
 
-    class EditorWrapper {
-        private Editor viewer;
-        private TextEditor textEditor;
+    static class EditorWrapper {
+        private final Editor viewer;
+        private final TextEditor textEditor;
 
         public EditorWrapper(Editor viewer, TextEditor textEditor) {
             this.textEditor = textEditor;
@@ -477,11 +481,7 @@ public class CustomSqlFileEditor implements FileEditor {
         }
 
         public void release() {
-            if (viewer != null) {
-                EditorFactory.getInstance().releaseEditor(viewer);
-            } else {
-                EditorFactory.getInstance().releaseEditor(textEditor.getEditor());
-            }
+            EditorFactory.getInstance().releaseEditor(Objects.requireNonNullElseGet(viewer, textEditor::getEditor));
         }
     }
 

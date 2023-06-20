@@ -17,6 +17,7 @@ import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -75,6 +76,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -114,6 +116,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -150,6 +153,7 @@ public class DataLoader {
                     }
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -247,6 +251,7 @@ public class DataLoader {
                 parentNode.add(new DefaultMutableTreeNode(idx));
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
             } catch (Exception e) {
+                Log.error(e);
                 e.printStackTrace();
                 throw e;
             } finally {
@@ -282,6 +287,7 @@ public class DataLoader {
 
                     treeModel.nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.error(e);
                     e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
@@ -294,7 +300,7 @@ public class DataLoader {
 
     private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope, String collection) {
 
-        String basePath = project.getBasePath(); // Replace with the appropriate base path if needed
+        String basePath = project.getBasePath();
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
         try {
@@ -303,6 +309,7 @@ public class DataLoader {
             return PsiManager.getInstance(project).findDirectory(directory);
 
         } catch (IOException e) {
+            Log.error(e);
             e.printStackTrace();
             throw new RuntimeException(e);
         }
@@ -314,7 +321,7 @@ public class DataLoader {
             return cluster;
         }
 
-        String protocol = "";
+        String protocol;
         if (ssl) {
             protocol = "couchbases://";
         } else {
@@ -334,6 +341,8 @@ public class DataLoader {
 
             return cluster.buckets().getAllBuckets().keySet();
         } catch (Exception e) {
+            Log.error(e);
+            assert cluster != null;
             cluster.disconnect();
             throw e;
         }
@@ -398,16 +407,15 @@ public class DataLoader {
             try {
                 ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().createPrimaryIndex();
 
-                SwingUtilities.invokeLater(() -> {
-                    Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation");
-                });
+                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation"));
             } catch (Exception e) {
+                Log.error(e);
                 e.printStackTrace();
             }
         });
     }
 
-    public static void listIndexes(Project project, DefaultMutableTreeNode parentNode, Tree tree) {
+    public static void listIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof IndexesNodeDescriptor) {
@@ -423,7 +431,7 @@ public class DataLoader {
                             FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), SQLPPFormatter.format(IndexUtils.getIndexDefinition(qi)));
                     virtualFile.putUserData(READ_ONLY, "true");
 
-                    IndexNodeDescriptor node = new IndexNodeDescriptor(fileName, virtualFile);
+                    IndexNodeDescriptor node = new IndexNodeDescriptor(idxs.getBucket(), idxs.getScope(), idxs.getCollection(), fileName, virtualFile);
                     DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                     parentNode.add(jsonFileNode);
                 }
@@ -433,6 +441,24 @@ public class DataLoader {
             ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
         } else {
             throw new IllegalStateException("The expected parent was IndexesNodeDescriptor but got something else");
+        }
+    }
+
+    public static List<QueryIndex> listIndexes(String bucket, String scope, String collection) {
+        return ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().getAllIndexes();
+    }
+
+    public static String getDocMetadata(String bucket, String scope, String collection, String docId) {
+
+        try {
+            String query = "Select meta().* from `" + collection + "` use keys \"" + docId + "\"";
+            final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(query).rowsAsObject();
+
+            return results.get(0).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.error("Failed to load the metadata for document " + docId, e);
+            return null;
         }
     }
 }

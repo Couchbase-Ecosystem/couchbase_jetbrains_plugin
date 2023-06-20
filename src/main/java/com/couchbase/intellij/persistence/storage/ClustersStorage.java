@@ -19,18 +19,10 @@ import org.jetbrains.annotations.Nullable;
 )
 public class ClustersStorage implements PersistentStateComponent<ClustersStorage.State> {
 
-    private State myState = new State();
+    private final State myState = new State();
 
-    public static class State {
-        public Clusters clusters = null;
-
-        public Clusters getClusters() {
-            return clusters;
-        }
-
-        public void setClusters(Clusters clusters) {
-            this.clusters = clusters;
-        }
+    public static ClustersStorage getInstance() {
+        return ApplicationManager.getApplication().getService(ClustersStorage.class);
     }
 
     @Nullable
@@ -44,15 +36,23 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
         XmlSerializerUtil.copyBean(state, myState);
     }
 
-    public void setValue(Clusters newValue) {
-        myState.clusters = newValue;
-    }
-
     public Clusters getValue() {
         return myState.clusters;
     }
 
-    public static ClustersStorage getInstance() {
-        return ApplicationManager.getApplication().getService(ClustersStorage.class);
+    public void setValue(Clusters newValue) {
+        myState.clusters = newValue;
+    }
+
+    public static class State {
+        public Clusters clusters = null;
+
+        public Clusters getClusters() {
+            return clusters;
+        }
+
+        public void setClusters(Clusters clusters) {
+            this.clusters = clusters;
+        }
     }
 }

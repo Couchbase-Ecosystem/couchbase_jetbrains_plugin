@@ -8,7 +8,6 @@ import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.actionSystem.*;
@@ -18,6 +17,7 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -41,41 +41,34 @@ import java.util.List;
 import java.util.Map;
 
 public class QueryResultToolWindowFactory implements ToolWindowFactory {
-    public static QueryResultToolWindowFactory instance;
-    public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-    public QueryResultToolWindowFactory() {
-        instance = this;
-    }
-
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
     private static final String elapsedToolTip = "Elapsed is the time taken by the server to process the request";
     private static final String executionTooltip = "Execution is the time taken by the server to execute the query";
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
-    private static JBTabs tabs;
-    private static TabInfo queryResultTab;
-
+    public static QueryResultToolWindowFactory instance;
+    public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private HtmlPanel htmlPanel;
-
     private JsonTableModel model;
-
     private JLabel statusIcon;
-
     private EditorEx editor;
-
     private List<JLabel> queryStatsList;
     private List<JLabel> queryLabelsList;
     private List<Map<String, Object>> cachedResults;
-
     private JPanel queryStatsPanel;
 
-    private ConsoleView console;
+    public QueryResultToolWindowFactory() {
+        instance = this;
+    }
 
+    @NotNull
+    private static String getEmptyExplain() {
+        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
+    }
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        tabs = new JBTabsImpl(project);
+        JBTabs tabs = new JBTabsImpl(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
 
@@ -173,13 +166,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         queryResultPanel.add(topPanel, BorderLayout.NORTH);
         queryResultPanel.add(resultTabs.getComponent(), BorderLayout.CENTER);
 
-        //TODO: add console.clear();
-        console = TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
-        JPanel consolePanel = new JPanel(new BorderLayout());
-        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
 
-        TabInfo outputTab = new TabInfo(consolePanel).setText("Log");
-        queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
+        TabInfo outputTab = new TabInfo(getConsolePanel()).setText("Log");
+        TabInfo queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
 
         tabs.addTab(outputTab);
@@ -193,9 +182,55 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         contentManager.addContent(content);
     }
 
-    @NotNull
-    private static String getEmptyExplain() {
-        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
+    public JPanel getConsolePanel() {
+        ConsoleView console = Log.getLogger();
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+        AnAction clearAction = new AnAction("Clear Log") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                console.clear();
+            }
+        };
+        clearAction.getTemplatePresentation().setIcon(
+                IconLoader.findIcon("./assets/icons/clear.svg"));
+        actionGroup.add(clearAction);
+
+        ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
+        actionToolbar.setLayoutPolicy(ActionToolbar.WRAP_LAYOUT_POLICY);
+        JPanel actionPanel = new JPanel(new FlowLayout());
+        actionPanel.add(actionToolbar.getComponent());
+
+        actionToolbar.setTargetComponent(actionPanel);
+
+
+        String[] options = {"Error", "Info", "Debug"};
+        ComboBox<String> comboBox = new ComboBox<>(options);
+        comboBox.setSelectedItem("Info");
+        comboBox.addActionListener(e -> {
+            String selectedValue = (String) comboBox.getSelectedItem();
+            if ("Error".equals(selectedValue)) {
+                Log.setLevel(1);
+            } else if ("Info".equals(selectedValue)) {
+                Log.setLevel(2);
+            } else {
+                Log.setLevel(3);
+            }
+        });
+
+        JPanel comboboxPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        comboboxPanel.add(new JLabel("Log Level:"));
+        comboboxPanel.add(comboBox);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(actionPanel, BorderLayout.LINE_END);
+        panel.add(comboboxPanel, BorderLayout.CENTER);
+
+        JPanel consolePanel = new JPanel(new BorderLayout());
+        consolePanel.add(panel, BorderLayout.NORTH);
+        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
+
+        return consolePanel;
     }
 
     private String getQueryStatHeader(String title) {
@@ -246,12 +281,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             cachedResults = convertedResults;
 
             statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    editor.getDocument().setText(gson.toJson(convertedResults));
-                }
-            });
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(convertedResults)));
 
             htmlPanel.loadHTML(explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
 

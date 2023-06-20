@@ -8,7 +8,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class HtmlPanel extends JPanel {
-    private JBCefBrowser jbCefBrowser;
+    private final JBCefBrowser jbCefBrowser;
 
     public HtmlPanel() {
         super(new BorderLayout());

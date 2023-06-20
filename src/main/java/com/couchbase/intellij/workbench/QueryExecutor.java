@@ -119,6 +119,7 @@ public class QueryExecutor {
                         });
                         resultList = objList;
                     } else {
+                        Log.error(ex);
                         throw ex;
                     }
                 }
@@ -137,6 +138,7 @@ public class QueryExecutor {
                 getOutputWindow(project).updateQueryStats(false, Arrays.asList((end - start) + " MS", "-", "-", "-", "-"),
                         null, CouchbaseQueryErrorUtil.parseQueryError(e), null);
             } catch (Exception e) {
+                Log.error(e);
                 e.printStackTrace();
             }
         });

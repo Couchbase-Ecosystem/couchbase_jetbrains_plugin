@@ -6,9 +6,9 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
+import com.couchbase.intellij.workbench.Log;
 
 import javax.swing.tree.DefaultMutableTreeNode;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class InferHelper {
 
-    public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) throws IOException, InterruptedException {
+    public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) {
         try {
             String query = "INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\"sample_size\": 2000}";
             QueryResult result = ActiveCluster.getInstance().get().query(query);
@@ -42,6 +42,7 @@ public class InferHelper {
                 }
             }
         } catch (Exception e) {
+            Log.error(e);
             e.printStackTrace();
             System.err.println("Could not infer the schema of the collection " + e);
             return null;
@@ -64,7 +65,7 @@ public class InferHelper {
             } else {
                 JsonArray samples = inferSchemaRow.getArray("samples");
                 if (samples != null) {
-                    String additionalTooltip = samples.toList().stream().map(e -> e.toString()).collect(Collectors.joining(","));
+                    String additionalTooltip = samples.toList().stream().map(Object::toString).collect(Collectors.joining(","));
                     sf.setTooltip(sf.getTooltip() + ", samples: " + additionalTooltip);
                 } else {
                     System.err.println("Infer reached an unexpected state");
@@ -134,7 +135,7 @@ public class InferHelper {
             }
             samples = samplesArray.toList().stream().map(e -> e == null ? "null" : e.toString()).collect(Collectors.joining(" , "));
         }
-        
+
         DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, type, samples));
         parentNode.add(childNode);
     }

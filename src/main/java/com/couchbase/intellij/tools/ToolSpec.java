@@ -4,9 +4,9 @@ import java.util.List;
 
 public class ToolSpec {
 
-    private String url;
-    private String installationPath;
-    private List<String> toolsList;
+    private final String url;
+    private final String installationPath;
+    private final List<String> toolsList;
 
     public ToolSpec(String url, String installationPath, List<String> toolsList) {
         this.url = url;

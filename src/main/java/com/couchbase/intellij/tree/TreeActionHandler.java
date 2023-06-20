@@ -7,19 +7,22 @@ import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 import java.util.Enumeration;
 
 public class TreeActionHandler {
 
-    public static void connectToCluster(SavedCluster savedCluster, Tree tree) {
+    public static void connectToCluster(SavedCluster savedCluster, Tree tree, JPanel toolBarPanel) {
         tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
-            Enumeration children = selectedNode.children();
+            Enumeration<TreeNode> children = selectedNode.children();
             DefaultMutableTreeNode newActiveNode = null;
 
             //Disconnect First and find the node that we want to connect to
@@ -41,11 +44,30 @@ public class TreeActionHandler {
 
             try {
                 ActiveCluster.getInstance().connect(savedCluster);
+
+                if (toolBarPanel != null) {
+
+                    if (ActiveCluster.getInstance().getColor() != null) {
+                        SwingUtilities.invokeLater(() -> {
+                            if (ActiveCluster.getInstance().getColor() != null) {
+                                Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+                                Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                                Border compound = BorderFactory.createCompoundBorder(margin, line);
+                                toolBarPanel.setBorder(compound);
+                                toolBarPanel.revalidate();
+                            }
+                        });
+                    } else {
+                        SwingUtilities.invokeLater(() -> {
+                            toolBarPanel.setBorder(JBUI.Borders.empty());
+                            toolBarPanel.revalidate();
+                        });
+                    }
+                }
+
             } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> {
-                    Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
-                            " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error");
-                });
+                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
+                        " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
                 return;
             }
 

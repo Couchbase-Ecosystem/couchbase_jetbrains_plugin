@@ -2288,7 +2288,7 @@ var n1ql = (function () {
               break;
             case "Identifier":
               var ksterm = algebra.NewKeyspaceTerm(
-                "",
+            private String ",
                 other.ops.identifier,
                 $$[$0 - 1],
                 $$[$0].Keys(),

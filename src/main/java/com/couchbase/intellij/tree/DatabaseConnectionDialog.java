@@ -7,6 +7,7 @@ import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.doctor.SDKDoctorTableCellRenderer;
 import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -16,7 +17,6 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -27,13 +27,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class DatabaseConnectionDialog extends DialogWrapper {
 
+    private final Tree tree;
+    JLabel defaultBucketLabel;
+    JBTextField defaultBucketTextField;
     private JLabel errorLabel;
     private JLabel messageLabel;
-
     private JPanel mainPanel;
     private JPanel thirdPanel;
     private JBTextField connectionNameTextField;
@@ -44,12 +45,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     private JButton testConnectionButton;
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
-
-    JLabel defaultBucketLabel;
-    JBTextField defaultBucketTextField;
-
     private JBTable eventLogTable;
-    private Tree tree;
 
     public DatabaseConnectionDialog(Tree tree) {
         super(false);
@@ -77,9 +73,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener((ActionEvent e) -> {
-            close(DialogWrapper.CANCEL_EXIT_CODE);
-        });
+        cancelButton.addActionListener((ActionEvent e) -> close(DialogWrapper.CANCEL_EXIT_CODE));
         buttonPanel.add(cancelButton);
 
         // Test Connection Button
@@ -91,7 +85,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 hideErrorLabel();
                 messageLabel.setText("");
             } else {
-                showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+                showErrorLabel("<html>" + String.join("<br>", errors) + "</html>");
                 return;
             }
             testConnectionButton.setEnabled(false);
@@ -118,6 +112,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                         return;
                     }
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                     showErrorLabel("<html>Connection failed.<br>Please double-check your credentials"
                             + (defaultBucketTextField.getText().trim().isEmpty() ? " or inform a 'Default Bucket' and click again on 'Test Connection' to run the SDK Doctor" : "")
@@ -142,7 +137,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 hideErrorLabel();
                 messageLabel.setText("");
             } else {
-                showErrorLabel("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+                showErrorLabel("<html>" + String.join("<br>", errors) + "</html>");
                 saveButton.setEnabled(true);
                 return;
             }
@@ -155,6 +150,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                         return;
                     }
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                     showErrorLabel("<html>Could not connect to the cluster.<br>Please double-check your credentials or"
                             + (defaultBucketTextField.getText().isEmpty() ? " inform a <strong>Default Bucket</strong> and" : "")
@@ -169,7 +165,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                             usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
                             defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
                     messageLabel.setText("Connection was successful");
-                    TreeActionHandler.connectToCluster(sc, tree);
+                    TreeActionHandler.connectToCluster(sc, tree, null);
                     close(DialogWrapper.CANCEL_EXIT_CODE);
                 } catch (DuplicatedClusterNameAndUserException cae) {
                     messageLabel.setText("");
@@ -178,6 +174,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                     messageLabel.setText("");
                     showErrorLabel("The Couchbase cluster URL and username already exists.");
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                     messageLabel.setText("");
                     showErrorLabel("Could not save the database credentials");
@@ -193,7 +190,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         errorLabel = new JLabel();
         errorLabel.setForeground(Color.decode("#FF4444"));
         messageLabel = new JLabel();
-        messageLabel.setBorder(new EmptyBorder(5, 0, 0, 0));
+        messageLabel.setBorder(JBUI.Borders.emptyTop(5));
         messageLabel.setForeground(JBColor.GREEN);
         notificationPanel.add(messageLabel, BorderLayout.NORTH);
         notificationPanel.add(errorLabel, BorderLayout.SOUTH);
@@ -277,6 +274,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                 try {
                     Desktop.getDesktop().browse(new URI("https://cloud.couchbase.com/sign-up"));
                 } catch (Exception ex) {
+                    Log.error(ex);
                     ex.printStackTrace();
                 }
             }
@@ -328,7 +326,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         JPanel credentialsPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbcCredentials = new GridBagConstraints();
         gbcCredentials.anchor = GridBagConstraints.WEST;
-        gbcCredentials.insets = new Insets(5, -20, 5, 30);
+        gbcCredentials.insets = JBUI.insets(5, -20, 5, 30);
 
         JLabel usernameLabel = new JLabel("Username");
         usernameTextField = new JBTextField(20);
