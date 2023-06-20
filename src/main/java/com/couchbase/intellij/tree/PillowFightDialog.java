@@ -51,7 +51,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> populateOnlyComboBox;
     private JTextField minSizeTextField;
     private JTextField maxSizeTextField;
-    private ComboBox<String> pauseAtEndComboBox;
+    //private ComboBox<String> pauseAtEndComboBox;
     private JTextField numberCyclesTextField;
     private ComboBox<String> sequentialComboBox;
     private JTextField startAtTextField;
@@ -238,9 +238,12 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
+        //--pause-at-end option removed
+        /*
         pauseAtEndComboBox = new ComboBox<>();
         pauseAtEndComboBox.addItem("enable");
         pauseAtEndComboBox.addItem("disable");
+         */
 
         numberCyclesTextField = new JTextField();
         numberCyclesTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -536,6 +539,11 @@ public class PillowFightDialog extends DialogWrapper {
     private void validateNumberCyclesTextField(Color originalColor) {
         String input = numberCyclesTextField.getText();
         try {
+            if (input == null || input.trim().isEmpty()) {
+                numberCyclesTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
             if (Integer.parseInt(input) < -1) {
                 numberCyclesTextField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
@@ -543,7 +551,7 @@ public class PillowFightDialog extends DialogWrapper {
                 numberCyclesTextField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (NumberFormatException e) {
             numberCyclesTextField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
@@ -740,6 +748,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridy = 11;
         panel.add(maxSizeTextField, gbc);
 
+        /*
         gbc.gridx = 0;
         gbc.gridy = 12;
         panel.add(new JLabel("Pause At End: "), gbc);
@@ -747,97 +756,98 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 12;
         panel.add(pauseAtEndComboBox, gbc);
+        */
 
         gbc.gridx = 0;
-        gbc.gridy = 13;
+        gbc.gridy = 12;
         panel.add(new JLabel("Number of Cycles: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 13;
+        gbc.gridy = 12;
         panel.add(numberCyclesTextField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 14;
+        gbc.gridy = 13;
         panel.add(new JLabel("Sequential: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 14;
+        gbc.gridy = 13;
         panel.add(sequentialComboBox, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 15;
+        gbc.gridy = 14;
         panel.add(new JLabel("Start At (Enter a number 0 or greater): "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 15;
+        gbc.gridy = 14;
         panel.add(startAtTextField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 16;
+        gbc.gridy = 15;
         panel.add(new JLabel("Timings: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 16;
+        gbc.gridy = 15;
         panel.add(timingsComboBox, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 17;
+        gbc.gridy = 16;
         panel.add(new JLabel("Expiry: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 17;
+        gbc.gridy = 16;
         panel.add(expiryTextField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 18;
+        gbc.gridy = 17;
         panel.add(new JLabel("Replicate To: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 18;
+        gbc.gridy = 17;
         panel.add(replicateToTextField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 19;
+        gbc.gridy = 18;
         panel.add(new JLabel("Lock: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 19;
+        gbc.gridy = 18;
         panel.add(lockTextField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 20;
+        gbc.gridy = 19;
         panel.add(new JLabel("JSON: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 20;
+        gbc.gridy = 19;
         panel.add(jsonComboBox, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 21;
+        gbc.gridy = 20;
         panel.add(new JLabel("NOOP: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 21;
+        gbc.gridy = 20;
         panel.add(noopComboBox, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 22;
+        gbc.gridy = 21;
         panel.add(new JLabel("Subdoc: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 22;
+        gbc.gridy = 21;
         panel.add(subdocComboBox, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 23;
+        gbc.gridy = 22;
         panel.add(new JLabel("Pathcount: "), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 23;
+        gbc.gridy = 22;
         panel.add(pathcountTextField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 24;
+        gbc.gridy = 23;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -899,10 +909,18 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Max Size value must be 0 or greater");
         }
 
-        if (numberCyclesTextField.getText().equals("")) {
-            errors.add("Number of Cycles value is empty");
-        } else if (Integer.parseInt(numberCyclesTextField.getText()) < -1) {
-            errors.add("Number of Cycles value must be -1 or greater");
+        if (numberCyclesTextField.getText() == null || numberCyclesTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(numberCyclesTextField.getText()) < -1) {
+                    errors.add("Number of Cycles value must be -1 or greater");
+                } else if (populateOnlyComboBox.getSelectedItem() == "enable") {
+                    errors.add("Number of Cycles is incompatible with Populate Only");
+                }
+            } catch (NumberFormatException e) {
+
+            }
         }
 
         if (startAtTextField.getText().equals("")) {
@@ -950,7 +968,7 @@ public class PillowFightDialog extends DialogWrapper {
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
-                PillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), persistToTextField.getText());
+                PillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), persistToTextField.getText(), batchSizeTextField.getText(), numberItemsTextField.getText(), keyPrefixTextField.getText(), numberThreadsTextField.getText(), percentageTextField.getText(), String.valueOf(noPopulationComboBox.getSelectedItem()), String.valueOf(populateOnlyComboBox.getSelectedItem()), minSizeTextField.getText(), maxSizeTextField.getText(), numberCyclesTextField.getText(), String.valueOf(sequentialComboBox.getSelectedItem()), startAtTextField.getText(), String.valueOf(timingsComboBox.getSelectedItem()), expiryTextField.getText(), replicateToTextField.getText(), lockTextField.getText(), String.valueOf(jsonComboBox.getSelectedItem()), String.valueOf(noopComboBox.getSelectedItem()), String.valueOf(subdocComboBox.getSelectedItem()), pathcountTextField.getText());
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -959,33 +977,65 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
-    /*TODO: Add more options to command
-     *      batch size
-     *      number items
-     *      key prefix
-     *      number threads
-     *      percentage
-     *      no population
-     *      populate only
-     *      min size
-     *      max size
-     *      pause at end
-     *      number cycles
-     *      sequential
-     *      start at
-     *      timings
-     *      expiry
-     *      replicate to
-     *      lock
-     *      JSON
-     *      NOOP
-     *      subdoc
-     *      pathcount
-     */
-    public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
+    public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField, String batchSizeTextField, String numberItemsTextField, String keyPrefixTextField, String numberThreadsTextField, String percentageTextField, String noPopulation, String populateOnly, String minSizeTextField, String maxSizeTextField, String numberCyclesTextField, String sequential, String startAtTextField, String timings, String expiryTextField, String replicateToTextField, String lockTextField, String json, String noop, String subdoc, String pathcountTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
-        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s --persist-to %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField);
-        //System.out.println(command);
+        System.out.println(noPopulation);
+
+        if (noPopulation.equals("enable")) {
+            noPopulation = "--no-population";
+        } else {
+            noPopulation = "";
+        }
+        if (populateOnly.equals("enable")) {
+            populateOnly = "--populate-only";
+        } else {
+            populateOnly = "";
+        }
+        /*
+        if (pauseAtEnd.equals("enable")) {
+            pauseAtEnd = "--pause-at-end";
+        } else {
+            pauseAtEnd = "";
+        }
+        */
+        if (sequential.equals("enable")) {
+            sequential = "--sequential";
+        } else {
+            sequential = "";
+        }
+        if (timings.equals("enable")) {
+            timings = "--timings";
+        } else {
+            timings = "";
+        }
+        if (json.equals("enable")) {
+            json = "--json";
+        } else {
+            json = "";
+        }
+        if (noop.equals("enable")) {
+            noop = "--noop";
+        } else {
+            noop = "";
+        }
+        if (subdoc.equals("enable")) {
+            subdoc = "--subdoc";
+        } else {
+            subdoc = "";
+        }
+        if (pathcountTextField == null || pathcountTextField.trim().isEmpty()) {
+            pathcountTextField = "";
+        } else {
+            pathcountTextField = "--pathcount " + pathcountTextField;
+        }
+        if (numberCyclesTextField == null || numberCyclesTextField.trim().isEmpty()) {
+            numberCyclesTextField = "";
+        } else {
+            numberCyclesTextField = "--num-cycles " + numberCyclesTextField;
+        }
+
+        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s --persist-to %s --batch-size %s --num-items %s --key-prefix %s --num-threads %s --set-pct %s %s %s --min-size %s --max-size %s %s %s --start-at %s %s --expiry %s --replicate-to %s --lock %s %s %s %s %s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
+        System.out.println(command);
         Process proc = rt.exec(command);
         //System.out.println(proc);
 
