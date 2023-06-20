@@ -59,6 +59,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField expiryTextField;
     private JTextField replicateToTextField;
     private JTextField lockTextField;
+    private ComboBox<String> jsonComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -345,6 +346,10 @@ public class PillowFightDialog extends DialogWrapper {
                 validateLockTextField(originalColor);
             }
         });
+
+        jsonComboBox = new ComboBox<>();
+        jsonComboBox.addItem("enable");
+        jsonComboBox.addItem("disable");
 
         init();
 
@@ -747,6 +752,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 20;
+        panel.add(new JLabel("JSON: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 20;
+        panel.add(jsonComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 21;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -868,6 +881,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      expiry
      *      replicate to
      *      lock
+     *      JSON
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
