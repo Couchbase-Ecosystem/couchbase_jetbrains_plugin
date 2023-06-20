@@ -60,6 +60,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField replicateToTextField;
     private JTextField lockTextField;
     private ComboBox<String> jsonComboBox;
+    private ComboBox<String> noopComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -350,6 +351,10 @@ public class PillowFightDialog extends DialogWrapper {
         jsonComboBox = new ComboBox<>();
         jsonComboBox.addItem("enable");
         jsonComboBox.addItem("disable");
+
+        noopComboBox = new ComboBox<>();
+        noopComboBox.addItem("enable");
+        noopComboBox.addItem("disable");
 
         init();
 
@@ -760,6 +765,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 21;
+        panel.add(new JLabel("NOOP: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 21;
+        panel.add(noopComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 22;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -882,6 +895,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      replicate to
      *      lock
      *      JSON
+     *      NOOP
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
