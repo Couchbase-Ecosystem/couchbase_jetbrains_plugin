@@ -62,6 +62,7 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> jsonComboBox;
     private ComboBox<String> noopComboBox;
     private ComboBox<String> subdocComboBox;
+    private JTextField pathcountTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -361,6 +362,26 @@ public class PillowFightDialog extends DialogWrapper {
         subdocComboBox.addItem("enable");
         subdocComboBox.addItem("disable");
 
+        pathcountTextField = new JTextField();
+        pathcountTextField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = pathcountTextField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validatePathcountTextField(originalColor);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validatePathcountTextField(originalColor);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validatePathcountTextField(originalColor);
+            }
+        });
+
         init();
 
             /*
@@ -592,6 +613,29 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void validatePathcountTextField(Color originalColor) {
+        String input = pathcountTextField.getText();
+
+        try {
+            if (input == null || input.trim().isEmpty()) {
+                pathcountTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+                return;
+            }
+
+            if (Integer.parseInt(input) < 0) {
+                pathcountTextField.setForeground(JBColor.RED);
+                setOKActionEnabled(false);
+            } else {
+                pathcountTextField.setForeground(originalColor);
+                setOKActionEnabled(true);
+            }
+        } catch (NumberFormatException e) {
+            pathcountTextField.setForeground(JBColor.RED);
+            setOKActionEnabled(false);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -786,6 +830,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 23;
+        panel.add(new JLabel("Pathcount: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 23;
+        panel.add(pathcountTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 24;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -881,6 +933,20 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Subdoc must be used with JSON");
         }
 
+        if (pathcountTextField.getText() == null || pathcountTextField.getText().trim().isEmpty()) {
+
+        } else {
+            try {
+                if (Integer.parseInt(pathcountTextField.getText()) < 0) {
+                    errors.add("Pathcount must be 0 or greater");
+                } else if (!pathcountTextField.getText().equals("") && jsonComboBox.getItem() == "disable") {
+                    errors.add("Pathcount must be used with JSON");
+                }
+            } catch (NumberFormatException e) {
+
+            }
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -914,6 +980,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      JSON
      *      NOOP
      *      subdoc
+     *      pathcount
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
