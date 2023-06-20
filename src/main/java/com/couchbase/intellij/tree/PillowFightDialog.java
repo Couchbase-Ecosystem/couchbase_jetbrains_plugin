@@ -61,6 +61,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JTextField lockTextField;
     private ComboBox<String> jsonComboBox;
     private ComboBox<String> noopComboBox;
+    private ComboBox<String> subdocComboBox;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -355,6 +356,10 @@ public class PillowFightDialog extends DialogWrapper {
         noopComboBox = new ComboBox<>();
         noopComboBox.addItem("enable");
         noopComboBox.addItem("disable");
+
+        subdocComboBox = new ComboBox<>();
+        subdocComboBox.addItem("enable");
+        subdocComboBox.addItem("disable");
 
         init();
 
@@ -773,6 +778,14 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 22;
+        panel.add(new JLabel("Subdoc: "), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 22;
+        panel.add(subdocComboBox, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 23;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
@@ -864,6 +877,10 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Lock value must be 0 or greater");
         }
 
+        if (subdocComboBox.getItem() == "enable" && jsonComboBox.getItem() == "disable") {
+            errors.add("Subdoc must be used with JSON");
+        }
+
         if (errors.isEmpty()) {
             super.doOKAction();
             try {
@@ -896,6 +913,7 @@ public class PillowFightDialog extends DialogWrapper {
      *      lock
      *      JSON
      *      NOOP
+     *      subdoc
      */
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
