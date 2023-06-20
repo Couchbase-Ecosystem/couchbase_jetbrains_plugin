@@ -7,6 +7,7 @@ import com.intellij.ui.ColorUtil;
 
 import java.awt.*;
 import java.time.Duration;
+import java.util.List;
 
 public class ActiveCluster {
 
@@ -14,6 +15,10 @@ public class ActiveCluster {
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
+
+    private List<String> services;
+
+    private String version;
 
     private Color color;
 
@@ -98,5 +103,21 @@ public class ActiveCluster {
             this.savedCluster.setColor(null);
         }
         this.color = color;
+    }
+
+    public List<String> getServices() {
+        return services;
+    }
+
+    public void setServices(List<String> services) {
+        this.services = services;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 }
