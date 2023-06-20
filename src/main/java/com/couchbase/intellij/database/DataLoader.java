@@ -236,21 +236,28 @@ public class DataLoader {
      * @param node    Node where the virtual file will be stored
      * @param tree    used to set the loading status
      */
-    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree) {
+    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
             return;
         }
 
-        GetResult result;
+        String docContent = "{}";
+        String cas = null;
 
         try {
-            result = ActiveCluster.getInstance().get().bucket(node.getBucket()).scope(node.getScope()).collection(node.getCollection()).get(node.getId());
+            GetResult result = ActiveCluster.getInstance().get().bucket(node.getBucket()).scope(node.getScope()).collection(node.getCollection()).get(node.getId());
+            docContent = result.contentAsObject().toString();
+            cas = String.valueOf(result.cas());
+
         } catch (DocumentNotFoundException dnf) {
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
-            tree.setPaintBusy(false);
-            return;
+            //document was not found because the user wants to create a new one.
+            if (!isNew) {
+                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
+                tree.setPaintBusy(false);
+                return;
+            }
         } catch (TimeoutException te) {
             te.printStackTrace();
             Log.error("Request to get the document " + node.getId() + " timed out.", te);
@@ -264,6 +271,8 @@ public class DataLoader {
             return;
         }
 
+        final String content = docContent;
+        final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
 
@@ -279,7 +288,7 @@ public class DataLoader {
                 Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
                 if (document != null) {
                     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                    JsonElement jsonElement = JsonParser.parseString(result.contentAsObject().toString());
+                    JsonElement jsonElement = JsonParser.parseString(content);
                     document.setText(gson.toJson(jsonElement));
                 }
 
@@ -292,7 +301,7 @@ public class DataLoader {
                 virtualFile.putUserData(VirtualFileKeys.SCOPE, node.getScope());
                 virtualFile.putUserData(VirtualFileKeys.COLLECTION, node.getCollection());
                 virtualFile.putUserData(VirtualFileKeys.ID, node.getId());
-                virtualFile.putUserData(VirtualFileKeys.CAS, String.valueOf(result.cas()));
+                virtualFile.putUserData(VirtualFileKeys.CAS, String.valueOf(docCass));
 
                 node.setVirtualFile(virtualFile);
             });

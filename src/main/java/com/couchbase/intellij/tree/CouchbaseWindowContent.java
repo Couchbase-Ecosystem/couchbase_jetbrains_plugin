@@ -213,7 +213,7 @@ public class CouchbaseWindowContent extends JPanel {
                     if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
-                            DataLoader.loadDocument(project, descriptor, tree);
+                            DataLoader.loadDocument(project, descriptor, tree, false);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -494,6 +494,8 @@ public class CouchbaseWindowContent extends JPanel {
             }
         });
         popup.add(viewMetaData);
+        popup.addSeparator();
+
         JBMenuItem deleteDoc = new JBMenuItem("Delete Document");
         deleteDoc.addActionListener(e12 -> {
             int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>" + col.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
@@ -534,6 +536,14 @@ public class CouchbaseWindowContent extends JPanel {
 
     private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
         JBPopupMenu popup = new JBPopupMenu();
+
+        JBMenuItem openDocument = new JBMenuItem("Open/Create Document");
+        openDocument.addActionListener(e12 -> {
+            OpenDocumentDialog dialog = new OpenDocumentDialog(project, tree, col.getBucket(), col.getScope(), col.getText());
+            dialog.show();
+        });
+        popup.add(openDocument);
+
         String filter = "Add Document Filter";
         boolean hasDeleteFilter = false;
         if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
