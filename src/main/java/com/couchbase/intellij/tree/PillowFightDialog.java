@@ -191,12 +191,12 @@ public class PillowFightDialog extends DialogWrapper {
         });
 
         noPopulationComboBox = new ComboBox<>();
-        noPopulationComboBox.addItem("enable");
         noPopulationComboBox.addItem("disable");
+        noPopulationComboBox.addItem("enable");
 
         populateOnlyComboBox = new ComboBox<>();
-        populateOnlyComboBox.addItem("enable");
         populateOnlyComboBox.addItem("disable");
+        populateOnlyComboBox.addItem("enable");
 
         minSizeTextField = new JTextField();
         minSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -266,8 +266,8 @@ public class PillowFightDialog extends DialogWrapper {
         });
 
         sequentialComboBox = new ComboBox<>();
-        sequentialComboBox.addItem("enable");
         sequentialComboBox.addItem("disable");
+        sequentialComboBox.addItem("enable");
 
         startAtTextField = new JTextField();
         startAtTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -290,8 +290,8 @@ public class PillowFightDialog extends DialogWrapper {
         });
 
         timingsComboBox = new ComboBox<>();
-        timingsComboBox.addItem("enable");
         timingsComboBox.addItem("disable");
+        timingsComboBox.addItem("enable");
 
         expiryTextField = new JTextField();
         expiryTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -354,16 +354,16 @@ public class PillowFightDialog extends DialogWrapper {
         });
 
         jsonComboBox = new ComboBox<>();
-        jsonComboBox.addItem("enable");
         jsonComboBox.addItem("disable");
+        jsonComboBox.addItem("enable");
 
         noopComboBox = new ComboBox<>();
-        noopComboBox.addItem("enable");
         noopComboBox.addItem("disable");
+        noopComboBox.addItem("enable");
 
         subdocComboBox = new ComboBox<>();
-        subdocComboBox.addItem("enable");
         subdocComboBox.addItem("disable");
+        subdocComboBox.addItem("enable");
 
         pathcountTextField = new JTextField();
         pathcountTextField.getDocument().addDocumentListener(new DocumentListener() {
