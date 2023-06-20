@@ -195,7 +195,7 @@ public class CouchbaseWindowContent extends JPanel {
                             }
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
-                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
+                            DataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
                         }
                     }
                 }
@@ -212,10 +212,12 @@ public class CouchbaseWindowContent extends JPanel {
                     if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
+                            DataLoader.loadDocument(project, descriptor, tree);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                                 fileEditorManager.openFile(virtualFile, true);
+
 
                             } else {
                                 System.err.println("virtual file is null");
@@ -259,7 +261,7 @@ public class CouchbaseWindowContent extends JPanel {
                     } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
                         DataLoader.listCollections(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
-                        DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
+                        DataLoader.listDocuments(expandedTreeNode, tree, 0);
                     } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
