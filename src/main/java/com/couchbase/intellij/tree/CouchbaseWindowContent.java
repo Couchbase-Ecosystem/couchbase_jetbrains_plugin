@@ -2,7 +2,6 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.DocumentFormatter;
-import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
@@ -24,6 +23,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.JBMenuItem;
+import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -479,12 +480,12 @@ public class CouchbaseWindowContent extends JPanel {
 
 
     private static void handleDocumentRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, FileNodeDescriptor col, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        JMenuItem viewMetaData = new JMenuItem("View Metadata");
-        String bucket = col.getVirtualFile().getUserData(VirtualFileKeys.BUCKET);
-        String scope = col.getVirtualFile().getUserData(VirtualFileKeys.SCOPE);
-        String collection = col.getVirtualFile().getUserData(VirtualFileKeys.COLLECTION);
-        String docId = col.getVirtualFile().getUserData(VirtualFileKeys.ID);
+        JBPopupMenu popup = new JBPopupMenu();
+        JBMenuItem viewMetaData = new JBMenuItem("View Metadata");
+        String bucket = col.getBucket();
+        String scope = col.getScope();
+        String collection = col.getCollection();
+        String docId = col.getId();
         viewMetaData.addActionListener(e12 -> {
             String metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
             if (metadata != null) {
@@ -495,8 +496,30 @@ public class CouchbaseWindowContent extends JPanel {
             }
         });
         popup.add(viewMetaData);
+        popup.addSeparator();
+        JBMenuItem deleteDoc = new JBMenuItem("Delete Document");
+        deleteDoc.addActionListener(e12 -> {
+            int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>" + col.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
+            if (result != Messages.YES) {
+                return;
+            }
 
+            try {
+                ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).remove(col.getId());
 
+                DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                if (parentNode != null) {
+                    treeModel.removeNodeFromParent(clickedNode);
+                }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
+                Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error");
+            }
+
+        });
+        popup.add(deleteDoc);
         popup.show(tree, e.getX(), e.getY());
     }
 
