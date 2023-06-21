@@ -11,9 +11,7 @@ import java.util.TreeMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.JMenu;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
@@ -30,7 +28,6 @@ import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.DocumentFormatter;
-import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.eventing.FunctionDeploymentDialog;
@@ -73,6 +70,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.JBMenuItem;
+import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -157,11 +156,12 @@ public class CouchbaseWindowContent extends JPanel {
         AnAction ellipsisAction = new AnAction("More Options") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                // Open menu code here
-                JPopupMenu menu = new JPopupMenu();
-                JMenuItem item1 = new JMenuItem("New Project from Template");
-                JMenuItem item2 = new JMenuItem("Deploy Function");
-                JMenuItem item3 = new JMenuItem("Function Settings");
+
+                JBPopupMenu menu = new JBPopupMenu();
+                JBMenuItem item1 = new JBMenuItem("New Project from Template");
+                JBMenuItem item2 = new JBMenuItem("Deploy Function");
+                JBMenuItem item3 = new JBMenuItem("Function Settings");
+
                 menu.add(item1);
                 menu.add(item2);
                 menu.add(item3);
@@ -244,7 +244,7 @@ public class CouchbaseWindowContent extends JPanel {
                             }
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
-                            DataLoader.listDocuments(project, (DefaultMutableTreeNode) clickedNode.getParent(), tree,
+                            DataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree,
                                     loadMore.getNewOffset());
                         }
                     }
@@ -262,6 +262,7 @@ public class CouchbaseWindowContent extends JPanel {
                     if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
+                            DataLoader.loadDocument(project, descriptor, tree, false);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -315,7 +316,7 @@ public class CouchbaseWindowContent extends JPanel {
                     } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
                         DataLoader.listCollections(expandedTreeNode, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
-                        DataLoader.listDocuments(project, expandedTreeNode, tree, 0);
+                        DataLoader.listDocuments(expandedTreeNode, tree, 0);
                     } else if (expandedTreeNode.getUserObject() instanceof SchemaNodeDescriptor) {
                         DataLoader.showSchema(expandedTreeNode, treeModel, tree);
                     } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
@@ -340,11 +341,11 @@ public class CouchbaseWindowContent extends JPanel {
 
     private static void handleConnectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
             ConnectionNodeDescriptor userObject, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
+        JBPopupMenu popup = new JBPopupMenu();
 
         if (userObject.isActive()) {
 
-            JMenuItem clusterOverview = new JMenuItem("Cluster Overview");
+            JBMenuItem clusterOverview = new JBMenuItem("Cluster Overview");
             clusterOverview.addActionListener(l -> {
                 ServerOverviewDialog overview = new ServerOverviewDialog(true);
                 overview.show();
@@ -352,7 +353,7 @@ public class CouchbaseWindowContent extends JPanel {
             popup.add(clusterOverview);
             popup.addSeparator();
 
-            JMenuItem refreshBuckets = new JMenuItem("Refresh Buckets");
+            JBMenuItem refreshBuckets = new JBMenuItem("Refresh Buckets");
             refreshBuckets.addActionListener(e12 -> {
                 TreePath treePath = new TreePath(clickedNode.getPath());
                 tree.collapsePath(treePath);
@@ -361,14 +362,14 @@ public class CouchbaseWindowContent extends JPanel {
             popup.add(refreshBuckets);
             popup.addSeparator();
 
-            JMenuItem menuItem = new JMenuItem("Disconnect");
+            JBMenuItem menuItem = new JBMenuItem("Disconnect");
             popup.add(menuItem);
             menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
 
             JMenu settings = new JMenu("Settings");
             JMenu colors = new JMenu("Connection Colors");
 
-            JMenuItem colorAction = new JMenuItem("Set Connection Color");
+            JBMenuItem colorAction = new JBMenuItem("Set Connection Color");
             colorAction.addActionListener(event -> {
                 Color initialColor = Color.RED; // the color initially selected in the dialog
                 boolean enableOpacity = true; // whether to allow the user to choose an opacity
@@ -387,7 +388,7 @@ public class CouchbaseWindowContent extends JPanel {
             colors.add(colorAction);
 
             if (ActiveCluster.getInstance().getColor() != null) {
-                JMenuItem clearConnectionColor = new JMenuItem("Clear");
+                JBMenuItem clearConnectionColor = new JBMenuItem("Clear");
                 clearConnectionColor.addActionListener(event -> {
                     toolBarPanel.setBorder(JBUI.Borders.empty());
                     toolBarPanel.revalidate();
@@ -399,27 +400,25 @@ public class CouchbaseWindowContent extends JPanel {
             settings.add(colors);
             popup.add(settings);
         } else {
-            JMenuItem menuItem = new JMenuItem("Connect");
+            JBMenuItem menuItem = new JBMenuItem("Connect");
             popup.add(menuItem);
             menuItem.addActionListener(
                     e12 -> TreeActionHandler.connectToCluster(userObject.getSavedCluster(), tree, toolBarPanel));
         }
 
         popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Delete Connection");
+        JBMenuItem menuItem = new JBMenuItem("Delete Connection");
         popup.add(menuItem);
         menuItem.addActionListener(e12 -> {
             TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
         });
-        popup.addSeparator();
 
         popup.show(tree, e.getX(), e.getY());
     }
 
     private static void handleBucketRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
-        JMenuItem menuItem = new JMenuItem("Refresh Scopes");
+        JBPopupMenu popup = new JBPopupMenu();
+        JBMenuItem menuItem = new JBMenuItem("Refresh Scopes");
         popup.add(menuItem);
         menuItem.addActionListener(e12 -> {
             TreePath treePath = new TreePath(clickedNode.getPath());
@@ -428,7 +427,7 @@ public class CouchbaseWindowContent extends JPanel {
         });
 
         // Add "Add New Scope" option
-        JMenuItem addNewScopeItem = new JMenuItem("Add New Scope");
+        JBMenuItem addNewScopeItem = new JBMenuItem("Add New Scope");
         addNewScopeItem.addActionListener(e1 -> {
             String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
@@ -448,7 +447,7 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
     private static void handleScopeRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
+        JBPopupMenu popup = new JBPopupMenu();
         popup.addSeparator();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         String bucketName = scope.getBucket();
@@ -457,7 +456,7 @@ public class CouchbaseWindowContent extends JPanel {
         // can't delete the default scope
         if (!"_default".equals(scope.getText())) {
             // Add "Delete Scope" option
-            JMenuItem deleteScopeItem = new JMenuItem("Delete Scope");
+            JBMenuItem deleteScopeItem = new JBMenuItem("Delete Scope");
             deleteScopeItem.addActionListener(e1 -> {
                 // Show confirmation dialog before deleting scope
                 int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?",
@@ -478,7 +477,7 @@ public class CouchbaseWindowContent extends JPanel {
 
         }
 
-        JMenuItem refreshCollections = new JMenuItem("Refresh Collections");
+        JBMenuItem refreshCollections = new JBMenuItem("Refresh Collections");
         popup.add(refreshCollections);
         refreshCollections.addActionListener(e12 -> {
             TreePath treePath = new TreePath(clickedNode.getPath());
@@ -488,7 +487,7 @@ public class CouchbaseWindowContent extends JPanel {
         popup.add(refreshCollections);
 
         // Add "Add New Collection" option
-        JMenuItem addNewCollectionItem = new JMenuItem("Add New Collection");
+        JBMenuItem addNewCollectionItem = new JBMenuItem("Add New Collection");
         addNewCollectionItem.addActionListener(e1 -> {
 
             NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION,
@@ -507,7 +506,7 @@ public class CouchbaseWindowContent extends JPanel {
 
         popup.addSeparator();
 
-        JMenuItem simpleImport = new JMenuItem("Simple Import");
+        JBMenuItem simpleImport = new JBMenuItem("Simple Import");
         simpleImport.addActionListener(e1 -> {
             FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
             VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
@@ -520,7 +519,7 @@ public class CouchbaseWindowContent extends JPanel {
         });
         popup.add(simpleImport);
 
-        JMenuItem simpleExport = new JMenuItem("Simple Export");
+        JBMenuItem simpleExport = new JBMenuItem("Simple Export");
         simpleExport.addActionListener(e1 -> {
             FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export",
                     "Choose where you want to save the file:");
@@ -538,12 +537,12 @@ public class CouchbaseWindowContent extends JPanel {
 
     private static void handleDocumentRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
             FileNodeDescriptor col, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        JMenuItem viewMetaData = new JMenuItem("View Metadata");
-        String bucket = col.getVirtualFile().getUserData(VirtualFileKeys.BUCKET);
-        String scope = col.getVirtualFile().getUserData(VirtualFileKeys.SCOPE);
-        String collection = col.getVirtualFile().getUserData(VirtualFileKeys.COLLECTION);
-        String docId = col.getVirtualFile().getUserData(VirtualFileKeys.ID);
+        JBPopupMenu popup = new JBPopupMenu();
+        JBMenuItem viewMetaData = new JBMenuItem("View Metadata");
+        String bucket = col.getBucket();
+        String scope = col.getScope();
+        String collection = col.getCollection();
+        String docId = col.getId();
         viewMetaData.addActionListener(e12 -> {
             String metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
             if (metadata != null) {
@@ -555,14 +554,42 @@ public class CouchbaseWindowContent extends JPanel {
             }
         });
         popup.add(viewMetaData);
+        popup.addSeparator();
 
+        JBMenuItem deleteDoc = new JBMenuItem("Delete Document");
+        deleteDoc.addActionListener(e12 -> {
+            int result = Messages.showYesNoDialog(
+                    "<html>Are you sure you want to delete the document <strong>" + col.getId() + "</strong>?</html>",
+                    "Delete Document", Messages.getQuestionIcon());
+            if (result != Messages.YES) {
+                return;
+            }
+
+            try {
+                ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection)
+                        .remove(col.getId());
+
+                DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                if (parentNode != null) {
+                    treeModel.removeNodeFromParent(clickedNode);
+                }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
+                Messages.showErrorDialog("Could not delete the document. Please check the logs for more.",
+                        "Couchbase Plugin Error");
+            }
+
+        });
+        popup.add(deleteDoc);
         popup.show(tree, e.getX(), e.getY());
     }
 
     private static void handleIndexRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode, IndexNodeDescriptor idx,
             Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        JMenuItem viewIdxStats = new JMenuItem("View Stats");
+        JBPopupMenu popup = new JBPopupMenu();
+        JBMenuItem viewIdxStats = new JBMenuItem("View Stats");
         viewIdxStats.addActionListener(l -> {
             IndexOverviewDialog dialog = new IndexOverviewDialog(idx.getBucket(), idx.getScope(), idx.getCollection(),
                     idx.getText().substring(0, idx.getText().lastIndexOf('.')));
@@ -574,15 +601,23 @@ public class CouchbaseWindowContent extends JPanel {
 
     private static void handleCollectionRightClick(MouseEvent e, DefaultMutableTreeNode clickedNode,
             CollectionNodeDescriptor col, Tree tree) {
-        JPopupMenu popup = new JPopupMenu();
-        popup.addSeparator();
+        JBPopupMenu popup = new JBPopupMenu();
+
+        JBMenuItem openDocument = new JBMenuItem("Open/Create Document");
+        openDocument.addActionListener(e12 -> {
+            OpenDocumentDialog dialog = new OpenDocumentDialog(project, tree, col.getBucket(), col.getScope(),
+                    col.getText());
+            dialog.show();
+        });
+        popup.add(openDocument);
+
         String filter = "Add Document Filter";
         boolean hasDeleteFilter = false;
         if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
             filter = "Edit Document Filter";
             hasDeleteFilter = true;
         }
-        JMenuItem menuItem = new JMenuItem(filter);
+        JBMenuItem menuItem = new JBMenuItem(filter);
         popup.add(menuItem);
         menuItem.addActionListener(e12 -> {
             DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(),
@@ -591,7 +626,7 @@ public class CouchbaseWindowContent extends JPanel {
         });
 
         if (hasDeleteFilter) {
-            JMenuItem clearDocFilter = new JMenuItem("Clear Document Filter");
+            JBMenuItem clearDocFilter = new JBMenuItem("Clear Document Filter");
             popup.add(clearDocFilter);
             clearDocFilter.addActionListener(e12 -> {
                 QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(),
@@ -608,7 +643,7 @@ public class CouchbaseWindowContent extends JPanel {
 
         if (!"_default".equals(col.getText()) && !"_default".equals(col.getScope())) {
             // Add "Delete Collection" option
-            JMenuItem deleteCollectionItem = new JMenuItem("Delete Collection");
+            JBMenuItem deleteCollectionItem = new JBMenuItem("Delete Collection");
             deleteCollectionItem.addActionListener(e1 -> {
                 int result = Messages.showYesNoDialog(
                         "Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection",
@@ -632,7 +667,7 @@ public class CouchbaseWindowContent extends JPanel {
         // other also is
         if (CBTools.getCbExport().isAvailable()) {
             popup.addSeparator();
-            JMenuItem simpleImport = new JMenuItem("Simple Import");
+            JBMenuItem simpleImport = new JBMenuItem("Simple Import");
             simpleImport.addActionListener(e12 -> {
                 FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
                 VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
@@ -646,7 +681,7 @@ public class CouchbaseWindowContent extends JPanel {
             });
             popup.add(simpleImport);
 
-            JMenuItem simpleExport = new JMenuItem("Simple Export");
+            JBMenuItem simpleExport = new JBMenuItem("Simple Export");
             simpleExport.addActionListener(e12 -> {
                 FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",
                         "Choose where you want to save the file:");

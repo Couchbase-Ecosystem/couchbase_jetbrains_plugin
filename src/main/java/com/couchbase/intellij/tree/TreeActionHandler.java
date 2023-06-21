@@ -5,9 +5,14 @@ import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
+import com.couchbase.intellij.tree.overview.apis.ServerOverview;
+import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import utils.CBConfigUtil;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -15,6 +20,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import java.util.Enumeration;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class TreeActionHandler {
 
@@ -64,7 +71,27 @@ public class TreeActionHandler {
                         });
                     }
                 }
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        ServerOverview overview = CouchbaseRestAPI.getOverview();
+                        ActiveCluster.getInstance().setServices(overview.getNodes().stream()
+                                .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
 
+                        ActiveCluster.getInstance().setVersion(overview.getNodes().get(0).getVersion()
+                                .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
+
+                        if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
+                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin hasn't been fully tested with versions bellow Couchbase 6.6</html>", "Couchbase Plugin Error"));
+                        }
+
+                        if (!CBConfigUtil.hasQueryService(ActiveCluster.getInstance().getServices())) {
+                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>Your cluster doesn't have the Query Service. Some features might not work properly.</html>", "Couchbase Plugin Error"));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Log.error("Could not call the RestAPI to get an overview of the service.", e);
+                    }
+                });
             } catch (Exception e) {
                 SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                         " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
@@ -92,6 +119,7 @@ public class TreeActionHandler {
     public static void disconnectFromCluster(DefaultMutableTreeNode node, ConnectionNodeDescriptor con, Tree tree) {
         node.removeAllChildren();
         ((DefaultTreeModel) tree.getModel()).reload();
+        CompletableFuture.runAsync(() -> DataLoader.cleanCache(ProjectManager.getInstance().getOpenProjects()[0], con.getSavedCluster().getId()));
         if (con.isActive()) {
             con.setActive(false);
             ActiveCluster.getInstance().disconnect();

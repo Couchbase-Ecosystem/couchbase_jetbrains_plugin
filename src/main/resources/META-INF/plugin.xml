@@ -31,6 +31,10 @@
 <!--                class="com.couchbase.intellij.listener.LifecycleListener"-->
 <!--                topic="com.intellij.ide.plugins.DynamicPluginListener" activeInTestMode="true"/>-->
 <!--    </applicationListeners>-->
+<!--    <applicationListeners>-->
+<!--    <listener class="com.couchbase.intellij.listener.MyFileDocumentManagerListener"-->
+<!--              topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>-->
+<!--</applicationListeners>-->
 
     <projectListeners>
         <listener
