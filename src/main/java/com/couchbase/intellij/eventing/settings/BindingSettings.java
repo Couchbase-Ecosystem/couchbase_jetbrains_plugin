@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.DefaultListCellRenderer;
+import javax.swing.Icon;
 import javax.swing.JButton;
 // import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -23,10 +24,13 @@ import javax.swing.JPanel;
 import javax.swing.JSeparator;
 
 import com.couchbase.intellij.eventing.components.CustomComboBox;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.util.IconUtil;
+import com.intellij.util.ui.JBUI;
 
 public class BindingSettings {
 
@@ -78,11 +82,11 @@ public class BindingSettings {
         bindingsPanel.add(plusButton, bindingsPanelGbc);
 
         // Minus button
-        JButton minusButton = new JButton("-");
-        minusButton.addActionListener(e -> removeBindingType());
-        bindingsPanelGbc.gridx = 2;
-        bindingsPanelGbc.gridy = 0;
-        bindingsPanel.add(minusButton, bindingsPanelGbc);
+        // JButton minusButton = new JButton("-");
+        // minusButton.addActionListener(e -> removeBindingType());
+        // bindingsPanelGbc.gridx = 2;
+        // bindingsPanelGbc.gridy = 0;
+        // bindingsPanel.add(minusButton, bindingsPanelGbc);
     }
 
     private void addBindingType() {
@@ -106,8 +110,26 @@ public class BindingSettings {
         bindingsTypeGbc.gridy = 0;
         bindingTypePanel.add(bindingTypeComboBox, bindingsTypeGbc);
 
-        // Create a delete button
-        JButton deleteButton = new JButton("Delete");
+        // Create an ImageIcon from the SVG file
+        // ImageIcon deleteIcon = new
+        // ImageIcon("src/main/resources/assets/icons/delete_button.svg");
+
+        // Create the delete button and set its icon
+
+        // ...
+
+        // Load the SVG icon and scale it to the desired size
+        Icon deleteIcon = IconLoader.findIcon("./assets/icons/delete_button.svg");
+        int iconSize = JBUI.scale(16); // Set the desired icon size
+        deleteIcon = IconUtil.scale(deleteIcon, null, (float) iconSize / deleteIcon.getIconWidth());
+
+        // Create the delete button and set its icon
+        JButton deleteButton = new JButton(deleteIcon);
+
+        // Transform the button from rectangular to square
+        deleteButton.setPreferredSize(new Dimension(20, 20));
+
+        // Create the delete button and set its icon
         deleteButton.addActionListener(e -> {
             // Remove the binding type panel and its associated separator
             JSeparator separator = separatorMap.get(bindingTypePanel);
@@ -499,23 +521,23 @@ public class BindingSettings {
         bindingsPanel.repaint();
     }
 
-    private void removeBindingType() {
-        // Get the number of binding types
-        int bindingTypeLineIndex = bindingsPanel.getComponentCount();
+    // private void removeBindingType() {
+    // // Get the number of binding types
+    // int bindingTypeLineIndex = bindingsPanel.getComponentCount();
 
-        // Check if there are any binding types to remove
-        if (bindingTypeLineIndex >= 2) {
-            // Remove the last horizontal separator
-            bindingsPanel.remove(bindingTypeLineIndex - 1);
+    // // Check if there are any binding types to remove
+    // if (bindingTypeLineIndex >= 2) {
+    // // Remove the last horizontal separator
+    // bindingsPanel.remove(bindingTypeLineIndex - 1);
 
-            // Remove the last binding type aliasPanel
-            bindingsPanel.remove(bindingTypeLineIndex - 2);
+    // // Remove the last binding type aliasPanel
+    // bindingsPanel.remove(bindingTypeLineIndex - 2);
 
-            // Repaint the bindings aliasPanel to show the removed binding type
-            bindingsPanel.revalidate();
-            bindingsPanel.repaint();
-        }
-    }
+    // // Repaint the bindings aliasPanel to show the removed binding type
+    // bindingsPanel.revalidate();
+    // bindingsPanel.repaint();
+    // }
+    // }
 
     private void rebuildBindingsPanel() {
         // Remove all components from the bindings panel except for the first row

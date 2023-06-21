@@ -25,6 +25,7 @@ import javax.swing.JScrollPane;
 // import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -115,6 +116,7 @@ public class FunctionDeploymentSettings extends JFrame {
                 generalSettingsPanel = generalSettings.getPanel();
                 JPanel generalSettingsWrapper = new JPanel(new BorderLayout());
                 generalSettingsWrapper.add(generalSettingsPanel, BorderLayout.NORTH);
+                generalSettingsWrapper.setBorder(new EmptyBorder(10, 10, 10, 10));
                 rightPanel.add(generalSettingsWrapper, "General");
 
                 // Settings panel

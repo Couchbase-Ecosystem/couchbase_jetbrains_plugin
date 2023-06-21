@@ -280,12 +280,13 @@ public class GeneralSettings {
         descriptionTextArea.setLineWrap(true);
         descriptionTextArea.setWrapStyleWord(true);
         descriptionTextArea.setToolTipText("Enter a description for the function (optional).");
-        descriptionTextArea.setPreferredSize(new Dimension(200, 100));
+        descriptionTextArea.setPreferredSize(new Dimension(200, 200));
         descriptionLabel.setLabelFor(descriptionTextArea);
         JBScrollPane descriptionScrollPane = new JBScrollPane(descriptionTextArea);
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 15;
         generalSettingsPanelConstraints.fill = GridBagConstraints.BOTH;
+        generalSettingsPanelConstraints.weighty = 1.0; // Set weighty to a non-zero value
         generalSettingsPanel.add(descriptionScrollPane, generalSettingsPanelConstraints);
 
         // Adding all the event listeners
