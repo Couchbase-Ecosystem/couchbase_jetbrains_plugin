@@ -42,6 +42,7 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import utils.IndexUtils;
+import utils.OSUtil;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -347,14 +348,14 @@ public class DataLoader {
         }
     }
 
-    private static PsiDirectory findOrCreateFolder(Project project, String connection, String bucket, String scope, String collection) {
+    private static PsiDirectory findOrCreateFolder(Project project, String conId, String bucket, String scope, String collection) {
 
         String basePath = project.getBasePath();
         assert basePath != null;
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
         try {
-            String dirPath = ".cbcache" + File.separator + connection + File.separator + bucket + File.separator + scope + File.separator + collection;
+            String dirPath = ".cbcache" + File.separator + (OSUtil.isWindows() ? conId.replace(":", "_") : conId) + File.separator + bucket + File.separator + scope + File.separator + collection;
             VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
             return PsiManager.getInstance(project).findDirectory(directory);
 
@@ -369,6 +370,10 @@ public class DataLoader {
 
         String basePath = project.getBasePath();
         assert basePath != null;
+
+        if (OSUtil.isWindows()) {
+            conId = conId.replace(":", "_");
+        }
 
         try {
             String dirPath = basePath + File.separator + ".cbcache";
