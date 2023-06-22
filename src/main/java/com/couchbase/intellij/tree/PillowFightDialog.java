@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
@@ -25,9 +26,7 @@ import com.intellij.util.ui.JBUI;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -1094,7 +1093,6 @@ public class PillowFightDialog extends DialogWrapper {
 
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField, String batchSizeTextField, String numberItemsTextField, String keyPrefixTextField, String numberThreadsTextField, String percentageTextField, String noPopulation, String populateOnly, String minSizeTextField, String maxSizeTextField, String numberCyclesTextField, String sequential, String startAtTextField, String timings, String expiryTextField, String replicateToTextField, String lockTextField, String json, String noop, String subdoc, String pathcountTextField) throws IOException, InterruptedException {
         Runtime rt = Runtime.getRuntime();
-        System.out.println(noPopulation);
 
         if (selectedPersistToTextField.isEmpty()) {
             selectedPersistToTextField = "";
@@ -1210,7 +1208,7 @@ public class PillowFightDialog extends DialogWrapper {
         }
 
         String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
-        System.out.println(command);
+        //System.out.println(command);
         Process proc = rt.exec(command);
         //System.out.println(proc);
 
@@ -1219,7 +1217,6 @@ public class PillowFightDialog extends DialogWrapper {
     }
 
     public class StopButtonDialog extends JDialog {
-        //TODO: Fix frame sizing of stop button to accomodate full title\
         private JButton stopButton;
         private JTextArea opsPerSecLabel;
 
@@ -1227,13 +1224,21 @@ public class PillowFightDialog extends DialogWrapper {
             super();
             setModal(true);
             setTitle("Stop Pillow Fight");
-            opsPerSecLabel = new JTextArea("OPS/SEC: ");
+            opsPerSecLabel = new JTextArea("OPS/SEC:           ");
             opsPerSecLabel.setEditable(false);
+            opsPerSecLabel.setBorder(new EmptyBorder(0, 100, 0, 100));
             stopButton = new JButton("Stop");
 
-            JPanel panel = new JPanel();
-            panel.add(opsPerSecLabel);
-            panel.add(stopButton);
+            JPanel panel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            panel.add(opsPerSecLabel, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            panel.add(stopButton, gbc);
 
             add(panel);
             pack();
@@ -1242,6 +1247,27 @@ public class PillowFightDialog extends DialogWrapper {
 
             stopButton.addActionListener(e -> {
                 if (proc != null) {
+                    /*
+                    BufferedWriter stdIn = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
+                    String controlC = "\u0003";
+                    try {
+                        stdIn.write(controlC);
+                        stdIn.flush();
+                        stdIn.close();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    */
+                    /*
+                    String controlC = "\u0003";
+                    try {
+                        OutputStream outputStream = proc.getOutputStream();
+                        outputStream.write(controlC.getBytes());
+                        outputStream.flush();
+                    } catch (IOException exception) {
+                        exception.printStackTrace();
+                    }
+                    */
                     proc.destroy();
                 }
                 dispose();
@@ -1259,7 +1285,6 @@ public class PillowFightDialog extends DialogWrapper {
                     System.out.println(e);
                 }
             }).start();
-
         }
     }
 }
