@@ -2,9 +2,7 @@ package utils;
 
 import com.couchbase.intellij.workbench.Log;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,7 +58,7 @@ public class FileUtils {
         String unzipCommand;
 
         if (osName.contains("win")) {
-            unzipCommand = "powershell.exe -nologo -noprofile -command \"Expand-Archive -Path '" + zipFilePath + "' -DestinationPath '" + destDir + "' -Force\"";
+            unzipCommand = "powershell.exe -nologo -noprofile -command \"Expand-Archive -Path \\\"" + zipFilePath + "\\\" -DestinationPath \\\"" + destDir + "\\\" -Force\"";
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
             unzipCommand = "unzip -o -q " + zipFilePath + " -d " + destDir;
         } else {
@@ -70,10 +68,21 @@ public class FileUtils {
         Process process = Runtime.getRuntime().exec(unzipCommand);
 
         try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Log.info(line);
+            }
+
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            while ((line = errorReader.readLine()) != null) {
+                Log.error(line);
+            }
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 throw new IOException("Command exited with code: " + exitCode);
             }
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Command execution was interrupted", e);

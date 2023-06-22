@@ -49,6 +49,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -354,8 +358,14 @@ public class DataLoader {
         assert basePath != null;
         VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
 
+
         try {
-            String dirPath = ".cbcache" + File.separator + (OSUtil.isWindows() ? conId.replace(":", "_") : conId) + File.separator + bucket + File.separator + scope + File.separator + collection;
+            //if it is windows we create a hidden file, if it is linuxs/mac we add the . to the name of the file
+            if (OSUtil.isWindows()) {
+                createHiddenFolder("cbcache");
+            }
+
+            String dirPath = (OSUtil.isWindows() ? "" : ".") + "cbcache" + "/" + (OSUtil.isWindows() ? conId.replace(":", "_") : conId) + "/" + bucket + "/" + scope + "/" + collection;
             VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
             return PsiManager.getInstance(project).findDirectory(directory);
 
@@ -365,6 +375,16 @@ public class DataLoader {
             throw new RuntimeException(e);
         }
     }
+
+    private static void createHiddenFolder(String dir) throws IOException {
+        Path path = Paths.get(dir);
+        if (!Files.exists(path)) {
+            Files.createDirectories(path);
+            DosFileAttributeView dosAttributes = Files.getFileAttributeView(path, DosFileAttributeView.class);
+            dosAttributes.setHidden(true);
+        }
+    }
+
 
     public static void cleanCache(Project project, String conId) {
 
@@ -376,7 +396,7 @@ public class DataLoader {
         }
 
         try {
-            String dirPath = basePath + File.separator + ".cbcache";
+            String dirPath = basePath + File.separator + (OSUtil.isWindows() ? "cbcache" : ".cbcache");
 
             if (conId != null) {
                 dirPath += File.separator + conId;
