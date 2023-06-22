@@ -178,6 +178,10 @@ public class CBImport {
 
             byte[] decodedBytes = Base64.getDecoder().decode(entry.getValue());
             String decodedString = new String(decodedBytes);
+            //adjustment if the primary index is unnamed.
+            if (decodedString.contains("#primary") || decodedString.contains("#PRIMARY")) {
+                decodedString = decodedString.replace("`#primary`", "").replace("`#PRIMARY`", "");
+            }
             String[] idxArray = decodedString.split("#");
 
             for (String s : idxArray) {
@@ -202,6 +206,10 @@ public class CBImport {
         boolean replaceCol = !originalCol.equals(newCol);
         byte[] decodedBytes = Base64.getDecoder().decode(indexes);
         String decodedString = new String(decodedBytes);
+        //adjustment if the primary index is unnamed.
+        if (decodedString.contains("#primary") || decodedString.contains("#PRIMARY")) {
+            decodedString = decodedString.replace("`#primary`", "").replace("`#PRIMARY`", "");
+        }
         String[] idxArray = decodedString.split("#");
 
         for (String s : idxArray) {

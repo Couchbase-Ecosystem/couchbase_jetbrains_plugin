@@ -12,6 +12,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.fileEditor.*;
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil;
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider;
@@ -100,6 +101,12 @@ public class CustomSqlFileEditor implements FileEditor {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 String editorText = queryEditor.getDocument().getText();
+                SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
+
+                if (selectionModel.hasSelection()) {
+                    editorText = selectionModel.getSelectedText();
+                }
+
                 if (QueryExecutor.executeQuery(NORMAL, editorText, selectedBucketContext, selectedScopeContext,
                         currentHistoryIndex, project)) {
                     int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
