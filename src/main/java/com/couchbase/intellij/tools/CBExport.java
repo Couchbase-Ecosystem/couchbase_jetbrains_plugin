@@ -22,6 +22,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static utils.ProcessUtils.printOutput;
+
 public class CBExport {
 
     public static void simpleCollectionExport(String bucket, String scope, String collection, String filePath, Project project) {
@@ -56,13 +58,14 @@ public class CBExport {
                             "--scope-field", "cbms", "--collection-field", "cbmc", "--include-key",
                             "cbmid", "-f", "list", "-o", filePath, "-t", "4");
                     Process process = processBuilder.start();
+                    printOutput(process, "Output from cbexport:");
 
                     int exitCode = process.waitFor();
                     if (exitCode != 0) {
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("The error " + exitCode + " occurred while trying to export the data", "Simple Export Error"));
                     } else {
 
-                        String metadata = "//type:simpleimport;scope:" + scope + ";col:" + collection;
+                        String metadata = "//type:simpleimport;bucket:" + bucket + ";scope:" + scope + ";col:" + collection;
                         if (includeIndexes) {
                             metadata += ";idx:" + collection + "|" + getEncodedIndexes(indexes);
                         }
@@ -116,6 +119,7 @@ public class CBExport {
                             "--scope-field", "cbms", "--collection-field", "cbmc", "--include-key",
                             "cbmid", "-f", "list", "-o", filePath, "-t", "4");
                     Process process = processBuilder.start();
+                    printOutput(process, "Output from cbexport:");
 
                     int exitCode = process.waitFor();
                     if (exitCode != 0) {
@@ -133,7 +137,7 @@ public class CBExport {
                             indexes += String.join("#", encodedIndexes);
                         }
 
-                        String metadata = "//type:simpleimport;scope:" + scope + ";col:" + collections.stream()
+                        String metadata = "//type:simpleimport;bucket:" + bucket + ";scope:" + scope + ";col:" + collections.stream()
                                 .map(CollectionSpec::name).collect(Collectors.joining(",")) + indexes;
                         Files.write(Paths.get(filePath), (System.lineSeparator() + metadata).getBytes(), StandardOpenOption.APPEND);
 

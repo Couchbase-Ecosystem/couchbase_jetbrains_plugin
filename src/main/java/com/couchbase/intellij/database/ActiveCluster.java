@@ -45,17 +45,26 @@ public class ActiveCluster {
             disconnect();
         }
 
-        String password = DataLoader.getClusterPassword(savedCluster);
-        Cluster cluster = Cluster.connect(savedCluster.getUrl(),
-                ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
-                    // env.applyProfile("wan-development");
-                }));
-        cluster.waitUntilReady(Duration.ofSeconds(5));
-        this.cluster = cluster;
-        this.savedCluster = savedCluster;
-        this.password = password;
-        if (savedCluster.getColor() != null) {
-            this.color = Color.decode(savedCluster.getColor());
+        Cluster cluster = null;
+
+        try {
+            String password = DataLoader.getClusterPassword(savedCluster);
+            cluster = Cluster.connect(savedCluster.getUrl(),
+                    ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
+                        // env.applyProfile("wan-development");
+                    }));
+            cluster.waitUntilReady(Duration.ofSeconds(5));
+            this.cluster = cluster;
+            this.savedCluster = savedCluster;
+            this.password = password;
+            if (savedCluster.getColor() != null) {
+                this.color = Color.decode(savedCluster.getColor());
+            }
+        } catch (Exception e) {
+            if (cluster != null) {
+                cluster.disconnect();
+            }
+            throw e;
         }
     }
 

@@ -17,6 +17,8 @@ import utils.FileUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static utils.ProcessUtils.printOutput;
+
 public class CBImport {
 
     public static void simpleCollectionImport(String bucket, String scope, String collection, String filePath, Project project) {
@@ -65,7 +67,7 @@ public class CBImport {
                         ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + "." + collection, "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
 
                         if (createIndexes) {
-                            createIndexes(bucket, scope, originalCol, collection, meta.getIndexes().get(originalCol));
+                            createIndexes(meta, bucket, scope, originalCol, collection);
                         }
                         executeProcess(processBuilder);
                     } catch (Exception e) {
@@ -96,6 +98,12 @@ public class CBImport {
             ExportedMetadata meta = partLastLine(lastLine);
             Set<String> datasetCols = new HashSet<>(meta.getCollections());
             Set<String> currentCollections = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(CollectionSpec::name).collect(Collectors.toSet());
+
+            if (datasetCols.contains("_default") && !currentCollections.contains("_default")) {
+                Messages.showErrorDialog("You can't import a dataset that contains the _default collection into another one that doesn't contains it using Simple Export. Please use the Import/Export instead.", "Simple Import Error");
+                return;
+            }
+
             datasetCols.removeAll(currentCollections);
 
             boolean skipCols = false;
@@ -135,10 +143,10 @@ public class CBImport {
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(true);
                     try {
-                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", "%cbms%.%cbmc%", "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
+                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + ".%cbmc%", "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
 
                         if (createIndexes) {
-                            createIndexes(bucket, meta.getScope(), scope, meta.getIndexes(), skippedCollections);
+                            createIndexes(meta, bucket, scope, skippedCollections);
                         }
                         executeProcess(processBuilder);
 
@@ -168,42 +176,20 @@ public class CBImport {
         return idx;
     }
 
-    private static void createIndexes(String bucket, String originalScope, String newScope, Map<String, String> indexes, Set<String> skipCols) {
-        boolean replaceScope = !originalScope.equals(newScope);
-        for (Map.Entry<String, String> entry : indexes.entrySet()) {
+    private static void createIndexes(ExportedMetadata meta, String bucket, String newScope, Set<String> skipCols) {
+        for (Map.Entry<String, String> entry : meta.getIndexes().entrySet()) {
 
             if (skipCols.contains(entry.getKey())) {
                 continue;
             }
-
-            byte[] decodedBytes = Base64.getDecoder().decode(entry.getValue());
-            String decodedString = new String(decodedBytes);
-            //adjustment if the primary index is unnamed.
-            if (decodedString.contains("#primary") || decodedString.contains("#PRIMARY")) {
-                decodedString = decodedString.replace("`#primary`", "").replace("`#PRIMARY`", "");
-            }
-            String[] idxArray = decodedString.split("#");
-
-            for (String s : idxArray) {
-                String query = s;
-                if (replaceScope) {
-                    query = query.replace("`" + originalScope + "`", "`" + newScope + "`");
-                }
-                try {
-                    ActiveCluster.getInstance().get().bucket(bucket).scope(newScope).query(query);
-                    Log.info("Index " + query + " created successfully.");
-                } catch (IndexExistsException ex) {
-                    Log.info("Index " + query + " already exists.");
-                } catch (Exception e) {
-                    Log.error("Could not create index " + query, e);
-                }
-            }
+            createIndexes(meta, bucket, newScope, entry.getKey(), entry.getKey());
         }
     }
 
-    private static void createIndexes(String bucket, String scope, String originalCol, String newCol, String indexes) {
+    private static void createIndexes(ExportedMetadata meta, String bucket, String scope, String originalCol, String newCol) {
 
-        boolean replaceCol = !originalCol.equals(newCol);
+        String indexes = meta.getIndexes().get(originalCol);
+
         byte[] decodedBytes = Base64.getDecoder().decode(indexes);
         String decodedString = new String(decodedBytes);
         //adjustment if the primary index is unnamed.
@@ -212,18 +198,25 @@ public class CBImport {
         }
         String[] idxArray = decodedString.split("#");
 
+        String colPath = "`" + meta.bucket + "`.`" + meta.scope + "`.`" + originalCol + "`";
+        String bucketPath = "`" + meta.bucket + "`";
+
         for (String s : idxArray) {
-            String query = s;
-            if (replaceCol) {
-                query = query.replace("`" + originalCol + "`", "`" + newCol + "`");
+            if (s.contains(colPath)) {
+                s = s.replace(colPath, "`" + bucket + "`.`" + scope + "`.`" + newCol + "`");
             }
+
+            if (s.contains(bucketPath)) {
+                s = s.replace(bucketPath, "`" + bucket + "`.`" + scope + "`.`" + newCol + "`");
+            }
+
             try {
-                ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(query);
-                Log.info("Index " + query + " created successfully.");
+                ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(s);
+                Log.info("Index " + s + " created successfully.");
             } catch (IndexExistsException ex) {
-                Log.info("Index " + query + " already exists.");
+                Log.info("Index " + s + " already exists.");
             } catch (Exception e) {
-                Log.error("Could not create index " + query, e);
+                Log.error("Could not create index " + s, e);
             }
         }
 
@@ -231,6 +224,8 @@ public class CBImport {
 
     private static void executeProcess(ProcessBuilder processBuilder) throws Exception {
         Process process = processBuilder.start();
+        printOutput(process, "Output from cbimport:");
+
         int exitCode = process.waitFor();
         if (exitCode != 0) {
             ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("The error '" + exitCode + "' occurred while trying to import the dataset", "Simple Import Error"));
@@ -240,16 +235,18 @@ public class CBImport {
         }
     }
 
-
     private static ExportedMetadata partLastLine(String lastLine) {
         String[] meta = lastLine.split(";");
         List<String> metaCol = new ArrayList<>();
         String metaScope = null;
+        String metaBucket = null;
         Map<String, String> indexes = new HashMap<>();
 
         for (String m : meta) {
             if (m.startsWith("scope:")) {
                 metaScope = m.split(":")[1];
+            } else if (m.startsWith("bucket:")) {
+                metaBucket = m.split(":")[1];
             } else if (m.startsWith("col:")) {
                 String colSplit = m.split(":")[1];
                 if (colSplit.contains(",")) {
@@ -274,15 +271,19 @@ public class CBImport {
             }
         }
 
-        return new ExportedMetadata(metaScope, metaCol, indexes);
+        return new ExportedMetadata(metaBucket, metaScope, metaCol, indexes);
     }
 
+
     static class ExportedMetadata {
+
+        private final String bucket;
         private final String scope;
         private final List<String> collections;
         private final Map<String, String> indexes;
 
-        public ExportedMetadata(String scope, List<String> collections, Map<String, String> indexes) {
+        public ExportedMetadata(String bucket, String scope, List<String> collections, Map<String, String> indexes) {
+            this.bucket = bucket;
             this.scope = scope;
             this.collections = collections;
             this.indexes = indexes;
@@ -298,6 +299,10 @@ public class CBImport {
 
         public Map<String, String> getIndexes() {
             return indexes;
+        }
+
+        public String getBucket() {
+            return bucket;
         }
     }
 }

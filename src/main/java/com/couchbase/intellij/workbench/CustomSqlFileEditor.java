@@ -126,6 +126,12 @@ public class CustomSqlFileEditor implements FileEditor {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 String editorText = queryEditor.getDocument().getText();
+                SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
+
+                if (selectionModel.hasSelection()) {
+                    editorText = selectionModel.getSelectedText();
+                }
+
                 QueryExecutor.executeQuery(ADVISE, editorText, selectedBucketContext, selectedScopeContext,
                         -1, project);
             }
@@ -136,6 +142,12 @@ public class CustomSqlFileEditor implements FileEditor {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 String editorText = queryEditor.getDocument().getText();
+                SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
+
+                if (selectionModel.hasSelection()) {
+                    editorText = selectionModel.getSelectedText();
+                }
+                
                 QueryExecutor.executeQuery(EXPLAIN, editorText, selectedBucketContext, selectedScopeContext,
                         -1, project);
             }
