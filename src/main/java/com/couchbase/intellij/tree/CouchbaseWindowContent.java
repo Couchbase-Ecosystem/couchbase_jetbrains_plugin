@@ -93,17 +93,17 @@ public class CouchbaseWindowContent extends JPanel {
             }
         };
 
-        newWorkbench.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/new_query.svg", CouchbaseWindowContent.class, false, true));
+        newWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_query.svg", CouchbaseWindowContent.class));
 
         AnAction addConnectionAction = new AnAction("Add New Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Add connection action code here
-                DatabaseConnectionDialog dialog = new DatabaseConnectionDialog(tree);
+                DatabaseConnectionDialog dialog = new DatabaseConnectionDialog(project, tree);
                 dialog.show();
             }
         };
-        addConnectionAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/new_database.svg", CouchbaseWindowContent.class, false, true));
+        addConnectionAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_database.svg", CouchbaseWindowContent.class));
 
         AnAction cbshellAction = new AnAction("Open New CB Shell") {
             @Override
@@ -116,7 +116,7 @@ public class CouchbaseWindowContent extends JPanel {
                 }
             }
         };
-        cbshellAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/cbshell.svg", CouchbaseWindowContent.class, false, true));
+        cbshellAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/cbshell.svg", CouchbaseWindowContent.class));
 
         AnAction ellipsisAction = new AnAction("More Options") {
             @Override
@@ -124,24 +124,19 @@ public class CouchbaseWindowContent extends JPanel {
                 // Open menu code here
                 JBPopupMenu menu = new JBPopupMenu();
                 JBMenuItem item1 = new JBMenuItem("New Project from Template");
-                JBMenuItem item2 = new JBMenuItem("Test 2");
                 menu.add(item1);
-                menu.add(item2);
 
                 item1.addActionListener(e1 -> {
                     CardDialog dialog = new CardDialog(project);
                     dialog.show();
                 });
 
-                item2.addActionListener(e2 -> {
-
-                });
 
                 Component component = e.getInputEvent().getComponent();
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
             }
         };
-        ellipsisAction.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/ellipsis_horizontal.svg", CouchbaseWindowContent.class, false, true));
+        ellipsisAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/ellipsis_horizontal.svg", CouchbaseWindowContent.class));
         ellipsisAction.getTemplatePresentation().setDescription("More options");
 
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
@@ -349,7 +344,7 @@ public class CouchbaseWindowContent extends JPanel {
         } else {
             JBMenuItem menuItem = new JBMenuItem("Connect");
             popup.add(menuItem);
-            menuItem.addActionListener(e12 -> TreeActionHandler.connectToCluster(userObject.getSavedCluster(), tree, toolBarPanel));
+            menuItem.addActionListener(e12 -> TreeActionHandler.connectToCluster(project, userObject.getSavedCluster(), tree, toolBarPanel));
         }
 
         popup.addSeparator();
@@ -653,7 +648,7 @@ public class CouchbaseWindowContent extends JPanel {
                     if (descriptor.getQueryFilter() == null || descriptor.getQueryFilter().trim().isEmpty()) {
                         setIcon(descriptor.getIcon());
                     } else {
-                        setIcon(IconLoader.findIcon("./assets/icons/filter.svg"));
+                        setIcon(IconLoader.getIcon("/assets/icons/filter.svg", CouchbaseWindowContent.class));
                     }
                 } else if (userObject instanceof NodeDescriptor) {
                     NodeDescriptor descriptor = (NodeDescriptor) userObject;

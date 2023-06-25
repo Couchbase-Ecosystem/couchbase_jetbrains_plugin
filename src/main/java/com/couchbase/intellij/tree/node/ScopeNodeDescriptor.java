@@ -8,8 +8,7 @@ public class ScopeNodeDescriptor extends NodeDescriptor {
     private String bucket;
 
     public ScopeNodeDescriptor(String name, String connectionId, String bucket) {
-        super(name, IconLoader.findIcon("./assets/icons/collections.svg", ScopeNodeDescriptor.class,
-                false, true));
+        super(name, IconLoader.getIcon("/assets/icons/collections.svg", ScopeNodeDescriptor.class));
         this.connectionId = connectionId;
         this.bucket = bucket;
     }

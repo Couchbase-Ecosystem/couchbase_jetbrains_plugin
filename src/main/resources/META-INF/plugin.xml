@@ -79,6 +79,7 @@
         <completion.contributor language="sqlpp"
                                 implementationClass="org.intellij.sdk.language.SqlppCompletionContributor"/>
 
+
     </extensions>
 
 

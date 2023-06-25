@@ -124,7 +124,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
-        Icon executeIcon = IconLoader.findIcon("./assets/icons/export.svg");
+        Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
         executeGroup.add(new AnAction("Export", "Export", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -193,7 +193,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             }
         };
         clearAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/clear.svg"));
+                IconLoader.getIcon("/assets/icons/clear.svg", QueryResultToolWindowFactory.class));
         actionGroup.add(clearAction);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
@@ -280,10 +280,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
             cachedResults = convertedResults;
 
-            statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(convertedResults)));
 
-            htmlPanel.loadHTML(explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+            String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+            htmlPanel.loadHTML(content);
 
             if (isMutation) {
                 queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
@@ -303,7 +304,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         } else {
             cachedResults = null;
-            statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
         }
     }

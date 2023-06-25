@@ -9,7 +9,7 @@ public class ConnectionNodeDescriptor extends NodeDescriptor {
     private boolean isActive;
 
     public ConnectionNodeDescriptor(String name, SavedCluster savedCluster, boolean isActive) {
-        super(name, isActive ? IconLoader.findIcon("./assets/icons/couchbase-active.svg") : IconLoader.findIcon("./assets/icons/couchbase.svg"));
+        super(name, isActive ? IconLoader.getIcon("/assets/icons/couchbase-active.svg", ConnectionNodeDescriptor.class) : IconLoader.getIcon("/assets/icons/couchbase.svg", ConnectionNodeDescriptor.class));
         this.savedCluster = savedCluster;
         this.isActive = isActive;
     }
@@ -20,9 +20,9 @@ public class ConnectionNodeDescriptor extends NodeDescriptor {
 
     public void setActive(boolean active) {
         if (active) {
-            setIcon(IconLoader.findIcon("./assets/icons/couchbase-active.svg"));
+            setIcon(IconLoader.getIcon("/assets/icons/couchbase-active.svg", ConnectionNodeDescriptor.class));
         } else {
-            setIcon(IconLoader.findIcon("./assets/icons/couchbase.svg"));
+            setIcon(IconLoader.getIcon("/assets/icons/couchbase.svg", ConnectionNodeDescriptor.class));
         }
         isActive = active;
     }
