@@ -34,7 +34,6 @@ import com.intellij.ui.ColorChooser;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
-import utils.OSUtil;
 import utils.TimeUtils;
 
 import javax.swing.*;
@@ -145,9 +144,10 @@ public class CouchbaseWindowContent extends JPanel {
         leftActionGroup.add(newWorkbench);
         leftActionGroup.addSeparator();
 
-        if (OSUtil.isMacOS()) {
-            leftActionGroup.add(cbshellAction);
-        }
+// Disabling CBSHELL for now
+//        if (OSUtil.isMacOS()) {
+//            leftActionGroup.add(cbshellAction);
+//        }
 
         DefaultActionGroup rightActionGroup = new DefaultActionGroup();
         rightActionGroup.add(ellipsisAction);

@@ -8,13 +8,13 @@
     <name>Couchbase</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="support@couchbase.com" url="https://www.couchbase.com">Couchbase</vendor>
+    <vendor email="devadvocates@couchbase.com" url="https://www.couchbase.com">Couchbase</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description>Couchbase is an award-winning distributed NoSQL cloud database that delivers unmatched versatility,
-        performance, scalability
+        performance and scalability.
     </description>
 
     <!-- Product and plugin compatibility requirements.
@@ -54,7 +54,7 @@
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
 
-        <toolWindow id="Couchbase Output" anchor="bottom"
+        <toolWindow id="Couchbase Output" anchor="bottom"  icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.workbench.QueryResultToolWindowFactory"/>
 
 

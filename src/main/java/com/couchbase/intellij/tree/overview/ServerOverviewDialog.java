@@ -30,7 +30,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
     public ServerOverviewDialog(boolean canBeParent) {
         super(canBeParent);
-        getPeer().getWindow().setMinimumSize(new Dimension(820, 800));
+        getPeer().getWindow().setMinimumSize(new Dimension(840, 800));
         init();
     }
 
@@ -132,7 +132,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             panel.add(getSeparator("Quota"));
 
             String[] ramKeys = {"RAM", "Raw RAM"};
-            String[] ramValues = {mbToGb(btOverview.getQuota().getRam()), mbToGb(btOverview.getQuota().getRawRAM())};
+            String[] ramValues = {fmtByte(btOverview.getQuota().getRam()), fmtByte(btOverview.getQuota().getRawRAM())};
             JPanel ramPanel = createKeyValuePanel(ramKeys, ramValues, 2);
             panel.add(ramPanel);
 
@@ -140,7 +140,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             String[] statsKeys = {"Ops per Sec", "Disk Fetches", "Item Count", "Data Used", "Disk Used", "Memory Used", "# Active vBucket Non Residents"};
             String[] statsValues = {String.format("%.3f", btOverview.getBasicStats().getOpsPerSec()),
                     String.valueOf(btOverview.getBasicStats().getDiskFetches()),
-                    String.valueOf(btOverview.getBasicStats().getItemCount()),
+                    formatNumber(btOverview.getBasicStats().getItemCount()),
                     fmtByte(btOverview.getBasicStats().getDataUsed()),
                     fmtByte(btOverview.getBasicStats().getDiskUsed()),
                     fmtByte(btOverview.getBasicStats().getMemUsed()),
@@ -251,8 +251,8 @@ public class ServerOverviewDialog extends DialogWrapper {
                 fmtByte(node.getInterestingStats().getCouch_spatial_disk_size()),
                 fmtByte(node.getInterestingStats().getCouch_views_data_size()),
                 fmtByte(node.getInterestingStats().getCouch_views_actual_disk_size()),
-                String.valueOf(node.getInterestingStats().getCurr_items()),
-                String.valueOf(node.getInterestingStats().getCurr_items_tot()),
+                formatNumber(node.getInterestingStats().getCurr_items()),
+                formatNumber(node.getInterestingStats().getCurr_items_tot()),
                 String.valueOf(node.getInterestingStats().getEp_bg_fetched()),
                 String.format("%.3f", node.getInterestingStats().getGet_hits()),
                 fmtByte(node.getInterestingStats().getIndex_data_size()),
@@ -273,7 +273,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
 
     private String formatServices(String services) {
-        return services.replace("eventing", "Eventing").replace("fts", "Search").replace("index", "Index").replace("kv", "Data").replace("n1ql", "Query");
+        return services.replace("backup", "Backup").replace("eventing", "Eventing").replace("fts", "Search").replace("index", "Index").replace("kv", "Data").replace("n1ql", "Query");
     }
 
 

@@ -26,10 +26,9 @@ import java.util.Optional;
 
 public class QueryExecutor {
 
+    private static final DecimalFormat df = new DecimalFormat("#.00");
     private static ToolWindow toolWindow;
     private static QueryResultToolWindowFactory resultWindow;
-
-    private static final DecimalFormat df = new DecimalFormat("#.00");
 
     private static QueryResultToolWindowFactory getOutputWindow(Project project) {
         if (toolWindow == null) {
@@ -74,7 +73,7 @@ public class QueryExecutor {
                     result = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(adjustedQuery,
                             QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
                 } else {
-                    result = ActiveCluster.getInstance().get().query(adjustedQuery, QueryOptions.queryOptions().metrics(true));
+                    result = ActiveCluster.getInstance().get().query(adjustedQuery, QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
                 }
                 long end = System.currentTimeMillis();
 

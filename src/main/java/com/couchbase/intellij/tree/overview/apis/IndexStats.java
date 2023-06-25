@@ -300,6 +300,45 @@ public class IndexStats {
     public void setDocid_count(String docid_count) {
         this.docid_count = docid_count;
     }
+
+    @Override
+    public String toString() {
+        return "IndexStats{" +
+                "indexer_state='" + indexer_state + '\'' +
+                ", memory_quota=" + memory_quota +
+                ", memory_total_storage=" + memory_total_storage +
+                ", memory_used=" + memory_used +
+                ", total_indexer_gc_pause_ns=" + total_indexer_gc_pause_ns +
+                ", avg_drain_rate='" + avg_drain_rate + '\'' +
+                ", avg_item_size='" + avg_item_size + '\'' +
+                ", avg_scan_latency='" + avg_scan_latency + '\'' +
+                ", cache_hit_percent='" + cache_hit_percent + '\'' +
+                ", cache_hits='" + cache_hits + '\'' +
+                ", cache_misses='" + cache_misses + '\'' +
+                ", data_size=" + data_size +
+                ", disk_size=" + disk_size +
+                ", frag_percent=" + frag_percent +
+                ", initial_build_progress='" + initial_build_progress + '\'' +
+                ", items_count='" + items_count + '\'' +
+                ", last_known_scan_time='" + last_known_scan_time + '\'' +
+                ", num_docs_indexed='" + num_docs_indexed + '\'' +
+                ", num_docs_pending='" + num_docs_pending + '\'' +
+                ", num_docs_queued='" + num_docs_queued + '\'' +
+                ", num_items_flushed='" + num_items_flushed + '\'' +
+                ", num_pending_requests='" + num_pending_requests + '\'' +
+                ", num_requests='" + num_requests + '\'' +
+                ", num_rows_returned='" + num_rows_returned + '\'' +
+                ", num_scan_errors='" + num_scan_errors + '\'' +
+                ", num_scan_timeouts='" + num_scan_timeouts + '\'' +
+                ", recs_in_mem='" + recs_in_mem + '\'' +
+                ", recs_on_disk='" + recs_on_disk + '\'' +
+                ", resident_percent=" + resident_percent +
+                ", scan_bytes_read=" + scan_bytes_read +
+                ", total_scan_duration='" + total_scan_duration + '\'' +
+                ", avg_array_length='" + avg_array_length + '\'' +
+                ", docid_count='" + docid_count + '\'' +
+                '}';
+    }
 }
 
 

@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.overview.apis;
 
 import com.couchbase.client.core.deps.com.google.common.reflect.TypeToken;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.workbench.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -35,6 +36,8 @@ public class CouchbaseRestAPI {
 
         List<String> calls = callAllEndpoints((ActiveCluster.getInstance().isSSLEnabled() ? "19102" : "9102") + "/api/v1/stats/" + bucket + "." + scope + "." + collection, ActiveCluster.getInstance().getClusterURL(),
                 ActiveCluster.getInstance().isSSLEnabled(), ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword());
+
+        Log.debug("Endpoint results " + calls.size());
         Gson gson = new GsonBuilder().create();
 
         Map<String, IndexStats> result = new HashMap<>();
@@ -47,7 +50,10 @@ public class CouchbaseRestAPI {
                 for (Map.Entry<String, IndexStats> entry : map.entrySet()) {
                     //the index might contain replicas which will look like "travel-sample:def_sourceairport (replica 1)"
                     if (key.equals(entry.getKey()) || entry.getKey().contains(key + " ")) {
+                        Log.debug(entry.getKey() + ":" + entry.getValue());
                         result.put(entry.getKey(), entry.getValue());
+                    } else {
+                        Log.debug("Excluding:" + entry.getKey());
                     }
                 }
             }
@@ -79,6 +85,7 @@ public class CouchbaseRestAPI {
 
     private static List<String> callAllEndpoints(String endpoint, String cbURL, boolean isSSL, String username, String password) throws Exception {
         List<String> servers = NSLookup.getServerURL(cbURL);
+        Log.debug("Servers Found:" + servers.toString());
         List<CompletableFuture<String>> futureList = servers.parallelStream()
                 .map(key -> CompletableFuture.supplyAsync(() -> {
                     try {
