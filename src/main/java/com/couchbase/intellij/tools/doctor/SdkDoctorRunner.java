@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tools.doctor;
 
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.workbench.Log;
 
 import java.io.*;
 
@@ -19,7 +20,12 @@ public class SdkDoctorRunner {
             sdkDoctorExecutable = "sdk-doctor-linux";
         }
 
-        String temporaryFilePath = System.getProperty("java.io.tmpdir") + File.separator + sdkDoctorExecutable;
+        String temporaryFilePath = System.getProperty("java.io.tmpdir");
+        if (temporaryFilePath.endsWith(File.separator)) {
+            temporaryFilePath += sdkDoctorExecutable;
+        } else {
+            temporaryFilePath += File.separator + sdkDoctorExecutable;
+        }
         String localPath = "/tools/sdkdoctor/" + sdkDoctorExecutable;
         try (InputStream inputStream = SdkDoctorRunner.class.getResourceAsStream(localPath);
              FileOutputStream outputStream = new FileOutputStream(temporaryFilePath)) {
@@ -32,28 +38,33 @@ public class SdkDoctorRunner {
             File tempFile = new File(temporaryFilePath);
             tempFile.setExecutable(true);
 
-            // Step 4: Execute the temporary file
-            ProcessBuilder processBuilder = new ProcessBuilder(temporaryFilePath, "diagnose", DataLoader.adjustClusterProtocol(host, ssl)+"/"+bucket, "-u", username, "-p", password);
+        } catch (Exception e) {
+            Log.error("Error while copying SDK Doctor", e);
+            e.printStackTrace();
+        }
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(temporaryFilePath, "diagnose", DataLoader.adjustClusterProtocol(host, ssl) + "/" + bucket, "-u", username, "-p", password);
             processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
 
-            // Read the output from the process
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
-                // Process each line of output
-                lambda.processLine(line);
+                Log.debug(line);
             }
 
-            // Wait for the process to finish and get the exit value
             int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                Log.debug("Exit value: " + exitCode);
+            }
 
-            // Print the exit value
-            System.out.println("Exit value: " + exitCode);
 
-            // Step 5: Clean up the temporary file
+            File tempFile = new File(temporaryFilePath);
             tempFile.delete();
+
         } catch (Exception e) {
+            Log.error("Error while running the SDK Doctor", e);
             e.printStackTrace();
         }
 
