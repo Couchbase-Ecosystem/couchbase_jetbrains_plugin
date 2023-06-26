@@ -83,7 +83,7 @@ public class TreeActionHandler {
                                 .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
 
                         if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin hasn't been fully tested with versions bellow Couchbase 6.6</html>", "Couchbase Plugin Error"));
+                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
                         }
 
                         if (!CBConfigUtil.hasQueryService(ActiveCluster.getInstance().getServices())) {
