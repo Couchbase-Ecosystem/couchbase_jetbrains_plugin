@@ -5,7 +5,7 @@ import java.util.List;
 public class CBConfigUtil {
 
     public static boolean isSupported(String specifiedVersion) {
-        String comparisonVersion = "6.6";
+        String comparisonVersion = "7.0";
         String[] specifiedSegments = specifiedVersion.split("\\.");
         String[] comparisonSegments = comparisonVersion.split("\\.");
 
