@@ -51,7 +51,7 @@ public class SdkDoctorRunner {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
-                Log.debug(line);
+                lambda.processLine(line);
             }
 
             int exitCode = process.waitFor();
