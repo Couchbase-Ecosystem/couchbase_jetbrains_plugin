@@ -58,6 +58,7 @@ public class CouchbaseWindowContent extends JPanel {
     private static Project project;
 
     private static JPanel toolBarPanel;
+    private static int workbenchCounter = 0;
 
     public CouchbaseWindowContent(Project project) {
         CouchbaseWindowContent.project = project;
@@ -78,8 +79,8 @@ public class CouchbaseWindowContent extends JPanel {
                 ApplicationManager.getApplication().runWriteAction(() -> {
                     try {
                         Project project = e.getProject();
-
-                        String fileName = "virtual.sqlpp";
+                        workbenchCounter++;
+                        String fileName = "workbench" + workbenchCounter + ".sqlpp";
                         VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), "");
                         // Open the file in the editor
                         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
