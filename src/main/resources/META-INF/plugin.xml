@@ -13,8 +13,17 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description>Couchbase is an award-winning distributed NoSQL cloud database that delivers unmatched versatility,
-        performance and scalability.
+    <description><![CDATA[
+            Couchbase is an award-winning distributed NoSQL cloud database that delivers unmatched versatility, performance, scalability, and financial value for all of your cloud, mobile, on-premises, hybrid, distributed cloud, and edge computing applications.<br>
+            The plugin provides integrated support for Couchbase within the IntelliJ IDEA, making it easier to interact with your Couchbase databases directly from your development environment.<br>
+            <ul>
+              <li><strong>Connection Management:</strong> Easily connect to your local or remote Couchbase clusters and manage your connections within the IntelliJ IDEA.</li>
+              <li><strong>Data Manipulation:</strong> View, add, update, and delete documents in your Couchbase buckets directly from IntelliJ.</li>
+              <li><strong>SQL++ Support:</strong> Write and execute SQL++ queries from within IntelliJ. The plugin includes syntax highlighting, error checking, and auto-completion features for N1QL, making it easier to write and debug your queries.</li>
+            </ul>
+            For more information visit the
+            <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
+            ]]>
     </description>
 
     <!-- Product and plugin compatibility requirements.
