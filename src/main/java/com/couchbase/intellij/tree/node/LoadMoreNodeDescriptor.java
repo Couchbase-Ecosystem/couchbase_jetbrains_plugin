@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree.node;
 
-import com.couchbase.intellij.tree.NodeDescriptor;
 import com.intellij.openapi.util.IconLoader;
 
 public class LoadMoreNodeDescriptor extends NodeDescriptor {
@@ -11,7 +10,7 @@ public class LoadMoreNodeDescriptor extends NodeDescriptor {
     private int newOffset;
 
     public LoadMoreNodeDescriptor(String bucket, String scope, String collection, int newOffset) {
-        super("Load More", IconLoader.findIcon("./assets/icons/double-chevron-down.svg"));
+        super("Load More", IconLoader.getIcon("/assets/icons/double-chevron-down.svg", LoadMoreNodeDescriptor.class));
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;

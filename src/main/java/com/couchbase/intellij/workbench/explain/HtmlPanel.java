@@ -8,10 +8,11 @@ import javax.swing.*;
 import java.awt.*;
 
 public class HtmlPanel extends JPanel {
-    private JBCefBrowser jbCefBrowser;
+    private final JBCefBrowser jbCefBrowser;
 
     public HtmlPanel() {
         super(new BorderLayout());
+        setBackground(Color.decode("#3c3f41"));
         JBCefClient jbCefClient = JBCefApp.getInstance().createClient();
         jbCefBrowser = new JBCefBrowser(jbCefClient, null);
         add(jbCefBrowser.getComponent(), BorderLayout.CENTER);

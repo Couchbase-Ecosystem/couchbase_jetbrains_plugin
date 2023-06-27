@@ -40,3 +40,5 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+### Couchbase Plugin ###
+.cbcache/

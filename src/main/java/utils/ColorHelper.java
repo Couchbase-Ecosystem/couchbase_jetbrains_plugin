@@ -1,4 +1,4 @@
-package com.couchbase.intellij.helpers;
+package utils;
 
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.colors.EditorColorsManager;

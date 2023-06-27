@@ -1,4 +1,4 @@
-package com.couchbase.intellij.helpers;
+package utils;
 
 import javax.swing.*;
 import java.net.URL;

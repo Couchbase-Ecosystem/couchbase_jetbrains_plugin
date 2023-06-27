@@ -1,6 +1,6 @@
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.8.0"
+    id("org.jetbrains.intellij") version "1.13.3"
 }
 
 group = "com.couchbase"
@@ -23,6 +23,7 @@ dependencies {
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
 }
 
+
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
@@ -41,7 +42,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("213")
-        untilBuild.set("223.*")
+        untilBuild.set("243.*")
     }
 
     signPlugin {

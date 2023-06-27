@@ -4,9 +4,11 @@ package com.couchbase.intellij.workbench;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
+import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.intellij.execution.ui.ConsoleView;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -15,6 +17,7 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -38,37 +41,34 @@ import java.util.List;
 import java.util.Map;
 
 public class QueryResultToolWindowFactory implements ToolWindowFactory {
-    public static QueryResultToolWindowFactory instance;
-    public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-    public QueryResultToolWindowFactory() {
-        instance = this;
-    }
-
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
     private static final String elapsedToolTip = "Elapsed is the time taken by the server to process the request";
     private static final String executionTooltip = "Execution is the time taken by the server to execute the query";
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
-    private static JBTabs tabs;
-    private static TabInfo queryResultTab;
-
+    public static QueryResultToolWindowFactory instance;
+    public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private HtmlPanel htmlPanel;
     private JsonTableModel model;
-
     private JLabel statusIcon;
-
     private EditorEx editor;
-
     private List<JLabel> queryStatsList;
     private List<JLabel> queryLabelsList;
     private List<Map<String, Object>> cachedResults;
-
     private JPanel queryStatsPanel;
 
+    public QueryResultToolWindowFactory() {
+        instance = this;
+    }
+
+    @NotNull
+    private static String getEmptyExplain() {
+        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
+    }
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        tabs = new JBTabsImpl(project);
+        JBTabs tabs = new JBTabsImpl(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
 
@@ -77,18 +77,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         JPanel resultStats = new JPanel();
         resultStats.setLayout(new BorderLayout());
-        resultStats.setBorder(BorderFactory.createEmptyBorder(10, 15, 0, 0));
 
         statusIcon = new JLabel();
         resultStats.add(statusIcon, BorderLayout.WEST);
 
-        GridBagLayout layout = new GridBagLayout();
-        queryStatsPanel = new JPanel(layout);
-        queryStatsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.WEST;
-        c.ipadx = 25;
+        queryStatsPanel = new JPanel(new FlowLayout());
 
         queryStatsList = new ArrayList<>();
         queryLabelsList = new ArrayList<>();
@@ -96,21 +89,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         String[] headers = {"RTT", "ELAPSED", "EXECUTION", "DOCS", "SIZE"};
 
         for (int i = 0; i < headers.length; i++) {
-            c.gridy = 0;
-            c.gridx = 2 * i;
-            JLabel title = new JLabel(getQueryStatHeader(headers[i]));
-            queryLabelsList.add(title);
-            title.setToolTipText(tooltips[i]);
-            queryStatsPanel.add(title, c);
 
-            c.gridy = 1;
-            c.gridx = 2 * i;
+            JLabel title = new JLabel(getQueryStatHeader(headers[i]));
+            title.setToolTipText(tooltips[i]);
+            queryStatsPanel.add(title);
+            queryLabelsList.add(title);
+
             JLabel valueLabel = new JLabel("<html><strong>-</strong></html>");
             valueLabel.setToolTipText(tooltips[i]);
+            valueLabel.setBorder(JBUI.Borders.emptyRight(10));
+            queryStatsPanel.add(valueLabel);
             queryStatsList.add(valueLabel);
-            queryStatsPanel.add(valueLabel, c);
         }
+
+        queryStatsPanel.setVisible(false);
         resultStats.add(queryStatsPanel, BorderLayout.CENTER);
+        resultStats.setBorder(JBUI.Borders.emptyLeft(10));
+
         topPanel.add(resultStats, BorderLayout.WEST);
 
         JPopupMenu popupMenu = new JPopupMenu();
@@ -124,7 +119,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
-        Icon executeIcon = IconLoader.findIcon("./assets/icons/export.svg");
+        Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
         executeGroup.add(new AnAction("Export", "Export", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -147,30 +142,32 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         editorSettings.setLineNumbersShown(true);
         editorSettings.setFoldingOutlineShown(true);
 
+        htmlPanel = new HtmlPanel();
+        htmlPanel.loadHTML(getEmptyExplain());
+
+        JPanel explainPanel = new JPanel(new BorderLayout());
+        explainPanel.add(htmlPanel, BorderLayout.CENTER);
+        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
+
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
+        resultTabs.addTab(explainTab);
+
 
         JPanel queryResultPanel = new JPanel();
         queryResultPanel.setLayout(new BorderLayout());
         queryResultPanel.add(topPanel, BorderLayout.NORTH);
         queryResultPanel.add(resultTabs.getComponent(), BorderLayout.CENTER);
 
-        TabInfo outputTab = new TabInfo(new JPanel()).setText("Log");
-        queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
 
-// TODO: Fix explain
-//        HtmlPanel htmlPanel = new HtmlPanel();
-//        htmlPanel.loadHTML("<html><body><script>alert('Hello, World!')</script></body></html>");
-//
-//        JPanel explainPanel = new JPanel(new BorderLayout());
-//        explainPanel.add(htmlPanel, BorderLayout.CENTER);
-//        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
+        TabInfo outputTab = new TabInfo(getConsolePanel()).setText("Log");
+        TabInfo queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
+
 
         tabs.addTab(outputTab);
         tabs.addTab(queryResultTab);
-//        tabs.addTab(explainTab);
         tabs.select(queryResultTab, true);
 
 
@@ -180,8 +177,63 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         contentManager.addContent(content);
     }
 
+    public JPanel getConsolePanel() {
+        ConsoleView console = Log.getLogger();
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+        AnAction clearAction = new AnAction("Clear Log") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                console.clear();
+            }
+        };
+        clearAction.getTemplatePresentation().setIcon(
+                IconLoader.getIcon("/assets/icons/clear.svg", QueryResultToolWindowFactory.class));
+        actionGroup.add(clearAction);
+
+        ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
+        actionToolbar.setLayoutPolicy(ActionToolbar.WRAP_LAYOUT_POLICY);
+        JPanel actionPanel = new JPanel(new FlowLayout());
+        actionPanel.add(actionToolbar.getComponent());
+
+        actionToolbar.setTargetComponent(actionPanel);
+
+
+        String[] options = {"Error", "Info", "Debug"};
+        ComboBox<String> comboBox = new ComboBox<>(options);
+        comboBox.setSelectedItem("Info");
+        comboBox.addActionListener(e -> {
+            String selectedValue = (String) comboBox.getSelectedItem();
+            if ("Error".equals(selectedValue)) {
+                Log.setLevel(1);
+            } else if ("Info".equals(selectedValue)) {
+                Log.setLevel(2);
+            } else {
+                Log.setLevel(3);
+            }
+        });
+
+        JPanel comboboxPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        comboboxPanel.add(new JLabel("Log Level:"));
+        comboboxPanel.add(comboBox);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(actionPanel, BorderLayout.LINE_END);
+        panel.add(comboboxPanel, BorderLayout.CENTER);
+
+        JPanel consolePanel = new JPanel(new BorderLayout());
+        consolePanel.add(panel, BorderLayout.NORTH);
+        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
+
+        return consolePanel;
+    }
+
     private String getQueryStatHeader(String title) {
-        return "<html><small style='font-weight:100'>" + title + "</small></html>";
+        return "<html><strong><small>" + title + ":</small></strong></html>";
+    }
+
+    private String getQueryStatResult(String title) {
+        return "<html><small>" + title + "</small></html>";
     }
 
     public Map<String, Object> jsonObjectToMap(JsonObject jsonObject) {
@@ -217,7 +269,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error) {
+    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, String explain) {
         if (results != null) {
 
             List<Map<String, Object>> convertedResults = new ArrayList<>();
@@ -225,16 +277,14 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 convertedResults.add(jsonObjectToMap(jsonObject));
             }
 
+            queryStatsPanel.setVisible(true);
             cachedResults = convertedResults;
 
-            statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                @Override
-                public void run() {
-                    editor.getDocument().setText(gson.toJson(convertedResults));
-                }
-            });
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(convertedResults)));
 
+            String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+            htmlPanel.loadHTML(content);
 
             if (isMutation) {
                 queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
@@ -247,14 +297,14 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             queryStatsPanel.revalidate();
 
             for (int i = 0; i < queryStatsList.size(); i++) {
-                queryStatsList.get(i).setText(queryValues.get(i));
+                queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
             }
 
             model.updateData(convertedResults);
 
         } else {
             cachedResults = null;
-            statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
         }
     }
@@ -263,7 +313,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         for (JLabel label : queryStatsList) {
             label.setText("-");
         }
-        statusIcon.setIcon(new AnimatedIcon.Big());
+        statusIcon.setIcon(new AnimatedIcon.Default());
 
         ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
     }

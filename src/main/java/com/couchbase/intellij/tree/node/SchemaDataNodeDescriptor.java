@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tree.node;
 
-import com.couchbase.intellij.helpers.ColorHelper;
-import com.couchbase.intellij.tree.TooltipNodeDescriptor;
+import utils.ColorHelper;
 
 public class SchemaDataNodeDescriptor extends TooltipNodeDescriptor {
 

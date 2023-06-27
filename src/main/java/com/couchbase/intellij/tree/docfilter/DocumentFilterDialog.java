@@ -2,7 +2,6 @@ package com.couchbase.intellij.tree.docfilter;
 
 import com.couchbase.client.core.error.CouchbaseException;
 import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.helpers.ColorHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
@@ -19,12 +18,13 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import org.intellij.sdk.language.SQLPPFileType;
 import org.jetbrains.annotations.Nullable;
+import utils.ColorHelper;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
@@ -56,6 +56,41 @@ public class DocumentFilterDialog extends DialogWrapper {
         init();
     }
 
+    private static void showGotItTooltip(Component component, String tooltipText) {
+        Point screenPoint = component.getLocationOnScreen();
+        Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
+
+        Balloon balloon = JBPopupFactory.getInstance()
+                .createBalloonBuilder(new JLabel(tooltipText))
+                .setFillColor(UIUtil.getToolTipBackground())
+                .setBorderColor(JBColor.GRAY)
+                .setAnimationCycle(200)
+                .setCloseButtonEnabled(true)
+                .setHideOnClickOutside(true)
+                .setHideOnKeyOutside(true)
+                .createBalloon();
+
+        balloon.show(new RelativePoint(tooltipPoint), Balloon.Position.above);
+    }
+
+    public static String addLineBreaks(String input) {
+        StringBuilder output = new StringBuilder();
+        int count = 0;
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            output.append(c);
+            count++;
+
+            if (count >= 100 && Character.isWhitespace(c)) {
+                output.append("<br>");
+                count = 0;
+            }
+        }
+
+        return output.toString();
+    }
+
     @Nullable
     @Override
     protected JComponent createCenterPanel() {
@@ -65,7 +100,7 @@ public class DocumentFilterDialog extends DialogWrapper {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel infoPanel = new JPanel(new BorderLayout());
         JLabel infoLabel = new JLabel();
-        infoLabel.setIcon(IconLoader.findIcon("assets/icons/information_big.svg"));
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -84,7 +119,7 @@ public class DocumentFilterDialog extends DialogWrapper {
         JLabel label = new JLabel("<html><pre><strong style=\"color:" + fontKeywordColor + ";\">SELECT</strong>" +
                 " meta().id <strong style=\"color:" + fontKeywordColor + "\">FROM</strong> `" + collectionName + "` <strong style=color:\""
                 + fontKeywordColor + "\">WHERE</strong></pre></html>");
-        label.setBorder(new EmptyBorder(0, 45, 0, 0));
+        label.setBorder(JBUI.Borders.emptyLeft(45));
         label.setVerticalAlignment(JLabel.TOP);
         labelPanel.add(label, BorderLayout.CENTER);
         panel.add(labelPanel, BorderLayout.CENTER);
@@ -227,24 +262,6 @@ public class DocumentFilterDialog extends DialogWrapper {
         return editor;
     }
 
-
-    private static void showGotItTooltip(Component component, String tooltipText) {
-        Point screenPoint = component.getLocationOnScreen();
-        Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
-
-        Balloon balloon = JBPopupFactory.getInstance()
-                .createBalloonBuilder(new JLabel(tooltipText))
-                .setFillColor(UIUtil.getToolTipBackground())
-                .setBorderColor(JBColor.GRAY)
-                .setAnimationCycle(200)
-                .setCloseButtonEnabled(true)
-                .setHideOnClickOutside(true)
-                .setHideOnKeyOutside(true)
-                .createBalloon();
-
-        balloon.show(new RelativePoint(tooltipPoint), Balloon.Position.above);
-    }
-
     private boolean validateFilterKeywords(String filter) {
         if (filter.trim().isEmpty()) {
             errorLabel.setText("The query can't be empty");
@@ -270,25 +287,6 @@ public class DocumentFilterDialog extends DialogWrapper {
                 .bucket(bucket)
                 .scope(scope)
                 .query(query).rowsAsObject().size();
-    }
-
-
-    public static String addLineBreaks(String input) {
-        StringBuilder output = new StringBuilder();
-        int count = 0;
-
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
-            output.append(c);
-            count++;
-
-            if (count >= 100 && Character.isWhitespace(c)) {
-                output.append("<br>");
-                count = 0;
-            }
-        }
-
-        return output.toString();
     }
 
 }

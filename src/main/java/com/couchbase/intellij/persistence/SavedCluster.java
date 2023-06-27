@@ -6,6 +6,8 @@ public class SavedCluster {
     private String url;
     private String username;
 
+    private String color;
+
     private boolean sslEnable;
     private String defaultBucket;
 
@@ -55,6 +57,14 @@ public class SavedCluster {
 
     public void setSslEnable(boolean sslEnable) {
         this.sslEnable = sslEnable;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 
     @Override
