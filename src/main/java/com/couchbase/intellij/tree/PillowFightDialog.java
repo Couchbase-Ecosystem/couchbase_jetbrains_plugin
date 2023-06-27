@@ -741,11 +741,11 @@ public class PillowFightDialog extends DialogWrapper {
     private static void showBalloonHint(JBLabel questionMark, String hintText) {
         JBPopupFactory factory = JBPopupFactory.getInstance();
         JBLabel label = new JBLabel(hintText);
+        label.setBackground(UIManager.getColor("ToolTip.background"));
         JBPanel panel = new JBPanel(new BorderLayout());
         panel.add(label, BorderLayout.CENTER);
 
-        balloonHint = factory.createBalloonBuilder(panel).createBalloon();
-
+        balloonHint = factory.createBalloonBuilder(panel).setFillColor(UIManager.getColor("ToolTip.background")).setAnimationCycle(0).createBalloon();
         balloonHint.show(factory.guessBestPopupLocation(questionMark), Balloon.Position.below);
     }
 
@@ -1336,6 +1336,7 @@ public class PillowFightDialog extends DialogWrapper {
 
             gbc.gridx = 0;
             gbc.gridy = 1;
+            gbc.insets = JBUI.insets(5);
             panel.add(stopButton, gbc);
 
             add(panel);
