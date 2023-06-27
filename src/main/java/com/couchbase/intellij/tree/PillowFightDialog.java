@@ -36,32 +36,33 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.intellij.ui.components.JBTextField;
 
 public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
     private ComboBox<String> durabilityComboBox;
-    private JTextField persistToTextField;
-    private JTextField batchSizeTextField;
-    private JTextField numberItemsTextField;
-    private JTextField keyPrefixTextField;
-    private JTextField numberThreadsTextField;
-    private JTextField percentageTextField;
+    private JBTextField persistToTextField;
+    private JBTextField batchSizeTextField;
+    private JBTextField numberItemsTextField;
+    private JBTextField keyPrefixTextField;
+    private JBTextField numberThreadsTextField;
+    private JBTextField percentageTextField;
     private ComboBox<String> noPopulationComboBox;
     private ComboBox<String> populateOnlyComboBox;
-    private JTextField minSizeTextField;
-    private JTextField maxSizeTextField;
+    private JBTextField minSizeTextField;
+    private JBTextField maxSizeTextField;
     //private ComboBox<String> pauseAtEndComboBox;
-    private JTextField numberCyclesTextField;
+    private JBTextField numberCyclesTextField;
     private ComboBox<String> sequentialComboBox;
-    private JTextField startAtTextField;
+    private JBTextField startAtTextField;
     private ComboBox<String> timingsComboBox;
-    private JTextField expiryTextField;
-    private JTextField replicateToTextField;
-    private JTextField lockTextField;
+    private JBTextField expiryTextField;
+    private JBTextField replicateToTextField;
+    private JBTextField lockTextField;
     private ComboBox<String> jsonComboBox;
     private ComboBox<String> noopComboBox;
     private ComboBox<String> subdocComboBox;
-    private JTextField pathcountTextField;
+    private JBTextField pathcountTextField;
     private JLabel errorMessage;
     protected PillowFightDialog(Project project) {
         super(project);
@@ -87,7 +88,7 @@ public class PillowFightDialog extends DialogWrapper {
         durabilityComboBox.addItem("majority_and_persist_to_active");
         durabilityComboBox.addItem("persist_to_majority");
 
-        persistToTextField = new JTextField();
+        persistToTextField = new JBTextField();
         persistToTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = persistToTextField.getForeground();
 
@@ -107,7 +108,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        batchSizeTextField = new JTextField();
+        batchSizeTextField = new JBTextField();
         batchSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = batchSizeTextField.getForeground();
 
@@ -127,7 +128,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        numberItemsTextField = new JTextField();
+        numberItemsTextField = new JBTextField();
         numberItemsTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = numberItemsTextField.getForeground();
 
@@ -147,9 +148,9 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        keyPrefixTextField = new JTextField();
+        keyPrefixTextField = new JBTextField();
 
-        numberThreadsTextField = new JTextField();
+        numberThreadsTextField = new JBTextField();
         numberThreadsTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = numberThreadsTextField.getForeground();
 
@@ -169,7 +170,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        percentageTextField = new JTextField();
+        percentageTextField = new JBTextField();
         percentageTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = percentageTextField.getForeground();
 
@@ -197,7 +198,7 @@ public class PillowFightDialog extends DialogWrapper {
         populateOnlyComboBox.addItem("disable");
         populateOnlyComboBox.addItem("enable");
 
-        minSizeTextField = new JTextField();
+        minSizeTextField = new JBTextField();
         minSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = minSizeTextField.getForeground();
 
@@ -217,7 +218,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        maxSizeTextField = new JTextField();
+        maxSizeTextField = new JBTextField();
         maxSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = maxSizeTextField.getForeground();
 
@@ -244,7 +245,7 @@ public class PillowFightDialog extends DialogWrapper {
         pauseAtEndComboBox.addItem("disable");
          */
 
-        numberCyclesTextField = new JTextField();
+        numberCyclesTextField = new JBTextField();
         numberCyclesTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = numberCyclesTextField.getForeground();
 
@@ -268,7 +269,7 @@ public class PillowFightDialog extends DialogWrapper {
         sequentialComboBox.addItem("disable");
         sequentialComboBox.addItem("enable");
 
-        startAtTextField = new JTextField();
+        startAtTextField = new JBTextField();
         startAtTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = startAtTextField.getForeground();
 
@@ -292,7 +293,7 @@ public class PillowFightDialog extends DialogWrapper {
         timingsComboBox.addItem("disable");
         timingsComboBox.addItem("enable");
 
-        expiryTextField = new JTextField();
+        expiryTextField = new JBTextField();
         expiryTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = expiryTextField.getForeground();
 
@@ -312,7 +313,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        replicateToTextField = new JTextField();
+        replicateToTextField = new JBTextField();
         replicateToTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = replicateToTextField.getForeground();
 
@@ -332,7 +333,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        lockTextField = new JTextField();
+        lockTextField = new JBTextField();
         lockTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = lockTextField.getForeground();
 
@@ -364,7 +365,7 @@ public class PillowFightDialog extends DialogWrapper {
         subdocComboBox.addItem("disable");
         subdocComboBox.addItem("enable");
 
-        pathcountTextField = new JTextField();
+        pathcountTextField = new JBTextField();
         pathcountTextField.getDocument().addDocumentListener(new DocumentListener() {
             final Color originalColor = pathcountTextField.getForeground();
 
@@ -705,6 +706,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridy = 0;
         gbc.insets = JBUI.insets(5);
         gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         panel.add(new JLabel("Available Buckets: "), gbc);
 
@@ -722,27 +724,30 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 2;
-        panel.add(new JLabel("Persist-to (Enter a number -1 or greater): "), gbc);
+        panel.add(new JLabel("Persist-to: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 2;
         panel.add(persistToTextField, gbc);
+        persistToTextField.getEmptyText().setText("Enter a number -1 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 3;
-        panel.add(new JLabel("Batch Size (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Batch Size: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 3;
         panel.add(batchSizeTextField, gbc);
+        batchSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 4;
-        panel.add(new JLabel("Number of Items (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Number of Items: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 4;
         panel.add(numberItemsTextField, gbc);
+        numberItemsTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 5;
@@ -751,22 +756,25 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 5;
         panel.add(keyPrefixTextField, gbc);
+        keyPrefixTextField.getEmptyText().setText("Enter a prefix to prepend");
 
         gbc.gridx = 0;
         gbc.gridy = 6;
-        panel.add(new JLabel("Number of Threads (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Number of Threads: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 6;
         panel.add(numberThreadsTextField, gbc);
+        numberThreadsTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 7;
-        panel.add(new JLabel("Percentage (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Percentage: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 7;
         panel.add(percentageTextField, gbc);
+        percentageTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 8;
@@ -786,19 +794,21 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 10;
-        panel.add(new JLabel("Min Size (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Min Size: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 10;
         panel.add(minSizeTextField, gbc);
+        minSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 11;
-        panel.add(new JLabel("Max Size (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Max Size: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 11;
         panel.add(maxSizeTextField, gbc);
+        maxSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         /*
         gbc.gridx = 0;
@@ -817,6 +827,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 12;
         panel.add(numberCyclesTextField, gbc);
+        numberCyclesTextField.getEmptyText().setText("Enter a number -1 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 13;
@@ -828,11 +839,12 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 14;
-        panel.add(new JLabel("Start At (Enter a number 0 or greater): "), gbc);
+        panel.add(new JLabel("Start At: "), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 14;
         panel.add(startAtTextField, gbc);
+        startAtTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 15;
@@ -849,6 +861,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 16;
         panel.add(expiryTextField, gbc);
+        expiryTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 17;
@@ -857,6 +870,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 17;
         panel.add(replicateToTextField, gbc);
+        replicateToTextField.getEmptyText().setText("Enter a number -1 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 18;
@@ -865,6 +879,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 18;
         panel.add(lockTextField, gbc);
+        lockTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 19;
@@ -897,6 +912,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 22;
         panel.add(pathcountTextField, gbc);
+        pathcountTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridx = 0;
         gbc.gridy = 23;
