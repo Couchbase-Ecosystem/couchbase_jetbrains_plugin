@@ -12,12 +12,15 @@ import com.couchbase.client.java.manager.bucket.BucketManager;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.github.CloneDemoRepo;
+import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBPanel;
 import com.intellij.util.ui.PositionTracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +34,8 @@ import com.intellij.util.ui.JBUI;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.*;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -709,6 +714,47 @@ public class PillowFightDialog extends DialogWrapper {
             setOKActionEnabled(false);
         }
     }
+    private static JBPanel createLabelWithBalloon(String labelText, String hintText) {
+        JBLabel label = new JBLabel(labelText);
+        JBLabel questionMark = new JBLabel("?");
+        questionMark.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                showBalloonHint(questionMark, hintText);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hideBalloonHint();
+            }
+        });
+
+        JBPanel panel = new JBPanel(new BorderLayout());
+        panel.add(label, BorderLayout.WEST);
+        panel.add(questionMark, BorderLayout.EAST);
+
+        return panel;
+    }
+
+    private static Balloon balloonHint;
+
+    private static void showBalloonHint(JBLabel questionMark, String hintText) {
+        JBPopupFactory factory = JBPopupFactory.getInstance();
+        JBLabel label = new JBLabel(hintText);
+        JBPanel panel = new JBPanel(new BorderLayout());
+        panel.add(label, BorderLayout.CENTER);
+
+        balloonHint = factory.createBalloonBuilder(panel).createBalloon();
+
+        balloonHint.show(factory.guessBestPopupLocation(questionMark), Balloon.Position.below);
+    }
+
+    private static void hideBalloonHint() {
+        if (balloonHint != null) {
+            balloonHint.hide();
+            balloonHint = null;
+        }
+    }
 
     @Override
     protected @Nullable JComponent createCenterPanel() {
@@ -721,7 +767,8 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        panel.add(new JLabel("Available Buckets: "), gbc);
+        //panel.add(new JLabel("Available Buckets: "), gbc);
+        panel.add(createLabelWithBalloon("Available Buckets: ", "A bucket is the fundamental space for storing data in Couchbase Server."), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 0;
@@ -1255,7 +1302,7 @@ public class PillowFightDialog extends DialogWrapper {
             setTitle("Stop Pillow Fight");
             opsPerSecLabel = new JTextArea("OPS/SEC:           ");
             opsPerSecLabel.setEditable(false);
-            opsPerSecLabel.setBorder(new EmptyBorder(0, 100, 0, 100));
+            opsPerSecLabel.setBorder(JBUI.Borders.empty(0, 100));
             stopButton = new JButton("Stop");
 
             JPanel panel = new JPanel(new GridBagLayout());
