@@ -303,6 +303,16 @@ public class CouchbaseWindowContent extends JPanel {
             popup.add(refreshBuckets);
             popup.addSeparator();
 
+            JMenu tools = new JMenu("Tools");
+            JBMenuItem pillowFight = new JBMenuItem("Pillow Fight");
+            pillowFight.addActionListener(e13 -> {
+                PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
+                pillowFightDialog.show();
+            });
+            tools.add(pillowFight);
+            popup.add(tools);
+            popup.addSeparator();
+
             JBMenuItem menuItem = new JBMenuItem("Disconnect");
             popup.add(menuItem);
             menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
