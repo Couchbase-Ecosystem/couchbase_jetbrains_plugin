@@ -185,40 +185,6 @@ public class DependenciesDownloader {
         });
     }
 
-
-    //TODO: Keep this code until we have tested everything on windows
-//    private void unzipFile(String zipFilePath, String destDir) throws IOException {
-//        File dir = new File(destDir);
-//        if (!dir.exists()) dir.mkdirs();
-//        File zipFile = new File(zipFilePath);
-//        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
-//            ZipEntry entry = zis.getNextEntry();
-//            while (entry != null) {
-//                String filePath = destDir + File.separator + entry.getName();
-//                if (!entry.isDirectory()) {
-//                    extractFile(zis, filePath);
-//                } else {
-//                    File dir1 = new File(filePath);
-//                    dir1.mkdir();
-//                }
-//                zis.closeEntry();
-//                entry = zis.getNextEntry();
-//            }
-//        }
-//        Files.delete(zipFile.toPath());
-//    }
-//
-//    private void extractFile(ZipInputStream zis, String filePath) throws IOException {
-//        try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(filePath))) {
-//            byte[] bytesIn = new byte[4096];
-//            int read;
-//            while ((read = zis.read(bytesIn)) != -1) {
-//                bos.write(bytesIn, 0, read);
-//            }
-//        }
-//    }
-
-
     public boolean isInstalled(String pluginPath, ToolSpec spec) {
         return Files.exists(Paths.get(pluginPath + File.separator
                 + spec.getInstallationPath()
