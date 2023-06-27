@@ -14,7 +14,12 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.github.CloneDemoRepo;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.awt.RelativePoint;
+import com.intellij.util.ui.PositionTracker;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
@@ -37,6 +42,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.stream.Collectors;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.openapi.ui.popup.Balloon;
 
 public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
@@ -64,6 +70,13 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> subdocComboBox;
     private JBTextField pathcountTextField;
     private JLabel errorMessage;
+
+    @Override
+    protected Action[] createActions() {
+        Action okAction = getOKAction();
+        okAction.putValue(Action.NAME, "Start");
+        return new Action[]{okAction, getCancelAction()};
+    }
     protected PillowFightDialog(Project project) {
         super(project);
 
