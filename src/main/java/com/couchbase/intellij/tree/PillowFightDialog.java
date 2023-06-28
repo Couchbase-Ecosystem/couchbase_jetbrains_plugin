@@ -21,6 +21,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.PositionTracker;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -740,12 +741,14 @@ public class PillowFightDialog extends DialogWrapper {
 
     private static void showBalloonHint(JBLabel questionMark, String hintText) {
         JBPopupFactory factory = JBPopupFactory.getInstance();
-        JBLabel label = new JBLabel(hintText);
-        label.setBackground(UIManager.getColor("ToolTip.background"));
-        JBPanel panel = new JBPanel(new BorderLayout());
-        panel.add(label, BorderLayout.CENTER);
+        JTextArea textArea = new JTextArea(hintText);
+        textArea.setBackground(UIManager.getColor("ToolTip.background"));
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setColumns(30);
+        textArea.setRows(5);
 
-        balloonHint = factory.createBalloonBuilder(panel).setFillColor(UIManager.getColor("ToolTip.background")).setAnimationCycle(0).createBalloon();
+        balloonHint = factory.createBalloonBuilder(textArea).setFillColor(UIManager.getColor("ToolTip.background")).setAnimationCycle(0).createBalloon();
         balloonHint.show(factory.guessBestPopupLocation(questionMark), Balloon.Position.below);
     }
 
