@@ -169,33 +169,12 @@ public class TreeRightClickListener {
 
     private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         JBPopupMenu popup = new JBPopupMenu();
-        popup.addSeparator();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         String bucketName = scope.getBucket();
         String scopeName = scope.getText();
 
         //can't delete the default scope
-        if (!"_default".equals(scope.getText())) {
-            // Add "Delete Scope" option
-            JBMenuItem deleteScopeItem = new JBMenuItem("Delete Scope");
-            deleteScopeItem.addActionListener(e1 -> {
-                // Show confirmation dialog before deleting scope
-                int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
-                if (result != Messages.YES) {
-                    return;
-                }
 
-                ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
-                // Refresh buckets
-                DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                TreePath treePath = new TreePath(bucketTreeNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
-            });
-            popup.add(deleteScopeItem);
-            popup.addSeparator();
-
-        }
 
         JBMenuItem refreshCollections = new JBMenuItem("Refresh Collections");
         popup.add(refreshCollections);
@@ -221,6 +200,29 @@ public class TreeRightClickListener {
         });
 
         popup.add(addNewCollectionItem);
+
+        if (!"_default".equals(scope.getText())) {
+            popup.addSeparator();
+            // Add "Delete Scope" option
+            JBMenuItem deleteScopeItem = new JBMenuItem("Delete Scope");
+            deleteScopeItem.addActionListener(e1 -> {
+                // Show confirmation dialog before deleting scope
+                int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
+                }
+
+                ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
+                // Refresh buckets
+                DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                TreePath treePath = new TreePath(bucketTreeNode.getPath());
+                tree.collapsePath(treePath);
+                tree.expandPath(treePath);
+            });
+            popup.add(deleteScopeItem);
+
+
+        }
 
         popup.addSeparator();
 
@@ -367,7 +369,7 @@ public class TreeRightClickListener {
         }
 
         //cbexport and cbimport are installed together, so if one is available the other also is
-        if (CBTools.getCbExport().isAvailable()) {
+        if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
             popup.addSeparator();
             JBMenuItem simpleImport = new JBMenuItem("Simple Import");
             simpleImport.addActionListener(e12 -> {

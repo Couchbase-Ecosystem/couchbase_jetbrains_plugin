@@ -50,7 +50,7 @@ public class CBExport {
                 // The progress indicator shows a moving bar by default. If you want to show progress, use:
                 indicator.setIndeterminate(true);
                 try {
-                    ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbExport().getPath(),
+                    ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getTool(CBTools.Type.CB_EXPORT).getPath(),
                             "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(),
                             "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(),
                             "-b", bucket,
@@ -111,7 +111,7 @@ public class CBExport {
                 // The progress indicator shows a moving bar by default. If you want to show progress, use:
                 indicator.setIndeterminate(true);
                 try {
-                    ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbExport().getPath(),
+                    ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getTool(CBTools.Type.CB_EXPORT).getPath(),
                             "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(),
                             "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(),
                             "-b", bucket,

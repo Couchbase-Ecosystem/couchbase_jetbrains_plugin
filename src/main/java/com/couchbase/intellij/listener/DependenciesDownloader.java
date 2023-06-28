@@ -13,9 +13,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -28,6 +26,8 @@ public class DependenciesDownloader {
     public static final String TOOL_SHELL = "shell";
     public static final String TOOL_IMPORT_EXPORT = "import_export";
 
+    public static final String ALL_TOOLS = "all_tools";
+
 
     private String getToolInstallPath(String toolKey) {
 
@@ -35,37 +35,48 @@ public class DependenciesDownloader {
             return "cbshell";
         } else if (TOOL_IMPORT_EXPORT.equals(toolKey)) {
             return "cbimport_export";
+        } else if (ALL_TOOLS.equals(toolKey)) {
+            return "cbtools";
         } else {
             throw new IllegalStateException("Not Implemented yet");
         }
     }
 
-    private List<String> getToolsList(String toolKey, String os) {
+    private Map<CBTools.Type, String> getToolsMap(String toolKey, String os) {
+        String suffix = "";
+        String path = "bin" + File.separator;
+
         boolean unixBased = MACOS_64.equals(os)
                 || MACOS_ARM.equals(os)
                 || LINUX_64.equals(os)
                 || LINUX_ARM.equals(os);
 
+        if (!unixBased) {
+            suffix = ".exe";
+        }
+
+        Map<CBTools.Type, String> map = new HashMap<>();
+
         if (TOOL_SHELL.equals(toolKey)) {
-            if (unixBased) {
-                return List.of("cbsh");
-            } else {
-                return List.of("cbsh.exe");
-            }
+            map.put(CBTools.Type.SHELL, "cbsh" + suffix);
+
         } else if (TOOL_IMPORT_EXPORT.equals(toolKey)) {
-            String path = "bin" + File.separator;
-            if (unixBased) {
-                return Arrays.asList(path + "cbimport", path + "cbexport");
-            } else {
-                return Arrays.asList(path + "cbimport.exe", path + "cbexport.exe");
-            }
+            map.put(CBTools.Type.CB_IMPORT, path + "cbimport" + suffix);
+            map.put(CBTools.Type.CB_EXPORT, path + "cbexport" + suffix);
+
+        } else if (ALL_TOOLS.equals(toolKey)) {
+            map.put(CBTools.Type.CBC_PILLOW_FIGHT, path + "cbc-pillowfight" + suffix);
+            map.put(CBTools.Type.MCTIMINGS, path + "mctimings" + suffix);
+
         } else {
             throw new IllegalStateException("Not implemented yet");
         }
+
+        return map;
     }
 
     private ToolSpec getToolSpec(String url, String toolKey, String os) {
-        return new ToolSpec(url, getToolInstallPath(toolKey), getToolsList(toolKey, os));
+        return new ToolSpec(url, getToolInstallPath(toolKey), getToolsMap(toolKey, os));
     }
 
     public Map<String, ToolSpec> getDownloadList(String os) {
@@ -74,22 +85,27 @@ public class DependenciesDownloader {
         if (MACOS_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-apple-darwin.zip", TOOL_SHELL, MACOS_64));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-macos_x86_64.zip", TOOL_IMPORT_EXPORT, MACOS_64));
+            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_64.zip", ALL_TOOLS, MACOS_64));
 
         } else if (MACOS_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-aarch64-apple-darwin.zip", TOOL_SHELL, MACOS_ARM));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-macos_arm64.zip", TOOL_IMPORT_EXPORT, MACOS_ARM));
+            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_arm.zip", ALL_TOOLS, MACOS_64));
 
         } else if (WINDOWS_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-pc-windows-msvc.zip", TOOL_SHELL, WINDOWS_64));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_64));
+            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-windows_64.zip", ALL_TOOLS, WINDOWS_64));
 
         } else if (WINDOWS_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-pc-windows-msvc.zip", TOOL_SHELL, WINDOWS_ARM));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_ARM));
+            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-windows_64.zip", ALL_TOOLS, WINDOWS_ARM));
 
         } else if (LINUX_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-unknown-linux-gnu.tar.gz", TOOL_SHELL, LINUX_64));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-linux_x86_64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_64));
+            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-linux_64.zip", ALL_TOOLS, LINUX_64));
 
         } else if (LINUX_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-aarch64-unknown-linux-gnu.tar.gz", TOOL_SHELL, LINUX_ARM));
@@ -111,58 +127,58 @@ public class DependenciesDownloader {
 
         ToolSpec shell = downloads.get(TOOL_SHELL);
         String shellPath = toolsPath + File.separator + shell.getInstallationPath();
-        if (CBTools.getShell().getStatus() == ToolStatus.NOT_AVAILABLE
-                && !isInstalled(toolsPath, downloads.get(TOOL_SHELL))) {
+        if (CBTools.getTool(CBTools.Type.SHELL).getStatus() == ToolStatus.NOT_AVAILABLE
+                && !isInstalled(toolsPath, downloads.get(TOOL_SHELL), CBTools.Type.SHELL)) {
             //avoiding 2 threads to install the same thing at the same time
             Log.debug("Downloading CB Shell");
-            CBTools.getShell().setStatus(ToolStatus.DOWNLOADING);
-            downloadAndUnzip(TOOL_SHELL, shellPath, shell);
+            CBTools.getTool(CBTools.Type.SHELL).setStatus(ToolStatus.DOWNLOADING);
+            downloadAndUnzip(shellPath, shell);
         } else {
-            Log.debug("CBShell is already downloaded");
-            setToolActive(TOOL_SHELL, ToolStatus.AVAILABLE, shellPath, shell);
+            Log.debug("CBShell is already installed");
+            setToolActive(ToolStatus.AVAILABLE, shellPath, shell);
         }
 
         ToolSpec cbImport = downloads.get(TOOL_IMPORT_EXPORT);
         String cbImportDir = toolsPath + File.separator + cbImport.getInstallationPath();
-        if (CBTools.getCbImport().getStatus() == ToolStatus.NOT_AVAILABLE
-                && !isInstalled(toolsPath, downloads.get(TOOL_IMPORT_EXPORT))) {
+        if (CBTools.getTool(CBTools.Type.CB_IMPORT).getStatus() == ToolStatus.NOT_AVAILABLE
+                && !isInstalled(toolsPath, downloads.get(TOOL_IMPORT_EXPORT), CBTools.Type.CB_EXPORT)) {
             //avoiding 2 threads to install the same thing at the same time
             Log.debug("Downloading CB Import/Export");
-            CBTools.getCbExport().setStatus(ToolStatus.DOWNLOADING);
-            CBTools.getCbImport().setStatus(ToolStatus.DOWNLOADING);
-            downloadAndUnzip(TOOL_IMPORT_EXPORT, cbImportDir, cbImport);
+            CBTools.getTool(CBTools.Type.CB_EXPORT).setStatus(ToolStatus.DOWNLOADING);
+            CBTools.getTool(CBTools.Type.CB_IMPORT).setStatus(ToolStatus.DOWNLOADING);
+            downloadAndUnzip(cbImportDir, cbImport);
         } else {
-            Log.debug("CB Import/Export is already downloaded");
-            setToolActive(TOOL_IMPORT_EXPORT, ToolStatus.AVAILABLE, cbImportDir, cbImport);
+            Log.debug("CB Import/Export is already installed");
+            setToolActive(ToolStatus.AVAILABLE, cbImportDir, cbImport);
         }
+
+
+        ToolSpec cbTools = downloads.get(ALL_TOOLS);
+        String toolsDir = toolsPath + File.separator + cbTools.getInstallationPath();
+        if (CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getStatus() == ToolStatus.NOT_AVAILABLE
+                && !isInstalled(toolsPath, downloads.get(ALL_TOOLS), CBTools.Type.CBC_PILLOW_FIGHT)) {
+
+            Log.debug("Downloading CB tools");
+            CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).setStatus(ToolStatus.DOWNLOADING);
+            CBTools.getTool(CBTools.Type.MCTIMINGS).setStatus(ToolStatus.DOWNLOADING);
+            downloadAndUnzip(toolsDir, cbTools);
+        } else {
+            Log.debug("CB Tools are already installed");
+            setToolActive(ToolStatus.AVAILABLE, toolsDir, cbTools);
+        }
+
     }
 
 
-    private void setToolActive(String toolKey, ToolStatus status, String path, ToolSpec spec) {
-        if (TOOL_SHELL.equals(toolKey)) {
-            CBTools.getShell().setStatus(status);
-            if (status == ToolStatus.AVAILABLE) {
-                CBTools.getShell().setPath(path + File.separator + spec.getToolsList().get(0));
-            }
-        } else if (TOOL_IMPORT_EXPORT.equals(toolKey)) {
-            CBTools.getCbImport().setStatus(status);
-            CBTools.getCbExport().setStatus(status);
+    private void setToolActive(ToolStatus status, String path, ToolSpec spec) {
 
-            if (status == ToolStatus.AVAILABLE) {
-                for (String tool : spec.getToolsList()) {
-                    if (tool.contains("cbimport")) {
-                        CBTools.getCbImport().setPath(path + File.separator + tool);
-                    } else if (tool.contains("cbexport")) {
-                        CBTools.getCbExport().setPath(path + File.separator + tool);
-                    }
-                }
-            }
-        } else {
-            throw new IllegalStateException("Not Implemented Yet");
+        for (Map.Entry<CBTools.Type, String> entry : spec.getToolsMap().entrySet()) {
+            CBTools.getTool(entry.getKey()).setPath(path + File.separator + entry.getValue());
+            CBTools.getTool(entry.getKey()).setStatus(status);
         }
     }
 
-    public void downloadAndUnzip(String toolKey, String targetDir, ToolSpec spec) {
+    public void downloadAndUnzip(String targetDir, ToolSpec spec) {
         CompletableFuture.runAsync(() -> {
             try {
                 createFolder(targetDir);
@@ -176,19 +192,19 @@ public class DependenciesDownloader {
 
                 unzipFile(localFilePath, targetDir);
                 makeFilesExecutable(new File(targetDir));
-                setToolActive(toolKey, ToolStatus.AVAILABLE, targetDir, spec);
+                setToolActive(ToolStatus.AVAILABLE, targetDir, spec);
             } catch (Exception e) {
-                setToolActive(toolKey, ToolStatus.NOT_AVAILABLE, null, null);
+                setToolActive(ToolStatus.NOT_AVAILABLE, null, null);
                 Log.error(e);
                 e.printStackTrace();
             }
         });
     }
 
-    public boolean isInstalled(String pluginPath, ToolSpec spec) {
+    public boolean isInstalled(String pluginPath, ToolSpec spec, CBTools.Type type) {
         return Files.exists(Paths.get(pluginPath + File.separator
                 + spec.getInstallationPath()
                 + File.separator
-                + spec.getToolsList().get(0)));
+                + spec.getToolsMap().get(type)));
     }
 }
