@@ -745,8 +745,9 @@ public class PillowFightDialog extends DialogWrapper {
         textArea.setBackground(UIManager.getColor("ToolTip.background"));
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        textArea.setColumns(30);
-        textArea.setRows(5);
+        textArea.setEditable(false);
+        textArea.setColumns(40);
+        textArea.setSize(textArea.getPreferredSize());
 
         balloonHint = factory.createBalloonBuilder(textArea).setFillColor(UIManager.getColor("ToolTip.background")).setAnimationCycle(0).createBalloon();
         balloonHint.show(factory.guessBestPopupLocation(questionMark), Balloon.Position.below);
