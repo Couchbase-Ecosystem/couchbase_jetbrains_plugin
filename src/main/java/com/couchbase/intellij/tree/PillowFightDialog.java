@@ -777,114 +777,102 @@ public class PillowFightDialog extends DialogWrapper {
         //panel.add(new JLabel("Available Buckets: "), gbc);
         panel.add(createLabelWithBalloon("Available Buckets: ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 0;
+        gbc.gridx++;
         panel.add(bucketComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Durability: "), gbc);
         panel.add(createLabelWithBalloon("Durability: ", "Specify durability level for mutation operations"), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 1;
+        gbc.gridx++;
         panel.add(durabilityComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Persist-to: "), gbc);
         panel.add(createLabelWithBalloon("Persist-to: ", "Wait until the item has been persisted to at least NUMNODES nodes' disk. If NUMNODES is 1 then wait until only the master node has persisted the item for this key. You may not specify a number greater than the number of nodes actually in the cluster. -1 is special value, which mean to use all available nodes."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 2;
+        gbc.gridx++;
         panel.add(persistToTextField, gbc);
         persistToTextField.getEmptyText().setText("Enter a number -1 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Batch Size: "), gbc);
         panel.add(createLabelWithBalloon("Batch Size: ", "This controls how many commands are scheduled per cycles. To simulate one operation at a time, set this value to 1."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 3;
+        gbc.gridx++;
         panel.add(batchSizeTextField, gbc);
         batchSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Number of Items: "), gbc);
         panel.add(createLabelWithBalloon("Number of Items: ", "Set the total number of items the workload will access within the cluster. This will also determine the working set size at the server and may affect disk latencies if set to a high number."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 4;
+        gbc.gridx++;
         panel.add(numberItemsTextField, gbc);
         numberItemsTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Key prefix: "), gbc);
         panel.add(createLabelWithBalloon("Key Prefix: ", "Set the prefix to prepend to all keys in the cluster. Useful if you do not wish the items to conflict with existing data."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 5;
+        gbc.gridx++;
         panel.add(keyPrefixTextField, gbc);
         keyPrefixTextField.getEmptyText().setText("Enter a prefix to prepend");
 
-        gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Number of Threads: "), gbc);
         panel.add(createLabelWithBalloon("Number of Threads: ", "Set the number of threads (and thus the number of client instances) to run concurrently. Each thread is assigned its own client object."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 6;
+        gbc.gridx++;
         panel.add(numberThreadsTextField, gbc);
         numberThreadsTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 7;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Percentage: "), gbc);
         panel.add(createLabelWithBalloon("Percentage", "The percentage of operations which should be mutations. A value of 100 means only mutations while a value of 0 means only retrievals."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 7;
+        gbc.gridx++;
         panel.add(percentageTextField, gbc);
         percentageTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 8;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("No Population: "), gbc);
         panel.add(createLabelWithBalloon("No Population: ", "By default cbc-pillowfight will load all the items (see --num-items) into the cluster and then begin performing the normal workload. Specifying this option bypasses this stage. Useful if the items have already been loaded in a previous run."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 8;
+        gbc.gridx++;
         panel.add(noPopulationComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 9;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Populate only: "), gbc);
         panel.add(createLabelWithBalloon("Populate Only: ", "Stop after population. Useful to populate buckets with large amounts of data."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 9;
+        gbc.gridx++;
         panel.add(populateOnlyComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 10;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Min Size: "), gbc);
         panel.add(createLabelWithBalloon("Min Size: ", "Specify the minimum size to be stored into the cluster. This is typically a range, in which case each value generated will be between Min Size and Max Size bytes."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 10;
+        gbc.gridx++;
         panel.add(minSizeTextField, gbc);
         minSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 11;
+        gbc.gridx--;
+        gbc.gridy++;
         panel.add(new JLabel("Max Size: "), gbc);
         panel.add(createLabelWithBalloon("Max Size: ", "Specify the maximum size to be stored into the cluster. This is typically a range, in which case each value generated will be between Min Size and Max Size bytes."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 11;
+        gbc.gridx++;
         panel.add(maxSizeTextField, gbc);
         maxSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
@@ -898,113 +886,102 @@ public class PillowFightDialog extends DialogWrapper {
         panel.add(pauseAtEndComboBox, gbc);
         */
 
-        gbc.gridx = 0;
-        gbc.gridy = 12;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Number of Cycles: "), gbc);
         panel.add(createLabelWithBalloon("Number of Cycles: ", "Specify the number of times the workload should cycle. During each cycle an amount of --batch-size operations are executed. Setting this to -1 will cause the workload to run infinitely."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 12;
+        gbc.gridx++;
         panel.add(numberCyclesTextField, gbc);
         numberCyclesTextField.getEmptyText().setText("Enter a number -1 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 13;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Sequential: "), gbc);
         panel.add(createLabelWithBalloon("Sequential: ", "Specify that the access pattern should be done in a sequential manner. This is useful for bulk-loading many documents in a single server."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 13;
+        gbc.gridx++;
         panel.add(sequentialComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 14;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Start At: "), gbc);
         panel.add(createLabelWithBalloon("Start At: ", "This specifies the starting offset for the items. The items by default are generated with the key prefix (--key-prefix) up to the number of items (--num-items). The --start-at value will increase the lower limit of the items. This is useful to resume a previously cancelled load operation."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 14;
+        gbc.gridx++;
         panel.add(startAtTextField, gbc);
         startAtTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 15;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Timings: "), gbc);
         panel.add(createLabelWithBalloon("Timings: ", "Enabled timing recorded. Timing histogram will be dumped to STDERR on SIGQUIT (CTRL-/). When specified second time, it will dump a histogram of command timings and latencies to the screen every second."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 15;
+        gbc.gridx++;
         panel.add(timingsComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 16;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Expiry: "), gbc);
         panel.add(createLabelWithBalloon("Expiry: ", "Set the expiration time on the document for SECONDS when performing each operation. Note that setting this too low may cause not-found errors to appear on the screen."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 16;
+        gbc.gridx++;
         panel.add(expiryTextField, gbc);
         expiryTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 17;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Replicate To: "), gbc);
         panel.add(createLabelWithBalloon("Replicate To: ", "Wait until the item has been replicated to at least NREPLICAS replica nodes. The bucket must be configured with at least one replica, and at least NREPLICAS replica nodes must be online. -1 is special value, which mean to use all available replicas."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 17;
+        gbc.gridx++;
         panel.add(replicateToTextField, gbc);
         replicateToTextField.getEmptyText().setText("Enter a number -1 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 18;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Lock: "), gbc);
         panel.add(createLabelWithBalloon("Lock: ", "This will retrieve and lock an item before update, making it inaccessible for modification until the update completed, or TIME has passed."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 18;
+        gbc.gridx++;
         panel.add(lockTextField, gbc);
         lockTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 19;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("JSON: "), gbc);
         panel.add(createLabelWithBalloon("JSON: ", "Make pillowfight store document as JSON rather than binary. This will allow the documents to nominally be analyzed by other Couchbase services such as Query and MapReduce."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 19;
+        gbc.gridx++;
         panel.add(jsonComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 20;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("NOOP: "), gbc);
         panel.add(createLabelWithBalloon("NOOP: ", "Use couchbase NOOP operations when running the workload. This mode ignores population, and all other document operations. Useful as the most lightweight workload."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 20;
+        gbc.gridx++;
         panel.add(noopComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 21;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Subdoc: "), gbc);
         panel.add(createLabelWithBalloon("Subdoc: ", "Use couchbase sub-document operations when running the workload. In this mode pillowfight will use Couchbase sub-document operations to perform gets and sets of data. This option must be used with --json"), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 21;
+        gbc.gridx++;
         panel.add(subdocComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 22;
+        gbc.gridx--;
+        gbc.gridy++;
         //panel.add(new JLabel("Pathcount: "), gbc);
         panel.add(createLabelWithBalloon("Pathcount: ", "Specify the number of paths a single sub-document operation should contain. By default, each subdoc operation operates on only a single path within the document. You can specify multiple paths to atomically executed multiple subdoc operations within a single command."), gbc);
 
-        gbc.gridx = 1;
-        gbc.gridy = 22;
+        gbc.gridx++;
         panel.add(pathcountTextField, gbc);
         pathcountTextField.getEmptyText().setText("Enter a number 0 or greater");
 
-        gbc.gridx = 0;
-        gbc.gridy = 23;
+        gbc.gridx--;
+        gbc.gridy++;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         errorMessage = new JLabel("");
         errorMessage.setForeground(Color.decode("#FF4444"));
