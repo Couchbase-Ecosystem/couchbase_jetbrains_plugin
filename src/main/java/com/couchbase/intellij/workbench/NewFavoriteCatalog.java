@@ -20,14 +20,12 @@ import javax.swing.*;
 import java.awt.*;
 
 public class NewFavoriteCatalog extends DialogWrapper {
-    private JTextField textField;
-
-    private JLabel errorLabel;
     private final AnAction anAction;
-
     private final DefaultActionGroup favoriteActionGroup;
     private final ActionToolbar favToolbar;
     private final Document document;
+    private JTextField textField;
+    private JLabel errorLabel;
 
     protected NewFavoriteCatalog(Document document, AnAction anAction, DefaultActionGroup favoriteActionGroup, ActionToolbar favToolbar) {
         super(null);
@@ -88,7 +86,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
                 document.getText()));
 
         SwingUtilities.invokeLater(() -> {
-            AnAction updatedAction = new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-filled.svg")) {
+            AnAction updatedAction = new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-filled.svg", NewFavoriteCatalog.class)) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     //do nothing
@@ -103,7 +101,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
                 public void documentChanged(@NotNull DocumentEvent event) {
                     document.removeDocumentListener(this);
 
-                    AnAction newAction = new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-empty.svg")) {
+                    AnAction newAction = new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-empty.svg", NewFavoriteCatalog.class)) {
                         @Override
                         public void actionPerformed(@NotNull AnActionEvent e) {
                             NewFavoriteCatalog dialog = new NewFavoriteCatalog(document, this, favoriteActionGroup, favToolbar);

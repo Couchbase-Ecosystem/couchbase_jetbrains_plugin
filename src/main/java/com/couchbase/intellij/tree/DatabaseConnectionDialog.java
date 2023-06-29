@@ -8,6 +8,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.doctor.SDKDoctorTableCellRenderer;
 import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -46,10 +47,12 @@ public class DatabaseConnectionDialog extends DialogWrapper {
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
     private JBTable eventLogTable;
+    private Project project;
 
-    public DatabaseConnectionDialog(Tree tree) {
+    public DatabaseConnectionDialog(Project project, Tree tree) {
         super(false);
         this.tree = tree;
+        this.project = project;
         createUIComponents();
 
         init();
@@ -165,7 +168,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
                             usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
                             defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
                     messageLabel.setText("Connection was successful");
-                    TreeActionHandler.connectToCluster(sc, tree, null);
+                    TreeActionHandler.connectToCluster(project, sc, tree, null);
                     close(DialogWrapper.CANCEL_EXIT_CODE);
                 } catch (DuplicatedClusterNameAndUserException cae) {
                     messageLabel.setText("");

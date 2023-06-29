@@ -55,12 +55,12 @@ public class FileUtils {
     //TODO: Not TESTED ON WINDOWS YET
     public static void unzipFile(String zipFilePath, String destDir) throws IOException {
         String osName = System.getProperty("os.name").toLowerCase();
-        String unzipCommand;
 
+        String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = "powershell.exe -nologo -noprofile -command \"Expand-Archive -Path \\\"" + zipFilePath + "\\\" -DestinationPath \\\"" + destDir + "\\\" -Force\"";
+            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path \"" + zipFilePath + "\" -DestinationPath \"" + destDir + "\" -Force"};
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
-            unzipCommand = "unzip -o -q " + zipFilePath + " -d " + destDir;
+            unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePath, "-d", destDir};
         } else {
             throw new UnsupportedOperationException("Unsupported operating system: " + osName);
         }

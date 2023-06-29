@@ -77,18 +77,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         JPanel resultStats = new JPanel();
         resultStats.setLayout(new BorderLayout());
-        resultStats.setBorder(BorderFactory.createEmptyBorder(10, 15, 0, 0));
 
         statusIcon = new JLabel();
         resultStats.add(statusIcon, BorderLayout.WEST);
 
-        GridBagLayout layout = new GridBagLayout();
-        queryStatsPanel = new JPanel(layout);
-        queryStatsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.WEST;
-        c.ipadx = 25;
+        queryStatsPanel = new JPanel(new FlowLayout());
 
         queryStatsList = new ArrayList<>();
         queryLabelsList = new ArrayList<>();
@@ -96,21 +89,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         String[] headers = {"RTT", "ELAPSED", "EXECUTION", "DOCS", "SIZE"};
 
         for (int i = 0; i < headers.length; i++) {
-            c.gridy = 0;
-            c.gridx = 2 * i;
-            JLabel title = new JLabel(getQueryStatHeader(headers[i]));
-            queryLabelsList.add(title);
-            title.setToolTipText(tooltips[i]);
-            queryStatsPanel.add(title, c);
 
-            c.gridy = 1;
-            c.gridx = 2 * i;
+            JLabel title = new JLabel(getQueryStatHeader(headers[i]));
+            title.setToolTipText(tooltips[i]);
+            queryStatsPanel.add(title);
+            queryLabelsList.add(title);
+
             JLabel valueLabel = new JLabel("<html><strong>-</strong></html>");
             valueLabel.setToolTipText(tooltips[i]);
+            valueLabel.setBorder(JBUI.Borders.emptyRight(10));
+            queryStatsPanel.add(valueLabel);
             queryStatsList.add(valueLabel);
-            queryStatsPanel.add(valueLabel, c);
         }
+
+        queryStatsPanel.setVisible(false);
         resultStats.add(queryStatsPanel, BorderLayout.CENTER);
+        resultStats.setBorder(JBUI.Borders.emptyLeft(10));
+
         topPanel.add(resultStats, BorderLayout.WEST);
 
         JPopupMenu popupMenu = new JPopupMenu();
@@ -124,7 +119,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
-        Icon executeIcon = IconLoader.findIcon("./assets/icons/export.svg");
+        Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
         executeGroup.add(new AnAction("Export", "Export", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -193,7 +188,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             }
         };
         clearAction.getTemplatePresentation().setIcon(
-                IconLoader.findIcon("./assets/icons/clear.svg"));
+                IconLoader.getIcon("/assets/icons/clear.svg", QueryResultToolWindowFactory.class));
         actionGroup.add(clearAction);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
@@ -234,7 +229,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     }
 
     private String getQueryStatHeader(String title) {
-        return "<html><small style='font-weight:100'>" + title + "</small></html>";
+        return "<html><strong><small>" + title + ":</small></strong></html>";
+    }
+
+    private String getQueryStatResult(String title) {
+        return "<html><small>" + title + "</small></html>";
     }
 
     public Map<String, Object> jsonObjectToMap(JsonObject jsonObject) {
@@ -278,12 +277,14 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 convertedResults.add(jsonObjectToMap(jsonObject));
             }
 
+            queryStatsPanel.setVisible(true);
             cachedResults = convertedResults;
 
-            statusIcon.setIcon(IconLoader.findIcon("./assets/icons/check_mark_big.svg"));
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(convertedResults)));
 
-            htmlPanel.loadHTML(explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+            String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+            htmlPanel.loadHTML(content);
 
             if (isMutation) {
                 queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
@@ -296,14 +297,14 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             queryStatsPanel.revalidate();
 
             for (int i = 0; i < queryStatsList.size(); i++) {
-                queryStatsList.get(i).setText(queryValues.get(i));
+                queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
             }
 
             model.updateData(convertedResults);
 
         } else {
             cachedResults = null;
-            statusIcon.setIcon(IconLoader.findIcon("./assets/icons/warning-circle-big.svg"));
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
         }
     }
@@ -312,7 +313,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         for (JLabel label : queryStatsList) {
             label.setText("-");
         }
-        statusIcon.setIcon(new AnimatedIcon.Big());
+        statusIcon.setIcon(new AnimatedIcon.Default());
 
         ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
     }

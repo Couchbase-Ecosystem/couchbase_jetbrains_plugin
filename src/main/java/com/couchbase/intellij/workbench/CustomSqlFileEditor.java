@@ -96,7 +96,7 @@ public class CustomSqlFileEditor implements FileEditor {
     private void buildToolbar() {
         DefaultActionGroup executeGroup = new DefaultActionGroup();
 
-        Icon executeIcon = IconLoader.findIcon("./assets/icons/play.svg");
+        Icon executeIcon = IconLoader.getIcon("/assets/icons/play.svg", CustomSqlFileEditor.class);
         executeGroup.add(new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -121,7 +121,7 @@ public class CustomSqlFileEditor implements FileEditor {
 
         executeGroup.addSeparator();
 
-        Icon adviseIcon = IconLoader.findIcon("./assets/icons/advise.svg");
+        Icon adviseIcon = IconLoader.getIcon("/assets/icons/advise.svg", CustomSqlFileEditor.class);
         executeGroup.add(new AnAction("Advise", "Get index recommendations about your query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -137,7 +137,7 @@ public class CustomSqlFileEditor implements FileEditor {
             }
         });
 
-        Icon explainIcon = IconLoader.findIcon("assets/icons/explain.svg");
+        Icon explainIcon = IconLoader.getIcon("/assets/icons/explain.svg", CustomSqlFileEditor.class);
         executeGroup.add(new AnAction("Explain", "Explains the query phases", explainIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -147,7 +147,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (selectionModel.hasSelection()) {
                     editorText = selectionModel.getSelectedText();
                 }
-                
+
                 QueryExecutor.executeQuery(EXPLAIN, editorText, selectedBucketContext, selectedScopeContext,
                         -1, project);
             }
@@ -157,7 +157,7 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.addSeparator();
 
 
-        Icon favoriteList = IconLoader.findIcon("./assets/icons/favorites-list.svg");
+        Icon favoriteList = IconLoader.getIcon("/assets/icons/favorites-list.svg", CustomSqlFileEditor.class);
         executeGroup.add(new AnAction("Favorite List", "List of favorite queries", favoriteList) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -167,7 +167,7 @@ public class CustomSqlFileEditor implements FileEditor {
         });
 
         executeGroup.addSeparator();
-        Icon formatCode = IconLoader.findIcon("./assets/icons/format.svg");
+        Icon formatCode = IconLoader.getIcon("/assets/icons/format.svg", CustomSqlFileEditor.class);
         executeGroup.add(new AnAction("Format Code", "Formats a SQL++ code", formatCode) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -179,8 +179,8 @@ public class CustomSqlFileEditor implements FileEditor {
         ActionToolbar executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
         executeToolbar.setTargetComponent(queryEditor.getComponent());
 
-        Icon leftIcon = IconLoader.findIcon("./assets/icons/chevron-left.svg");
-        Icon rightIcon = IconLoader.findIcon("./assets/icons/chevron-right.svg");
+        Icon leftIcon = IconLoader.getIcon("/assets/icons/chevron-left.svg", CustomSqlFileEditor.class);
+        Icon rightIcon = IconLoader.getIcon("/assets/icons/chevron-right.svg", CustomSqlFileEditor.class);
 
         DefaultActionGroup prevActionGroup = new DefaultActionGroup();
         prevActionGroup.add(new AnAction("Previous History", "Previous history", leftIcon) {
@@ -240,7 +240,7 @@ public class CustomSqlFileEditor implements FileEditor {
         ActionToolbar favToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, favoriteActionGroup, true);
         favToolbar.setTargetComponent(panel);
 
-        favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.findIcon("./assets/icons/star-empty.svg")) {
+        favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-empty.svg", CustomSqlFileEditor.class)) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor.getDocument(), this, favoriteActionGroup, favToolbar);
@@ -280,7 +280,7 @@ public class CustomSqlFileEditor implements FileEditor {
         contextPanel.add(conLabel);
 
         DefaultActionGroup option1Group = new DefaultActionGroup("Set Query Context", true);
-        option1Group.getTemplatePresentation().setIcon(IconLoader.findIcon("./assets/icons/query_context.svg"));
+        option1Group.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg", CustomSqlFileEditor.class));
         DefaultActionGroup option1Action = new DefaultActionGroup(option1Group) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {

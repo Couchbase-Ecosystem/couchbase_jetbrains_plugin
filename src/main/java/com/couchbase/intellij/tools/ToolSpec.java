@@ -1,17 +1,17 @@
 package com.couchbase.intellij.tools;
 
-import java.util.List;
+import java.util.Map;
 
 public class ToolSpec {
 
     private final String url;
     private final String installationPath;
-    private final List<String> toolsList;
+    private final Map<CBTools.Type, String> toolsMap;
 
-    public ToolSpec(String url, String installationPath, List<String> toolsList) {
+    public ToolSpec(String url, String installationPath, Map<CBTools.Type, String> toolsMap) {
         this.url = url;
         this.installationPath = installationPath;
-        this.toolsList = toolsList;
+        this.toolsMap = toolsMap;
     }
 
     public String getUrl() {
@@ -22,7 +22,7 @@ public class ToolSpec {
         return installationPath;
     }
 
-    public List<String> getToolsList() {
-        return toolsList;
+    public Map<CBTools.Type, String> getToolsMap() {
+        return toolsMap;
     }
 }

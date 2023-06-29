@@ -1,5 +1,7 @@
 package com.couchbase.intellij.tree.overview.apis;
 
+import java.math.BigInteger;
+
 public class SystemStats {
 
     private Double cpu_utilization_rate;
@@ -10,7 +12,7 @@ public class SystemStats {
     private Long mem_free;
     private Long mem_limit;
     private Long cpu_cores_available;
-    private Long allocstall;
+    private BigInteger allocstall;
 
     public Double getCpu_utilization_rate() {
         return cpu_utilization_rate;
@@ -76,11 +78,11 @@ public class SystemStats {
         this.cpu_cores_available = cpu_cores_available;
     }
 
-    public Long getAllocstall() {
+    public BigInteger getAllocstall() {
         return allocstall;
     }
 
-    public void setAllocstall(Long allocstall) {
+    public void setAllocstall(BigInteger allocstall) {
         this.allocstall = allocstall;
     }
 }

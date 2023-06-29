@@ -4,8 +4,11 @@
 set timeout -1
 
 # Capture the command from the first argument and the password from the second
-set command [lindex $argv 0]
-set password [lindex $argv 1]
+set command $argv
+set password [lindex $argv end]
+
+# Remove the last element (password) from the list
+set command [lrange $command 0 end-1]
 
 # Launch the process
 eval spawn $command

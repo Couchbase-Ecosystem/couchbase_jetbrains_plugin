@@ -2,12 +2,14 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.listener.GitIgnore;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 
 public class TreeActionHandler {
 
-    public static void connectToCluster(SavedCluster savedCluster, Tree tree, JPanel toolBarPanel) {
+    public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel) {
         tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
@@ -81,7 +83,7 @@ public class TreeActionHandler {
                                 .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
 
                         if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin hasn't been fully tested with versions bellow Couchbase 6.6</html>", "Couchbase Plugin Error"));
+                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
                         }
 
                         if (!CBConfigUtil.hasQueryService(ActiveCluster.getInstance().getServices())) {
@@ -92,6 +94,13 @@ public class TreeActionHandler {
                         Log.error("Could not call the RestAPI to get an overview of the service.", e);
                     }
                 });
+
+                try {
+                    GitIgnore.updateGitIgnore(project);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.error("Could not append cbcache/ folder to .gitignore", e);
+                }
             } catch (Exception e) {
                 SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                         " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));

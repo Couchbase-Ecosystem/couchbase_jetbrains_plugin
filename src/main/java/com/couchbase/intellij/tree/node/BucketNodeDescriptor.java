@@ -7,8 +7,7 @@ public class BucketNodeDescriptor extends NodeDescriptor {
     private String connectionId;
 
     public BucketNodeDescriptor(String name, String connectionId) {
-        super(name, IconLoader.findIcon("assets/icons/bucket.svg", ConnectionNodeDescriptor.class,
-                false, true));
+        super(name, IconLoader.getIcon("/assets/icons/bucket.svg", ConnectionNodeDescriptor.class));
         this.connectionId = connectionId;
     }
 

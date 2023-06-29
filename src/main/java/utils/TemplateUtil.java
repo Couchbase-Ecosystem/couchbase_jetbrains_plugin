@@ -5,6 +5,9 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 public class TemplateUtil {
 
@@ -108,6 +111,13 @@ public class TemplateUtil {
         hours = hours % 24;
 
         return String.format("%d days %d hours %d minutes", days, hours, minutes);
+    }
+
+    public static String formatNumber(long number) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
+        symbols.setGroupingSeparator('.');
+        DecimalFormat formatter = new DecimalFormat("###,###", symbols);
+        return formatter.format(number);
     }
 
 }

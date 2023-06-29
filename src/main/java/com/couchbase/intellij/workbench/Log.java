@@ -5,6 +5,9 @@ import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.ProjectManager;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 public class Log {
 
     //1 - errors, 2 - errors and info, 3-debug,infos,errors
@@ -37,32 +40,30 @@ public class Log {
 
     public static void error(Class c, String message, Exception e) {
 
-        String exception = getCause(e);
+        String exception = convertToString(e);
         getLogger().print("\n" + c.getSimpleName() + ":" + message + " error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     public static void error(Exception e) {
 
-        String exception = getCause(e);
+        String exception = convertToString(e);
         getLogger().print("\n" + "error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
-    private static String getCause(Exception e) {
-        String exception;
-        if (e.getCause() != null) {
-            exception = e.getCause().getMessage();
-        } else {
-            exception = e.getMessage();
-        }
-        return exception;
-    }
-
     public static void error(String message, Exception e) {
-        getLogger().print("\n" + message + " error: " + getCause(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        getLogger().print("\n" + message + " error: " + convertToString(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
     public static void error(String message) {
         getLogger().print("\n" + message, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
+    private static String convertToString(Exception e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        String stackTrace = sw.toString();
+        pw.close();
+        return stackTrace;
+    }
 }

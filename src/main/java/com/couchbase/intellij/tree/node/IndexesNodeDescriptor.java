@@ -9,7 +9,7 @@ public class IndexesNodeDescriptor extends NodeDescriptor {
     private final String collection;
 
     public IndexesNodeDescriptor(String bucket, String scope, String collection) {
-        super("Indexes", IconLoader.findIcon("./assets/icons/indexes.svg"));
+        super("Indexes", IconLoader.getIcon("/assets/icons/indexes.svg", IndexesNodeDescriptor.class));
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;

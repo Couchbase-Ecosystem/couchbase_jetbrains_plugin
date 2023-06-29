@@ -64,7 +64,7 @@ public class CBImport {
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(true);
                     try {
-                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + "." + collection, "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
+                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getTool(CBTools.Type.CB_IMPORT).getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + "." + collection, "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
 
                         if (createIndexes) {
                             createIndexes(meta, bucket, scope, originalCol, collection);
@@ -143,7 +143,7 @@ public class CBImport {
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(true);
                     try {
-                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getCbImport().getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + ".%cbmc%", "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
+                        ProcessBuilder processBuilder = new ProcessBuilder(CBTools.getTool(CBTools.Type.CB_IMPORT).getPath(), "json", "--no-ssl-verify", "-c", ActiveCluster.getInstance().getClusterURL(), "-u", ActiveCluster.getInstance().getUsername(), "-p", ActiveCluster.getInstance().getPassword(), "-b", bucket, "--format", "list", "-d", "file://" + filePath, "--scope-collection-exp", scope + ".%cbmc%", "-g", "%cbmid%", "--ignore-fields", "cbmid,cbms,cbmc", "-t", "4");
 
                         if (createIndexes) {
                             createIndexes(meta, bucket, scope, skippedCollections);
@@ -204,9 +204,7 @@ public class CBImport {
         for (String s : idxArray) {
             if (s.contains(colPath)) {
                 s = s.replace(colPath, "`" + bucket + "`.`" + scope + "`.`" + newCol + "`");
-            }
-
-            if (s.contains(bucketPath)) {
+            } else if (s.contains(bucketPath)) {
                 s = s.replace(bucketPath, "`" + bucket + "`.`" + scope + "`.`" + newCol + "`");
             }
 
