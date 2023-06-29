@@ -983,14 +983,21 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx--;
         gbc.gridy++;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
-        JPanel collapsiblePanel = new JPanel();
-        collapsiblePanel.setLayout(new BoxLayout(collapsiblePanel, BoxLayout.Y_AXIS));
+        JPanel collapsiblePanel = new JPanel(new GridBagLayout());
+
+        GridBagConstraints gbcCollapsable = new GridBagConstraints();
+        gbcCollapsable.gridx = 0;
+        gbcCollapsable.gridy = 0;
+        gbcCollapsable.insets = JBUI.insets(5);
+        gbcCollapsable.anchor = GridBagConstraints.WEST;
+        gbcCollapsable.fill = GridBagConstraints.HORIZONTAL;
+
         collapsiblePanel.setBorder(BorderFactory.createTitledBorder("Advanced Options"));
-        collapsiblePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         collapsiblePanel.setVisible(false);
 
-        collapsiblePanel.add(new Label("Test 1"));
-        collapsiblePanel.add(new Label("Test 2"));
+        collapsiblePanel.add(new Label("Test 1"), gbcCollapsable);
+        gbcCollapsable.gridx = 1;
+        collapsiblePanel.add(new Label("Test 2"), gbcCollapsable);
 
         JButton toggleButton = new JButton("Show Advanced Options");
         toggleButton.addActionListener(e -> {
