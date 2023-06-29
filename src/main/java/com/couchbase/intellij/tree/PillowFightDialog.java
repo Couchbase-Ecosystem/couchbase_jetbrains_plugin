@@ -11,6 +11,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.manager.bucket.BucketManager;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.github.CloneDemoRepo;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.ui.ComboBox;
@@ -49,6 +50,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.openapi.ui.popup.Balloon;
+
+import static utils.ProcessUtils.printOutput;
 
 public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
@@ -1194,8 +1197,7 @@ public class PillowFightDialog extends DialogWrapper {
     }
 
     public void PillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField, String batchSizeTextField, String numberItemsTextField, String keyPrefixTextField, String numberThreadsTextField, String percentageTextField, String noPopulation, String populateOnly, String minSizeTextField, String maxSizeTextField, String numberCyclesTextField, String sequential, String startAtTextField, String timings, String expiryTextField, String replicateToTextField, String lockTextField, String json, String noop, String subdoc, String pathcountTextField) throws IOException, InterruptedException {
-        Runtime rt = Runtime.getRuntime();
-
+        /*
         if (selectedPersistToTextField.isEmpty()) {
             selectedPersistToTextField = "";
         } else {
@@ -1246,13 +1248,11 @@ public class PillowFightDialog extends DialogWrapper {
         } else {
             maxSizeTextField = " --max-size " + maxSizeTextField;
         }
-        /*
         if (pauseAtEnd.equals("enable")) {
             pauseAtEnd = "--pause-at-end";
         } else {
             pauseAtEnd = "";
         }
-        */
         if (sequential.equals("enable")) {
             sequential = " --sequential";
         } else {
@@ -1309,10 +1309,106 @@ public class PillowFightDialog extends DialogWrapper {
             numberCyclesTextField = " --num-cycles " + numberCyclesTextField;
         }
 
-        String command = String.format("cbc-pillowfight -U %s/%s -u %s -P %s --durability %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
-        //System.out.println(command);
-        Process proc = rt.exec(command);
-        //System.out.println(proc);
+        String path = CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getPath();
+        System.out.println(path);
+        String command = String.format(" -U %s/%s -u %s -P %s --durability %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", ActiveCluster.getInstance().getClusterURL(), selectedBucket, ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword(), selectedDurability, selectedPersistToTextField, batchSizeTextField, numberItemsTextField, keyPrefixTextField, numberThreadsTextField, percentageTextField, noPopulation, populateOnly, minSizeTextField, maxSizeTextField, numberCyclesTextField, sequential, startAtTextField, timings, expiryTextField, replicateToTextField, lockTextField, json, noop, subdoc, pathcountTextField);
+        System.out.println(command);
+        ProcessBuilder processBuilder = new ProcessBuilder(path, command);
+        Process proc = processBuilder.start();
+        */
+        List<String> command = new ArrayList<>();
+        command.add(CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getPath());
+        command.add("-U");
+        command.add(String.format("%s/%s", ActiveCluster.getInstance().getClusterURL(), selectedBucket));
+        command.add("-u");
+        command.add(ActiveCluster.getInstance().getUsername());
+        command.add("-P");
+        command.add(ActiveCluster.getInstance().getPassword());
+        command.add("--durability");
+        command.add(selectedDurability);
+
+        if (!selectedPersistToTextField.isEmpty()) {
+            command.add("--persist-to");
+            command.add(selectedPersistToTextField);
+        }
+        if (!batchSizeTextField.isEmpty()) {
+            command.add("--batch-size");
+            command.add(batchSizeTextField);
+        }
+        if (!numberItemsTextField.isEmpty()) {
+            command.add("--num-items");
+            command.add(numberItemsTextField);
+        }
+        if (!keyPrefixTextField.isEmpty()) {
+            command.add("--key-prefix");
+            command.add(keyPrefixTextField);
+        }
+        if (!numberThreadsTextField.isEmpty()) {
+            command.add("--num-threads");
+            command.add(numberThreadsTextField);
+        }
+        if (!percentageTextField.isEmpty()) {
+            command.add("--set-pct");
+            command.add(percentageTextField);
+        }
+        if (noPopulation.equals("enable")) {
+            command.add("--no-population");
+        }
+        if (populateOnly.equals("enable")) {
+            command.add(" --populate-only");
+        }
+        if (!minSizeTextField.isEmpty()) {
+            command.add("--min-size");
+            command.add(minSizeTextField);
+        }
+        if (!maxSizeTextField.isEmpty()) {
+            command.add("--max-size");
+            command.add(maxSizeTextField);
+        }
+        if (sequential.equals("enable")) {
+            command.add("--sequential");
+        }
+        if (!startAtTextField.isEmpty()) {
+            command.add("--start-at");
+            command.add(startAtTextField);
+        }
+        if (timings.equals("enable")) {
+            command.add("--timings");
+        }
+        if (!expiryTextField.isEmpty()) {
+            command.add("--expiry");
+            command.add(expiryTextField);
+        }
+        if (!replicateToTextField.isEmpty()) {
+            command.add("--replicate-to");
+            command.add(replicateToTextField);
+        }
+        if (!lockTextField.isEmpty()) {
+            command.add("--lock");
+            command.add(lockTextField);
+        }
+        if (json.equals("enable")) {
+            command.add("--json");
+        }
+        if (noop.equals("enable")) {
+            command.add(" --noop");
+        }
+        if (subdoc.equals("enable")) {
+            command.add("--subdoc");
+        }
+        if (!pathcountTextField.isEmpty()) {
+            command.add("--pathcount");
+            command.add(pathcountTextField);
+        }
+        if (!numberCyclesTextField.isEmpty()) {
+            command.add("--num-cycles");
+            command.add(numberCyclesTextField);
+        }
+
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        Process proc = processBuilder.start();
+
+        //System.out.println("Executed command: " + String.join(" ", processBuilder.command()));
 
         StopButtonDialog stopButtonDialog = new StopButtonDialog(proc);
         stopButtonDialog.setVisible(true);
