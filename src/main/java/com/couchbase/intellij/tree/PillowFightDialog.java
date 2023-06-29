@@ -1327,27 +1327,27 @@ public class PillowFightDialog extends DialogWrapper {
         command.add("--durability");
         command.add(selectedDurability);
 
-        if (!selectedPersistToTextField.isEmpty()) {
+        if (!selectedPersistToTextField.trim().isEmpty()) {
             command.add("--persist-to");
             command.add(selectedPersistToTextField);
         }
-        if (!batchSizeTextField.isEmpty()) {
+        if (!batchSizeTextField.trim().isEmpty()) {
             command.add("--batch-size");
             command.add(batchSizeTextField);
         }
-        if (!numberItemsTextField.isEmpty()) {
+        if (!numberItemsTextField.trim().isEmpty()) {
             command.add("--num-items");
             command.add(numberItemsTextField);
         }
-        if (!keyPrefixTextField.isEmpty()) {
+        if (!keyPrefixTextField.trim().isEmpty()) {
             command.add("--key-prefix");
             command.add(keyPrefixTextField);
         }
-        if (!numberThreadsTextField.isEmpty()) {
+        if (!numberThreadsTextField.trim().isEmpty()) {
             command.add("--num-threads");
             command.add(numberThreadsTextField);
         }
-        if (!percentageTextField.isEmpty()) {
+        if (!percentageTextField.trim().isEmpty()) {
             command.add("--set-pct");
             command.add(percentageTextField);
         }
@@ -1357,33 +1357,33 @@ public class PillowFightDialog extends DialogWrapper {
         if (populateOnly.equals("enable")) {
             command.add(" --populate-only");
         }
-        if (!minSizeTextField.isEmpty()) {
+        if (!minSizeTextField.trim().isEmpty()) {
             command.add("--min-size");
             command.add(minSizeTextField);
         }
-        if (!maxSizeTextField.isEmpty()) {
+        if (!maxSizeTextField.trim().isEmpty()) {
             command.add("--max-size");
             command.add(maxSizeTextField);
         }
         if (sequential.equals("enable")) {
             command.add("--sequential");
         }
-        if (!startAtTextField.isEmpty()) {
+        if (!startAtTextField.trim().isEmpty()) {
             command.add("--start-at");
             command.add(startAtTextField);
         }
         if (timings.equals("enable")) {
             command.add("--timings");
         }
-        if (!expiryTextField.isEmpty()) {
+        if (!expiryTextField.trim().isEmpty()) {
             command.add("--expiry");
             command.add(expiryTextField);
         }
-        if (!replicateToTextField.isEmpty()) {
+        if (!replicateToTextField.trim().isEmpty()) {
             command.add("--replicate-to");
             command.add(replicateToTextField);
         }
-        if (!lockTextField.isEmpty()) {
+        if (!lockTextField.trim().isEmpty()) {
             command.add("--lock");
             command.add(lockTextField);
         }
@@ -1396,11 +1396,11 @@ public class PillowFightDialog extends DialogWrapper {
         if (subdoc.equals("enable")) {
             command.add("--subdoc");
         }
-        if (!pathcountTextField.isEmpty()) {
+        if (!pathcountTextField.trim().isEmpty()) {
             command.add("--pathcount");
             command.add(pathcountTextField);
         }
-        if (!numberCyclesTextField.isEmpty()) {
+        if (!numberCyclesTextField.trim().isEmpty()) {
             command.add("--num-cycles");
             command.add(numberCyclesTextField);
         }
