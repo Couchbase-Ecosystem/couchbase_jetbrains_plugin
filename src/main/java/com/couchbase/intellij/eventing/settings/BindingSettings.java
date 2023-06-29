@@ -8,11 +8,14 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -22,6 +25,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
+import javax.swing.UIManager;
 
 import com.couchbase.intellij.eventing.components.CustomComboBox;
 import com.intellij.openapi.util.IconLoader;
@@ -217,6 +221,17 @@ public class BindingSettings {
                 bucketAliasNameField = new JBTextField(20);
                 bucketAliasNameField.setToolTipText("Enter the alias name.");
                 bucketAliasNameField.getEmptyText().setText("Enter the alias name.");
+                bucketAliasNameField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateBucketAliasName()) {
+                            bucketAliasNameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            bucketAliasNameField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
                 aliasGbc.gridx = 0;
                 aliasGbc.gridy = 0;
                 aliasGbc.gridwidth = 4;
@@ -271,12 +286,23 @@ public class BindingSettings {
                 aliasGbc.gridy = 2;
                 aliasPanel.add(accessComboBox, aliasGbc);
 
-                aliasPanel.setPreferredSize(new Dimension(500, 120));
+                aliasPanel.setPreferredSize(new Dimension(500, 150));
 
             } else if (selectedBindingType.equals("URL Alias")) {
                 urlAliasNameField = new JBTextField(20);
                 urlAliasNameField.setToolTipText("Enter the alias name.");
                 urlAliasNameField.getEmptyText().setText("Enter the alias name.");
+                urlAliasNameField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateUrlAliasName()) {
+                            urlAliasNameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            urlAliasNameField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
                 aliasGbc.gridx = 0;
                 aliasGbc.gridy = 0;
                 aliasPanel.add(urlAliasNameField, aliasGbc);
@@ -284,6 +310,17 @@ public class BindingSettings {
                 urlField = new JBTextField(20);
                 urlField.setToolTipText("Enter the URL.");
                 urlField.getEmptyText().setText("Enter the URL.");
+                urlField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateUrl()) {
+                            urlField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            urlField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 0;
                 aliasPanel.add(urlField, aliasGbc);
@@ -347,6 +384,18 @@ public class BindingSettings {
                 usernameField.getEmptyText().setText("Enter the username.");
                 usernameField.setVisible(false);
                 usernameField.setEnabled(false);
+                usernameField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateUsername()) {
+                            usernameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            usernameField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
+
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 3;
                 aliasPanel.add(usernameField, aliasGbc);
@@ -385,6 +434,7 @@ public class BindingSettings {
                 bearerKeyLabel.setDisplayedMnemonicIndex(0);
                 bearerKeyLabel.setHorizontalAlignment(JBTextField.LEFT);
                 bearerKeyLabel.setVerticalAlignment(JBTextField.CENTER);
+
                 bearerKeyLabel.setHorizontalTextPosition(JBTextField.RIGHT);
                 bearerKeyLabel.setVerticalTextPosition(JBTextField.CENTER);
                 bearerKeyLabel.setVisible(false);
@@ -399,6 +449,17 @@ public class BindingSettings {
                 bearerKeyField.getEmptyText().setText("Enter the bearer key.");
                 bearerKeyField.setVisible(false);
                 bearerKeyField.setEnabled(false);
+                bearerKeyField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateBearerKey()) {
+                            bearerKeyField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            bearerKeyField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 3; // should be in the same row as usernameField
                 aliasPanel.add(bearerKeyField, aliasGbc);
@@ -465,6 +526,17 @@ public class BindingSettings {
                 constantAliasNameField = new JBTextField(20);
                 constantAliasNameField.setToolTipText("Enter the alias name.");
                 constantAliasNameField.getEmptyText().setText("Enter the alias name.");
+                constantAliasNameField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateConstantAliasName()) {
+                            constantAliasNameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            constantAliasNameField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 0;
                 aliasPanel.add(constantAliasNameField, aliasGbc);
@@ -477,11 +549,22 @@ public class BindingSettings {
                 constantValueField = new JBTextField(20);
                 constantValueField.setToolTipText("Enter the constant value.");
                 constantValueField.getEmptyText().setText("Enter the constant value.");
+                constantValueField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        validateForm();
+                        if (!validateConstantValue()) {
+                            constantValueField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                        } else {
+                            constantValueField.setBorder(UIManager.getBorder("TextField.border"));
+                        }
+                    }
+                });
                 aliasGbc.gridx = 1;
                 aliasGbc.gridy = 1;
                 aliasPanel.add(constantValueField, aliasGbc);
 
-                aliasPanel.setPreferredSize(new Dimension(500, 80));
+                aliasPanel.setPreferredSize(new Dimension(500, 120));
 
             }
 
@@ -574,4 +657,85 @@ public class BindingSettings {
         return bindingsPanel;
     }
 
+    private void validateForm() {
+        // Validate all the fields in all the aliasPanels
+        for (JPanel aliasPanel : aliasPanels) {
+            if (!validateBucketAliasName()) {
+                bucketAliasNameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                bucketAliasNameField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+
+            if (!validateUrlAliasName()) {
+                urlAliasNameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                urlAliasNameField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+
+            if (!validateUrl()) {
+                urlField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                urlField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+
+            if (!validateUsername()) {
+                usernameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                usernameField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+
+            if (!validateBearerKey()) {
+                bearerKeyField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                bearerKeyField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+
+            if (!validateConstantAliasName()) {
+                constantAliasNameField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                constantAliasNameField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+
+            if (!validateConstantValue()) {
+                constantValueField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+            } else {
+                constantValueField.setBorder(UIManager.getBorder("TextField.border"));
+            }
+        }
+    }
+
+    private boolean validateBucketAliasName() {
+        String aliasName = bucketAliasNameField.getText();
+        return aliasName != null && !aliasName.trim().isEmpty();
+    }
+
+    private boolean validateUrlAliasName() {
+        String aliasName = urlAliasNameField.getText();
+        return aliasName != null && !aliasName.trim().isEmpty();
+    }
+
+    private boolean validateUrl() {
+        String url = urlField.getText();
+        return url != null && !url.trim().isEmpty();
+    }
+
+    private boolean validateUsername() {
+        String username = usernameField.getText();
+        return username != null && !username.trim().isEmpty();
+    }
+
+    private boolean validateBearerKey() {
+        String bearerKey = bearerKeyField.getText();
+        return bearerKey != null && !bearerKey.trim().isEmpty();
+    }
+
+    private boolean validateConstantAliasName() {
+        String aliasName = constantAliasNameField.getText();
+        return aliasName != null && !aliasName.trim().isEmpty();
+    }
+
+    private boolean validateConstantValue() {
+        String value = constantValueField.getText();
+        return value != null && !value.trim().isEmpty();
+    }
 }

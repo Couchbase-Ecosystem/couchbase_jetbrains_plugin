@@ -1,17 +1,29 @@
+
 package com.couchbase.intellij.eventing.settings;
 
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.UIManager;
+import javax.swing.text.NumberFormatter;
 
-import com.intellij.ui.JBColor;
+import com.couchbase.intellij.eventing.components.HelpIcon;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.ui.components.JBTextField;
 
 public class AdvancedSettings {
 
@@ -22,28 +34,22 @@ public class AdvancedSettings {
         private JPanel languageCompatibilityPanel;
         private JPanel scriptTimeoutPanel;
         private JPanel timerContextMaxSizePanel;
+        private JPanel errorPanel;
 
         private JBLabel systemLogLevelLabel;
-        private JBLabel systemLogLevelInfoLabel;
-        private JBLabel applicationLogFileLabel;
         private JBLabel n1qlConsistencyLabel;
-        private JBLabel n1qlConsistencyInfoLabel;
         private JBLabel workersLabel;
-        private JBLabel workersInfoLabel;
         private JBLabel languageCompatibilityLabel;
-        private JBLabel languageCompatibilityInfoLabel;
         private JBLabel scriptTimeoutLabel;
-        private JBLabel scriptTimeoutInfoLabel;
         private JBLabel timerContextMaxSizeLabel;
-        private JBLabel timerContextMaxSizeInfoLabel;
 
         private JComboBox<String> systemLogLevelComboBox;
         private JComboBox<String> n1qlConsistencyComboBox;
         private JComboBox<String> languageCompatibilityComboBox;
 
-        private JBTextField workersField;
-        private JBTextField scriptTimeoutField;
-        private JBTextField timerContextMaxSizeField;
+        private JFormattedTextField workersField;
+        private JFormattedTextField scriptTimeoutField;
+        private JFormattedTextField timerContextMaxSizeField;
 
         public AdvancedSettings() {
                 // Advanced Settings panel
@@ -60,22 +66,12 @@ public class AdvancedSettings {
                 // Add components to the Advanced Settings panel
                 systemLogLevelLabel = new JBLabel("System Log Level");
                 systemLogLevelLabel.setFont(systemLogLevelLabel.getFont().deriveFont(Font.BOLD));
-                // advancedSettingsPanelConstraints.gridx = 0;
-                // advancedSettingsPanelConstraints.gridy = 0;
-                // advancedSettingsPanel.add(systemLogLevelLabel,
-                // advancedSettingsPanelConstraints);
-
-                systemLogLevelInfoLabel = new JBLabel("Granularity of system events being captured in the log");
-                systemLogLevelInfoLabel.setForeground(JBColor.GRAY);
-                // advancedSettingsPanelConstraints.gridx = 1;
-                // advancedSettingsPanelConstraints.gridy = 0;
-                // advancedSettingsPanel.add(systemLogLevelInfoLabel,
-                // advancedSettingsPanelConstraints);
 
                 // Add both the labels to a panel
                 systemLogLevelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 systemLogLevelPanel.add(systemLogLevelLabel);
-                systemLogLevelPanel.add(systemLogLevelInfoLabel);
+                systemLogLevelPanel
+                                .add(HelpIcon.createHelpIcon("Granularity of system events being captured in the log"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 0;
                 advancedSettingsPanel.add(systemLogLevelPanel, advancedSettingsPanelConstraints);
@@ -90,31 +86,14 @@ public class AdvancedSettings {
                 advancedSettingsPanelConstraints.gridy = 1;
                 advancedSettingsPanel.add(systemLogLevelComboBox, advancedSettingsPanelConstraints);
 
-                applicationLogFileLabel = new JBLabel(
-                                "Application log file for this Function is at:");
-
-                advancedSettingsPanelConstraints.gridx = 0;
-                advancedSettingsPanelConstraints.gridy = 2;
-                advancedSettingsPanel.add(applicationLogFileLabel, advancedSettingsPanelConstraints);
-
                 n1qlConsistencyLabel = new JBLabel("N1QL Consistency");
                 n1qlConsistencyLabel.setFont(n1qlConsistencyLabel.getFont().deriveFont(Font.BOLD));
-                // advancedSettingsPanelConstraints.gridx = 0;
-                // advancedSettingsPanelConstraints.gridy = 3;
-                // advancedSettingsPanel.add(n1qlConsistencyLabel,
-                // advancedSettingsPanelConstraints);
-
-                n1qlConsistencyInfoLabel = new JBLabel("Consistency level of N1QL statements in the function");
-                n1qlConsistencyInfoLabel.setForeground(JBColor.GRAY);
-                // advancedSettingsPanelConstraints.gridx = 1;
-                // advancedSettingsPanelConstraints.gridy = 3;
-                // advancedSettingsPanel.add(n1qlConsistencyInfoLabel,
-                // advancedSettingsPanelConstraints);
 
                 // Add both the labels to a panel
                 n1qlConsistencyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 n1qlConsistencyPanel.add(n1qlConsistencyLabel);
-                n1qlConsistencyPanel.add(n1qlConsistencyInfoLabel);
+                n1qlConsistencyPanel
+                                .add(HelpIcon.createHelpIcon("Consistency level of N1QL statements in the function:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 3;
                 advancedSettingsPanel.add(n1qlConsistencyPanel, advancedSettingsPanelConstraints);
@@ -129,52 +108,57 @@ public class AdvancedSettings {
 
                 workersLabel = new JBLabel("Workers");
                 workersLabel.setFont(workersLabel.getFont().deriveFont(Font.BOLD));
-                // advancedSettingsPanelConstraints.gridx = 0;
-                // advancedSettingsPanelConstraints.gridy = 5;
-                // advancedSettingsPanel.add(workersLabel, advancedSettingsPanelConstraints);
-
-                workersInfoLabel = new JBLabel(
-                                "Number of workers per node to process the events. If no value is specified, a default value of 1 worker is used.");
-                workersInfoLabel.setForeground(JBColor.GRAY);
-                // advancedSettingsPanelConstraints.gridx = 1;
-                // advancedSettingsPanelConstraints.gridy = 5;
-                // advancedSettingsPanel.add(workersInfoLabel,
-                // advancedSettingsPanelConstraints);
 
                 // Add both the labels to a panel
                 workersPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 workersPanel.add(workersLabel);
-                workersPanel.add(workersInfoLabel);
+                workersPanel.add(HelpIcon.createHelpIcon("Number of workers per node to process the events:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 5;
                 advancedSettingsPanel.add(workersPanel, advancedSettingsPanelConstraints);
 
-                workersField = new JBTextField(20);
+                NumberFormat format = NumberFormat.getInstance();
+                NumberFormatter formatter = new NumberFormatter(format);
+                formatter.setValueClass(Integer.class);
+                formatter.setMinimum(0);
+                formatter.setMaximum(Integer.MAX_VALUE);
+                formatter.setAllowsInvalid(false);
+                formatter.setCommitsOnValidEdit(true);
+
+                workersField = new JFormattedTextField(formatter);
+                workersField.setColumns(20);
+                workersField.setValue(1);
                 workersField.setToolTipText("Enter the number of workers per node to process the events.");
-                workersField.setText("1");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 6;
+                advancedSettingsPanelConstraints.gridwidth = 3;
                 advancedSettingsPanel.add(workersField, advancedSettingsPanelConstraints);
 
+                // Add a focus listener to the workersField
+                workersField.addFocusListener(new FocusAdapter() {
+                        @Override
+                        public void focusLost(FocusEvent e) {
+                                validateForm(); // Validate the form for error generation
+                                // Validate the worker count
+                                if (!validateWorkerCount()) {
+                                        // Worker count is invalid, so set the border and label to red
+                                        workersField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                                        workersLabel.setForeground(Color.decode("#FF4444"));
+                                } else {
+                                        // Worker count is valid, so set the border and label back to their normal state
+                                        workersField.setBorder(UIManager.getBorder("TextField.border"));
+                                        workersLabel.setForeground(UIManager.getColor("Label.foreground"));
+                                }
+                        }
+                });
+
                 languageCompatibilityLabel = new JBLabel("Language compatibility");
-
                 languageCompatibilityLabel.setFont(languageCompatibilityLabel.getFont().deriveFont(Font.BOLD));
-                // advancedSettingsPanelConstraints.gridx = 0;
-                // advancedSettingsPanelConstraints.gridy = 7;
-                // advancedSettingsPanel.add(languageCompatibilityLabel,
-                // advancedSettingsPanelConstraints);
-
-                languageCompatibilityInfoLabel = new JBLabel("Language compatibility of the function");
-                languageCompatibilityInfoLabel.setForeground(JBColor.GRAY);
-                // advancedSettingsPanelConstraints.gridx = 1;
-                // advancedSettingsPanelConstraints.gridy = 7;
-                // advancedSettingsPanel.add(languageCompatibilityInfoLabel,
-                // advancedSettingsPanelConstraints);
 
                 // Add both the labels to a panel
                 languageCompatibilityPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 languageCompatibilityPanel.add(languageCompatibilityLabel);
-                languageCompatibilityPanel.add(languageCompatibilityInfoLabel);
+                languageCompatibilityPanel.add(HelpIcon.createHelpIcon("Language compatibility of the function:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 7;
                 advancedSettingsPanel.add(languageCompatibilityPanel, advancedSettingsPanelConstraints);
@@ -188,71 +172,184 @@ public class AdvancedSettings {
                 advancedSettingsPanel.add(languageCompatibilityComboBox, advancedSettingsPanelConstraints);
 
                 scriptTimeoutLabel = new JBLabel("Script Timeout");
-
                 scriptTimeoutLabel.setFont(scriptTimeoutLabel.getFont().deriveFont(Font.BOLD));
-                // advancedSettingsPanelConstraints.gridx = 0;
-                // advancedSettingsPanelConstraints.gridy = 9;
-                // advancedSettingsPanel.add(scriptTimeoutLabel,
-                // advancedSettingsPanelConstraints);
-
-                scriptTimeoutInfoLabel = new JBLabel(
-                                "Time after which the Function's execution will be timed out");
-                scriptTimeoutInfoLabel.setForeground(JBColor.GRAY);
-                // advancedSettingsPanelConstraints.gridx = 1;
-                // advancedSettingsPanelConstraints.gridy = 9;
-                // advancedSettingsPanel.add(scriptTimeoutInfoLabel,
-                // advancedSettingsPanelConstraints);
 
                 // Add both the labels to a panel
                 scriptTimeoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 scriptTimeoutPanel.add(scriptTimeoutLabel);
-                scriptTimeoutPanel.add(scriptTimeoutInfoLabel);
+                scriptTimeoutPanel.add(HelpIcon
+                                .createHelpIcon("Time after which the Function's execution will be timed out:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 9;
                 advancedSettingsPanel.add(scriptTimeoutPanel, advancedSettingsPanelConstraints);
 
-                scriptTimeoutField = new JBTextField(20);
-                scriptTimeoutField.setText("60");
+                scriptTimeoutField = new JFormattedTextField(formatter);
+                scriptTimeoutField.setColumns(20);
+                scriptTimeoutField.setValue(60);
                 scriptTimeoutField.setToolTipText(
                                 "Enter the time after which the Function's execution will be timed out.");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 10;
+                advancedSettingsPanelConstraints.gridwidth = 3;
                 advancedSettingsPanel.add(scriptTimeoutField, advancedSettingsPanelConstraints);
 
+                // Add a focus listener to the scriptTimeoutField
+                scriptTimeoutField.addFocusListener(new FocusAdapter() {
+                        @Override
+                        public void focusLost(FocusEvent e) {
+                                validateForm(); // Validate the form for error generation
+                                // Validate the script timeout
+                                if (!validateScriptTimeout()) {
+                                        // Script timeout is invalid, so set the border and label to red
+                                        scriptTimeoutField.setBorder(
+                                                        BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                                        scriptTimeoutLabel.setForeground(Color.decode("#FF4444"));
+                                } else {
+                                        // Script timeout is valid, so set the border and label back to their normal
+                                        // state
+                                        scriptTimeoutField.setBorder(UIManager.getBorder("TextField.border"));
+                                        scriptTimeoutLabel.setForeground(UIManager.getColor("Label.foreground"));
+                                }
+                        }
+                });
+
                 timerContextMaxSizeLabel = new JBLabel("Timer Context Max Size");
-
                 timerContextMaxSizeLabel.setFont(timerContextMaxSizeLabel.getFont().deriveFont(Font.BOLD));
-                // advancedSettingsPanelConstraints.gridx = 0;
-                // advancedSettingsPanelConstraints.gridy = 11;
-                // advancedSettingsPanel.add(timerContextMaxSizeLabel,
-                // advancedSettingsPanelConstraints);
-
-                timerContextMaxSizeInfoLabel = new JBLabel(
-                                "Maximum allowed value of the Timer Context Size in Bytes. Takes effect immediately.");
-                timerContextMaxSizeInfoLabel.setForeground(JBColor.GRAY);
-                // advancedSettingsPanelConstraints.gridx = 1;
-                // advancedSettingsPanelConstraints.gridy = 11;
-                // advancedSettingsPanel.add(timerContextMaxSizeInfoLabel,
-                // advancedSettingsPanelConstraints);
 
                 // Add both the labels to a panel
                 timerContextMaxSizePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 timerContextMaxSizePanel.add(timerContextMaxSizeLabel);
-                timerContextMaxSizePanel.add(timerContextMaxSizeInfoLabel);
+                timerContextMaxSizePanel.add(HelpIcon.createHelpIcon(
+                                "Timer Context Size in Bytes. If the size of the Timer Context exceeds this value, the Timer Context will be cleared"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 11;
                 advancedSettingsPanel.add(timerContextMaxSizePanel, advancedSettingsPanelConstraints);
-
-                timerContextMaxSizeField = new JBTextField(20);
-                timerContextMaxSizeField.setText("1024");
-                timerContextMaxSizeField.setToolTipText(
-                                "Enter the maximum allowed value of the Timer Context Size in Bytes.");
+                timerContextMaxSizeField = new JFormattedTextField(formatter);
+                timerContextMaxSizeField.setColumns(20);
+                timerContextMaxSizeField.setValue(1024);
+                timerContextMaxSizeField
+                                .setToolTipText("Enter the maximum allowed value of the Timer Context Size in Bytes.");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 12;
                 advancedSettingsPanel.add(timerContextMaxSizeField, advancedSettingsPanelConstraints);
+
+                // Add a focus listener to the timerContextMaxSizeField
+                timerContextMaxSizeField.addFocusListener(new FocusAdapter() {
+                        @Override
+                        public void focusLost(FocusEvent e) {
+                                validateForm(); // Validate the form for error generation
+                                // Validate the timer context max size
+                                if (!validateTimerContextMaxSize()) {
+                                        // Timer context max size is invalid, so set the border and label to red
+                                        timerContextMaxSizeField.setBorder(
+                                                        BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                                        timerContextMaxSizeLabel.setForeground(Color.decode("#FF4444"));
+                                } else {
+                                        // Timer context max size is valid, so set the border and label back to their
+                                        // normal state
+                                        timerContextMaxSizeField.setBorder(UIManager.getBorder("TextField.border"));
+                                        timerContextMaxSizeLabel.setForeground(UIManager.getColor("Label.foreground"));
+                                }
+                        }
+                });
+
+                errorPanel = new JPanel();
+                errorPanel.setLayout(new BoxLayout(errorPanel, BoxLayout.Y_AXIS));
+
+                // Add the error panel to the advanced settings panel
+                advancedSettingsPanelConstraints.gridx = 0;
+                advancedSettingsPanelConstraints.gridy = 13;
+                advancedSettingsPanelConstraints.gridwidth = 3;
+                advancedSettingsPanel.add(errorPanel, advancedSettingsPanelConstraints);
+
         }
 
         public JPanel getPanel() {
                 return advancedSettingsPanel;
         }
+
+        private List<String> validateForm() {
+                List<String> errors = new ArrayList<>();
+
+                // Validate function name
+                if (!validateWorkerCount()) {
+                        errors.add("Workers count should be a positive integer");
+                }
+
+                if (!validateScriptTimeout()) {
+                        errors.add("Script timeout should be a positive integer");
+                }
+
+                if (!validateTimerContextMaxSize()) {
+                        errors.add("Timer context max size should be a positive integer");
+                }
+
+                // Update the error panel to display the validation errors
+                errorPanel.removeAll();
+                for (String error : errors) {
+                        JLabel errorLabel = new JLabel(error);
+                        errorLabel.setForeground(Color.decode("#FF4444"));
+                        errorPanel.add(errorLabel);
+                }
+                errorPanel.revalidate();
+                errorPanel.repaint();
+
+                return errors;
+        }
+
+        private boolean validateWorkerCount() {
+
+                String workerCount = workersField.getText();
+                // remove commas from the string
+                workerCount = workerCount.replaceAll(",", "");
+                if (workerCount == null || workerCount.isEmpty()) {
+                        return false;
+                }
+                try {
+                        int count = Integer.parseInt(workerCount);
+                        if (count < 1) {
+                                return false;
+                        }
+                } catch (NumberFormatException e) {
+                        return false;
+                }
+                return true;
+        }
+
+        private boolean validateScriptTimeout() {
+                String scriptTimeout = scriptTimeoutField.getText();
+                // remove commas from the string
+                scriptTimeout = scriptTimeout.replaceAll(",", "");
+                if (scriptTimeout == null || scriptTimeout.isEmpty()) {
+                        return false;
+                }
+                try {
+                        int timeout = Integer.parseInt(scriptTimeout);
+                        if (timeout < 1) {
+                                return false;
+                        }
+                } catch (NumberFormatException e) {
+                        return false;
+                }
+                return true;
+        }
+
+        private boolean validateTimerContextMaxSize() {
+                String timerContextMaxSize = timerContextMaxSizeField.getText();
+                // remove commas from the string
+                timerContextMaxSize = timerContextMaxSize.replaceAll(",", "");
+                if (timerContextMaxSize == null || timerContextMaxSize.isEmpty()) {
+                        return false;
+                }
+                try {
+                        int maxSize = Integer.parseInt(timerContextMaxSize);
+                        if (maxSize < 1) {
+                                return false;
+                        }
+                } catch (NumberFormatException e) {
+                        return false;
+                }
+                return true;
+        }
+
 }

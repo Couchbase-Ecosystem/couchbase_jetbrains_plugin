@@ -68,7 +68,8 @@ public class FunctionDeploymentSettings extends JFrame {
                 // Create and configure the left panel
                 leftPanel = new JPanel();
                 leftPanel.setLayout(new BorderLayout());
-                leftPanel.setPreferredSize(new Dimension(400, 800));
+                leftPanel.setMaximumSize(new Dimension(200, 800));
+                leftPanel.setPreferredSize(new Dimension(200, 800));
                 // leftPanel.setForeground(JBColor.BLACK);
                 leftPanel.setBackground(new Color(62, 67, 76, 255)); // Jetbrains Darcula background color
 
@@ -110,13 +111,16 @@ public class FunctionDeploymentSettings extends JFrame {
 
                 // Create and configure the right panel
                 rightPanel = new JPanel(new CardLayout());
+                rightPanel.setMaximumSize(new Dimension(800, 800));
+                rightPanel.setPreferredSize(new Dimension(800, 800));
 
                 // Add components to the right panel
                 GeneralSettings generalSettings = new GeneralSettings();
                 generalSettingsPanel = generalSettings.getPanel();
                 JPanel generalSettingsWrapper = new JPanel(new BorderLayout());
                 generalSettingsWrapper.add(generalSettingsPanel, BorderLayout.NORTH);
-                generalSettingsWrapper.setBorder(new EmptyBorder(10, 10, 10, 10));
+                generalSettingsWrapper.setBorder(new EmptyBorder(20, 20, 20, 20));
+                generalSettingsWrapper.setMinimumSize(new Dimension(800, 800));
                 rightPanel.add(generalSettingsWrapper, "General");
 
                 // Settings panel
@@ -124,12 +128,17 @@ public class FunctionDeploymentSettings extends JFrame {
                 advancedSettingsPanel = advancedSettings.getPanel();
                 JPanel advancedSettingsWrapper = new JPanel(new BorderLayout());
                 advancedSettingsWrapper.add(advancedSettingsPanel, BorderLayout.NORTH);
+                advancedSettingsWrapper.setBorder(new EmptyBorder(20, 20, 20, 20));
+                advancedSettingsWrapper.setMinimumSize(new Dimension(800, 800));
                 rightPanel.add(advancedSettingsWrapper, "Settings");
 
                 // Binding Types panel
                 BindingSettings bindingSettings = new BindingSettings();
                 bindingsPanel = bindingSettings.getPanel();
-                rightPanel.add(new JScrollPane(bindingsPanel), "Binding Types"); // No need to wrap this panel
+                JPanel bindingsWrapper = new JPanel(new BorderLayout());
+                bindingsWrapper.add(bindingsPanel, BorderLayout.NORTH);
+                bindingsWrapper.setMinimumSize(new Dimension(800, 800));
+                rightPanel.add(new JScrollPane(bindingsWrapper), "Binding Types"); // No need to wrap this panel
 
                 settingsList.addListSelectionListener(e -> {
                         if (!e.getValueIsAdjusting()) {
@@ -141,7 +150,8 @@ public class FunctionDeploymentSettings extends JFrame {
 
                 // Create and configure the bottom panel
                 bottomPanel = new JPanel();
-                bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+                bottomPanel.setLayout(new BorderLayout());
+                bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10)); // Add a margin of 10 pixels around the panel
 
                 // Add components to the bottom panel
                 applyButton = new JButton("Apply");
@@ -149,14 +159,14 @@ public class FunctionDeploymentSettings extends JFrame {
                         // Save changes
                         dispose();
                 });
-                bottomPanel.add(applyButton);
+                bottomPanel.add(applyButton, BorderLayout.EAST);
 
                 cancelButton = new JButton("Cancel");
                 cancelButton.addActionListener(e -> {
                         // Discard changes
                         dispose();
                 });
-                bottomPanel.add(cancelButton);
+                bottomPanel.add(cancelButton, BorderLayout.WEST);
 
                 // Add the panels to the main panel with a splitter in the middle
                 JBSplitter splitter = new JBSplitter(false);
