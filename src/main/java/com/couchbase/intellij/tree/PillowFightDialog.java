@@ -19,6 +19,8 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.TitlePanel;
+import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
@@ -773,6 +775,8 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.insets = JBUI.insets(5);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
 
         //panel.add(new JLabel("Available Buckets: "), gbc);
         panel.add(createLabelWithBalloon("Available Buckets: ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
@@ -799,6 +803,8 @@ public class PillowFightDialog extends DialogWrapper {
         gbcCollapsable.insets = JBUI.insets(5);
         gbcCollapsable.anchor = GridBagConstraints.WEST;
         gbcCollapsable.fill = GridBagConstraints.HORIZONTAL;
+        gbcCollapsable.weightx = 1.0;
+        gbcCollapsable.weighty = 1.0;
 
         collapsiblePanel.setBorder(BorderFactory.createTitledBorder("Advanced Options"));
         collapsiblePanel.setVisible(false);
