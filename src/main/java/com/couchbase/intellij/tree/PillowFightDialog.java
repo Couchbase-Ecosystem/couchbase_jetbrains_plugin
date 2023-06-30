@@ -12,6 +12,7 @@ import com.couchbase.client.java.manager.bucket.BucketManager;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.tools.github.CloneDemoRepo;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.ui.ComboBox;
@@ -806,7 +807,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbcCollapsable.weightx = 1.0;
         gbcCollapsable.weighty = 1.0;
 
-        collapsiblePanel.setBorder(BorderFactory.createTitledBorder("Advanced Options"));
+        //collapsiblePanel.setBorder(BorderFactory.createTitledBorder("Advanced Options"));
         collapsiblePanel.setVisible(false);
 
         //panel.add(new JLabel("Persist-to: "), gbc);
@@ -999,6 +1000,7 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(pathcountTextField, gbcCollapsable);
         pathcountTextField.getEmptyText().setText("Enter a number 0 or greater");
 
+        /*
         JButton toggleButton = new JButton("Show Advanced Options");
         toggleButton.addActionListener(e -> {
             boolean isVisible = collapsiblePanel.isVisible();
@@ -1014,8 +1016,10 @@ public class PillowFightDialog extends DialogWrapper {
         });
 
         panel.add(toggleButton, gbc);
+        */
         gbc.gridy++;
-        panel.add(collapsiblePanel, gbc);
+        CollapsiblePanel collapsiblePanel1 = new CollapsiblePanel("Advanced Options", collapsiblePanel);
+        panel.add(collapsiblePanel1, gbc);
 
         gbc.gridx--;
         gbc.gridy++;

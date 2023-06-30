@@ -100,8 +100,6 @@ public class TreeRightClickListener {
             popup.add(menuItem);
             menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
 
-            JMenu tools = new JMenu("Tools");
-
             JBMenuItem cbexport = new JBMenuItem("Export");
             cbexport.addActionListener(event -> {
                 ExportDialog dialog = new ExportDialog();
