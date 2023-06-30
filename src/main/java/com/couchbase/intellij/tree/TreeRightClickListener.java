@@ -8,6 +8,7 @@ import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
@@ -87,6 +88,17 @@ public class TreeRightClickListener {
             popup.add(menuItem);
             menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
 
+            JMenu tools = new JMenu("Tools");
+
+            JBMenuItem cbexport = new JBMenuItem("Export");
+            cbexport.addActionListener(event -> {
+                ExportDialog dialog = new ExportDialog();
+                dialog.show();
+            });
+            tools.add(cbexport);
+
+            JBMenuItem cbimport = new JBMenuItem("Import");
+            tools.add(cbimport);
 
             JMenu settings = new JMenu("Settings");
             JMenu colors = new JMenu("Connection Colors");
@@ -120,6 +132,7 @@ public class TreeRightClickListener {
             }
 
             settings.add(colors);
+            popup.add(tools);
             popup.add(settings);
         } else {
             JBMenuItem menuItem = new JBMenuItem("Connect");
