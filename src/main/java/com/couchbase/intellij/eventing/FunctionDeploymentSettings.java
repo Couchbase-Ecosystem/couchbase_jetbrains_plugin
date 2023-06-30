@@ -68,8 +68,8 @@ public class FunctionDeploymentSettings extends JFrame {
                 // Create and configure the left panel
                 leftPanel = new JPanel();
                 leftPanel.setLayout(new BorderLayout());
-                leftPanel.setMaximumSize(new Dimension(200, 800));
-                leftPanel.setPreferredSize(new Dimension(200, 800));
+                // leftPanel.setMaximumSize(new Dimension(200, 800));
+                // leftPanel.setPreferredSize(new Dimension(200, 800));
                 // leftPanel.setForeground(JBColor.BLACK);
                 leftPanel.setBackground(new Color(62, 67, 76, 255)); // Jetbrains Darcula background color
 
@@ -111,8 +111,8 @@ public class FunctionDeploymentSettings extends JFrame {
 
                 // Create and configure the right panel
                 rightPanel = new JPanel(new CardLayout());
-                rightPanel.setMaximumSize(new Dimension(800, 800));
-                rightPanel.setPreferredSize(new Dimension(800, 800));
+                // rightPanel.setMaximumSize(new Dimension(800, 800));
+                // rightPanel.setPreferredSize(new Dimension(800, 800));
 
                 // Add components to the right panel
                 GeneralSettings generalSettings = new GeneralSettings();
@@ -153,20 +153,26 @@ public class FunctionDeploymentSettings extends JFrame {
                 bottomPanel.setLayout(new BorderLayout());
                 bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10)); // Add a margin of 10 pixels around the panel
 
-                // Add components to the bottom panel
-                applyButton = new JButton("Apply");
-                applyButton.addActionListener(e -> {
-                        // Save changes
-                        dispose();
-                });
-                bottomPanel.add(applyButton, BorderLayout.EAST);
+                // Create a new panel with a FlowLayout
+                JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
+                // Add components to the bottom panel
                 cancelButton = new JButton("Cancel");
                 cancelButton.addActionListener(e -> {
                         // Discard changes
                         dispose();
                 });
-                bottomPanel.add(cancelButton, BorderLayout.WEST);
+                buttonsPanel.add(cancelButton);
+
+                applyButton = new JButton("Apply");
+                applyButton.addActionListener(e -> {
+                        // Save changes
+                        dispose();
+                });
+                buttonsPanel.add(applyButton);
+
+                // Add the buttons panel to the EAST region of the bottom panel
+                bottomPanel.add(buttonsPanel, BorderLayout.EAST);
 
                 // Add the panels to the main panel with a splitter in the middle
                 JBSplitter splitter = new JBSplitter(false);

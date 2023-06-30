@@ -5,7 +5,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.util.ArrayList;
@@ -33,6 +32,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.util.ui.JBUI;
 
 public class GeneralSettings {
 
@@ -78,7 +78,6 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridy = 0;
         generalSettingsPanelConstraints.weightx = 1.0;
         // generalSettingsPanelConstraints.weighty = 1.0;
-        generalSettingsPanelConstraints.insets = new Insets(5, 5, 5, 5);
         generalSettingsPanelConstraints.anchor = GridBagConstraints.NORTHWEST;
         generalSettingsPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
 
@@ -97,12 +96,14 @@ public class GeneralSettings {
                 "Please specify a scope to which the function belongs. User should have Eventing Manage Scope Functions permission on this scope"));
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 0;
+        generalSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
         generalSettingsPanel.add(functionScopePanel, generalSettingsPanelConstraints);
 
         functionScopeBucketComboBox = new JComboBox<>();
         // functionScopeBucketComboBox.addActionListener(e -> updateScopes());
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 1;
+        generalSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be larger
         generalSettingsPanel.add(functionScopeBucketComboBox, generalSettingsPanelConstraints);
 
         functionScopeScopeComboBox = new JComboBox<>();
@@ -125,6 +126,7 @@ public class GeneralSettings {
                 "Please specify a source location for your function. User should have DCP Data Read permission on this keyspace"));
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 2;
+        generalSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
         generalSettingsPanel.add(listenToLocationPanel, generalSettingsPanelConstraints);
 
         listenToLocationBucketComboBox = new JComboBox<>();
@@ -132,6 +134,7 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 3;
         generalSettingsPanelConstraints.gridwidth = 1;
+        generalSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be larger
         generalSettingsPanel.add(listenToLocationBucketComboBox, generalSettingsPanelConstraints);
 
         listenToLocationScopeComboBox = new JComboBox<>();
@@ -160,6 +163,7 @@ public class GeneralSettings {
                 "Please specify a location to store Eventing data. User should have read/write permission on this keyspace"));
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 4;
+        generalSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
         generalSettingsPanel.add(eventingStoragePanel, generalSettingsPanelConstraints);
 
         eventingStorageBucketComboBox = new JComboBox<>();
@@ -167,6 +171,7 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 5;
         generalSettingsPanelConstraints.gridwidth = 1;
+        generalSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be larger
         generalSettingsPanel.add(eventingStorageBucketComboBox, generalSettingsPanelConstraints);
 
         eventingStorageScopeComboBox = new JComboBox<>();
@@ -187,6 +192,7 @@ public class GeneralSettings {
         functionNameLabel.setFont(functionNameLabel.getFont().deriveFont(Font.BOLD));
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 6;
+        generalSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
         generalSettingsPanel.add(functionNameLabel, generalSettingsPanelConstraints);
 
         functionNameField = new JBTextField(20);
@@ -194,6 +200,7 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 7;
         generalSettingsPanelConstraints.gridwidth = 3;
+        generalSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be larger
         generalSettingsPanel.add(functionNameField, generalSettingsPanelConstraints);
 
         // Add a focus listener to the functionNameField
@@ -223,6 +230,7 @@ public class GeneralSettings {
                 "The preferred Deployment time Feed Boundary for the function.");
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 8;
+        generalSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
         generalSettingsPanel.add(deploymentFeedBoundaryLabel, generalSettingsPanelConstraints);
 
         deploymentFeedBoundaryComboBox = new JComboBox<>();
@@ -234,6 +242,7 @@ public class GeneralSettings {
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 9;
         generalSettingsPanelConstraints.gridwidth = 3;
+        generalSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be larger
         generalSettingsPanel.add(deploymentFeedBoundaryComboBox, generalSettingsPanelConstraints);
 
         warningLabel = new JBLabel("");
@@ -261,6 +270,7 @@ public class GeneralSettings {
         descriptionLabel.setHorizontalAlignment(JBTextField.LEFT);
         generalSettingsPanelConstraints.gridx = 0;
         generalSettingsPanelConstraints.gridy = 11;
+        generalSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
         generalSettingsPanel.add(descriptionLabel, generalSettingsPanelConstraints);
 
         JBTextArea descriptionTextArea = new JBTextArea(15, 20);

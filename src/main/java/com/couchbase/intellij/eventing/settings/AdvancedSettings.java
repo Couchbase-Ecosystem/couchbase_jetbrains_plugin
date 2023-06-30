@@ -24,6 +24,7 @@ import javax.swing.text.NumberFormatter;
 
 import com.couchbase.intellij.eventing.components.HelpIcon;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.util.ui.JBUI;
 
 public class AdvancedSettings {
 
@@ -52,15 +53,18 @@ public class AdvancedSettings {
         private JFormattedTextField timerContextMaxSizeField;
 
         public AdvancedSettings() {
+
                 // Advanced Settings panel
                 advancedSettingsPanel = new JPanel();
                 advancedSettingsPanel.setLayout(new GridBagLayout());
+
                 GridBagConstraints advancedSettingsPanelConstraints = new GridBagConstraints();
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 0;
+                advancedSettingsPanelConstraints.weightx = 1;
 
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 5, 5, 5);
                 advancedSettingsPanelConstraints.anchor = GridBagConstraints.NORTHWEST;
-                advancedSettingsPanelConstraints.insets = new Insets(5, 5, 5, 5);
                 advancedSettingsPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
 
                 // Add components to the Advanced Settings panel
@@ -74,6 +78,7 @@ public class AdvancedSettings {
                                 .add(HelpIcon.createHelpIcon("Granularity of system events being captured in the log"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 0;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
                 advancedSettingsPanel.add(systemLogLevelPanel, advancedSettingsPanelConstraints);
 
                 systemLogLevelComboBox = new JComboBox<>();
@@ -84,6 +89,8 @@ public class AdvancedSettings {
                 systemLogLevelComboBox.addItem("Trace");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 1;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be
+                                                                                   // larger
                 advancedSettingsPanel.add(systemLogLevelComboBox, advancedSettingsPanelConstraints);
 
                 n1qlConsistencyLabel = new JBLabel("N1QL Consistency");
@@ -96,6 +103,7 @@ public class AdvancedSettings {
                                 .add(HelpIcon.createHelpIcon("Consistency level of N1QL statements in the function:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 3;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
                 advancedSettingsPanel.add(n1qlConsistencyPanel, advancedSettingsPanelConstraints);
 
                 n1qlConsistencyComboBox = new JComboBox<>();
@@ -103,7 +111,8 @@ public class AdvancedSettings {
                 n1qlConsistencyComboBox.addItem("Request");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 4;
-
+                advancedSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be
+                                                                                   // larger
                 advancedSettingsPanel.add(n1qlConsistencyComboBox, advancedSettingsPanelConstraints);
 
                 workersLabel = new JBLabel("Workers");
@@ -115,6 +124,7 @@ public class AdvancedSettings {
                 workersPanel.add(HelpIcon.createHelpIcon("Number of workers per node to process the events:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 5;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
                 advancedSettingsPanel.add(workersPanel, advancedSettingsPanelConstraints);
 
                 NumberFormat format = NumberFormat.getInstance();
@@ -132,6 +142,8 @@ public class AdvancedSettings {
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 6;
                 advancedSettingsPanelConstraints.gridwidth = 3;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be
+                                                                                   // larger
                 advancedSettingsPanel.add(workersField, advancedSettingsPanelConstraints);
 
                 // Add a focus listener to the workersField
@@ -161,6 +173,7 @@ public class AdvancedSettings {
                 languageCompatibilityPanel.add(HelpIcon.createHelpIcon("Language compatibility of the function:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 7;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
                 advancedSettingsPanel.add(languageCompatibilityPanel, advancedSettingsPanelConstraints);
 
                 languageCompatibilityComboBox = new JComboBox<>();
@@ -169,6 +182,8 @@ public class AdvancedSettings {
                 languageCompatibilityComboBox.addItem("6.6.2");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 8;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be
+                                                                                   // larger
                 advancedSettingsPanel.add(languageCompatibilityComboBox, advancedSettingsPanelConstraints);
 
                 scriptTimeoutLabel = new JBLabel("Script Timeout");
@@ -181,6 +196,7 @@ public class AdvancedSettings {
                                 .createHelpIcon("Time after which the Function's execution will be timed out:"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 9;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
                 advancedSettingsPanel.add(scriptTimeoutPanel, advancedSettingsPanelConstraints);
 
                 scriptTimeoutField = new JFormattedTextField(formatter);
@@ -191,6 +207,8 @@ public class AdvancedSettings {
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 10;
                 advancedSettingsPanelConstraints.gridwidth = 3;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be
+                                                                                   // larger
                 advancedSettingsPanel.add(scriptTimeoutField, advancedSettingsPanelConstraints);
 
                 // Add a focus listener to the scriptTimeoutField
@@ -223,7 +241,9 @@ public class AdvancedSettings {
                                 "Timer Context Size in Bytes. If the size of the Timer Context exceeds this value, the Timer Context will be cleared"));
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 11;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(5, 2, 2, 2); // Change the top inset to be larger
                 advancedSettingsPanel.add(timerContextMaxSizePanel, advancedSettingsPanelConstraints);
+
                 timerContextMaxSizeField = new JFormattedTextField(formatter);
                 timerContextMaxSizeField.setColumns(20);
                 timerContextMaxSizeField.setValue(1024);
@@ -231,6 +251,8 @@ public class AdvancedSettings {
                                 .setToolTipText("Enter the maximum allowed value of the Timer Context Size in Bytes.");
                 advancedSettingsPanelConstraints.gridx = 0;
                 advancedSettingsPanelConstraints.gridy = 12;
+                advancedSettingsPanelConstraints.insets = JBUI.insets(2, 2, 5, 2); // Change the bottom inset to be
+                                                                                   // larger
                 advancedSettingsPanel.add(timerContextMaxSizeField, advancedSettingsPanelConstraints);
 
                 // Add a focus listener to the timerContextMaxSizeField
