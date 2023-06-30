@@ -776,10 +776,10 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        gbc.weighty = 1.0;
+        gbc.weighty = 0.0;
 
         //panel.add(new JLabel("Available Buckets: "), gbc);
-        panel.add(createLabelWithBalloon("Available Buckets: ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
+        panel.add(createLabelWithBalloon("Available Buckets:                            ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
@@ -787,7 +787,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx--;
         gbc.gridy++;
         //panel.add(new JLabel("Durability: "), gbc);
-        panel.add(createLabelWithBalloon("Durability: ", "Specify durability level for mutation operations"), gbc);
+        panel.add(createLabelWithBalloon("Durability:                            ", "Specify durability level for mutation operations"), gbc);
 
         gbc.gridx++;
         panel.add(durabilityComboBox, gbc);
@@ -1005,9 +1005,12 @@ public class PillowFightDialog extends DialogWrapper {
             collapsiblePanel.setVisible(!isVisible);
             if (isVisible) {
                 toggleButton.setText("Show Advanced Options");
+                gbc.weighty = 0.0;
             } else {
                 toggleButton.setText("Hide Advanced Options");
+                gbc.weighty = 1.0;
             }
+            panel.revalidate();
         });
 
         panel.add(toggleButton, gbc);
