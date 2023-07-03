@@ -1,5 +1,7 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.client.java.kv.ExistsResult;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -27,17 +29,25 @@ public class OpenDocumentDialog extends DialogWrapper {
 
     private JLabel errorLabel;
 
+    private boolean createDocument;
+
     private Tree tree;
 
-    protected OpenDocumentDialog(Project project, Tree tree, String bucket, String scope, String collection) {
+    protected OpenDocumentDialog(boolean createDocument, Project project, Tree tree, String bucket, String scope, String collection) {
         super(true);
+        this.createDocument = createDocument;
         this.project = project;
         this.tree = tree;
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;
         init();
-        setTitle("Inform the Document Id");
+        if (createDocument) {
+            setTitle("New Document");
+        } else {
+            setTitle("Open Document");
+        }
+
         setResizable(true);
         getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
     }
@@ -64,7 +74,7 @@ public class OpenDocumentDialog extends DialogWrapper {
         errorLabel = new JLabel("");
         errorLabel.setBorder(JBUI.Borders.empty(10, 0));
         errorLabel.setForeground(Color.decode("#FF4444"));
-        JLabel label = new JLabel("Document Id:");
+        JLabel label = new JLabel(createDocument ? "New Document Id:" : "Document Id:");
         textField = new JTextField();
 
         panel = new JBPanel<>(new BorderLayout());
@@ -82,6 +92,15 @@ public class OpenDocumentDialog extends DialogWrapper {
             errorLabel.setText("The id specified contains invalid characters.");
             panel.revalidate();
             return;
+        }
+
+        if (!createDocument) {
+            ExistsResult result = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).exists(textField.getText());
+            if (!result.exists()) {
+                errorLabel.setText("There is no document with the specified id.");
+                panel.revalidate();
+                return;
+            }
         }
 
         String fileName = textField.getText() + ".json";

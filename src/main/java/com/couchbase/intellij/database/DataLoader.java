@@ -1,6 +1,7 @@
 package com.couchbase.intellij.database;
 
 import com.couchbase.client.core.error.DocumentNotFoundException;
+import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
 import com.couchbase.client.core.error.TimeoutException;
 import com.couchbase.client.java.Cluster;
@@ -216,7 +217,7 @@ public class DataLoader {
                     parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                 }
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-            } catch (PlanningFailureException e) {
+            } catch (PlanningFailureException | IndexFailureException ex) {
                 parentNode.removeAllChildren();
                 MissingIndexNodeDescriptor idx = new MissingIndexNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
                 parentNode.add(new DefaultMutableTreeNode(idx));

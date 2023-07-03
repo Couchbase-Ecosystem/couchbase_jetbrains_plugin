@@ -35,8 +35,9 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
     public boolean maySaveDocument(@NotNull Document document, boolean isSaveExplicit) {
         VirtualFile file = FileDocumentManager.getInstance().getFile(document);
 
+
         //filtering files from our plugin
-        if (file != null && file.getUserData(VirtualFileKeys.CLUSTER) != null) {
+        if (file != null && file.getUserData(VirtualFileKeys.CLUSTER) != null && !ActiveCluster.getInstance().isReadOnlyMode()) {
             if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
                 Messages.showMessageDialog(
                         "The file that you are trying to save belongs to a connection that is no longer active",
