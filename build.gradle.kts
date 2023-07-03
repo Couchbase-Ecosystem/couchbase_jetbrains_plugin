@@ -11,6 +11,8 @@ sourceSets["main"].java.srcDirs("src/main/gen")
 
 repositories {
     mavenCentral()
+
+
 }
 
 dependencies {

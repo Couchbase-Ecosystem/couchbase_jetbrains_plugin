@@ -90,14 +90,14 @@ public class TreeRightClickListener {
 
             JMenu tools = new JMenu("Tools");
 
-            JBMenuItem cbexport = new JBMenuItem("Export");
+            JBMenuItem cbexport = new JBMenuItem("Data Export");
             cbexport.addActionListener(event -> {
                 ExportDialog dialog = new ExportDialog();
                 dialog.show();
             });
             tools.add(cbexport);
 
-            JBMenuItem cbimport = new JBMenuItem("Import");
+            JBMenuItem cbimport = new JBMenuItem("Data Import");
             tools.add(cbimport);
 
             JMenu settings = new JMenu("Settings");
