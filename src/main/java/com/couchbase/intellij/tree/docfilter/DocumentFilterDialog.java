@@ -32,17 +32,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class DocumentFilterDialog extends DialogWrapper {
+    private final String collectionName;
+    private final String bucket;
+    private final String scope;
+    private final Tree tree;
+    private final DefaultMutableTreeNode clickedNode;
     private EditorEx editor;
-    private String collectionName;
-    private String bucket;
-    private String scope;
-
-    private Tree tree;
-
     private JLabel resultsLabel;
     private JLabel errorLabel;
-
-    private DefaultMutableTreeNode clickedNode;
 
     public DocumentFilterDialog(Tree tree, DefaultMutableTreeNode clickedNode, String bucket, String scope, String collectionName) {
         super(false);

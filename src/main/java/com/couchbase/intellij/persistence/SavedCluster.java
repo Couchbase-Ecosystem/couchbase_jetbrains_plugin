@@ -11,6 +11,8 @@ public class SavedCluster {
     private boolean sslEnable;
     private String defaultBucket;
 
+    private Boolean readOnly;
+
     public String getId() {
         return id;
     }
@@ -65,6 +67,14 @@ public class SavedCluster {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public Boolean isReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(Boolean readOnly) {
+        this.readOnly = readOnly;
     }
 
     @Override

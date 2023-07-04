@@ -129,4 +129,12 @@ public class ActiveCluster {
     public void setVersion(String version) {
         this.version = version;
     }
+
+    public boolean isReadOnlyMode() {
+        return this.savedCluster.isReadOnly() != null && this.savedCluster.isReadOnly();
+    }
+
+    public void setReadOnlyMode(boolean mode) {
+        this.savedCluster.setReadOnly(mode);
+    }
 }
