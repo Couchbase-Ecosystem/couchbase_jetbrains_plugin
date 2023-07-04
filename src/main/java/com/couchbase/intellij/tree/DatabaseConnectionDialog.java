@@ -227,7 +227,7 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         }
 
         if (hostTextField.getText().isEmpty()) {
-            errors.add("Couchbase Connection URL can't be empty");
+            errors.add("Couchbase Connection String can't be empty");
         }
 
         if (usernameTextField.getText().isEmpty()) {
@@ -259,9 +259,9 @@ public class DatabaseConnectionDialog extends DialogWrapper {
 
         JLabel connectionNameLabel = new JLabel("Connection Name");
         connectionNameTextField = new JBTextField(20);
-        connectionNameTextField.getEmptyText().setText("Give a name to your connection");
+        connectionNameTextField.getEmptyText().setText("A simple name to identify you connection");
         connectionNameTextField.addFocusListener(new TextFieldFocusListener(connectionNameTextField));
-        JLabel hostLabel = new JLabel("Couchbase Server URL");
+        JLabel hostLabel = new JLabel("Connection String");
         hostTextField = new JBTextField(20);
         hostTextField.getEmptyText().setText("Your cluster URL");
         hostTextField.addFocusListener(new TextFieldFocusListener(hostTextField));
