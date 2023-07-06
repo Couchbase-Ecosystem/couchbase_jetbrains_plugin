@@ -4,17 +4,15 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.0-SNAPSHOT"
-java {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
-}
+version = "1.0.1"
 
 
 sourceSets["main"].java.srcDirs("src/main/gen")
 
 repositories {
     mavenCentral()
+
+
 }
 
 dependencies {
