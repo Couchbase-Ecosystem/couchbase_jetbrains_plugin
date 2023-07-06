@@ -1,61 +1,34 @@
 package com.couchbase.intellij.tree;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 
-import com.couchbase.client.core.error.CouchbaseException;
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.manager.bucket.BucketManager;
-import com.couchbase.intellij.database.DataLoader;
-import com.couchbase.intellij.persistence.SavedCluster;
-import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
-import com.couchbase.intellij.tools.github.CloneDemoRepo;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.TitlePanel;
-import com.intellij.ui.TitledSeparator;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
-import com.intellij.ui.components.JBScrollPane;
-import com.intellij.util.ui.PositionTracker;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Map;
 import java.util.stream.Collectors;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.openapi.ui.popup.Balloon;
-
-import static utils.ProcessUtils.printOutput;
 
 public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
