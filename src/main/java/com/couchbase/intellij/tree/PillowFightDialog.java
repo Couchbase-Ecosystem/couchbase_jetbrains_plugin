@@ -82,559 +82,76 @@ public class PillowFightDialog extends DialogWrapper {
 
         String[] durabilityOptions = {"none", "majority", "majority_and_persist_to_active", "persist_to_majority"};
         durabilityComboBox = new ComboBox<>(durabilityOptions);
-
-        persistToTextField = new JBTextField();
-        persistToTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = persistToTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validatePersistToTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validatePersistToTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validatePersistToTextField(originalColor);
-            }
-        });
-
-        batchSizeTextField = new JBTextField();
-        batchSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = batchSizeTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateBatchSizeTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateBatchSizeTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateBatchSizeTextField(originalColor);
-            }
-        });
-
-        numberItemsTextField = new JBTextField();
-        numberItemsTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = numberItemsTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateNumberItemsTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateNumberItemsTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateNumberItemsTextField(originalColor);
-            }
-        });
-
+        persistToTextField = createTextFieldWithValidation(-1);
+        batchSizeTextField = createTextFieldWithValidation(0);
+        numberItemsTextField = createTextFieldWithValidation(0);
         keyPrefixTextField = new JBTextField();
-
-        numberThreadsTextField = new JBTextField();
-        numberThreadsTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = numberThreadsTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateNumberThreadsTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateNumberThreadsTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateNumberThreadsTextField(originalColor);
-            }
-        });
-
-        percentageTextField = new JBTextField();
-        percentageTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = percentageTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validatePercentageTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validatePercentageTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validatePercentageTextField(originalColor);
-            }
-        });
-
+        numberThreadsTextField = createTextFieldWithValidation(0);
+        percentageTextField = createTextFieldWithValidation(0);
         String[] disableEnableOptions = {"Disable", "Enable"};
         noPopulationComboBox = new ComboBox<>(disableEnableOptions);
-
         populateOnlyComboBox = new ComboBox<>(disableEnableOptions);
-
-        minSizeTextField = new JBTextField();
-        minSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = minSizeTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateMinSizeTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateMinSizeTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateMinSizeTextField(originalColor);
-            }
-        });
-
-        maxSizeTextField = new JBTextField();
-        maxSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = maxSizeTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateMaxSizeTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateMaxSizeTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateMaxSizeTextField(originalColor);
-            }
-        });
-
-        numberCyclesTextField = new JBTextField();
-        numberCyclesTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = numberCyclesTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateNumberCyclesTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateNumberCyclesTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateNumberCyclesTextField(originalColor);
-            }
-        });
-
+        minSizeTextField = createTextFieldWithValidation(0);
+        maxSizeTextField = createTextFieldWithValidation(0);
+        numberCyclesTextField = createTextFieldWithValidation(-1);
         sequentialComboBox = new ComboBox<>(disableEnableOptions);
-
-        startAtTextField = new JBTextField();
-        startAtTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = startAtTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateStartAtTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateStartAtTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateStartAtTextField(originalColor);
-            }
-        });
-
+        startAtTextField = createTextFieldWithValidation(0);
         timingsComboBox = new ComboBox<>(disableEnableOptions);
-
-        expiryTextField = new JBTextField();
-        expiryTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = expiryTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateExpiryTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateExpiryTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateExpiryTextField(originalColor);
-            }
-        });
-
-        replicateToTextField = new JBTextField();
-        replicateToTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = replicateToTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateReplicateToTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateReplicateToTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateReplicateToTextField(originalColor);
-            }
-        });
-
-        lockTextField = new JBTextField();
-        lockTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = lockTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateLockTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateLockTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateLockTextField(originalColor);
-            }
-        });
-
+        expiryTextField = createTextFieldWithValidation(0);
+        replicateToTextField = createTextFieldWithValidation(-1);
+        lockTextField = createTextFieldWithValidation(0);
         jsonComboBox = new ComboBox<>(disableEnableOptions);
-
         noopComboBox = new ComboBox<>(disableEnableOptions);
-
         subdocComboBox = new ComboBox<>(disableEnableOptions);
-
-        pathcountTextField = new JBTextField();
-        pathcountTextField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = pathcountTextField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validatePathcountTextField(originalColor);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validatePathcountTextField(originalColor);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validatePathcountTextField(originalColor);
-            }
-        });
+        pathcountTextField = createTextFieldWithValidation(0);
 
         init();
     }
 
-    private void validatePersistToTextField(Color originalColor) {
-        String input = persistToTextField.getText();
+    private JBTextField createTextFieldWithValidation(int minValue) {
+        JBTextField textField = new JBTextField();
+        textField.getDocument().addDocumentListener(new DocumentListener() {
+            final Color originalColor = textField.getForeground();
+
+            @Override
+            public void insertUpdate(DocumentEvent documentEvent) {
+                validateTextField(textField, originalColor, minValue);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent documentEvent) {
+                validateTextField(textField, originalColor, minValue);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent documentEvent) {
+                validateTextField(textField, originalColor, minValue);
+            }
+        });
+        return textField;
+    }
+
+    private void validateTextField(JBTextField textField, Color originalColor, int minValue) {
+        String input = textField.getText();
         try {
             if (input == null || input.trim().isEmpty()) {
-                persistToTextField.setForeground(originalColor);
+                textField.setForeground(originalColor);
                 setOKActionEnabled(true);
                 return;
             }
-            if (Integer.parseInt(input) < -1) {
-                persistToTextField.setForeground(JBColor.RED);
+            if (Integer.parseInt(input) < minValue) {
+                textField.setForeground(JBColor.RED);
                 setOKActionEnabled(false);
             } else {
-                persistToTextField.setForeground(originalColor);
+                textField.setForeground(originalColor);
                 setOKActionEnabled(true);
             }
         } catch (NumberFormatException e) {
-            persistToTextField.setForeground(JBColor.RED);
+            textField.setForeground(JBColor.RED);
             setOKActionEnabled(false);
         }
     }
 
-    private void validateBatchSizeTextField(Color originalColor) {
-        String input = batchSizeTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                batchSizeTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                batchSizeTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                batchSizeTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            batchSizeTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateNumberItemsTextField(Color originalColor) {
-        String input = numberItemsTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                numberItemsTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                numberItemsTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                numberItemsTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            numberItemsTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateNumberThreadsTextField(Color originalColor) {
-        String input = numberThreadsTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                numberThreadsTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                numberThreadsTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                numberThreadsTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            numberThreadsTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validatePercentageTextField(Color originalColor) {
-        String input = percentageTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                percentageTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                percentageTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                percentageTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            percentageTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateMinSizeTextField(Color originalColor) {
-        String input = minSizeTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                minSizeTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                minSizeTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                minSizeTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            minSizeTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateMaxSizeTextField(Color originalColor) {
-        String input = maxSizeTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                maxSizeTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                maxSizeTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                maxSizeTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            maxSizeTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateNumberCyclesTextField(Color originalColor) {
-        String input = numberCyclesTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                numberCyclesTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < -1) {
-                numberCyclesTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                numberCyclesTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            numberCyclesTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateStartAtTextField(Color originalColor) {
-        String input = startAtTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                startAtTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                startAtTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                startAtTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            startAtTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateExpiryTextField(Color originalColor) {
-        String input = expiryTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                expiryTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                expiryTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                expiryTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            expiryTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateReplicateToTextField(Color originalColor) {
-        String input = replicateToTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                replicateToTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < -1) {
-                replicateToTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                replicateToTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            replicateToTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validateLockTextField(Color originalColor) {
-        String input = lockTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                lockTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                lockTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                lockTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            lockTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
-
-    private void validatePathcountTextField(Color originalColor) {
-        String input = pathcountTextField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                pathcountTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < 0) {
-                pathcountTextField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                pathcountTextField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            pathcountTextField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
-    }
     private static JBPanel createLabelWithBalloon(String labelText, String hintText) {
         JBLabel label = new JBLabel(labelText);
         JBLabel questionMark = new JBLabel("?");
