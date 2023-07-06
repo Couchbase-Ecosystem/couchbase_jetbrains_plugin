@@ -14,6 +14,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.tools.github.CloneDemoRepo;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
@@ -103,7 +104,7 @@ public class PillowFightDialog extends DialogWrapper {
         } catch (Exception e) {
             Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                     " if the cluster is active or if the credentials are still valid.", "Couchbase Plugin Error");
-            System.err.println(e);
+            Log.error(e);
         }
 
         durabilityComboBox = new ComboBox<>();
@@ -1262,7 +1263,7 @@ public class PillowFightDialog extends DialogWrapper {
                         opsPerSecLabel.setText(line);
                     }
                 } catch (Exception e) {
-                    System.out.println(e);
+                    Log.error(e);
                 }
             }).start();
         }
