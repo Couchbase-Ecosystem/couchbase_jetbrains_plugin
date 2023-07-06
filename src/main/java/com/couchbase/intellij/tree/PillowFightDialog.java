@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.intellij.database.ActiveCluster;
@@ -57,7 +58,7 @@ public class PillowFightDialog extends DialogWrapper {
     private JLabel errorMessage;
 
     @Override
-    protected Action[] createActions() {
+    protected Action @NotNull [] createActions() {
         Action okAction = getOKAction();
         okAction.putValue(Action.NAME, "Start");
         return new Action[]{okAction, getCancelAction()};
@@ -66,8 +67,8 @@ public class PillowFightDialog extends DialogWrapper {
         super(project);
 
         setTitle("Pillow Fight");
-        bucketComboBox = new ComboBox<>();
 
+        bucketComboBox = new ComboBox<>();
         try {
             Set<String> bucketNamesSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
             String[] bucketNamesArray = bucketNamesSet.toArray(new String[bucketNamesSet.size()]);
@@ -80,7 +81,9 @@ public class PillowFightDialog extends DialogWrapper {
             Log.error(e);
         }
 
+        String[] disableEnableOptions = {"Disable", "Enable"};
         String[] durabilityOptions = {"none", "majority", "majority_and_persist_to_active", "persist_to_majority"};
+
         durabilityComboBox = new ComboBox<>(durabilityOptions);
         persistToTextField = createTextFieldWithValidation(-1);
         batchSizeTextField = createTextFieldWithValidation(0);
@@ -88,7 +91,6 @@ public class PillowFightDialog extends DialogWrapper {
         keyPrefixTextField = new JBTextField();
         numberThreadsTextField = createTextFieldWithValidation(0);
         percentageTextField = createTextFieldWithValidation(0);
-        String[] disableEnableOptions = {"Disable", "Enable"};
         noPopulationComboBox = new ComboBox<>(disableEnableOptions);
         populateOnlyComboBox = new ComboBox<>(disableEnableOptions);
         minSizeTextField = createTextFieldWithValidation(0);
@@ -423,12 +425,20 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Number of Cycles is incompatible with Populate Only");
         }
 
-        if (subdocComboBox.getItem() == "Enable" && jsonComboBox.getItem() == "Disable") {
+        if (subdocComboBox.getSelectedItem() == "Enable" && jsonComboBox.getSelectedItem() == "Disable") {
             errors.add("Subdoc must be used with JSON");
         }
 
-        if (!pathcountTextField.getText().equals("") && jsonComboBox.getItem() == "Disable") {
+        if (!pathcountTextField.getText().equals("") && jsonComboBox.getSelectedItem() == "Disable") {
             errors.add("Pathcount must be used with JSON");
+        }
+
+        try {
+            if (!lockTextField.getText().equals("") && Integer.parseInt(numberItemsTextField.getText()) < Integer.parseInt(batchSizeTextField.getText()) * Integer.parseInt(numberThreadsTextField.getText())) {
+                errors.add("Number of Items cannot be smaller than Batch Size multiplied to Number of Threads when used with Lock");
+            }
+        } catch (Exception e) {
+            Log.error(e);
         }
 
         if (errors.isEmpty()) {
