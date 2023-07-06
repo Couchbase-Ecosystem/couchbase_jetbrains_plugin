@@ -107,11 +107,8 @@ public class PillowFightDialog extends DialogWrapper {
             Log.error(e);
         }
 
-        durabilityComboBox = new ComboBox<>();
-        durabilityComboBox.addItem("none");
-        durabilityComboBox.addItem("majority");
-        durabilityComboBox.addItem("majority_and_persist_to_active");
-        durabilityComboBox.addItem("persist_to_majority");
+        String[] durabilityOptions = {"none", "majority", "majority_and_persist_to_active", "persist_to_majority"};
+        durabilityComboBox = new ComboBox<>(durabilityOptions);
 
         persistToTextField = new JBTextField();
         persistToTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -215,13 +212,10 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        noPopulationComboBox = new ComboBox<>();
-        noPopulationComboBox.addItem("disable");
-        noPopulationComboBox.addItem("enable");
+        String[] disableEnableOptions = {"Disable", "Enable"};
+        noPopulationComboBox = new ComboBox<>(disableEnableOptions);
 
-        populateOnlyComboBox = new ComboBox<>();
-        populateOnlyComboBox.addItem("disable");
-        populateOnlyComboBox.addItem("enable");
+        populateOnlyComboBox = new ComboBox<>(disableEnableOptions);
 
         minSizeTextField = new JBTextField();
         minSizeTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -283,9 +277,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        sequentialComboBox = new ComboBox<>();
-        sequentialComboBox.addItem("disable");
-        sequentialComboBox.addItem("enable");
+        sequentialComboBox = new ComboBox<>(disableEnableOptions);
 
         startAtTextField = new JBTextField();
         startAtTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -307,9 +299,7 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        timingsComboBox = new ComboBox<>();
-        timingsComboBox.addItem("disable");
-        timingsComboBox.addItem("enable");
+        timingsComboBox = new ComboBox<>(disableEnableOptions);
 
         expiryTextField = new JBTextField();
         expiryTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -371,17 +361,11 @@ public class PillowFightDialog extends DialogWrapper {
             }
         });
 
-        jsonComboBox = new ComboBox<>();
-        jsonComboBox.addItem("disable");
-        jsonComboBox.addItem("enable");
+        jsonComboBox = new ComboBox<>(disableEnableOptions);
 
-        noopComboBox = new ComboBox<>();
-        noopComboBox.addItem("disable");
-        noopComboBox.addItem("enable");
+        noopComboBox = new ComboBox<>(disableEnableOptions);
 
-        subdocComboBox = new ComboBox<>();
-        subdocComboBox.addItem("disable");
-        subdocComboBox.addItem("enable");
+        subdocComboBox = new ComboBox<>(disableEnableOptions);
 
         pathcountTextField = new JBTextField();
         pathcountTextField.getDocument().addDocumentListener(new DocumentListener() {
