@@ -50,10 +50,10 @@ public class PillowFightRunner {
             command.add("--set-pct");
             command.add(percentageTextField);
         }
-        if (noPopulation.equals("enable")) {
+        if (noPopulation.equals("Enable")) {
             command.add("--no-population");
         }
-        if (populateOnly.equals("enable")) {
+        if (populateOnly.equals("Enable")) {
             command.add(" --populate-only");
         }
         if (!minSizeTextField.trim().isEmpty()) {
@@ -64,14 +64,14 @@ public class PillowFightRunner {
             command.add("--max-size");
             command.add(maxSizeTextField);
         }
-        if (sequential.equals("enable")) {
+        if (sequential.equals("Enable")) {
             command.add("--sequential");
         }
         if (!startAtTextField.trim().isEmpty()) {
             command.add("--start-at");
             command.add(startAtTextField);
         }
-        if (timings.equals("enable")) {
+        if (timings.equals("Enable")) {
             command.add("--timings");
         }
         if (!expiryTextField.trim().isEmpty()) {
@@ -86,13 +86,13 @@ public class PillowFightRunner {
             command.add("--lock");
             command.add(lockTextField);
         }
-        if (json.equals("enable")) {
+        if (json.equals("Enable")) {
             command.add("--json");
         }
-        if (noop.equals("enable")) {
+        if (noop.equals("Enable")) {
             command.add(" --noop");
         }
-        if (subdoc.equals("enable")) {
+        if (subdoc.equals("Enable")) {
             command.add("--subdoc");
         }
         if (!pathcountTextField.trim().isEmpty()) {
