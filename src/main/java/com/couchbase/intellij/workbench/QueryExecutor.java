@@ -10,7 +10,9 @@ import com.couchbase.client.java.query.QueryProfile;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
+import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
+import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
@@ -59,6 +61,17 @@ public class QueryExecutor {
             query = "EXPLAIN " + query;
         } else if (QueryType.ADVISE == type) {
             query = "ADVISE " + query;
+        } else {
+            if (ActiveCluster.getInstance().isReadOnlyMode() && SQLPPAnalyzer.isMutation(query)) {
+                CouchbaseQueryError err = new CouchbaseQueryError();
+                err.setMessage("Hey! You can not run mutations when your cluster is on read-only mode");
+                CouchbaseQueryResultError error = new CouchbaseQueryResultError();
+                error.setErrors(List.of(err));
+
+                getOutputWindow(project).updateQueryStats(false, Arrays.asList("0 MS", "-", "-", "-", "-"),
+                        null, error, null);
+                return false;
+            }
         }
 
         final String adjustedQuery = query;

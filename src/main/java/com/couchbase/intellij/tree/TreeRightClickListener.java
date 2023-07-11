@@ -84,6 +84,9 @@ public class TreeRightClickListener {
             popup.add(refreshBuckets);
             popup.addSeparator();
 
+            JBMenuItem menuItem = new JBMenuItem("Disconnect");
+            popup.add(menuItem);
+            menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
 
             JMenu tools = new JMenu("Tools");
             JBMenuItem pillowFight = new JBMenuItem("Pillow Fight");
@@ -92,23 +95,18 @@ public class TreeRightClickListener {
                 pillowFightDialog.show();
             });
             tools.add(pillowFight);
-            popup.add(tools);
-            popup.addSeparator();
 
-
-            JBMenuItem menuItem = new JBMenuItem("Disconnect");
-            popup.add(menuItem);
-            menuItem.addActionListener(event -> TreeActionHandler.disconnectFromCluster(clickedNode, userObject, tree));
-
-            JBMenuItem cbexport = new JBMenuItem("Export");
+            JBMenuItem cbexport = new JBMenuItem("Data Export");
             cbexport.addActionListener(event -> {
                 ExportDialog dialog = new ExportDialog();
                 dialog.show();
             });
             tools.add(cbexport);
 
-            JBMenuItem cbimport = new JBMenuItem("Import");
-            tools.add(cbimport);
+            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                JBMenuItem cbimport = new JBMenuItem("Data Import");
+                tools.add(cbimport);
+            }
 
             JMenu settings = new JMenu("Settings");
             JMenu colors = new JMenu("Connection Colors");
@@ -130,6 +128,23 @@ public class TreeRightClickListener {
                 }
             });
             colors.add(colorAction);
+
+
+            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                JBMenuItem readOnlyMode = new JBMenuItem("Enable Read Only Mode");
+                readOnlyMode.addActionListener(event -> {
+                    ActiveCluster.getInstance().setReadOnlyMode(true);
+                    SwingUtilities.invokeLater(() -> Messages.showWarningDialog("<html>The <strong>Read Only Mode</strong> is a simple guardrail in the plugin to avoid unwanted changes in sensible environments. Please note that this is a <strong>best effort</strong> approach. For true read-only approach, connect to the cluster using read-only credentials.</html>", "Couchbase Plugin Warning"));
+
+                });
+                settings.add(readOnlyMode);
+            } else {
+                JBMenuItem readWriteMode = new JBMenuItem("Enable Read/Write Mode");
+                readWriteMode.addActionListener(event -> {
+                    ActiveCluster.getInstance().setReadOnlyMode(false);
+                });
+                settings.add(readWriteMode);
+            }
 
             if (ActiveCluster.getInstance().getColor() != null) {
                 JBMenuItem clearConnectionColor = new JBMenuItem("Clear");
@@ -171,22 +186,24 @@ public class TreeRightClickListener {
             tree.expandPath(treePath);
         });
 
-        // Add "Add New Scope" option
-        JBMenuItem addNewScopeItem = new JBMenuItem("Add New Scope");
-        addNewScopeItem.addActionListener(e1 -> {
-            String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            // Add "Add New Scope" option
+            JBMenuItem addNewScopeItem = new JBMenuItem("Add New Scope");
+            addNewScopeItem.addActionListener(e1 -> {
+                String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE, bucketName);
-            entityCreationDialog.show();
+                NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE, bucketName);
+                entityCreationDialog.show();
 
-            if (entityCreationDialog.isOK()) {
-                String scopeName = entityCreationDialog.getEntityName();
-                ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
-                DataLoader.listScopes(clickedNode, tree);
-            }
-        });
+                if (entityCreationDialog.isOK()) {
+                    String scopeName = entityCreationDialog.getEntityName();
+                    ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
+                    DataLoader.listScopes(clickedNode, tree);
+                }
+            });
 
-        popup.add(addNewScopeItem);
+            popup.add(addNewScopeItem);
+        }
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -208,58 +225,63 @@ public class TreeRightClickListener {
         });
         popup.add(refreshCollections);
 
-        // Add "Add New Collection" option
-        JBMenuItem addNewCollectionItem = new JBMenuItem("Add New Collection");
-        addNewCollectionItem.addActionListener(e1 -> {
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            // Add "Add New Collection" option
+            JBMenuItem addNewCollectionItem = new JBMenuItem("Add New Collection");
+            addNewCollectionItem.addActionListener(e1 -> {
 
-            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION, bucketName, scopeName);
-            entityCreationDialog.show();
+                NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION, bucketName, scopeName);
+                entityCreationDialog.show();
 
-            if (entityCreationDialog.isOK()) {
-                String collectionName = entityCreationDialog.getEntityName();
-                ActiveCluster.getInstance().get().bucket(bucketName).collections().createCollection(CollectionSpec.create(collectionName, scopeName));
-                DataLoader.listCollections(clickedNode, tree);
-            }
-        });
-
-        popup.add(addNewCollectionItem);
-
-        if (!"_default".equals(scope.getText())) {
-            popup.addSeparator();
-            // Add "Delete Scope" option
-            JBMenuItem deleteScopeItem = new JBMenuItem("Delete Scope");
-            deleteScopeItem.addActionListener(e1 -> {
-                // Show confirmation dialog before deleting scope
-                int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
-                if (result != Messages.YES) {
-                    return;
+                if (entityCreationDialog.isOK()) {
+                    String collectionName = entityCreationDialog.getEntityName();
+                    ActiveCluster.getInstance().get().bucket(bucketName).collections().createCollection(CollectionSpec.create(collectionName, scopeName));
+                    DataLoader.listCollections(clickedNode, tree);
                 }
-
-                ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
-                // Refresh buckets
-                DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                TreePath treePath = new TreePath(bucketTreeNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
             });
-            popup.add(deleteScopeItem);
+
+            popup.add(addNewCollectionItem);
 
 
+            if (!"_default".equals(scope.getText())) {
+                popup.addSeparator();
+                // Add "Delete Scope" option
+                JBMenuItem deleteScopeItem = new JBMenuItem("Delete Scope");
+                deleteScopeItem.addActionListener(e1 -> {
+                    // Show confirmation dialog before deleting scope
+                    int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
+                    if (result != Messages.YES) {
+                        return;
+                    }
+
+                    ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
+                    // Refresh buckets
+                    DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                    TreePath treePath = new TreePath(bucketTreeNode.getPath());
+                    tree.collapsePath(treePath);
+                    tree.expandPath(treePath);
+                });
+                popup.add(deleteScopeItem);
+
+
+            }
         }
 
         popup.addSeparator();
 
-        JBMenuItem simpleImport = new JBMenuItem("Simple Import");
-        simpleImport.addActionListener(e1 -> {
-            FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
-            VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
-            if (file != null) {
-                CBImport.simpleScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
-            } else {
-                Messages.showErrorDialog("Simple Import requires a .json file. Please try again.", "Simple Import Error");
-            }
-        });
-        popup.add(simpleImport);
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            JBMenuItem simpleImport = new JBMenuItem("Simple Import");
+            simpleImport.addActionListener(e1 -> {
+                FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+                VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+                if (file != null) {
+                    CBImport.simpleScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
+                } else {
+                    Messages.showErrorDialog("Simple Import requires a .json file. Please try again.", "Simple Import Error");
+                }
+            });
+            popup.add(simpleImport);
+        }
 
         JBMenuItem simpleExport = new JBMenuItem("Simple Export");
         simpleExport.addActionListener(e1 -> {
@@ -296,29 +318,31 @@ public class TreeRightClickListener {
         popup.add(viewMetaData);
         popup.addSeparator();
 
-        JBMenuItem deleteDoc = new JBMenuItem("Delete Document");
-        deleteDoc.addActionListener(e12 -> {
-            int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>" + col.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
-            if (result != Messages.YES) {
-                return;
-            }
-
-            try {
-                ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).remove(col.getId());
-
-                DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                if (parentNode != null) {
-                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            JBMenuItem deleteDoc = new JBMenuItem("Delete Document");
+            deleteDoc.addActionListener(e12 -> {
+                int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>" + col.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
                 }
-                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
-                Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error");
-            }
 
-        });
-        popup.add(deleteDoc);
+                try {
+                    ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).remove(col.getId());
+
+                    DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                    if (parentNode != null) {
+                        ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                    }
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
+                    Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error");
+                }
+
+            });
+            popup.add(deleteDoc);
+        }
         popup.show(tree, e.getX(), e.getY());
     }
 
@@ -337,12 +361,22 @@ public class TreeRightClickListener {
     private static void handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
         JBPopupMenu popup = new JBPopupMenu();
 
-        JBMenuItem openDocument = new JBMenuItem("Open/Create Document");
+        JBMenuItem openDocument = new JBMenuItem("Open Document");
         openDocument.addActionListener(e12 -> {
-            OpenDocumentDialog dialog = new OpenDocumentDialog(project, tree, col.getBucket(), col.getScope(), col.getText());
+            OpenDocumentDialog dialog = new OpenDocumentDialog(false, project, tree, col.getBucket(), col.getScope(), col.getText());
             dialog.show();
         });
         popup.add(openDocument);
+
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            JBMenuItem createDocument = new JBMenuItem("Create Document");
+            createDocument.addActionListener(e12 -> {
+                OpenDocumentDialog dialog = new OpenDocumentDialog(true, project, tree, col.getBucket(), col.getScope(), col.getText());
+                dialog.show();
+            });
+            popup.add(createDocument);
+        }
+        popup.addSeparator();
 
         String filter = "Add Document Filter";
         boolean hasDeleteFilter = false;
@@ -370,41 +404,45 @@ public class TreeRightClickListener {
             });
         }
 
-        popup.addSeparator();
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            popup.addSeparator();
+            if (!"_default".equals(col.getText()) && !"_default".equals(col.getScope())) {
+                // Add "Delete Collection" option
+                JBMenuItem deleteCollectionItem = new JBMenuItem("Delete Collection");
+                deleteCollectionItem.addActionListener(e1 -> {
+                    int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());
+                    if (result != Messages.YES) {
+                        return;
+                    }
 
-        if (!"_default".equals(col.getText()) && !"_default".equals(col.getScope())) {
-            // Add "Delete Collection" option
-            JBMenuItem deleteCollectionItem = new JBMenuItem("Delete Collection");
-            deleteCollectionItem.addActionListener(e1 -> {
-                int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());
-                if (result != Messages.YES) {
-                    return;
-                }
-
-                ActiveCluster.getInstance().get().bucket(col.getBucket()).collections().dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
-                // Refresh collections
-                DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                TreePath treePath = new TreePath(colsTreeNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
-            });
-            popup.add(deleteCollectionItem);
+                    ActiveCluster.getInstance().get().bucket(col.getBucket()).collections().dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
+                    // Refresh collections
+                    DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                    TreePath treePath = new TreePath(colsTreeNode.getPath());
+                    tree.collapsePath(treePath);
+                    tree.expandPath(treePath);
+                });
+                popup.add(deleteCollectionItem);
+            }
         }
 
         //cbexport and cbimport are installed together, so if one is available the other also is
         if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
             popup.addSeparator();
-            JBMenuItem simpleImport = new JBMenuItem("Simple Import");
-            simpleImport.addActionListener(e12 -> {
-                FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
-                VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
-                if (file != null) {
-                    CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(), null);
-                } else {
-                    Messages.showErrorDialog("Simple Import requires a .json file. Please try again.", "Simple Import Error");
-                }
-            });
-            popup.add(simpleImport);
+
+            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                JBMenuItem simpleImport = new JBMenuItem("Simple Import");
+                simpleImport.addActionListener(e12 -> {
+                    FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+                    VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+                    if (file != null) {
+                        CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(), null);
+                    } else {
+                        Messages.showErrorDialog("Simple Import requires a .json file. Please try again.", "Simple Import Error");
+                    }
+                });
+                popup.add(simpleImport);
+            }
 
             JBMenuItem simpleExport = new JBMenuItem("Simple Export");
             simpleExport.addActionListener(e12 -> {

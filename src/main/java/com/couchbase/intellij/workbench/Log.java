@@ -18,6 +18,10 @@ public class Log {
         logLevel = level;
     }
 
+    public static boolean isDebug() {
+        return logLevel >= 3;
+    }
+
     public static ConsoleView getLogger() {
         if (console == null) {
             console = TextConsoleBuilderFactory.getInstance().createBuilder(

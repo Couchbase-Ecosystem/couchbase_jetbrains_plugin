@@ -19,7 +19,7 @@
             <ul>
               <li><strong>Connection Management:</strong> Easily connect to your local or remote Couchbase clusters and manage your connections within the IntelliJ IDEA.</li>
               <li><strong>Data Manipulation:</strong> View, add, update, and delete documents in your Couchbase buckets directly from IntelliJ.</li>
-              <li><strong>SQL++ Support:</strong> Write and execute SQL++ queries from within IntelliJ. The plugin includes syntax highlighting, error checking, and auto-completion features for N1QL, making it easier to write and debug your queries.</li>
+              <li><strong>SQL++ Support:</strong> Write and execute SQL++ queries from within IntelliJ. The plugin includes syntax highlighting, error checking, and auto-completion features for SQL++ (previously known as N1QL), making it easier to write and debug your queries.</li>
             </ul>
             For more information visit the
             <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
