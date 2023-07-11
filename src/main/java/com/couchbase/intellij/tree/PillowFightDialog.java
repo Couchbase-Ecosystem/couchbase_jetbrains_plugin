@@ -1,8 +1,6 @@
 package com.couchbase.intellij.tree;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.*;
 
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
@@ -10,7 +8,6 @@ import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import org.jetbrains.annotations.NotNull;
@@ -34,27 +31,27 @@ import com.intellij.openapi.ui.popup.Balloon;
 public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
     private ComboBox<String> durabilityComboBox;
-    private JBTextField persistToTextField;
-    private JBTextField batchSizeTextField;
-    private JBTextField numberItemsTextField;
+    private JSpinner persistToTextField;
+    private JSpinner batchSizeTextField;
+    private JSpinner numberItemsTextField;
     private JBTextField keyPrefixTextField;
-    private JBTextField numberThreadsTextField;
-    private JBTextField percentageTextField;
+    private JSpinner numberThreadsTextField;
+    private JSpinner percentageTextField;
     private ComboBox<String> noPopulationComboBox;
     private ComboBox<String> populateOnlyComboBox;
-    private JBTextField minSizeTextField;
-    private JBTextField maxSizeTextField;
-    private JBTextField numberCyclesTextField;
+    private JSpinner minSizeTextField;
+    private JSpinner maxSizeTextField;
+    private JSpinner numberCyclesTextField;
     private ComboBox<String> sequentialComboBox;
-    private JBTextField startAtTextField;
+    private JSpinner startAtTextField;
     private ComboBox<String> timingsComboBox;
-    private JBTextField expiryTextField;
-    private JBTextField replicateToTextField;
-    private JBTextField lockTextField;
+    private JSpinner expiryTextField;
+    private JSpinner replicateToTextField;
+    private JSpinner lockTextField;
     private ComboBox<String> jsonComboBox;
     private ComboBox<String> noopComboBox;
     private ComboBox<String> subdocComboBox;
-    private JBTextField pathcountTextField;
+    private JSpinner pathcountTextField;
     private JLabel errorMessage;
 
     @Override
@@ -85,73 +82,34 @@ public class PillowFightDialog extends DialogWrapper {
         String[] durabilityOptions = {"none", "majority", "majority_and_persist_to_active", "persist_to_majority"};
 
         durabilityComboBox = new ComboBox<>(durabilityOptions);
-        persistToTextField = createTextFieldWithValidation(-1);
-        batchSizeTextField = createTextFieldWithValidation(0);
-        numberItemsTextField = createTextFieldWithValidation(0);
+        persistToTextField = createJSpinner(-1);
+        batchSizeTextField = createJSpinner(0);
+        numberItemsTextField = createJSpinner(0);
         keyPrefixTextField = new JBTextField();
-        numberThreadsTextField = createTextFieldWithValidation(0);
-        percentageTextField = createTextFieldWithValidation(0);
+        numberThreadsTextField = createJSpinner(0);
+        percentageTextField = createJSpinner(0);
         noPopulationComboBox = new ComboBox<>(disableEnableOptions);
         populateOnlyComboBox = new ComboBox<>(disableEnableOptions);
-        minSizeTextField = createTextFieldWithValidation(0);
-        maxSizeTextField = createTextFieldWithValidation(0);
-        numberCyclesTextField = createTextFieldWithValidation(-1);
+        minSizeTextField = createJSpinner(0);
+        maxSizeTextField = createJSpinner(0);
+        numberCyclesTextField = createJSpinner(-1);
         sequentialComboBox = new ComboBox<>(disableEnableOptions);
-        startAtTextField = createTextFieldWithValidation(0);
+        startAtTextField = createJSpinner(0);
         timingsComboBox = new ComboBox<>(disableEnableOptions);
-        expiryTextField = createTextFieldWithValidation(0);
-        replicateToTextField = createTextFieldWithValidation(-1);
-        lockTextField = createTextFieldWithValidation(0);
+        expiryTextField = createJSpinner(0);
+        replicateToTextField = createJSpinner(-1);
+        lockTextField = createJSpinner(0);
         jsonComboBox = new ComboBox<>(disableEnableOptions);
         noopComboBox = new ComboBox<>(disableEnableOptions);
         subdocComboBox = new ComboBox<>(disableEnableOptions);
-        pathcountTextField = createTextFieldWithValidation(0);
+        pathcountTextField = createJSpinner(0);
 
         init();
     }
 
-    private JBTextField createTextFieldWithValidation(int minValue) {
-        JBTextField textField = new JBTextField();
-        textField.getDocument().addDocumentListener(new DocumentListener() {
-            final Color originalColor = textField.getForeground();
-
-            @Override
-            public void insertUpdate(DocumentEvent documentEvent) {
-                validateTextField(textField, originalColor, minValue);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent documentEvent) {
-                validateTextField(textField, originalColor, minValue);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent documentEvent) {
-                validateTextField(textField, originalColor, minValue);
-            }
-        });
-        return textField;
-    }
-
-    private void validateTextField(JBTextField textField, Color originalColor, int minValue) {
-        String input = textField.getText();
-        try {
-            if (input == null || input.trim().isEmpty()) {
-                textField.setForeground(originalColor);
-                setOKActionEnabled(true);
-                return;
-            }
-            if (Integer.parseInt(input) < minValue) {
-                textField.setForeground(JBColor.RED);
-                setOKActionEnabled(false);
-            } else {
-                textField.setForeground(originalColor);
-                setOKActionEnabled(true);
-            }
-        } catch (NumberFormatException e) {
-            textField.setForeground(JBColor.RED);
-            setOKActionEnabled(false);
-        }
+    private JSpinner createJSpinner(int minValue) {
+        JSpinner currentJSpinner = new JSpinner(new SpinnerNumberModel(minValue, minValue, Integer.MAX_VALUE, 1));
+        return currentJSpinner;
     }
 
     private static JBPanel createLabelWithBalloon(String labelText, String hintText) {
@@ -212,14 +170,14 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.weightx = 1.0;
         gbc.weighty = 0.0;
 
-        panel.add(createLabelWithBalloon("Available Buckets:                            ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
+        panel.add(createLabelWithBalloon("Available Buckets:      ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
 
         gbc.gridx--;
         gbc.gridy++;
-        panel.add(createLabelWithBalloon("Durability:                            ", "Specify durability level for mutation operations"), gbc);
+        panel.add(createLabelWithBalloon("Durability:      ", "Specify durability level for mutation operations"), gbc);
 
         gbc.gridx++;
         panel.add(durabilityComboBox, gbc);
@@ -244,7 +202,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(persistToTextField, gbcCollapsable);
-        persistToTextField.getEmptyText().setText("Enter a number -1 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -252,7 +209,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(batchSizeTextField, gbcCollapsable);
-        batchSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -260,7 +216,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(numberItemsTextField, gbcCollapsable);
-        numberItemsTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -276,7 +231,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(numberThreadsTextField, gbcCollapsable);
-        numberThreadsTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -284,7 +238,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(percentageTextField, gbcCollapsable);
-        percentageTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -306,7 +259,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(minSizeTextField, gbcCollapsable);
-        minSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -315,7 +267,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(maxSizeTextField, gbcCollapsable);
-        maxSizeTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -323,7 +274,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(numberCyclesTextField, gbcCollapsable);
-        numberCyclesTextField.getEmptyText().setText("Enter a number -1 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -338,7 +288,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(startAtTextField, gbcCollapsable);
-        startAtTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -353,7 +302,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(expiryTextField, gbcCollapsable);
-        expiryTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -361,7 +309,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(replicateToTextField, gbcCollapsable);
-        replicateToTextField.getEmptyText().setText("Enter a number -1 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -369,7 +316,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(lockTextField, gbcCollapsable);
-        lockTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
@@ -398,7 +344,6 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbcCollapsable.gridx++;
         collapsiblePanel.add(pathcountTextField, gbcCollapsable);
-        pathcountTextField.getEmptyText().setText("Enter a number 0 or greater");
 
         gbc.gridy++;
         CollapsiblePanel collapsiblePanel1 = new CollapsiblePanel("Advanced Options", collapsiblePanel);
@@ -421,7 +366,7 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("No available buckets. Please connect to a cluster.");
         }
 
-        if (!numberCyclesTextField.getText().equals("") && populateOnlyComboBox.getSelectedItem() == "Enable") {
+        if (!numberCyclesTextField.getValue().equals("") && populateOnlyComboBox.getSelectedItem() == "Enable") {
             errors.add("Number of Cycles is incompatible with Populate Only");
         }
 
@@ -429,12 +374,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Subdoc must be used with JSON");
         }
 
-        if (!pathcountTextField.getText().equals("") && jsonComboBox.getSelectedItem() == "Disable") {
+        if (!pathcountTextField.getValue().equals("") && jsonComboBox.getSelectedItem() == "Disable") {
             errors.add("Pathcount must be used with JSON");
         }
 
         try {
-            if (!lockTextField.getText().equals("") && Integer.parseInt(numberItemsTextField.getText()) < Integer.parseInt(batchSizeTextField.getText()) * Integer.parseInt(numberThreadsTextField.getText())) {
+            if (!lockTextField.getValue().equals("") && Integer.valueOf(String.valueOf(numberItemsTextField.getValue())) < Integer.valueOf(String.valueOf(batchSizeTextField)) * Integer.valueOf(String.valueOf(numberThreadsTextField.getValue()))) {
                 errors.add("Number of Items cannot be smaller than Batch Size multiplied to Number of Threads when used with Lock");
             }
         } catch (Exception e) {
@@ -445,7 +390,7 @@ public class PillowFightDialog extends DialogWrapper {
             super.doOKAction();
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
-                pillowFightRunner.runPillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), persistToTextField.getText(), batchSizeTextField.getText(), numberItemsTextField.getText(), keyPrefixTextField.getText(), numberThreadsTextField.getText(), percentageTextField.getText(), String.valueOf(noPopulationComboBox.getSelectedItem()), String.valueOf(populateOnlyComboBox.getSelectedItem()), minSizeTextField.getText(), maxSizeTextField.getText(), numberCyclesTextField.getText(), String.valueOf(sequentialComboBox.getSelectedItem()), startAtTextField.getText(), String.valueOf(timingsComboBox.getSelectedItem()), expiryTextField.getText(), replicateToTextField.getText(), lockTextField.getText(), String.valueOf(jsonComboBox.getSelectedItem()), String.valueOf(noopComboBox.getSelectedItem()), String.valueOf(subdocComboBox.getSelectedItem()), pathcountTextField.getText());
+                pillowFightRunner.runPillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), String.valueOf(persistToTextField.getValue()), String.valueOf(batchSizeTextField.getValue()), String.valueOf(numberItemsTextField.getValue()), keyPrefixTextField.getText(), String.valueOf(numberThreadsTextField.getValue()), String.valueOf(percentageTextField.getValue()), String.valueOf(noPopulationComboBox.getSelectedItem()), String.valueOf(populateOnlyComboBox.getSelectedItem()), String.valueOf(minSizeTextField.getValue()), String.valueOf(maxSizeTextField.getValue()), String.valueOf(numberCyclesTextField.getValue()), String.valueOf(sequentialComboBox.getSelectedItem()), String.valueOf(startAtTextField.getValue()), String.valueOf(timingsComboBox.getSelectedItem()), String.valueOf(expiryTextField.getValue()), String.valueOf(replicateToTextField.getValue()), String.valueOf(lockTextField.getValue()), String.valueOf(jsonComboBox.getSelectedItem()), String.valueOf(noopComboBox.getSelectedItem()), String.valueOf(subdocComboBox.getSelectedItem()), String.valueOf(pathcountTextField.getValue()));
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
