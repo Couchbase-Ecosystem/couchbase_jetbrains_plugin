@@ -18,8 +18,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
@@ -431,6 +429,18 @@ public class PillowFightDialog extends DialogWrapper {
         return panel;
     }
 
+    private boolean componentIsEnabled(JSpinner spinner) {
+        return spinner.isEnabled();
+    }
+
+    private String getValue(JSpinner spinner) {
+        return componentIsEnabled(spinner) ? spinner.getValue().toString() : null;
+    }
+
+    private String getValue(ComboBox comboBox) {
+        return comboBox.getSelectedItem().toString();
+    }
+
     @Override
     protected void doOKAction() {
         List<String> errors = new ArrayList<>();
@@ -438,7 +448,7 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("No available buckets. Please connect to a cluster.");
         }
 
-        if (!numberCyclesSpinner.getValue().equals("") && populateOnlyComboBox.getSelectedItem() == "Enable") {
+        if (componentIsEnabled(numberCyclesSpinner) && populateOnlyComboBox.getSelectedItem() == "Enable") {
             errors.add("Number of Cycles is incompatible with Populate Only");
         }
 
@@ -446,12 +456,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Subdoc must be used with JSON");
         }
 
-        if (!pathcountSpinner.getValue().equals("") && jsonComboBox.getSelectedItem() == "Disable") {
+        if (componentIsEnabled(pathcountSpinner) && jsonComboBox.getSelectedItem() == "Disable") {
             errors.add("Pathcount must be used with JSON");
         }
 
         try {
-            if (!lockSpinner.getValue().equals("") && Integer.valueOf(String.valueOf(numberItemsSpinner.getValue())) < Integer.valueOf(String.valueOf(batchSizeSpinner)) * Integer.valueOf(String.valueOf(numberThreadsSpinner.getValue()))) {
+            if (componentIsEnabled(lockSpinner) && componentIsEnabled(numberItemsSpinner) && componentIsEnabled(batchSizeSpinner) && componentIsEnabled(numberThreadsSpinner) && (int) numberItemsSpinner.getValue() < (int) batchSizeSpinner.getValue() * (int) numberThreadsSpinner.getValue()) {
                 errors.add("Number of Items cannot be smaller than Batch Size multiplied to Number of Threads when used with Lock");
             }
         } catch (Exception e) {
@@ -462,7 +472,7 @@ public class PillowFightDialog extends DialogWrapper {
             super.doOKAction();
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
-                pillowFightRunner.runPillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), String.valueOf(persistToSpinner.getValue()), String.valueOf(batchSizeSpinner.getValue()), String.valueOf(numberItemsSpinner.getValue()), keyPrefixTextField.getText(), String.valueOf(numberThreadsSpinner.getValue()), String.valueOf(percentageSpinner.getValue()), String.valueOf(noPopulationComboBox.getSelectedItem()), String.valueOf(populateOnlyComboBox.getSelectedItem()), String.valueOf(minSizeSpinner.getValue()), String.valueOf(maxSizeSpinner.getValue()), String.valueOf(numberCyclesSpinner.getValue()), String.valueOf(sequentialComboBox.getSelectedItem()), String.valueOf(startAtSpinner.getValue()), String.valueOf(timingsComboBox.getSelectedItem()), String.valueOf(expirySpinner.getValue()), String.valueOf(replicateToSpinner.getValue()), String.valueOf(lockSpinner.getValue()), String.valueOf(jsonComboBox.getSelectedItem()), String.valueOf(noopComboBox.getSelectedItem()), String.valueOf(subdocComboBox.getSelectedItem()), String.valueOf(pathcountSpinner.getValue()));
+                pillowFightRunner.runPillowFightCommand(getValue(bucketComboBox), getValue(durabilityComboBox), getValue(persistToSpinner), getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(), getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox), getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner), getValue(numberCyclesSpinner), getValue(sequentialComboBox), getValue(startAtSpinner), getValue(timingsComboBox), getValue(expirySpinner), getValue(replicateToSpinner), getValue(lockSpinner), getValue(jsonComboBox), getValue(noopComboBox), getValue(subdocComboBox), getValue(pathcountSpinner));
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }

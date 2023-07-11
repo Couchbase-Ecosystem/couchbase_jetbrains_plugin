@@ -14,41 +14,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PillowFightRunner {
-    public void runPillowFightCommand(String selectedBucket, String selectedDurability, String selectedPersistToTextField, String batchSizeTextField, String numberItemsTextField, String keyPrefixTextField, String numberThreadsTextField, String percentageTextField, String noPopulation, String populateOnly, String minSizeTextField, String maxSizeTextField, String numberCyclesTextField, String sequential, String startAtTextField, String timings, String expiryTextField, String replicateToTextField, String lockTextField, String json, String noop, String subdoc, String pathcountTextField) throws IOException, InterruptedException {
+    public void runPillowFightCommand(String bucket, String durability, String persistTo, String batchSize, String numberItems, String keyPrefix, String numberThreads, String percentage, String noPopulation, String populateOnly, String minSize, String maxSize, String numberCycles, String sequential, String startAt, String timings, String expiry, String replicateTo, String lock, String json, String noop, String subdoc, String pathcount) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getPath());
         command.add("-U");
-        command.add(String.format("%s/%s", ActiveCluster.getInstance().getClusterURL(), selectedBucket));
+        command.add(String.format("%s/%s", ActiveCluster.getInstance().getClusterURL(), bucket));
         command.add("-u");
         command.add(ActiveCluster.getInstance().getUsername());
         command.add("-P");
         command.add(ActiveCluster.getInstance().getPassword());
         command.add("--durability");
-        command.add(selectedDurability);
+        command.add(durability);
 
-        if (!selectedPersistToTextField.trim().isEmpty()) {
+        if (persistTo != null) {
             command.add("--persist-to");
-            command.add(selectedPersistToTextField);
+            command.add(persistTo);
         }
-        if (!batchSizeTextField.trim().isEmpty()) {
+        if (batchSize != null) {
             command.add("--batch-size");
-            command.add(batchSizeTextField);
+            command.add(batchSize);
         }
-        if (!numberItemsTextField.trim().isEmpty()) {
+        if (numberItems != null) {
             command.add("--num-items");
-            command.add(numberItemsTextField);
+            command.add(numberItems);
         }
-        if (!keyPrefixTextField.trim().isEmpty()) {
+        if (!keyPrefix.trim().isEmpty()) {
             command.add("--key-prefix");
-            command.add(keyPrefixTextField);
+            command.add(keyPrefix);
         }
-        if (!numberThreadsTextField.trim().isEmpty()) {
+        if (numberThreads != null) {
             command.add("--num-threads");
-            command.add(numberThreadsTextField);
+            command.add(numberThreads);
         }
-        if (!percentageTextField.trim().isEmpty()) {
+        if (percentage != null) {
             command.add("--set-pct");
-            command.add(percentageTextField);
+            command.add(percentage);
         }
         if (noPopulation.equals("Enable")) {
             command.add("--no-population");
@@ -56,35 +56,39 @@ public class PillowFightRunner {
         if (populateOnly.equals("Enable")) {
             command.add(" --populate-only");
         }
-        if (!minSizeTextField.trim().isEmpty()) {
+        if (minSize != null) {
             command.add("--min-size");
-            command.add(minSizeTextField);
+            command.add(minSize);
         }
-        if (!maxSizeTextField.trim().isEmpty()) {
+        if (maxSize != null) {
             command.add("--max-size");
-            command.add(maxSizeTextField);
+            command.add(maxSize);
+        }
+        if (numberCycles != null) {
+            command.add("--num-cycles");
+            command.add(numberCycles);
         }
         if (sequential.equals("Enable")) {
             command.add("--sequential");
         }
-        if (!startAtTextField.trim().isEmpty()) {
+        if (startAt != null) {
             command.add("--start-at");
-            command.add(startAtTextField);
+            command.add(startAt);
         }
         if (timings.equals("Enable")) {
             command.add("--timings");
         }
-        if (!expiryTextField.trim().isEmpty()) {
+        if (expiry != null) {
             command.add("--expiry");
-            command.add(expiryTextField);
+            command.add(expiry);
         }
-        if (!replicateToTextField.trim().isEmpty()) {
+        if (replicateTo != null) {
             command.add("--replicate-to");
-            command.add(replicateToTextField);
+            command.add(replicateTo);
         }
-        if (!lockTextField.trim().isEmpty()) {
+        if (lock != null) {
             command.add("--lock");
-            command.add(lockTextField);
+            command.add(lock);
         }
         if (json.equals("Enable")) {
             command.add("--json");
@@ -95,14 +99,12 @@ public class PillowFightRunner {
         if (subdoc.equals("Enable")) {
             command.add("--subdoc");
         }
-        if (!pathcountTextField.trim().isEmpty()) {
+        if (pathcount != null) {
             command.add("--pathcount");
-            command.add(pathcountTextField);
+            command.add(pathcount);
         }
-        if (!numberCyclesTextField.trim().isEmpty()) {
-            command.add("--num-cycles");
-            command.add(numberCyclesTextField);
-        }
+
+        System.out.println(command);
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process proc = processBuilder.start();
