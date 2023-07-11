@@ -104,8 +104,6 @@ public class PillowFightRunner {
             command.add(pathcount);
         }
 
-        System.out.println(command);
-
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process proc = processBuilder.start();
 
