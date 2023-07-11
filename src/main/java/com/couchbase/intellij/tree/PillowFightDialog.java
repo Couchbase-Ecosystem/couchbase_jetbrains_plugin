@@ -18,6 +18,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
@@ -31,27 +33,27 @@ import com.intellij.openapi.ui.popup.Balloon;
 public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
     private ComboBox<String> durabilityComboBox;
-    private JSpinner persistToTextField;
-    private JSpinner batchSizeTextField;
-    private JSpinner numberItemsTextField;
+    private JSpinner persistToSpinner;
+    private JSpinner batchSizeSpinner;
+    private JSpinner numberItemsSpinner;
     private JBTextField keyPrefixTextField;
-    private JSpinner numberThreadsTextField;
-    private JSpinner percentageTextField;
+    private JSpinner numberThreadsSpinner;
+    private JSpinner percentageSpinner;
     private ComboBox<String> noPopulationComboBox;
     private ComboBox<String> populateOnlyComboBox;
-    private JSpinner minSizeTextField;
-    private JSpinner maxSizeTextField;
-    private JSpinner numberCyclesTextField;
+    private JSpinner minSizeSpinner;
+    private JSpinner maxSizeSpinner;
+    private JSpinner numberCyclesSpinner;
     private ComboBox<String> sequentialComboBox;
-    private JSpinner startAtTextField;
+    private JSpinner startAtSpinner;
     private ComboBox<String> timingsComboBox;
-    private JSpinner expiryTextField;
-    private JSpinner replicateToTextField;
-    private JSpinner lockTextField;
+    private JSpinner expirySpinner;
+    private JSpinner replicateToSpinner;
+    private JSpinner lockSpinner;
     private ComboBox<String> jsonComboBox;
     private ComboBox<String> noopComboBox;
     private ComboBox<String> subdocComboBox;
-    private JSpinner pathcountTextField;
+    private JSpinner pathcountSpinner;
     private JLabel errorMessage;
 
     @Override
@@ -82,27 +84,27 @@ public class PillowFightDialog extends DialogWrapper {
         String[] durabilityOptions = {"none", "majority", "majority_and_persist_to_active", "persist_to_majority"};
 
         durabilityComboBox = new ComboBox<>(durabilityOptions);
-        persistToTextField = createJSpinner(-1);
-        batchSizeTextField = createJSpinner(0);
-        numberItemsTextField = createJSpinner(0);
+        persistToSpinner = createJSpinner(-1);
+        batchSizeSpinner = createJSpinner(0);
+        numberItemsSpinner = createJSpinner(0);
         keyPrefixTextField = new JBTextField();
-        numberThreadsTextField = createJSpinner(0);
-        percentageTextField = createJSpinner(0);
+        numberThreadsSpinner = createJSpinner(0);
+        percentageSpinner = createJSpinner(0);
         noPopulationComboBox = new ComboBox<>(disableEnableOptions);
         populateOnlyComboBox = new ComboBox<>(disableEnableOptions);
-        minSizeTextField = createJSpinner(0);
-        maxSizeTextField = createJSpinner(0);
-        numberCyclesTextField = createJSpinner(-1);
+        minSizeSpinner = createJSpinner(0);
+        maxSizeSpinner = createJSpinner(0);
+        numberCyclesSpinner = createJSpinner(-1);
         sequentialComboBox = new ComboBox<>(disableEnableOptions);
-        startAtTextField = createJSpinner(0);
+        startAtSpinner = createJSpinner(0);
         timingsComboBox = new ComboBox<>(disableEnableOptions);
-        expiryTextField = createJSpinner(0);
-        replicateToTextField = createJSpinner(-1);
-        lockTextField = createJSpinner(0);
+        expirySpinner = createJSpinner(0);
+        replicateToSpinner = createJSpinner(-1);
+        lockSpinner = createJSpinner(0);
         jsonComboBox = new ComboBox<>(disableEnableOptions);
         noopComboBox = new ComboBox<>(disableEnableOptions);
         subdocComboBox = new ComboBox<>(disableEnableOptions);
-        pathcountTextField = createJSpinner(0);
+        pathcountSpinner = createJSpinner(0);
 
         init();
     }
@@ -157,6 +159,13 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private JCheckBox createCheckbox(JSpinner spinner) {
+        JCheckBox checkbox = new JCheckBox();
+        spinner.setEnabled(false);
+        checkbox.addActionListener(e -> spinner.setEnabled(checkbox.isSelected()));
+        return checkbox;
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -170,14 +179,14 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.weightx = 1.0;
         gbc.weighty = 0.0;
 
-        panel.add(createLabelWithBalloon("Available Buckets:      ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
+        panel.add(createLabelWithBalloon("Available Buckets: ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
 
         gbc.gridx--;
         gbc.gridy++;
-        panel.add(createLabelWithBalloon("Durability:      ", "Specify durability level for mutation operations"), gbc);
+        panel.add(createLabelWithBalloon("Durability:", "Specify durability level for mutation operations"), gbc);
 
         gbc.gridx++;
         panel.add(durabilityComboBox, gbc);
@@ -201,22 +210,37 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(createLabelWithBalloon("Persist-to: ", "Wait until the item has been persisted to at least NUMNODES nodes' disk. If NUMNODES is 1 then wait until only the master node has persisted the item for this key. You may not specify a number greater than the number of nodes actually in the cluster. -1 is special value, which mean to use all available nodes."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(persistToTextField, gbcCollapsable);
+        collapsiblePanel.add(persistToSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox persistToCheckbox = createCheckbox(persistToSpinner);
+        collapsiblePanel.add(persistToCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Batch Size: ", "This controls how many commands are scheduled per cycles. To simulate one operation at a time, set this value to 1."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(batchSizeTextField, gbcCollapsable);
+        collapsiblePanel.add(batchSizeSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox batchSizeCheckbox = createCheckbox(batchSizeSpinner);
+        collapsiblePanel.add(batchSizeCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Number of Items: ", "Set the total number of items the workload will access within the cluster. This will also determine the working set size at the server and may affect disk latencies if set to a high number."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(numberItemsTextField, gbcCollapsable);
+        collapsiblePanel.add(numberItemsSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox numberItemsCheckbox = createCheckbox(numberItemsSpinner);
+        collapsiblePanel.add(numberItemsCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Key Prefix: ", "Set the prefix to prepend to all keys in the cluster. Useful if you do not wish the items to conflict with existing data."), gbcCollapsable);
@@ -230,15 +254,25 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(createLabelWithBalloon("Number of Threads: ", "Set the number of threads (and thus the number of client instances) to run concurrently. Each thread is assigned its own client object."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(numberThreadsTextField, gbcCollapsable);
+        collapsiblePanel.add(numberThreadsSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox numberThreadsCheckbox = createCheckbox(numberThreadsSpinner);
+        collapsiblePanel.add(numberThreadsCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Percentage", "The percentage of operations which should be mutations. A value of 100 means only mutations while a value of 0 means only retrievals."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(percentageTextField, gbcCollapsable);
+        collapsiblePanel.add(percentageSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox percentageCheckbox = createCheckbox(percentageSpinner);
+        collapsiblePanel.add(percentageCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("No Population: ", "By default cbc-pillowfight will load all the items (see --num-items) into the cluster and then begin performing the normal workload. Specifying this option bypasses this stage. Useful if the items have already been loaded in a previous run."), gbcCollapsable);
@@ -258,23 +292,37 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(createLabelWithBalloon("Min Size: ", "Specify the minimum size to be stored into the cluster. This is typically a range, in which case each value generated will be between Min Size and Max Size bytes."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(minSizeTextField, gbcCollapsable);
+        collapsiblePanel.add(minSizeSpinner, gbcCollapsable);
+
+        gbcCollapsable.gridx++;
+        JCheckBox minSizeCheckbox = createCheckbox(minSizeSpinner);
+        collapsiblePanel.add(minSizeCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
-        collapsiblePanel.add(new JLabel("Max Size: "), gbcCollapsable);
         collapsiblePanel.add(createLabelWithBalloon("Max Size: ", "Specify the maximum size to be stored into the cluster. This is typically a range, in which case each value generated will be between Min Size and Max Size bytes."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(maxSizeTextField, gbcCollapsable);
+        collapsiblePanel.add(maxSizeSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox maxSizeCheckbox = createCheckbox(maxSizeSpinner);
+        collapsiblePanel.add(maxSizeCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Number of Cycles: ", "Specify the number of times the workload should cycle. During each cycle an amount of --batch-size operations are executed. Setting this to -1 will cause the workload to run infinitely."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(numberCyclesTextField, gbcCollapsable);
+        collapsiblePanel.add(numberCyclesSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox numberCyclesCheckbox = createCheckbox(numberCyclesSpinner);
+        collapsiblePanel.add(numberCyclesCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Sequential: ", "Specify that the access pattern should be done in a sequential manner. This is useful for bulk-loading many documents in a single server."), gbcCollapsable);
@@ -287,8 +335,13 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(createLabelWithBalloon("Start At: ", "This specifies the starting offset for the items. The items by default are generated with the key prefix (--key-prefix) up to the number of items (--num-items). The --start-at value will increase the lower limit of the items. This is useful to resume a previously cancelled load operation."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(startAtTextField, gbcCollapsable);
+        collapsiblePanel.add(startAtSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox startAtCheckbox = createCheckbox(startAtSpinner);
+        collapsiblePanel.add(startAtCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Timings: ", "Enabled timing recorded. Timing histogram will be dumped to STDERR on SIGQUIT (CTRL-/). When specified second time, it will dump a histogram of command timings and latencies to the screen every second."), gbcCollapsable);
@@ -301,22 +354,37 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(createLabelWithBalloon("Expiry: ", "Set the expiration time on the document for SECONDS when performing each operation. Note that setting this too low may cause not-found errors to appear on the screen."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(expiryTextField, gbcCollapsable);
+        collapsiblePanel.add(expirySpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox expiryCheckbox = createCheckbox(expirySpinner);
+        collapsiblePanel.add(expiryCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Replicate To: ", "Wait until the item has been replicated to at least NREPLICAS replica nodes. The bucket must be configured with at least one replica, and at least NREPLICAS replica nodes must be online. -1 is special value, which mean to use all available replicas."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(replicateToTextField, gbcCollapsable);
+        collapsiblePanel.add(replicateToSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox replicateToCheckbox = createCheckbox(replicateToSpinner);
+        collapsiblePanel.add(replicateToCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("Lock: ", "This will retrieve and lock an item before update, making it inaccessible for modification until the update completed, or TIME has passed."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(lockTextField, gbcCollapsable);
+        collapsiblePanel.add(lockSpinner, gbcCollapsable);
 
+        gbcCollapsable.gridx++;
+        JCheckBox lockCheckbox = createCheckbox(lockSpinner);
+        collapsiblePanel.add(lockCheckbox, gbcCollapsable);
+
+        gbcCollapsable.gridx--;
         gbcCollapsable.gridx--;
         gbcCollapsable.gridy++;
         collapsiblePanel.add(createLabelWithBalloon("JSON: ", "Make pillowfight store document as JSON rather than binary. This will allow the documents to nominally be analyzed by other Couchbase services such as Query and MapReduce."), gbcCollapsable);
@@ -343,7 +411,11 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(createLabelWithBalloon("Pathcount: ", "Specify the number of paths a single sub-document operation should contain. By default, each subdoc operation operates on only a single path within the document. You can specify multiple paths to atomically executed multiple subdoc operations within a single command."), gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        collapsiblePanel.add(pathcountTextField, gbcCollapsable);
+        collapsiblePanel.add(pathcountSpinner, gbcCollapsable);
+
+        gbcCollapsable.gridx++;
+        JCheckBox pathcountCheckbox = createCheckbox(pathcountSpinner);
+        collapsiblePanel.add(pathcountCheckbox, gbcCollapsable);
 
         gbc.gridy++;
         CollapsiblePanel collapsiblePanel1 = new CollapsiblePanel("Advanced Options", collapsiblePanel);
@@ -366,7 +438,7 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("No available buckets. Please connect to a cluster.");
         }
 
-        if (!numberCyclesTextField.getValue().equals("") && populateOnlyComboBox.getSelectedItem() == "Enable") {
+        if (!numberCyclesSpinner.getValue().equals("") && populateOnlyComboBox.getSelectedItem() == "Enable") {
             errors.add("Number of Cycles is incompatible with Populate Only");
         }
 
@@ -374,12 +446,12 @@ public class PillowFightDialog extends DialogWrapper {
             errors.add("Subdoc must be used with JSON");
         }
 
-        if (!pathcountTextField.getValue().equals("") && jsonComboBox.getSelectedItem() == "Disable") {
+        if (!pathcountSpinner.getValue().equals("") && jsonComboBox.getSelectedItem() == "Disable") {
             errors.add("Pathcount must be used with JSON");
         }
 
         try {
-            if (!lockTextField.getValue().equals("") && Integer.valueOf(String.valueOf(numberItemsTextField.getValue())) < Integer.valueOf(String.valueOf(batchSizeTextField)) * Integer.valueOf(String.valueOf(numberThreadsTextField.getValue()))) {
+            if (!lockSpinner.getValue().equals("") && Integer.valueOf(String.valueOf(numberItemsSpinner.getValue())) < Integer.valueOf(String.valueOf(batchSizeSpinner)) * Integer.valueOf(String.valueOf(numberThreadsSpinner.getValue()))) {
                 errors.add("Number of Items cannot be smaller than Batch Size multiplied to Number of Threads when used with Lock");
             }
         } catch (Exception e) {
@@ -390,7 +462,7 @@ public class PillowFightDialog extends DialogWrapper {
             super.doOKAction();
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
-                pillowFightRunner.runPillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), String.valueOf(persistToTextField.getValue()), String.valueOf(batchSizeTextField.getValue()), String.valueOf(numberItemsTextField.getValue()), keyPrefixTextField.getText(), String.valueOf(numberThreadsTextField.getValue()), String.valueOf(percentageTextField.getValue()), String.valueOf(noPopulationComboBox.getSelectedItem()), String.valueOf(populateOnlyComboBox.getSelectedItem()), String.valueOf(minSizeTextField.getValue()), String.valueOf(maxSizeTextField.getValue()), String.valueOf(numberCyclesTextField.getValue()), String.valueOf(sequentialComboBox.getSelectedItem()), String.valueOf(startAtTextField.getValue()), String.valueOf(timingsComboBox.getSelectedItem()), String.valueOf(expiryTextField.getValue()), String.valueOf(replicateToTextField.getValue()), String.valueOf(lockTextField.getValue()), String.valueOf(jsonComboBox.getSelectedItem()), String.valueOf(noopComboBox.getSelectedItem()), String.valueOf(subdocComboBox.getSelectedItem()), String.valueOf(pathcountTextField.getValue()));
+                pillowFightRunner.runPillowFightCommand(String.valueOf(bucketComboBox.getSelectedItem()), String.valueOf(durabilityComboBox.getSelectedItem()), String.valueOf(persistToSpinner.getValue()), String.valueOf(batchSizeSpinner.getValue()), String.valueOf(numberItemsSpinner.getValue()), keyPrefixTextField.getText(), String.valueOf(numberThreadsSpinner.getValue()), String.valueOf(percentageSpinner.getValue()), String.valueOf(noPopulationComboBox.getSelectedItem()), String.valueOf(populateOnlyComboBox.getSelectedItem()), String.valueOf(minSizeSpinner.getValue()), String.valueOf(maxSizeSpinner.getValue()), String.valueOf(numberCyclesSpinner.getValue()), String.valueOf(sequentialComboBox.getSelectedItem()), String.valueOf(startAtSpinner.getValue()), String.valueOf(timingsComboBox.getSelectedItem()), String.valueOf(expirySpinner.getValue()), String.valueOf(replicateToSpinner.getValue()), String.valueOf(lockSpinner.getValue()), String.valueOf(jsonComboBox.getSelectedItem()), String.valueOf(noopComboBox.getSelectedItem()), String.valueOf(subdocComboBox.getSelectedItem()), String.valueOf(pathcountSpinner.getValue()));
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
