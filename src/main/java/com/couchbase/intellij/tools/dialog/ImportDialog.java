@@ -3,33 +3,37 @@ package com.couchbase.intellij.tools.dialog;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.util.Set;
 
 import javax.swing.Action;
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.JTextArea;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
-import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 
@@ -37,21 +41,21 @@ public class ImportDialog extends DialogWrapper {
     // Declare UI components here
     private TextFieldWithBrowseButton datasetField;
 
-    private ComboBox bucketCombo;
+    private JComboBox bucketCombo;
 
-    private JRadioButton defaultScopeAndCollectionRadio;
-    private JRadioButton collectionRadio;
-    private JRadioButton dynamicScopeAndCollectionRadio;
+    private JBRadioButton defaultScopeAndCollectionRadio;
+    private JBRadioButton collectionRadio;
+    private JBRadioButton dynamicScopeAndCollectionRadio;
 
-    private ComboBox scopeCombo;
-    private ComboBox collectionCombo;
+    private JComboBox scopeCombo;
+    private JComboBox collectionCombo;
 
     private JBTextField scopeFieldField;
     private JBTextField collectionFieldField;
 
-    private JRadioButton generateUUIDRadio;
-    private JRadioButton useFieldValueRadio;
-    private JRadioButton customExpressionRadio;
+    private JBRadioButton generateUUIDRadio;
+    private JBRadioButton useFieldValueRadio;
+    private JBRadioButton customExpressionRadio;
 
     private JBTextField fieldNameField;
 
@@ -66,17 +70,23 @@ public class ImportDialog extends DialogWrapper {
     private JBTextField ignoreFieldsField;
     private JBCheckBox ignoreFieldsCheck;
 
-    private JBTextField threadsField;
+    // Replace threadsField with threadsSpinner
+    // private JBTextField threadsField;
+    private JSpinner threadsSpinner;
 
     private JBCheckBox verboseCheck;
 
     // Declare additional components for navigation and summary
     private CardLayout cardLayout;
     private JPanel cardPanel;
-    private JPanel keyPreviewPanel;
+
+    // Replace keyPreviewPanel with keyPreviewArea
+    // private JPanel keyPreviewPanel;
+    private JTextArea keyPreviewArea;
 
     private int currentPage;
 
+    // Declare labels for each field
     private JBLabel scopeLabel;
     private JBLabel collectionLabel;
     private JBLabel scopeFieldLabel;
@@ -89,8 +99,11 @@ public class ImportDialog extends DialogWrapper {
     private JBLabel ignoreFieldsLabel;
     private JBLabel threadsLabel;
     private JBLabel verboseLabel;
+
+    // Declare label for summary
     private JBLabel summaryLabel;
 
+    // Declare actions for back and next buttons
     private Action backAction;
     private Action nextAction;
 
@@ -106,12 +119,9 @@ public class ImportDialog extends DialogWrapper {
     @Override
     protected JComponent createCenterPanel() {
 
-        // Initialize additional components for navigation and summary
+        currentPage = 1;
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
-
-        currentPage = 1;
-
         summaryLabel = new JBLabel();
 
         // Create and add UI components for each page here
@@ -140,6 +150,7 @@ public class ImportDialog extends DialogWrapper {
         datasetFormPanel.add(datasetField, c);
 
         datasetPanel.add(datasetFormPanel, BorderLayout.CENTER);
+
         // Page 2: Select bucket and target location
         JPanel targetPanel = new JPanel(new BorderLayout());
         targetPanel.add(new TitledSeparator("Target Location"), BorderLayout.NORTH);
@@ -159,7 +170,7 @@ public class ImportDialog extends DialogWrapper {
         Set<String> bucketSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
         String[] buckets = bucketSet.toArray(new String[0]);
 
-        bucketCombo = new ComboBox<>(buckets);
+        bucketCombo = new JComboBox<>(buckets);
         targetFormPanel.add(bucketCombo, c);
 
         // Radio buttons for scope and collection options
@@ -170,9 +181,9 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        defaultScopeAndCollectionRadio = new JRadioButton("Default Scope and Collection");
-        collectionRadio = new JRadioButton("Collection");
-        dynamicScopeAndCollectionRadio = new JRadioButton("Dynamic Scope and Collection");
+        defaultScopeAndCollectionRadio = new JBRadioButton("Default Scope and Collection");
+        collectionRadio = new JBRadioButton("Collection");
+        dynamicScopeAndCollectionRadio = new JBRadioButton("Dynamic Scope and Collection");
 
         ButtonGroup group = new ButtonGroup();
         group.add(defaultScopeAndCollectionRadio);
@@ -196,7 +207,7 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        scopeCombo = new ComboBox();
+        scopeCombo = new JComboBox();
         targetFormPanel.add(scopeCombo, c);
 
         c.gridy = 3;
@@ -207,7 +218,7 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        collectionCombo = new ComboBox();
+        collectionCombo = new JComboBox();
         targetFormPanel.add(collectionCombo, c);
 
         // Scope and collection fields
@@ -275,10 +286,9 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        generateUUIDRadio = new JRadioButton("Generate random UUID for each document");
-
-        useFieldValueRadio = new JRadioButton("Use the value of a field as the key");
-        customExpressionRadio = new JRadioButton("Generate key based on custom expression");
+        generateUUIDRadio = new JBRadioButton("Generate random UUID for each document");
+        useFieldValueRadio = new JBRadioButton("Use the value of a field as the key");
+        customExpressionRadio = new JBRadioButton("Generate key based on custom expression");
 
         ButtonGroup keyGroup = new ButtonGroup();
         keyGroup.add(generateUUIDRadio);
@@ -318,8 +328,6 @@ public class ImportDialog extends DialogWrapper {
         expressionField = new JBTextField();
         keyFormPanel.add(expressionField, c);
 
-        keyPreviewPanel = new JPanel();
-        keyFormPanel.add(keyPreviewPanel, c);
         // In addListeners method, add listeners for relevant fields:
         fieldNameField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
@@ -335,6 +343,16 @@ public class ImportDialog extends DialogWrapper {
             }
         });
 
+        keyPanel.add(keyFormPanel, BorderLayout.CENTER);
+
+        keyPreviewArea = new JTextArea();
+        keyPreviewArea.setEditable(false);
+        keyPreviewArea.setLineWrap(true);
+        keyPreviewArea.setWrapStyleWord(true);
+        keyPreviewArea.setMinimumSize(new Dimension(150, 100));
+        keyPreviewArea.setPreferredSize(new Dimension(150, 100));
+        keyPanel.add(keyPreviewArea, BorderLayout.SOUTH);
+
         // Set all labels to invisible and disabled by default
         fieldNameLabel.setVisible(false);
         expressionLabel.setVisible(false);
@@ -348,10 +366,8 @@ public class ImportDialog extends DialogWrapper {
         expressionField.setEnabled(false);
 
         // Set the preview panel to invisible and disabled by default
-        keyPreviewPanel.setVisible(false);
-        keyPreviewPanel.setEnabled(false);
-
-        keyPanel.add(keyFormPanel, BorderLayout.CENTER);
+        keyPreviewArea.setVisible(false);
+        keyPreviewArea.setEnabled(false);
 
         // Page 4: Advanced options
         JPanel advancedPanel = new JPanel(new BorderLayout());
@@ -424,8 +440,9 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        threadsField = new JBTextField();
-        advancedFormPanel.add(threadsField, c);
+        // Replace threadsField with threadsSpinner
+        threadsSpinner = new JSpinner(new SpinnerNumberModel(4, 1, null, 1));
+        advancedFormPanel.add(threadsSpinner, c);
 
         // Verbose log
         c.gridy = 4;
@@ -448,8 +465,6 @@ public class ImportDialog extends DialogWrapper {
         summaryLabel = new JBLabel();
         summaryPanel.add(summaryLabel, BorderLayout.CENTER);
 
-        updateSummary();
-
         // Add pages to card panel
         cardPanel.add(datasetPanel, "1");
         cardPanel.add(targetPanel, "2");
@@ -459,9 +474,11 @@ public class ImportDialog extends DialogWrapper {
 
         mainPanel.add(cardPanel, BorderLayout.CENTER);
 
+        updateSummary();
         addListeners();
 
         return mainPanel;
+
     }
 
     private void addListeners() {
@@ -513,16 +530,11 @@ public class ImportDialog extends DialogWrapper {
         importUptoCheck.addActionListener(e -> updateSummary());
         ignoreFieldsCheck.addActionListener(e -> updateSummary());
 
-        threadsField.getDocument().addDocumentListener(updateSummaryListener);
-        verboseCheck.addActionListener(e -> updateSummary());
+        // Replace threadsField with threadsSpinner
+        // threadsField.getDocument().addDocumentListener(updateSummaryListener);
+        threadsSpinner.addChangeListener(e -> updateSummary());
 
-        // Add listener for Page 5
-        summaryLabel.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentShown(ComponentEvent e) {
-                updateSummary();
-            }
-        });
+        verboseCheck.addActionListener(e -> updateSummary());
 
     }
 
@@ -571,30 +583,33 @@ public class ImportDialog extends DialogWrapper {
 
         boolean keyPreviewVisible = useFieldValueSelected || customExpressionSelected;
 
-        keyPreviewPanel.setVisible(keyPreviewVisible);
-        keyPreviewPanel.setEnabled(keyPreviewVisible);
+        // Replace keyPreviewPanel with keyPreviewArea
+        // keyPreviewPanel.setVisible(keyPreviewVisible);
+        // keyPreviewPanel.setEnabled(keyPreviewVisible);
+        keyPreviewArea.setVisible(keyPreviewVisible);
+        keyPreviewArea.setEnabled(keyPreviewVisible);
 
         updateSummary();
     }
 
     private void updateKeyPreview() {
         // Clear existing preview content
-        keyPreviewPanel.removeAll();
+        keyPreviewArea.setText("");
 
         if (useFieldValueRadio.isSelected()) {
             // Generate preview based on field name
             String fieldName = fieldNameField.getText();
-            // Add preview content to keyPreviewPanel
-            keyPreviewPanel.add(new JBLabel("Preview: " + fieldName));
+            // Set preview content in keyPreviewArea
+            keyPreviewArea.setText("Preview: " + fieldName);
         } else if (customExpressionRadio.isSelected()) {
             // Generate preview based on custom expression
             String expression = expressionField.getText();
-            // Add preview content to keyPreviewPanel
-            keyPreviewPanel.add(new JBLabel("Preview: " + expression));
+            // Set preview content in keyPreviewArea
+            keyPreviewArea.setText("Preview: " + expression);
         }
 
-        keyPreviewPanel.revalidate();
-        keyPreviewPanel.repaint();
+        // keyPreviewPanel.revalidate();
+        // keyPreviewPanel.repaint();
     }
 
     private void updateSummary() {
@@ -604,12 +619,12 @@ public class ImportDialog extends DialogWrapper {
         // Page 1: Dataset
         summary.append("<b>Dataset:</b> ");
         summary.append(datasetField.getText());
-        summary.append("<br>");
+        summary.append("<br><br>");
 
         // Page 2: Bucket and target location
         summary.append("<b>Bucket:</b> ");
         summary.append(bucketCombo.getSelectedItem());
-        summary.append("<br>");
+        summary.append("<br><br>");
 
         summary.append("<b>Scope and Collection:</b> ");
         if (defaultScopeAndCollectionRadio.isSelected()) {
@@ -625,7 +640,7 @@ public class ImportDialog extends DialogWrapper {
             summary.append(", Collection Field: ");
             summary.append(collectionFieldField.getText());
         }
-        summary.append("<br>");
+        summary.append("<br><br>");
 
         // Page 3: Document key
         summary.append("<b>Document Key:</b> ");
@@ -638,7 +653,7 @@ public class ImportDialog extends DialogWrapper {
             summary.append("Generate key based on custom expression - Expression: ");
             summary.append(expressionField.getText());
         }
-        summary.append("<br>");
+        summary.append("<br><br>");
 
         // Page 4: Advanced options
         summary.append("<b>Advanced Options:</b><br>");
@@ -658,13 +673,15 @@ public class ImportDialog extends DialogWrapper {
             summary.append("<br>");
         }
         summary.append("- Threads: ");
-        summary.append(threadsField.getText());
+        // Use getValue() method of JSpinner to get its value
+        summary.append(threadsSpinner.getValue());
         summary.append("<br>");
         if (verboseCheck.isSelected()) {
             summary.append("- Verbose Log<br>");
         }
 
-        summary.append("</html>");
+        // Add additional line break at the end
+        summary.append("<br>");
 
         summaryLabel.setText(summary.toString());
     }
@@ -685,27 +702,30 @@ public class ImportDialog extends DialogWrapper {
             }
         };
 
+        backAction.setEnabled(false);
+
         return new Action[] { cancelAction, backAction, nextAction };
+
     }
 
     private void previousPage() {
         if (currentPage > 1) {
             currentPage--;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
-            backAction.putValue(Action.NAME, currentPage == 1 ? "" : "Back");
             nextAction.putValue(Action.NAME, currentPage == 5 ? "Import" : "Next");
         }
+        backAction.setEnabled(currentPage != 1);
     }
 
     private void nextPage() {
         if (currentPage < 5) {
             currentPage++;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
-            backAction.putValue(Action.NAME, currentPage == 1 ? "" : "Back");
             nextAction.putValue(Action.NAME, currentPage == 5 ? "Import" : "Next");
         } else {
             doOKAction();
         }
+        backAction.setEnabled(currentPage != 1);
     }
 
     @Override
