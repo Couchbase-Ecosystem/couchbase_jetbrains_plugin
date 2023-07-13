@@ -157,6 +157,9 @@ public class PillowFightRunner {
                     BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
                     String line;
                     while ((line = stdError.readLine()) != null) {
+                        if (line.equals("Running. Press Ctrl-C to terminate...")) {
+                            line = "     Running...    ";
+                        }
                         opsPerSecLabel.setText(line);
                     }
                 } catch (Exception e) {
