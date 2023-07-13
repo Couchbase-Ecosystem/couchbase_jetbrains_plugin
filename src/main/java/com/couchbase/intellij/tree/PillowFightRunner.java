@@ -117,7 +117,6 @@ public class PillowFightRunner {
 
         public StopButtonDialog(Process proc) throws IOException {
             super();
-            setModal(true);
             setTitle("Stop Pillow Fight");
             opsPerSecLabel = new JTextArea("OPS/SEC:           ");
             opsPerSecLabel.setEditable(false);
