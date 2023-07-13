@@ -32,26 +32,39 @@ public class PillowFightDialog extends DialogWrapper {
     private ComboBox<String> bucketComboBox;
     private ComboBox<String> durabilityComboBox;
     private JSpinner persistToSpinner;
+    private JCheckBox persistToCheckbox;
     private JSpinner batchSizeSpinner;
+    private JCheckBox batchSizeCheckbox;
     private JSpinner numberItemsSpinner;
+    private JCheckBox numberItemsCheckbox;
     private JBTextField keyPrefixTextField;
     private JSpinner numberThreadsSpinner;
+    private  JCheckBox numberThreadsCheckbox;
     private JSpinner percentageSpinner;
+    private JCheckBox percentageCheckbox;
     private ComboBox<String> noPopulationComboBox;
     private ComboBox<String> populateOnlyComboBox;
     private JSpinner minSizeSpinner;
+    private JCheckBox minSizeCheckbox;
     private JSpinner maxSizeSpinner;
+    private JCheckBox maxSizeCheckbox;
     private JSpinner numberCyclesSpinner;
+    private JCheckBox numberCyclesCheckbox;
     private ComboBox<String> sequentialComboBox;
     private JSpinner startAtSpinner;
+    private JCheckBox startAtCheckbox;
     private ComboBox<String> timingsComboBox;
     private JSpinner expirySpinner;
+    private JCheckBox expiryCheckbox;
     private JSpinner replicateToSpinner;
+    private JCheckBox replicateToCheckbox;
     private JSpinner lockSpinner;
+    private JCheckBox lockCheckbox;
     private ComboBox<String> jsonComboBox;
     private ComboBox<String> noopComboBox;
     private ComboBox<String> subdocComboBox;
     private JSpinner pathcountSpinner;
+    private JCheckBox pathcountCheckbox;
     private JLabel errorMessage;
 
     @Override
@@ -104,12 +117,72 @@ public class PillowFightDialog extends DialogWrapper {
         subdocComboBox = new ComboBox<>(disableEnableOptions);
         pathcountSpinner = createJSpinner(0);
 
+        persistToCheckbox = createCheckbox(persistToSpinner);
+        batchSizeCheckbox = createCheckbox(batchSizeSpinner);
+        numberItemsCheckbox = createCheckbox(numberItemsSpinner);
+        numberThreadsCheckbox = createCheckbox(numberThreadsSpinner);
+        percentageCheckbox = createCheckbox(percentageSpinner);
+        minSizeCheckbox = createCheckbox(minSizeSpinner);
+        maxSizeCheckbox = createCheckbox(maxSizeSpinner);
+        numberCyclesCheckbox = createCheckbox(numberCyclesSpinner);
+        startAtCheckbox = createCheckbox(startAtSpinner);
+        expiryCheckbox = createCheckbox(expirySpinner);
+        replicateToCheckbox = createCheckbox(replicateToSpinner);
+        lockCheckbox = createCheckbox(lockSpinner);
+        pathcountCheckbox = createCheckbox(pathcountSpinner);
+
         init();
+    }
+
+    protected PillowFightDialog(Project project, String bucket, String durability, String persistTo, String batchSize, String numberItems, String keyPrefix, String numberThreads, String percentage, String noPopulation, String populateOnly, String minSize, String maxSize, String numberCycles, String sequential, String startAt, String timings, String expiry, String replicateTo, String lock, String json, String noop, String subdoc, String pathcount) {
+        this(project);
+
+        setValue(bucketComboBox, bucket);
+        setValue(durabilityComboBox, durability);
+        setValue(persistToSpinner, persistTo, persistToCheckbox);
+        setValue(batchSizeSpinner, batchSize, batchSizeCheckbox);
+        setValue(numberItemsSpinner, numberItems, numberItemsCheckbox);
+        keyPrefixTextField.setText(keyPrefix);
+        setValue(numberThreadsSpinner, numberThreads, numberThreadsCheckbox);
+        setValue(percentageSpinner, percentage, percentageCheckbox);
+        setValue(noPopulationComboBox, noPopulation);
+        setValue(populateOnlyComboBox, populateOnly);
+        setValue(minSizeSpinner, minSize, minSizeCheckbox);
+        setValue(maxSizeSpinner, maxSize, maxSizeCheckbox);
+        setValue(numberCyclesSpinner, numberCycles, numberCyclesCheckbox);
+        setValue(sequentialComboBox, sequential);
+        setValue(startAtSpinner, startAt, startAtCheckbox);
+        setValue(timingsComboBox, timings);
+        setValue(expirySpinner, expiry, expiryCheckbox);
+        setValue(replicateToSpinner, replicateTo, replicateToCheckbox);
+        setValue(lockSpinner, lock, lockCheckbox);
+        setValue(jsonComboBox, json);
+        setValue(noopComboBox, noop);
+        setValue(subdocComboBox, subdoc);
+        setValue(pathcountSpinner, pathcount, pathcountCheckbox);
     }
 
     private JSpinner createJSpinner(int minValue) {
         JSpinner currentJSpinner = new JSpinner(new SpinnerNumberModel(minValue, minValue, Integer.MAX_VALUE, 1));
         return currentJSpinner;
+    }
+
+    private JCheckBox createCheckbox(JSpinner spinner) {
+        JCheckBox checkbox = new JCheckBox();
+        spinner.setEnabled(false);
+        checkbox.addChangeListener(e -> spinner.setEnabled(checkbox.isSelected()));
+        return checkbox;
+    }
+
+    private void setValue(ComboBox comboBox, String value) {
+        comboBox.setSelectedItem(value);
+    }
+
+    private void setValue(JSpinner spinner, String value, JCheckBox checkBox) {
+        if (value != null) {
+            spinner.setValue(Integer.valueOf(value));
+            checkBox.setSelected(true);
+        }
     }
 
     private static JBPanel createLabelWithBalloon(String labelText, String hintText) {
@@ -155,13 +228,6 @@ public class PillowFightDialog extends DialogWrapper {
             balloonHint.hide();
             balloonHint = null;
         }
-    }
-
-    private JCheckBox createCheckbox(JSpinner spinner) {
-        JCheckBox checkbox = new JCheckBox();
-        spinner.setEnabled(false);
-        checkbox.addActionListener(e -> spinner.setEnabled(checkbox.isSelected()));
-        return checkbox;
     }
 
     @Override
@@ -211,7 +277,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(persistToSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox persistToCheckbox = createCheckbox(persistToSpinner);
         collapsiblePanel.add(persistToCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -223,7 +288,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(batchSizeSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox batchSizeCheckbox = createCheckbox(batchSizeSpinner);
         collapsiblePanel.add(batchSizeCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -235,7 +299,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(numberItemsSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox numberItemsCheckbox = createCheckbox(numberItemsSpinner);
         collapsiblePanel.add(numberItemsCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -255,7 +318,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(numberThreadsSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox numberThreadsCheckbox = createCheckbox(numberThreadsSpinner);
         collapsiblePanel.add(numberThreadsCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -267,7 +329,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(percentageSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox percentageCheckbox = createCheckbox(percentageSpinner);
         collapsiblePanel.add(percentageCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -293,7 +354,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(minSizeSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox minSizeCheckbox = createCheckbox(minSizeSpinner);
         collapsiblePanel.add(minSizeCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -305,7 +365,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(maxSizeSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox maxSizeCheckbox = createCheckbox(maxSizeSpinner);
         collapsiblePanel.add(maxSizeCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -317,7 +376,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(numberCyclesSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox numberCyclesCheckbox = createCheckbox(numberCyclesSpinner);
         collapsiblePanel.add(numberCyclesCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -336,7 +394,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(startAtSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox startAtCheckbox = createCheckbox(startAtSpinner);
         collapsiblePanel.add(startAtCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -355,7 +412,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(expirySpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox expiryCheckbox = createCheckbox(expirySpinner);
         collapsiblePanel.add(expiryCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -367,7 +423,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(replicateToSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox replicateToCheckbox = createCheckbox(replicateToSpinner);
         collapsiblePanel.add(replicateToCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -379,7 +434,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(lockSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox lockCheckbox = createCheckbox(lockSpinner);
         collapsiblePanel.add(lockCheckbox, gbcCollapsable);
 
         gbcCollapsable.gridx--;
@@ -412,7 +466,6 @@ public class PillowFightDialog extends DialogWrapper {
         collapsiblePanel.add(pathcountSpinner, gbcCollapsable);
 
         gbcCollapsable.gridx++;
-        JCheckBox pathcountCheckbox = createCheckbox(pathcountSpinner);
         collapsiblePanel.add(pathcountCheckbox, gbcCollapsable);
 
         gbc.gridy++;

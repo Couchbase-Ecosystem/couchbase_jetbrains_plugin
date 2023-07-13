@@ -13,6 +13,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.couchbase.intellij.tree.CouchbaseWindowContent.project;
+
 public class PillowFightRunner {
     public void runPillowFightCommand(String bucket, String durability, String persistTo, String batchSize, String numberItems, String keyPrefix, String numberThreads, String percentage, String noPopulation, String populateOnly, String minSize, String maxSize, String numberCycles, String sequential, String startAt, String timings, String expiry, String replicateTo, String lock, String json, String noop, String subdoc, String pathcount) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>();
@@ -107,7 +109,9 @@ public class PillowFightRunner {
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process proc = processBuilder.start();
 
-        StopButtonDialog stopButtonDialog = new StopButtonDialog(proc);
+        PillowFightDialog pillowFightDialog = new PillowFightDialog(project, bucket, durability, persistTo, batchSize, numberItems, keyPrefix, numberThreads, percentage, noPopulation, populateOnly, minSize, maxSize, numberCycles, sequential, startAt, timings, expiry, replicateTo, lock, json, noop, subdoc, pathcount);
+
+        StopButtonDialog stopButtonDialog = new StopButtonDialog(proc, pillowFightDialog);
         stopButtonDialog.setVisible(true);
     }
 
@@ -115,7 +119,7 @@ public class PillowFightRunner {
         private JButton stopButton;
         private JTextArea opsPerSecLabel;
 
-        public StopButtonDialog(Process proc) throws IOException {
+        public StopButtonDialog(Process proc, PillowFightDialog pillowFightDialog) {
             super();
             setTitle("Stop Pillow Fight");
             opsPerSecLabel = new JTextArea("OPS/SEC:           ");
@@ -145,6 +149,7 @@ public class PillowFightRunner {
                     proc.destroy();
                 }
                 dispose();
+                pillowFightDialog.show();
             });
 
             new Thread(() -> {
