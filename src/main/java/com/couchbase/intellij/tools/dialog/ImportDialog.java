@@ -7,8 +7,13 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.swing.Action;
@@ -37,6 +42,9 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 
 import utils.FileUtils;
 
@@ -107,6 +115,7 @@ public class ImportDialog extends DialogWrapper {
 
     private String[] possibleScopeFields = { "cbms", "scope", "cbs" };
     private String[] possibleCollectionFields = { "cbmc", "collection", "cbc" };
+    private String[] possibleKeyFields = { "cbmk", "cbmid", "key", "cbk" };
 
     public ImportDialog() {
         super(true);
@@ -641,6 +650,25 @@ public class ImportDialog extends DialogWrapper {
         keyPreviewArea.setVisible(keyPreviewVisible);
         keyPreviewArea.setEnabled(keyPreviewVisible);
 
+        try {
+            if (useFieldValueSelected && datasetField.getText() != null) {
+                // Parse the first element of the dataset to get the field names
+                String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
+                String[] sampleElementContentSplit = sampleElementContent.split(",");
+
+                for (String field : possibleKeyFields) {
+                    for (String element : sampleElementContentSplit) {
+                        if (element.contains(field)) {
+                            fieldNameField.setText(field);
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         updateSummary();
     }
 
@@ -648,20 +676,68 @@ public class ImportDialog extends DialogWrapper {
         // Clear existing preview content
         keyPreviewArea.setText("");
 
-        if (useFieldValueRadio.isSelected()) {
-            // Generate preview based on field name
-            String fieldName = fieldNameField.getText();
-            // Set preview content in keyPreviewArea
-            keyPreviewArea.setText("Preview: " + fieldName);
-        } else if (customExpressionRadio.isSelected()) {
-            // Generate preview based on custom expression
-            String expression = expressionField.getText();
-            // Set preview content in keyPreviewArea
-            keyPreviewArea.setText("Preview: " + expression);
-        }
+        try {
 
-        // keyPreviewPanel.revalidate();
-        // keyPreviewPanel.repaint();
+            if (useFieldValueRadio.isSelected()) {
+                // Generate preview based on field name
+                String fieldName = fieldNameField.getText();
+
+                // Read file content and parse into a Couchbase JSON array
+                String fileContent = Files.readString(Paths.get(datasetField.getText()));
+                JsonArray jsonArray = JsonArray.fromJson(fileContent);
+
+                // Generate preview content
+                StringBuilder previewContent = new StringBuilder();
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    JsonObject jsonObject = jsonArray.getObject(i);
+                    if (jsonObject.containsKey(fieldName)) {
+                        previewContent.append("Preview: ").append(jsonObject.getString(fieldName)).append(".json\n");
+                    }
+                }
+
+                // Set preview content in keyPreviewArea
+                keyPreviewArea.setText(previewContent.toString());
+
+            } else if (customExpressionRadio.isSelected()) {
+                // Generate preview based on custom expression
+                String expression = expressionField.getText();
+
+                // Extract field names from custom expression using regular expression
+                Pattern pattern = Pattern.compile("%(\\w+)-value%");
+                Matcher matcher = pattern.matcher(expression);
+                List<String> fieldNames = new ArrayList<>();
+                while (matcher.find()) {
+                    fieldNames.add(matcher.group(1));
+                }
+
+                // Read file content and parse into a Couchbase JSON array
+                String fileContent = Files.readString(Paths.get(datasetField.getText()));
+                JsonArray jsonArray = JsonArray.fromJson(fileContent);
+
+                // Generate preview content
+                StringBuilder previewContent = new StringBuilder();
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    JsonObject jsonObject = jsonArray.getObject(i);
+
+                    // Replace field placeholders in custom expression with actual values
+                    String key = expression;
+                    for (String fieldName : fieldNames) {
+                        if (jsonObject.containsKey(fieldName)) {
+                            key = key.replace("%" + fieldName + "-value%", jsonObject.getString(fieldName));
+                        }
+                    }
+
+                    previewContent.append("Preview: ").append(key).append(".json\n");
+                }
+
+                // Set preview content in keyPreviewArea
+                keyPreviewArea.setText(previewContent.toString());
+            }
+
+        } catch (Exception e) {
+            // TODO: handle exception
+            e.printStackTrace();
+        }
     }
 
     private void updateSummary() {
