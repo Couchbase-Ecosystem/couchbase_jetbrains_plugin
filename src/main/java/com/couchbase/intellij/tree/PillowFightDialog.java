@@ -19,6 +19,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
@@ -488,6 +490,10 @@ public class PillowFightDialog extends DialogWrapper {
 
         JBScrollPane jbScrollPane = new JBScrollPane(panel);
         jbScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // Set the preferred height of the JScrollPane to take up the entire screen initially
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        jbScrollPane.setPreferredSize(new Dimension(jbScrollPane.getPreferredSize().width, (int) (screenSize.height * 0.8)));
 
         return jbScrollPane;
     }
