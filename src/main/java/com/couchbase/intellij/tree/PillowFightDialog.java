@@ -249,6 +249,12 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
 
+        gbc.gridx++;
+        JPanel rightPaddingPanel = new JPanel();
+        rightPaddingPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+        panel.add(rightPaddingPanel, gbc);
+        gbc.gridx--;
+
         gbc.gridx--;
         gbc.gridy++;
         panel.add(createLabelWithBalloon("Durability:     ", "Specify durability level for mutation operations"), gbc);
