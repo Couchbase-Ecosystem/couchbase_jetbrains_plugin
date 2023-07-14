@@ -230,11 +230,30 @@ public class ImportDialog extends DialogWrapper {
         c.gridx = 1;
 
         // Set of scopes
-        List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketCombo.getSelectedItem().toString())
-                .collections()
-                .getAllScopes();
-        Set<String> scopeSet = scopes.stream().map(scope -> scope.name()).collect(Collectors.toSet());
-        scopeCombo = new JComboBox<>(scopeSet.toArray(new String[0]));
+        List<ScopeSpec> scopes = new ArrayList<>();
+        scopeCombo = new JComboBox<>();
+        bucketCombo.addActionListener((ActionEvent e) -> {
+            // Get all scopes for selected bucket
+            scopes.clear();
+            scopes.addAll(ActiveCluster.getInstance().get().bucket(bucketCombo.getSelectedItem().toString())
+                    .collections()
+                    .getAllScopes());
+
+            // Update scope combo box items
+            Set<String> scopeSet = scopes.stream()
+                    .map(scope -> scope.name())
+                    .collect(Collectors.toSet());
+            String[] scopeItems = scopeSet.toArray(new String[0]);
+            scopeCombo.removeAllItems();
+            for (String scopeItem : scopeItems) {
+                scopeCombo.addItem(scopeItem);
+            }
+
+            // Trigger action listener for scope combo box to update collection combo box
+            // items
+            scopeCombo.actionPerformed(new ActionEvent(scopeCombo, ActionEvent.ACTION_PERFORMED, null));
+        });
+
         targetFormPanel.add(scopeCombo, c);
 
         c.gridy = 3;
@@ -254,10 +273,10 @@ public class ImportDialog extends DialogWrapper {
                     .flatMap(scope -> scope.collections().stream())
                     .map(collection -> collection.name()).collect(Collectors.toSet());
 
-            String[] collections = collectionSet.toArray(new String[0]);
+            String[] collectionItems = collectionSet.toArray(new String[0]);
             collectionCombo.removeAllItems();
-            for (String collection : collections) {
-                collectionCombo.addItem(collection);
+            for (String collectionItem : collectionItems) {
+                collectionCombo.addItem(collectionItem);
             }
         });
         targetFormPanel.add(collectionCombo, c);
@@ -633,8 +652,12 @@ public class ImportDialog extends DialogWrapper {
                 }
             } else if (collectionSelected) {
                 // Set the scope and collection fields to the selected scope and collection
-                targetScopeField = scopeCombo.getSelectedItem().toString();
-                targetCollectionField = collectionCombo.getSelectedItem().toString();
+                targetScopeField = scopeCombo.getSelectedItem() != null ? scopeCombo.getSelectedItem().toString()
+                        : "_default";
+                targetCollectionField = collectionCombo.getSelectedItem() != null
+                        ? collectionCombo.getSelectedItem().toString()
+                        : "_default";
+
             } else {
                 // Set the scope and collection fields to null
                 targetScopeField = "_default";
