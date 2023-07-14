@@ -244,7 +244,7 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.weightx = 0.0;
         gbc.weighty = 0.0;
 
-        panel.add(createLabelWithBalloon("Available Buckets:     ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
+        panel.add(createLabelWithBalloon("Available Buckets:        ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
@@ -257,7 +257,7 @@ public class PillowFightDialog extends DialogWrapper {
 
         gbc.gridx--;
         gbc.gridy++;
-        panel.add(createLabelWithBalloon("Durability:     ", "Specify durability level for mutation operations"), gbc);
+        panel.add(createLabelWithBalloon("Durability:        ", "Specify durability level for mutation operations"), gbc);
 
         gbc.gridx++;
         panel.add(durabilityComboBox, gbc);
