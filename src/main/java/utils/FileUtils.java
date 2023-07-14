@@ -1,14 +1,18 @@
 package utils;
 
-import com.couchbase.intellij.workbench.Log;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class FileUtils {
+import com.couchbase.intellij.workbench.Log;
 
+public class FileUtils {
 
     public static String readLastLine(String filePath) throws IOException {
         RandomAccessFile file = new RandomAccessFile(filePath, "r");
@@ -39,6 +43,23 @@ public class FileUtils {
         return lastLine;
     }
 
+    public static String readLine(String filePath, int lineNumber) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            for (int i = 0; i < lineNumber - 1; i++) {
+                br.readLine();
+            }
+            return br.readLine();
+        }
+    }
+
+    public static String sampleElementFromJsonArrayFile(String filePath) throws IOException {
+        // get content from first "{" to first "}"
+        String content = Files.readString(Paths.get(filePath));
+        int firstOpenBracketIndex = content.indexOf("{");
+        int firstCloseBracketIndex = content.indexOf("}");
+        return content.substring(firstOpenBracketIndex, firstCloseBracketIndex + 1);
+    }
+
     public static void createFolder(String folderPath) throws Exception {
         Path path = Paths.get(folderPath);
         if (!Files.exists(path)) {
@@ -52,15 +73,16 @@ public class FileUtils {
         }
     }
 
-    //TODO: Not TESTED ON WINDOWS YET
+    // TODO: Not TESTED ON WINDOWS YET
     public static void unzipFile(String zipFilePath, String destDir) throws IOException {
         String osName = System.getProperty("os.name").toLowerCase();
 
         String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path \"" + zipFilePath + "\" -DestinationPath \"" + destDir + "\" -Force"};
+            unzipCommand = new String[] { "powershell.exe", "-nologo", "-noprofile", "-command",
+                    "Expand-Archive -Path \"" + zipFilePath + "\" -DestinationPath \"" + destDir + "\" -Force" };
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
-            unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePath, "-d", destDir};
+            unzipCommand = new String[] { "unzip", "-o", "-q", zipFilePath, "-d", destDir };
         } else {
             throw new UnsupportedOperationException("Unsupported operating system: " + osName);
         }

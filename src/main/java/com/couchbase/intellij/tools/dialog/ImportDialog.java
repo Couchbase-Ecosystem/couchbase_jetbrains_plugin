@@ -3,21 +3,20 @@ package com.couchbase.intellij.tools.dialog;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.Action;
-import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
@@ -25,8 +24,10 @@ import javax.swing.event.DocumentEvent;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
@@ -37,18 +38,19 @@ import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 
+import utils.FileUtils;
+
 public class ImportDialog extends DialogWrapper {
     // Declare UI components here
     private TextFieldWithBrowseButton datasetField;
 
-    private JComboBox bucketCombo;
+    private JComboBox<String> bucketCombo;
+    private JComboBox<String> scopeCombo;
+    private JComboBox<String> collectionCombo;
 
     private JBRadioButton defaultScopeAndCollectionRadio;
     private JBRadioButton collectionRadio;
     private JBRadioButton dynamicScopeAndCollectionRadio;
-
-    private JComboBox scopeCombo;
-    private JComboBox collectionCombo;
 
     private JBTextField scopeFieldField;
     private JBTextField collectionFieldField;
@@ -58,7 +60,6 @@ public class ImportDialog extends DialogWrapper {
     private JBRadioButton customExpressionRadio;
 
     private JBTextField fieldNameField;
-
     private JBTextField expressionField;
 
     private JBTextField skipFirstField;
@@ -70,8 +71,6 @@ public class ImportDialog extends DialogWrapper {
     private JBTextField ignoreFieldsField;
     private JBCheckBox ignoreFieldsCheck;
 
-    // Replace threadsField with threadsSpinner
-    // private JBTextField threadsField;
     private JSpinner threadsSpinner;
 
     private JBCheckBox verboseCheck;
@@ -80,11 +79,7 @@ public class ImportDialog extends DialogWrapper {
     private CardLayout cardLayout;
     private JPanel cardPanel;
 
-    // Replace keyPreviewPanel with keyPreviewArea
-    // private JPanel keyPreviewPanel;
     private JTextArea keyPreviewArea;
-
-    private int currentPage;
 
     // Declare labels for each field
     private JBLabel scopeLabel;
@@ -106,6 +101,12 @@ public class ImportDialog extends DialogWrapper {
     // Declare actions for back and next buttons
     private Action backAction;
     private Action nextAction;
+    private Action cancelAction;
+
+    private int currentPage = 1;
+
+    private String[] possibleScopeFields = { "cbms", "scope", "cbs" };
+    private String[] possibleCollectionFields = { "cbmc", "collection", "cbc" };
 
     public ImportDialog() {
         super(true);
@@ -118,11 +119,6 @@ public class ImportDialog extends DialogWrapper {
 
     @Override
     protected JComponent createCenterPanel() {
-
-        currentPage = 1;
-        cardLayout = new CardLayout();
-        cardPanel = new JPanel(cardLayout);
-        summaryLabel = new JBLabel();
 
         // Create and add UI components for each page here
         JPanel mainPanel = new JPanel(new BorderLayout());
@@ -147,6 +143,13 @@ public class ImportDialog extends DialogWrapper {
         datasetField = new TextFieldWithBrowseButton();
         datasetField.addBrowseFolderListener("Select Dataset", "", null,
                 FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor());
+        // Add a listener for when the datasetField is changed
+        datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(DocumentEvent e) {
+                setNextButtonOnDatasetSelection();
+            }
+        });
         datasetFormPanel.add(datasetField, c);
 
         datasetPanel.add(datasetFormPanel, BorderLayout.CENTER);
@@ -207,7 +210,12 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        scopeCombo = new JComboBox();
+        // Set of scopes
+        List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketCombo.getSelectedItem().toString())
+                .collections()
+                .getAllScopes();
+        Set<String> scopeSet = scopes.stream().map(scope -> scope.name()).collect(Collectors.toSet());
+        scopeCombo = new JComboBox<>(scopeSet.toArray(new String[0]));
         targetFormPanel.add(scopeCombo, c);
 
         c.gridy = 3;
@@ -218,7 +226,21 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        collectionCombo = new JComboBox();
+        collectionCombo = new JComboBox<>();
+        // add a listener for when the scopeCombo is changed
+        scopeCombo.addActionListener((ActionEvent e) -> {
+            // Set of collections from the selected scope
+            Set<String> collectionSet = scopes.stream()
+                    .filter(scope -> scope.name().equals(scopeCombo.getSelectedItem().toString()))
+                    .flatMap(scope -> scope.collections().stream())
+                    .map(collection -> collection.name()).collect(Collectors.toSet());
+
+            String[] collections = collectionSet.toArray(new String[0]);
+            collectionCombo.removeAllItems();
+            for (String collection : collections) {
+                collectionCombo.addItem(collection);
+            }
+        });
         targetFormPanel.add(collectionCombo, c);
 
         // Scope and collection fields
@@ -465,6 +487,9 @@ public class ImportDialog extends DialogWrapper {
         summaryLabel = new JBLabel();
         summaryPanel.add(summaryLabel, BorderLayout.CENTER);
 
+        cardLayout = new CardLayout();
+        cardPanel = new JPanel(cardLayout);
+
         // Add pages to card panel
         cardPanel.add(datasetPanel, "1");
         cardPanel.add(targetPanel, "2");
@@ -562,6 +587,33 @@ public class ImportDialog extends DialogWrapper {
         collectionFieldField.setVisible(dynamicSelected);
         collectionFieldLabel.setEnabled(dynamicSelected);
         collectionFieldField.setEnabled(dynamicSelected);
+
+        try {
+            if (dynamicSelected && datasetField.getText() != null) {
+                // Parse the first element of the dataset to get the field names
+                String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
+                String[] sampleElementContentSplit = sampleElementContent.split(",");
+
+                for (String field : possibleScopeFields) {
+                    for (String element : sampleElementContentSplit) {
+                        if (element.contains(field)) {
+                            scopeFieldField.setText(field);
+                            break;
+                        }
+                    }
+                }
+                for (String field : possibleCollectionFields) {
+                    for (String element : sampleElementContentSplit) {
+                        if (element.contains(field)) {
+                            collectionFieldField.setText(field);
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         updateSummary();
     }
@@ -688,7 +740,7 @@ public class ImportDialog extends DialogWrapper {
 
     @Override
     protected Action @NotNull [] createActions() {
-        Action cancelAction = getCancelAction();
+        cancelAction = getCancelAction();
         backAction = new DialogWrapperAction("Back") {
             @Override
             protected void doAction(ActionEvent e) {
@@ -703,12 +755,13 @@ public class ImportDialog extends DialogWrapper {
         };
 
         backAction.setEnabled(false);
+        nextAction.setEnabled(false);
 
         return new Action[] { cancelAction, backAction, nextAction };
 
     }
 
-    private void previousPage() {
+    protected void previousPage() {
         if (currentPage > 1) {
             currentPage--;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
@@ -717,7 +770,7 @@ public class ImportDialog extends DialogWrapper {
         backAction.setEnabled(currentPage != 1);
     }
 
-    private void nextPage() {
+    protected void nextPage() {
         if (currentPage < 5) {
             currentPage++;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
@@ -728,10 +781,128 @@ public class ImportDialog extends DialogWrapper {
         backAction.setEnabled(currentPage != 1);
     }
 
+    protected void setNextButtonOnDatasetSelection() {
+        nextAction.setEnabled(datasetField.getText() != null && !datasetField.getText().isEmpty());
+    }
+
     @Override
     protected void doOKAction() {
-        // Implement import functionality here
-        super.doOKAction();
+        try {
+            complexBucketImport(bucketCombo.getSelectedItem().toString(), datasetField.getText(), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void complexBucketImport(String bucket, String filePath, Project project) {
+
+        try {
+            String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
+
+            // Get user input from dialog fields
+            String scopeField = "";
+            String collectionField = "";
+
+            // Parse the first element of the dataset to get the field names
+            String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(filePath);
+            System.out.println(sampleElementContent);
+            // {"airline":"US","airlineid":"airline_5265","cbmc":"route","cbmid":"route_60310","cbms":"inventory","destinationairport":"JFK","distance":3928.0094692325483,"equipment":"738","id":60310,"schedule":[{"day":0,"flight":"US605","utc":"17:48:00"}
+
+            // Import data into appropriate location based on user input
+            if (defaultScopeAndCollectionRadio.isSelected()) {
+                // Import into default scope and collection
+                scopeField = "_default";
+                collectionField = "_default";
+            } else if (collectionRadio.isSelected()) {
+                // Import into specified collection within specified scope
+                scopeField = (String) scopeCombo.getSelectedItem();
+                collectionField = (String) collectionCombo.getSelectedItem();
+
+                // if scopeField or collectionField doesnt match, throw error
+                // if (scopeFieldField.getText() != scopeField || collectionFieldField.getText()
+                // != collectionField) {
+                // throw new Exception("Scope or collection field does not match");
+                // }
+                // TODO: check if scopeField or collectionField matches
+
+            } else if (dynamicScopeAndCollectionRadio.isSelected()) {
+
+                // Search sampleElementContent for scopeField key, if key is found, set its
+                // value to scopeField
+                String[] sampleElementContentSplit = sampleElementContent.split(",");
+
+                for (String field : possibleScopeFields) {
+                    for (String element : sampleElementContentSplit) {
+                        if (element.contains(field)) {
+                            scopeField = element.substring(element.indexOf(":") + 1);
+                            break;
+                        }
+                    }
+                }
+
+                // Search sampleElementContent for collectionField key, if key is found, set its
+                // value to collectionField
+                for (String field : possibleCollectionFields) {
+                    for (String element : sampleElementContentSplit) {
+                        if (element.contains(field)) {
+                            collectionField = element.substring(element.indexOf(":") + 1);
+                            break;
+                        }
+                    }
+                }
+                System.out.println("scopeField: " + scopeField);
+                System.out.println("collectionField: " + collectionField);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing
+        // data", true) {
+        // @Override
+        // public void run(@NotNull ProgressIndicator indicator) {
+        // indicator.setIndeterminate(true);
+        // indicator.setText("Importing data");
+        // indicator.setText2("Importing data from " + filePath + " to bucket " +
+        // bucket);
+
+        // CollectionManager collectionManager =
+        // ActiveCluster.getInstance().get().collections();
+        // CollectionSpec collectionSpec = null;
+        // try {
+        // collectionSpec = collectionManager.getScope(bucket,
+        // "_default").getCollection("default");
+        // } catch (IndexExistsException e) {
+        // // Ignore
+        // }
+
+        // if (collectionSpec == null) {
+        // collectionSpec = CollectionSpec.create("_default", "default");
+        // collectionManager.createCollection(collectionSpec);
+        // }
+
+        // String content = FileUtils.readFile(filePath);
+        // String[] lines = content.split("\n");
+
+        // int count = 0;
+        // for (String line : lines) {
+        // if (line.trim().isEmpty()) {
+        // continue;
+        // }
+
+        // String key = line.substring(0, line.indexOf(":"));
+        // String value = line.substring(line.indexOf(":") + 1);
+
+        // collectionManager.insert(key, value, collectionSpec);
+        // count++;
+        // }
+
+        // ApplicationManager.getApplication().invokeLater(() -> {
+        // Messages.showInfoMessage("Imported " + count + " documents", "Import
+        // Complete");
+        // });
+        // }
+        // });
     }
 
 }
