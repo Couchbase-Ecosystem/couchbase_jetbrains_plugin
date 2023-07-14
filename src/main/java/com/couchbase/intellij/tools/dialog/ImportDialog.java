@@ -29,11 +29,19 @@ import javax.swing.event.DocumentEvent;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.tools.CBTools;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
@@ -42,9 +50,6 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
-
-import com.couchbase.client.java.json.JsonArray;
-import com.couchbase.client.java.json.JsonObject;
 
 import utils.FileUtils;
 
@@ -83,10 +88,12 @@ public class ImportDialog extends DialogWrapper {
 
     private JBCheckBox verboseCheck;
 
+    private ButtonGroup targetLocationgroup;
+    private ButtonGroup keyGroup;
+
     // Declare additional components for navigation and summary
     private CardLayout cardLayout;
     private JPanel cardPanel;
-
     private JTextArea keyPreviewArea;
 
     // Declare labels for each field
@@ -116,6 +123,9 @@ public class ImportDialog extends DialogWrapper {
     private String[] possibleScopeFields = { "cbms", "scope", "cbs" };
     private String[] possibleCollectionFields = { "cbmc", "collection", "cbc" };
     private String[] possibleKeyFields = { "cbmk", "cbmid", "key", "cbk" };
+
+    private String targetScopeField;
+    private String targetCollectionField;
 
     public ImportDialog() {
         super(true);
@@ -197,10 +207,10 @@ public class ImportDialog extends DialogWrapper {
         collectionRadio = new JBRadioButton("Collection");
         dynamicScopeAndCollectionRadio = new JBRadioButton("Dynamic Scope and Collection");
 
-        ButtonGroup group = new ButtonGroup();
-        group.add(defaultScopeAndCollectionRadio);
-        group.add(collectionRadio);
-        group.add(dynamicScopeAndCollectionRadio);
+        targetLocationgroup = new ButtonGroup();
+        targetLocationgroup.add(defaultScopeAndCollectionRadio);
+        targetLocationgroup.add(collectionRadio);
+        targetLocationgroup.add(dynamicScopeAndCollectionRadio);
 
         JPanel radioPanel = new JPanel();
         radioPanel.setLayout(new BoxLayout(radioPanel, BoxLayout.Y_AXIS));
@@ -321,7 +331,7 @@ public class ImportDialog extends DialogWrapper {
         useFieldValueRadio = new JBRadioButton("Use the value of a field as the key");
         customExpressionRadio = new JBRadioButton("Generate key based on custom expression");
 
-        ButtonGroup keyGroup = new ButtonGroup();
+        keyGroup = new ButtonGroup();
         keyGroup.add(generateUUIDRadio);
         keyGroup.add(useFieldValueRadio);
         keyGroup.add(customExpressionRadio);
@@ -607,6 +617,7 @@ public class ImportDialog extends DialogWrapper {
                     for (String element : sampleElementContentSplit) {
                         if (element.contains(field)) {
                             scopeFieldField.setText(field);
+                            targetScopeField = element.substring(element.indexOf(":") + 1);
                             break;
                         }
                     }
@@ -615,10 +626,19 @@ public class ImportDialog extends DialogWrapper {
                     for (String element : sampleElementContentSplit) {
                         if (element.contains(field)) {
                             collectionFieldField.setText(field);
+                            targetCollectionField = element.substring(element.indexOf(":") + 1);
                             break;
                         }
                     }
                 }
+            } else if (collectionSelected) {
+                // Set the scope and collection fields to the selected scope and collection
+                targetScopeField = scopeCombo.getSelectedItem().toString();
+                targetCollectionField = collectionCombo.getSelectedItem().toString();
+            } else {
+                // Set the scope and collection fields to null
+                targetScopeField = "_default";
+                targetCollectionField = "_default";
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -871,114 +891,94 @@ public class ImportDialog extends DialogWrapper {
     }
 
     protected void complexBucketImport(String bucket, String filePath, Project project) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing data", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                indicator.setText("Importing data");
+                indicator.setText2("Importing data from " + filePath + " to bucket " + bucket);
 
-        try {
-            String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
+                try {
+                    // Create process builder for CB_IMPORT tool
+                    ProcessBuilder processBuilder = new ProcessBuilder(
+                            CBTools.getTool(CBTools.Type.CB_IMPORT).getPath(),
+                            "json",
+                            "--no-ssl-verify",
+                            "-c", ActiveCluster.getInstance().getClusterURL(),
+                            "-u", ActiveCluster.getInstance().getUsername(),
+                            "-p", ActiveCluster.getInstance().getPassword(),
+                            "-b", bucket,
+                            "--format", "list",
+                            "-d", "file://" + filePath,
+                            "-t", "4");
 
-            // Get user input from dialog fields
-            String scopeField = "";
-            String collectionField = "";
-
-            // Parse the first element of the dataset to get the field names
-            String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(filePath);
-            System.out.println(sampleElementContent);
-            // {"airline":"US","airlineid":"airline_5265","cbmc":"route","cbmid":"route_60310","cbms":"inventory","destinationairport":"JFK","distance":3928.0094692325483,"equipment":"738","id":60310,"schedule":[{"day":0,"flight":"US605","utc":"17:48:00"}
-
-            // Import data into appropriate location based on user input
-            if (defaultScopeAndCollectionRadio.isSelected()) {
-                // Import into default scope and collection
-                scopeField = "_default";
-                collectionField = "_default";
-            } else if (collectionRadio.isSelected()) {
-                // Import into specified collection within specified scope
-                scopeField = (String) scopeCombo.getSelectedItem();
-                collectionField = (String) collectionCombo.getSelectedItem();
-
-                // if scopeField or collectionField doesnt match, throw error
-                // if (scopeFieldField.getText() != scopeField || collectionFieldField.getText()
-                // != collectionField) {
-                // throw new Exception("Scope or collection field does not match");
-                // }
-                // TODO: check if scopeField or collectionField matches
-
-            } else if (dynamicScopeAndCollectionRadio.isSelected()) {
-
-                // Search sampleElementContent for scopeField key, if key is found, set its
-                // value to scopeField
-                String[] sampleElementContentSplit = sampleElementContent.split(",");
-
-                for (String field : possibleScopeFields) {
-                    for (String element : sampleElementContentSplit) {
-                        if (element.contains(field)) {
-                            scopeField = element.substring(element.indexOf(":") + 1);
-                            break;
-                        }
+                    // Add scope and collection options based on selected target location
+                    if (targetLocationgroup.getSelection() == defaultScopeAndCollectionRadio.getModel()) {
+                        // Import data into default scope and collection
+                        processBuilder.command().add("--scope-collection-exp");
+                        processBuilder.command().add("_default._default");
+                    } else if (targetLocationgroup.getSelection() == collectionRadio.getModel()) {
+                        // Import data into selected scope and collection
+                        processBuilder.command().add("--scope-collection-exp");
+                        processBuilder.command().add(targetScopeField + "." + targetCollectionField);
+                    } else if (targetLocationgroup.getSelection() == dynamicScopeAndCollectionRadio.getModel()) {
+                        // Import data into dynamic scope and collection
+                        // TODO: Add options for dynamic scope and collection
                     }
-                }
 
-                // Search sampleElementContent for collectionField key, if key is found, set its
-                // value to collectionField
-                for (String field : possibleCollectionFields) {
-                    for (String element : sampleElementContentSplit) {
-                        if (element.contains(field)) {
-                            collectionField = element.substring(element.indexOf(":") + 1);
-                            break;
-                        }
+                    // Add document key options based on selected key option
+                    if (keyGroup.getSelection() == generateUUIDRadio.getModel()) {
+                        // Generate random UUID for each document
+                        processBuilder.command().add("-g");
+                        processBuilder.command().add("%uuid%");
+                    } else if (keyGroup.getSelection() == useFieldValueRadio.getModel()) {
+                        // Use the value of a field as the key
+                        processBuilder.command().add("-g");
+                        processBuilder.command().add("%" + fieldNameField.getText() + "%");
+                    } else if (keyGroup.getSelection() == customExpressionRadio.getModel()) {
+                        // Generate key based on custom expression
+                        processBuilder.command().add("-g");
+                        processBuilder.command().add(expressionField.getText());
                     }
+
+                    // Add advanced options
+                    if (skipFirstCheck.isSelected()) {
+                        processBuilder.command().add("--skip-first");
+                        processBuilder.command().add(skipFirstField.getText());
+                    }
+                    if (importUptoCheck.isSelected()) {
+                        processBuilder.command().add("--limit-rows");
+                        processBuilder.command().add(importUptoField.getText());
+                    }
+                    if (ignoreFieldsCheck.isSelected()) {
+                        processBuilder.command().add("--ignore-fields");
+                        processBuilder.command().add(ignoreFieldsField.getText());
+                    }
+                    if (verboseCheck.isSelected()) {
+                        processBuilder.command().add("--verbose");
+                    }
+
+                    // Execute CB_IMPORT tool using process builder
+                    Process process = processBuilder.start();
+                    int exitCode = process.waitFor();
+
+                    if (exitCode == 0) {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            Messages.showInfoMessage("Data imported successfully", "Import Complete");
+                        });
+                    } else {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            Messages.showErrorDialog("An error occurred while trying to import the data",
+                                    "Import Error");
+                        });
+                    }
+                } catch (Exception e) {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        Messages.showErrorDialog("An error occurred while trying to import the data", "Import Error");
+                    });
                 }
-                System.out.println("scopeField: " + scopeField);
-                System.out.println("collectionField: " + collectionField);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing
-        // data", true) {
-        // @Override
-        // public void run(@NotNull ProgressIndicator indicator) {
-        // indicator.setIndeterminate(true);
-        // indicator.setText("Importing data");
-        // indicator.setText2("Importing data from " + filePath + " to bucket " +
-        // bucket);
-
-        // CollectionManager collectionManager =
-        // ActiveCluster.getInstance().get().collections();
-        // CollectionSpec collectionSpec = null;
-        // try {
-        // collectionSpec = collectionManager.getScope(bucket,
-        // "_default").getCollection("default");
-        // } catch (IndexExistsException e) {
-        // // Ignore
-        // }
-
-        // if (collectionSpec == null) {
-        // collectionSpec = CollectionSpec.create("_default", "default");
-        // collectionManager.createCollection(collectionSpec);
-        // }
-
-        // String content = FileUtils.readFile(filePath);
-        // String[] lines = content.split("\n");
-
-        // int count = 0;
-        // for (String line : lines) {
-        // if (line.trim().isEmpty()) {
-        // continue;
-        // }
-
-        // String key = line.substring(0, line.indexOf(":"));
-        // String value = line.substring(line.indexOf(":") + 1);
-
-        // collectionManager.insert(key, value, collectionSpec);
-        // count++;
-        // }
-
-        // ApplicationManager.getApplication().invokeLater(() -> {
-        // Messages.showInfoMessage("Imported " + count + " documents", "Import
-        // Complete");
-        // });
-        // }
-        // });
+        });
     }
 
 }
