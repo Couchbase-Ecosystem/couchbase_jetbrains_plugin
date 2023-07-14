@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
+import com.intellij.ui.components.JBScrollPane;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -240,17 +241,17 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.insets = JBUI.insets(5);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
+        gbc.weightx = 0.0;
         gbc.weighty = 0.0;
 
-        panel.add(createLabelWithBalloon("Available Buckets: ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
+        panel.add(createLabelWithBalloon("Available Buckets:     ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
 
         gbc.gridx--;
         gbc.gridy++;
-        panel.add(createLabelWithBalloon("Durability:", "Specify durability level for mutation operations"), gbc);
+        panel.add(createLabelWithBalloon("Durability:     ", "Specify durability level for mutation operations"), gbc);
 
         gbc.gridx++;
         panel.add(durabilityComboBox, gbc);
@@ -479,7 +480,10 @@ public class PillowFightDialog extends DialogWrapper {
         errorMessage.setForeground(Color.decode("#FF4444"));
         panel.add(errorMessage, gbc);
 
-        return panel;
+        JBScrollPane jbScrollPane = new JBScrollPane(panel);
+        jbScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        return jbScrollPane;
     }
 
     private boolean componentIsEnabled(JSpinner spinner) {
