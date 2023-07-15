@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 
+import com.couchbase.client.java.manager.collection.CollectionSpec;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.json.JsonArray;
@@ -34,6 +36,7 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -166,6 +169,7 @@ public class ImportDialog extends DialogWrapper {
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(DocumentEvent e) {
+                Log.debug("Dataset field changed" + datasetField.getText());
                 setNextButtonOnDatasetSelection();
             }
         });
@@ -229,10 +233,12 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        // Set of scopes
+        /// Set of scopes
         List<ScopeSpec> scopes = new ArrayList<>();
         scopeCombo = new JComboBox<>();
-        bucketCombo.addActionListener((ActionEvent e) -> {
+        ActionListener bucketComboListener = (ActionEvent e) -> {
+            Log.debug("Bucket combo box changed");
+
             // Get all scopes for selected bucket
             scopes.clear();
             scopes.addAll(ActiveCluster.getInstance().get().bucket(bucketCombo.getSelectedItem().toString())
@@ -252,7 +258,12 @@ public class ImportDialog extends DialogWrapper {
             // Trigger action listener for scope combo box to update collection combo box
             // items
             scopeCombo.actionPerformed(new ActionEvent(scopeCombo, ActionEvent.ACTION_PERFORMED, null));
-        });
+        };
+        bucketCombo.addActionListener(bucketComboListener);
+
+        // Trigger action listener for bucket combo box to update scope and collection
+        // combo box items
+        bucketComboListener.actionPerformed(new ActionEvent(bucketCombo, ActionEvent.ACTION_PERFORMED, null));
 
         targetFormPanel.add(scopeCombo, c);
 
@@ -267,13 +278,14 @@ public class ImportDialog extends DialogWrapper {
         collectionCombo = new JComboBox<>();
         // add a listener for when the scopeCombo is changed
         scopeCombo.addActionListener((ActionEvent e) -> {
-            // Set of collections from the selected scope
-            Set<String> collectionSet = scopes.stream()
-                    .filter(scope -> scope.name().equals(scopeCombo.getSelectedItem().toString()))
-                    .flatMap(scope -> scope.collections().stream())
-                    .map(collection -> collection.name()).collect(Collectors.toSet());
+            Log.debug("Scope combo box changed");
 
-            String[] collectionItems = collectionSet.toArray(new String[0]);
+            // Set of collections from the selected scope
+
+            String[] collectionItems = scopes.stream()
+                    .filter(scope -> scope.name().equals(scopeCombo.getSelectedItem()))
+                    .flatMap(scope -> scope.collections().stream())
+                    .map(CollectionSpec::name).distinct().toArray(String[]::new);
             collectionCombo.removeAllItems();
             for (String collectionItem : collectionItems) {
                 collectionCombo.addItem(collectionItem);
@@ -392,6 +404,7 @@ public class ImportDialog extends DialogWrapper {
         fieldNameField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(DocumentEvent e) {
+                Log.debug("Field name field changed");
                 updateKeyPreview();
             }
         });
@@ -399,6 +412,7 @@ public class ImportDialog extends DialogWrapper {
         expressionField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(DocumentEvent e) {
+                Log.debug("Expression field changed");
                 updateKeyPreview();
             }
         });
@@ -539,7 +553,6 @@ public class ImportDialog extends DialogWrapper {
 
         updateSummary();
         addListeners();
-
         return mainPanel;
 
     }
@@ -558,6 +571,7 @@ public class ImportDialog extends DialogWrapper {
         DocumentAdapter updateSummaryListener = new DocumentAdapter() {
             @Override
             protected void textChanged(DocumentEvent e) {
+                Log.debug("Document changed");
                 updateSummary();
             }
         };
@@ -628,6 +642,8 @@ public class ImportDialog extends DialogWrapper {
 
         try {
             if (dynamicSelected && datasetField.getText() != null) {
+                Log.debug("Dataset field not null");
+
                 // Parse the first element of the dataset to get the field names
                 String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
                 String[] sampleElementContentSplit = sampleElementContent.split(",");
@@ -651,6 +667,7 @@ public class ImportDialog extends DialogWrapper {
                     }
                 }
             } else if (collectionSelected) {
+                Log.debug("Collection selected");
                 // Set the scope and collection fields to the selected scope and collection
                 targetScopeField = scopeCombo.getSelectedItem() != null ? scopeCombo.getSelectedItem().toString()
                         : "_default";
@@ -659,11 +676,14 @@ public class ImportDialog extends DialogWrapper {
                         : "_default";
 
             } else {
+                Log.debug("Default scope and collection selected");
+
                 // Set the scope and collection fields to null
                 targetScopeField = "_default";
                 targetCollectionField = "_default";
             }
         } catch (Exception e) {
+            Log.debug("Exception occurred" + e.getMessage());
             e.printStackTrace();
         }
 
@@ -694,6 +714,8 @@ public class ImportDialog extends DialogWrapper {
         keyPreviewArea.setEnabled(keyPreviewVisible);
 
         try {
+            Log.debug("Updating key form fields");
+
             if (useFieldValueSelected && datasetField.getText() != null) {
                 // Parse the first element of the dataset to get the field names
                 String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
@@ -709,6 +731,7 @@ public class ImportDialog extends DialogWrapper {
                 }
             }
         } catch (Exception e) {
+            Log.debug("Exception occurred" + e.getMessage());
             e.printStackTrace();
         }
 
@@ -722,6 +745,7 @@ public class ImportDialog extends DialogWrapper {
         try {
 
             if (useFieldValueRadio.isSelected()) {
+                Log.debug("Use field value radio selected");
                 // Generate preview based on field name
                 String fieldName = fieldNameField.getText();
 
@@ -742,6 +766,8 @@ public class ImportDialog extends DialogWrapper {
                 keyPreviewArea.setText(previewContent.toString());
 
             } else if (customExpressionRadio.isSelected()) {
+                Log.debug("Custom expression radio selected");
+
                 // Generate preview based on custom expression
                 String expression = expressionField.getText();
 
@@ -778,7 +804,7 @@ public class ImportDialog extends DialogWrapper {
             }
 
         } catch (Exception e) {
-            // TODO: handle exception
+            Log.debug("Exception occurred" + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -981,6 +1007,8 @@ public class ImportDialog extends DialogWrapper {
                         processBuilder.command().add("--verbose");
                     }
 
+                    Log.debug("Command: " + processBuilder.command());
+
                     // Execute CB_IMPORT tool using process builder
                     Process process = processBuilder.start();
                     int exitCode = process.waitFor();
@@ -996,6 +1024,7 @@ public class ImportDialog extends DialogWrapper {
                         });
                     }
                 } catch (Exception e) {
+                    Log.error("Exception occurred" + e.getMessage());
                     ApplicationManager.getApplication().invokeLater(() -> {
                         Messages.showErrorDialog("An error occurred while trying to import the data", "Import Error");
                     });
