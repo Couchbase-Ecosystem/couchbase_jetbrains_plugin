@@ -102,7 +102,7 @@ public class TreeRightClickListener {
             if (!ActiveCluster.getInstance().isReadOnlyMode()) {
                 JBMenuItem cbimport = new JBMenuItem("Data Import");
                 cbimport.addActionListener(event -> {
-                    ImportDialog dialog = new ImportDialog();
+                    ImportDialog dialog = new ImportDialog(project);
                     dialog.show();
                 });
                 tools.add(cbimport);

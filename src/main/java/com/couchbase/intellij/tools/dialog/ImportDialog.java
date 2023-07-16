@@ -57,6 +57,9 @@ import com.intellij.util.ui.JBUI;
 import utils.FileUtils;
 
 public class ImportDialog extends DialogWrapper {
+
+    private Project project;
+
     // Declare UI components here
     private TextFieldWithBrowseButton datasetField;
 
@@ -130,8 +133,9 @@ public class ImportDialog extends DialogWrapper {
     private String targetScopeField;
     private String targetCollectionField;
 
-    public ImportDialog() {
+    public ImportDialog(Project project) {
         super(true);
+        this.project = project;
         init();
         setTitle("Import Data");
         getWindow().setMinimumSize(new Dimension(600, 380));
@@ -147,7 +151,7 @@ public class ImportDialog extends DialogWrapper {
 
         // Page 1: Select dataset
         JPanel datasetPanel = new JPanel(new BorderLayout());
-        datasetPanel.add(new TitledSeparator("Select Dataset"), BorderLayout.NORTH);
+        datasetPanel.add(new TitledSeparator("Select the Dataset"), BorderLayout.NORTH);
 
         JPanel datasetFormPanel = new JPanel();
         datasetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
@@ -163,7 +167,7 @@ public class ImportDialog extends DialogWrapper {
         c.gridx = 1;
 
         datasetField = new TextFieldWithBrowseButton();
-        datasetField.addBrowseFolderListener("Select Dataset", "", null,
+        datasetField.addBrowseFolderListener("Select the Dataset", "", null,
                 FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor());
         // Add a listener for when the datasetField is changed
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
@@ -641,7 +645,28 @@ public class ImportDialog extends DialogWrapper {
         collectionFieldField.setEnabled(dynamicSelected);
 
         try {
-            if (dynamicSelected && datasetField.getText() != null) {
+            if (defaultScopeAndCollectionRadio.isSelected()) {
+                Log.debug("Default scope and collection selected");
+
+                // Set the scope and collection fields to null
+                targetScopeField = "_default";
+                targetCollectionField = "_default";
+            } else if (collectionSelected) {
+                Log.debug("Collection selected");
+
+                scopeCombo.addActionListener((ActionEvent e) -> {
+                    Log.debug("Scope combo box changed");
+                    targetScopeField = scopeCombo.getSelectedItem() != null ? scopeCombo.getSelectedItem().toString()
+                            : "_default";
+                });
+                collectionCombo.addActionListener((ActionEvent e) -> {
+                    Log.debug("Collection combo box changed");
+                    targetCollectionField = collectionCombo.getSelectedItem() != null
+                            ? collectionCombo.getSelectedItem().toString()
+                            : "_default";
+                });
+
+            } else if (dynamicSelected && datasetField.getText() != null) {
                 Log.debug("Dataset field not null");
 
                 // Parse the first element of the dataset to get the field names
@@ -666,21 +691,44 @@ public class ImportDialog extends DialogWrapper {
                         }
                     }
                 }
-            } else if (collectionSelected) {
-                Log.debug("Collection selected");
-                // Set the scope and collection fields to the selected scope and collection
-                targetScopeField = scopeCombo.getSelectedItem() != null ? scopeCombo.getSelectedItem().toString()
-                        : "_default";
-                targetCollectionField = collectionCombo.getSelectedItem() != null
-                        ? collectionCombo.getSelectedItem().toString()
-                        : "_default";
 
-            } else {
-                Log.debug("Default scope and collection selected");
+                ignoreFieldsField.setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
+                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
 
-                // Set the scope and collection fields to null
-                targetScopeField = "_default";
-                targetCollectionField = "_default";
+                // Just in case the scope and collection fields are user-changed
+                // then update all 4 fields with the latest values
+                scopeFieldField.getDocument().addDocumentListener(new DocumentAdapter() {
+                    @Override
+                    protected void textChanged(DocumentEvent e) {
+                        Log.debug("Scope field changed");
+                        for (String element : sampleElementContentSplit) {
+                            if (element.contains(scopeFieldField.getText())) {
+                                targetScopeField = element.substring(element.indexOf(":") + 1);
+                                break;
+                            }
+                        }
+
+                        ignoreFieldsField
+                                .setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
+                                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+                    }
+                });
+
+                collectionFieldField.getDocument().addDocumentListener(new DocumentAdapter() {
+                    @Override
+                    protected void textChanged(DocumentEvent e) {
+                        Log.debug("Collection field changed");
+                        for (String element : sampleElementContentSplit) {
+                            if (element.contains(collectionFieldField.getText())) {
+                                targetCollectionField = element.substring(element.indexOf(":") + 1);
+                                break;
+                            }
+                        }
+                        ignoreFieldsField
+                                .setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
+                                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+                    }
+                });
             }
         } catch (Exception e) {
             Log.debug("Exception occurred" + e.getMessage());
@@ -765,6 +813,9 @@ public class ImportDialog extends DialogWrapper {
                 // Set preview content in keyPreviewArea
                 keyPreviewArea.setText(previewContent.toString());
 
+                ignoreFieldsField.setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
+                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+
             } else if (customExpressionRadio.isSelected()) {
                 Log.debug("Custom expression radio selected");
 
@@ -801,6 +852,7 @@ public class ImportDialog extends DialogWrapper {
 
                 // Set preview content in keyPreviewArea
                 keyPreviewArea.setText(previewContent.toString());
+
             }
 
         } catch (Exception e) {
@@ -933,7 +985,7 @@ public class ImportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
         try {
-            complexBucketImport(bucketCombo.getSelectedItem().toString(), datasetField.getText(), null);
+            complexBucketImport(bucketCombo.getSelectedItem().toString(), datasetField.getText(), project);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -958,8 +1010,7 @@ public class ImportDialog extends DialogWrapper {
                             "-p", ActiveCluster.getInstance().getPassword(),
                             "-b", bucket,
                             "--format", "list",
-                            "-d", "file://" + filePath,
-                            "-t", "4");
+                            "-d", "file://" + filePath);
 
                     // Add scope and collection options based on selected target location
                     if (targetLocationgroup.getSelection() == defaultScopeAndCollectionRadio.getModel()) {
@@ -1003,11 +1054,16 @@ public class ImportDialog extends DialogWrapper {
                         processBuilder.command().add("--ignore-fields");
                         processBuilder.command().add(ignoreFieldsField.getText());
                     }
+
+                    processBuilder.command().add("-t");
+                    processBuilder.command().add(threadsSpinner.getValue().toString());
+
                     if (verboseCheck.isSelected()) {
                         processBuilder.command().add("--verbose");
                     }
 
                     Log.debug("Command: " + processBuilder.command());
+                    System.out.println("Command: " + processBuilder.command());
 
                     // Execute CB_IMPORT tool using process builder
                     Process process = processBuilder.start();
