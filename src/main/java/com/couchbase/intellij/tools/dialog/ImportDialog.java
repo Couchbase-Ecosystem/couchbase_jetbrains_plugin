@@ -1059,11 +1059,17 @@ public class ImportDialog extends DialogWrapper {
                     processBuilder.command().add(threadsSpinner.getValue().toString());
 
                     if (verboseCheck.isSelected()) {
-                        processBuilder.command().add("--verbose");
+                        processBuilder.command().add("-v ");
                     }
 
                     Log.debug("Command: " + processBuilder.command());
                     System.out.println("Command: " + processBuilder.command());
+
+                    // Check if indexes should be created and create them if necessary
+                    boolean createIndexes = shouldCreateIndexes();
+                    if (createIndexes) {
+                        createIndexes(bucket, targetScopeField, targetCollectionField);
+                    }
 
                     // Execute CB_IMPORT tool using process builder
                     Process process = processBuilder.start();
@@ -1087,6 +1093,75 @@ public class ImportDialog extends DialogWrapper {
                 }
             }
         });
+    }
+
+    protected boolean shouldCreateIndexes() {
+        int result = Messages.NO;
+        try {
+            result = Messages.showYesNoDialog(
+                    "<html>This dataset contains indexes. Would you like to also create them?"
+                            + "<br><small>If the indexes already exist in your environment, they won't be recreated.</small></html>",
+                    "Simple Import", Messages.getQuestionIcon());
+
+        } catch (Exception e) {
+            Log.error("Exception occurred" + e.getMessage());
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Messages.showErrorDialog("An error occurred while trying to create indexes", "Create Indexes Error");
+            });
+            e.printStackTrace();
+        }
+        return result == Messages.YES;
+    }
+
+    protected void createIndexes(String bucket, String scope, String collection) {
+        try {
+            // Read file content and parse into a Couchbase JSON array
+            String fileContent = Files.readString(Paths.get(datasetField.getText()));
+            JsonArray jsonArray = JsonArray.fromJson(fileContent);
+
+            // Iterate over each element in the JSON array
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonObject jsonObject = jsonArray.getObject(i);
+
+                // Check if the element contains an index definition
+                if (jsonObject.containsKey("indexDef")) {
+                    JsonObject indexDef = jsonObject.getObject("indexDef");
+
+                    // Extract index name and fields from index definition
+                    String indexName = indexDef.getString("name");
+                    JsonArray indexFields = indexDef.getArray("fields");
+
+                    // Build CREATE INDEX statement
+                    StringBuilder createIndexStatement = new StringBuilder();
+                    createIndexStatement.append("CREATE INDEX ");
+                    createIndexStatement.append(indexName);
+                    createIndexStatement.append(" ON ");
+                    createIndexStatement.append(bucket);
+                    createIndexStatement.append(".");
+                    createIndexStatement.append(scope);
+                    createIndexStatement.append(".");
+                    createIndexStatement.append(collection);
+                    createIndexStatement.append("(");
+
+                    for (int j = 0; j < indexFields.size(); j++) {
+                        if (j > 0) {
+                            createIndexStatement.append(", ");
+                        }
+                        createIndexStatement.append(indexFields.getString(j));
+                    }
+
+                    createIndexStatement.append(")");
+
+                    // Execute CREATE INDEX statement
+                    ActiveCluster.getInstance().get().query(createIndexStatement.toString());
+                }
+            }
+        } catch (Exception e) {
+            Log.error("Exception occurred" + e.getMessage());
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Messages.showErrorDialog("An error occurred while trying to create indexes", "Create Indexes Error");
+            });
+        }
     }
 
 }
