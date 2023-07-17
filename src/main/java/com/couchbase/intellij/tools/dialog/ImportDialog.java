@@ -692,8 +692,7 @@ public class ImportDialog extends DialogWrapper {
                     }
                 }
 
-                ignoreFieldsField.setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
-                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+                updateIgnoreFieldsTextField();
 
                 // Just in case the scope and collection fields are user-changed
                 // then update all 4 fields with the latest values
@@ -707,10 +706,7 @@ public class ImportDialog extends DialogWrapper {
                                 break;
                             }
                         }
-
-                        ignoreFieldsField
-                                .setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
-                                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+                        updateIgnoreFieldsTextField();
                     }
                 });
 
@@ -724,9 +720,7 @@ public class ImportDialog extends DialogWrapper {
                                 break;
                             }
                         }
-                        ignoreFieldsField
-                                .setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
-                                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+                        updateIgnoreFieldsTextField();
                     }
                 });
             }
@@ -813,8 +807,7 @@ public class ImportDialog extends DialogWrapper {
                 // Set preview content in keyPreviewArea
                 keyPreviewArea.setText(previewContent.toString());
 
-                ignoreFieldsField.setText((scopeFieldField.getText() + "," + collectionFieldField.getText() + ","
-                        + fieldNameField.getText()).replaceAll("^,*|,*$", ""));
+                updateIgnoreFieldsTextField();
 
             } else if (customExpressionRadio.isSelected()) {
                 Log.debug("Custom expression radio selected");
@@ -933,6 +926,14 @@ public class ImportDialog extends DialogWrapper {
         summary.append("<br>");
 
         summaryLabel.setText(summary.toString());
+    }
+
+    protected void updateIgnoreFieldsTextField() {
+        ignoreFieldsField
+                .setText((scopeFieldField.getText() + "," +
+                        collectionFieldField.getText() + "," +
+                        fieldNameField.getText().replaceAll("%(\\w+)-value%", "$1"))
+                        .replaceAll("^,*|,*$", ""));
     }
 
     @Override
