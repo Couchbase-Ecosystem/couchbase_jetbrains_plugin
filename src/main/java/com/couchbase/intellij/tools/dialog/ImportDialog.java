@@ -929,11 +929,19 @@ public class ImportDialog extends DialogWrapper {
     }
 
     protected void updateIgnoreFieldsTextField() {
-        ignoreFieldsField
-                .setText((scopeFieldField.getText() + "," +
-                        collectionFieldField.getText() + "," +
-                        fieldNameField.getText().replaceAll("%(\\w+)-value%", "$1"))
-                        .replaceAll("^,*|,*$", ""));
+
+        if (dynamicScopeAndCollectionRadio.isSelected()) {
+            ignoreFieldsField
+                    .setText((scopeFieldField.getText() + "," +
+                            collectionFieldField.getText() + "," +
+                            fieldNameField.getText().replaceAll("%(\\w+)-value%", "$1"))
+                            .replaceAll("^,*|,*$", "")); // remove leading and trailing commas
+        } else if (collectionRadio.isSelected()) {
+            ignoreFieldsField
+                    .setText((fieldNameField.getText().replaceAll("%(\\w+)-value%", "$1"))
+                            .replaceAll("^,*|,*$", "")); // remove leading and trailing commas
+        }
+
     }
 
     @Override
