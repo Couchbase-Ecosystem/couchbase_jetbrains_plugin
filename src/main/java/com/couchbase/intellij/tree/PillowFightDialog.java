@@ -491,9 +491,21 @@ public class PillowFightDialog extends DialogWrapper {
         JBScrollPane jbScrollPane = new JBScrollPane(panel);
         jbScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        // Set the preferred height of the JScrollPane to take up the entire screen initially
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        jbScrollPane.setPreferredSize(new Dimension(jbScrollPane.getPreferredSize().width, (int) (screenSize.height * 0.8)));
+        int jbScrollWidth = jbScrollPane.getPreferredSize().width;
+        int jbScrollOriginalHeight = jbScrollPane.getPreferredSize().height;
+        collapsiblePanel1.addComponentListener(new ComponentAdapter() {
+            int counter = 1;
+            @Override
+            public void componentResized(ComponentEvent e) {
+                if (counter % 2 == 0) {
+                    jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth, (int) (Toolkit.getDefaultToolkit().getScreenSize().height * 0.8)));
+                } else {
+                    jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth, jbScrollOriginalHeight));
+                }
+                counter++;
+                pack();
+            }
+        });
 
         return jbScrollPane;
     }
