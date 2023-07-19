@@ -494,15 +494,13 @@ public class PillowFightDialog extends DialogWrapper {
         int jbScrollWidth = jbScrollPane.getPreferredSize().width;
         int jbScrollOriginalHeight = jbScrollPane.getPreferredSize().height;
         collapsiblePanel1.addComponentListener(new ComponentAdapter() {
-            int counter = 1;
             @Override
             public void componentResized(ComponentEvent e) {
-                if (counter % 2 == 0) {
+                if (collapsiblePanel1.contentIsEnabled()) {
                     jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth, (int) (Toolkit.getDefaultToolkit().getScreenSize().height * 0.8)));
                 } else {
                     jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth, jbScrollOriginalHeight));
                 }
-                counter++;
                 pack();
             }
         });
