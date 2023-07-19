@@ -7,6 +7,9 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -126,6 +129,15 @@ public class PillowFightRunner {
             opsPerSecLabel.setEditable(false);
             opsPerSecLabel.setBorder(JBUI.Borders.empty(0, 100));
             stopButton = new JButton("Stop");
+
+            this.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    if (proc != null) {
+                        proc.destroy();
+                    }
+                }
+            });
 
             JPanel panel = new JPanel(new GridBagLayout());
             GridBagConstraints gbc = new GridBagConstraints();
