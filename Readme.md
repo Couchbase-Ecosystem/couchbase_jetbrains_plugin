@@ -45,12 +45,85 @@ Click on Scope to list Collections and Indexes. Open context menu on Collection 
 
 <img src="src/main/resources/assets/gifs/InteractWithDocuments.gif" height="80%" width="80%" alt="Interact with Documents" />
 
-### Open SQL++ Notebook
+
+### Plugin Log
+The Couchbase JetBrains plugin offers a convenient logging feature that allows developers to easily log important information, debug messages, and error reports directly from the plugin interface. This feature streamlines the development process and helps developers track and analyze the plugin's behavior effectively.
+
+<img src="src/main/resources/assets/screenshots/Logging.png" height="80%" width="80%" alt="Logging" />
+
+### Exporting the results of a N1QL query
+
+The Couchbase JetBrains plugin enables users to export the results of a query to a file in either CSV or JSON format. This functionality simplifies data analysis and sharing, allowing developers to easily save query results for further processing or to share data with other team members.
+
+<img src="src/main/resources/assets/screenshots/QueryExport.png" height="80%" width="80%" alt="Exporting the results of a N1QL query" />
+
+### Autocomplete for N1QL queries
+With autocomplete, the Couchbase JetBrains plugin provides suggestions for SQL++ keywords and functions as developers write queries. This intelligent feature enhances coding efficiency by offering relevant options for completing SQL++ statements, helping users write accurate and syntactically correct queries while working with Couchbase databases.
+
+<img src="src/main/resources/assets/screenshots/Autocomplete.png" height="80%" width="80%" alt="Autocomplete for N1QL queries" />
+
+### View Document Metadata
+
+The latest feature in the Couchbase JetBrains plugin allows users to right-click on a document and access its metadata. Although users can edit the metadata, the changes made will not be saved directly to Couchbase. This functionality provides developers with a convenient way to inspect and modify document metadata during the development process without impacting the actual data stored in the Couchbase database.
+
+<img src="src/main/resources/assets/screenshots/DocumentMetadata.png" height="80%" width="80%" alt="View Document Metadata" />
+
+### Connection Color
+
+The Couchbase JetBrains plugin introduces a helpful feature that enables users to set custom colors for their connections. This functionality proves beneficial when distinguishing between different environments, such as Production and Development, to prevent accidental changes to critical data. Users can easily pick colors using a color picker, and the chosen color is then displayed as a small line in the tree or workbench, providing a visual indicator of the active connection. If you switch to connect to another cluster that doesn't have a color set, the interface reverts to its default appearance. This feature streamlines development workflows and helps users maintain clarity and organization within the Couchbase plugin.
+
+<!-- 3 images -->
+<img src="src/main/resources/assets/screenshots/ConnectionColor1.png" height="80%" width="80%" alt="Connection Color" />
+
+<img src="src/main/resources/assets/screenshots/ConnectionColor2.png" height="80%" width="80%" alt="Connection Color" />
+
+<img src="src/main/resources/assets/screenshots/ConnectionColor3.png" height="80%" width="80%" alt="Connection Color" />
+
+### Cluster Connection Statistics
+The Couchbase JetBrains plugin includes a valuable feature that allows users to view statistics for buckets, the cluster, and individual nodes. By right-clicking on an active connection, developers can easily access and analyze these statistics, providing valuable insights into the performance and health of their Couchbase databases. This feature empowers users to make informed decisions and optimize their database configurations for better overall efficiency and reliability.
+
+<!-- 4 images: 1 top, 3 side by side -->
+
+<img src="src/main/resources/assets/screenshots/ClusterConnectionOverview.png" height="80%" width="80%" alt="Cluster Connection Statistics" />
+
+<img src="src/main/resources/assets/screenshots/ClusterConnectionStatistics1.png" height="80%" width="80%" alt="Cluster Connection Statistics" />
+
+<img src="src/main/resources/assets/screenshots/ClusterConnectionStatistics2.png" height="80%" width="80%" alt="Cluster Connection Statistics" />
+
+<img src="src/main/resources/assets/screenshots/ClusterConnectionStatistics3.png" height="80%" width="80%" alt="Cluster Connection Statistics" />
+
+
+### View Index Statistics
+
+The latest enhancement in the Couchbase JetBrains plugin enables users to access statistics for each index effortlessly. By simply right-clicking on a specific index and selecting "View Stats," developers can gain valuable insights into the index's performance and usage. This feature streamlines the monitoring and optimization of indexes, helping users fine-tune their Couchbase database for improved query performance and overall efficiency.
+
+<img src="src/main/resources/assets/screenshots/IndexStatistics1.png" height="80%" width="80%" alt="View Index Statistics" />
+<img src="src/main/resources/assets/screenshots/IndexStatistics2.png" height="80%" width="80%" alt="View Index Statistics" />
+
+### Selective Query Execution
+
+With the updated Couchbase JetBrains plugin, users gain the ability to select a specific query for execution when dealing with multiple queries. This functionality proves invaluable when working with complex tasks involving multiple queries, allowing developers to choose and run a particular query with ease. This feature enhances productivity and simplifies the query execution process, ensuring that developers can focus on the specific task at hand without any unnecessary steps or confusion.
+
+<img src="src/main/resources/assets/screenshots/SelectiveQueryExecution.png" height="80%" width="80%" alt="Selective Query Execution" />
+
+
+### Read-Only Mode
+The latest update to the Couchbase JetBrains plugin introduces a read-only mode, which can be easily enabled by users. Once activated, an eye icon appears next to the connection's name, indicating that the plugin is in read-only mode. In this mode, any actions that might modify the server, such as creating documents, adding scopes, collections, indexes, importing data, etc., are hidden to prevent accidental changes to the database.
+
+Furthermore, the plugin performs validation checks, and if a user attempts to run a query with mutation operations while in read-only mode, a notification is triggered to alert the user about the read-only status. This read-only mode provides an additional layer of security and peace of mind for developers, ensuring that sensitive data and critical configurations remain protected from accidental alterations while using the plugin.
+
+<!-- 4 images -->
+<img src="src/main/resources/assets/screenshots/ReadOnlyMode1.png" height="80%" width="80%" alt="Read-Only Mode" />
+<img src="src/main/resources/assets/screenshots/ReadOnlyMode2.png" height="80%" width="80%" alt="Read-Only Mode" />
+<img src="src/main/resources/assets/screenshots/ReadOnlyMode3.png" height="80%" width="80%" alt="Read-Only Mode" />
+<img src="src/main/resources/assets/screenshots/ReadOnlyMode4.png" height="80%" width="80%" alt="Read-Only Mode" />
+
+<!-- ### Open SQL++ Notebook
 1. Simply right-click on the Cluster and select the "New SQL++ Notebook" option from the context menu.
 2. Once you have opened the notebook, you will be presented with a powerful text editor that allows you to craft your SQL++ queries with ease.
 3. And once you have completed your work, you can save the notebook to your local machine for future reference.
 
-<img src="src/main/resources/assets/gifs/QueryNotebook.gif" height="80%" width="80%" alt="Interact with Documents" />
+<img src="src/main/resources/assets/gifs/QueryNotebook.gif" height="80%" width="80%" alt="Interact with Documents" /> -->
 
 ## License
 Apache Software License Version 2.  See individual files for details.
