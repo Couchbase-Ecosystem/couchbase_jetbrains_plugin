@@ -110,4 +110,8 @@ public class CollapsiblePanel extends JPanel {
         separator.setMaximumSize(preferredSize);
     }
 
+    public boolean contentIsEnabled() {
+        return contentPanel.isVisible();
+    }
+
 }
