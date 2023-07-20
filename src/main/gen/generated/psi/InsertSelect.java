@@ -8,12 +8,12 @@ import com.intellij.psi.PsiElement;
 public interface InsertSelect extends PsiElement {
 
   @NotNull
-  Key getKey();
+  KeyExpr getKeyExpr();
 
   @NotNull
-  Select getSelect();
+  SelectStatement getSelectStatement();
 
   @Nullable
-  Value getValue();
+  ValueExpr getValueExpr();
 
 }

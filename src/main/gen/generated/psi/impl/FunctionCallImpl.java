@@ -35,6 +35,12 @@ public class FunctionCallImpl extends ASTWrapperPsiElement implements FunctionCa
 
   @Override
   @Nullable
+  public BuiltinFunction getBuiltinFunction() {
+    return findChildByClass(BuiltinFunction.class);
+  }
+
+  @Override
+  @Nullable
   public OrdinaryFunction getOrdinaryFunction() {
     return findChildByClass(OrdinaryFunction.class);
   }

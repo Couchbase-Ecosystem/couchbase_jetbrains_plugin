@@ -45,10 +45,4 @@ public class FullArrayExprImpl extends ASTWrapperPsiElement implements FullArray
     return PsiTreeUtil.getChildrenOfTypeAsList(this, Var.class);
   }
 
-  @Override
-  @NotNull
-  public VarExpr getVarExpr() {
-    return findNotNullChildByClass(VarExpr.class);
-  }
-
 }

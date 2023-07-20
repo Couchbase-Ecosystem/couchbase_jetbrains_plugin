@@ -35,8 +35,8 @@ public class CreateFunctionInlineImpl extends ASTWrapperPsiElement implements Cr
 
   @Override
   @NotNull
-  public Function getFunction() {
-    return findNotNullChildByClass(Function.class);
+  public FunctionRef getFunctionRef() {
+    return findNotNullChildByClass(FunctionRef.class);
   }
 
   @Override

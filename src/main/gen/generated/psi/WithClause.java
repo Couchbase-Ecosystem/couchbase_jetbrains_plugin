@@ -14,6 +14,6 @@ public interface WithClause extends PsiElement {
   List<Expr> getExprList();
 
   @NotNull
-  List<Select> getSelectList();
+  List<SelectStatement> getSelectStatementList();
 
 }

@@ -29,8 +29,8 @@ public class AliasImpl extends ASTWrapperPsiElement implements Alias {
 
   @Override
   @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }

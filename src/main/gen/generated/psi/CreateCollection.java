@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 public interface CreateCollection extends PsiElement {
 
   @Nullable
-  Bucket getBucket();
+  BucketRef getBucketRef();
 
   @NotNull
-  Collection getCollection();
+  CollectionRef getCollectionRef();
 
   @Nullable
-  Namespace getNamespace();
+  NamespaceRef getNamespaceRef();
 
   @Nullable
-  Scope getScope();
+  ScopeRef getScopeRef();
 
 }

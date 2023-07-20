@@ -35,8 +35,8 @@ public class ExecuteFunctionImpl extends ASTWrapperPsiElement implements Execute
 
   @Override
   @NotNull
-  public Function getFunction() {
-    return findNotNullChildByClass(Function.class);
+  public FunctionRef getFunctionRef() {
+    return findNotNullChildByClass(FunctionRef.class);
   }
 
 }

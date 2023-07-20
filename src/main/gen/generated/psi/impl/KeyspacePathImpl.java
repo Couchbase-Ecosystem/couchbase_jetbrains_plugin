@@ -29,26 +29,26 @@ public class KeyspacePathImpl extends ASTWrapperPsiElement implements KeyspacePa
 
   @Override
   @NotNull
-  public Bucket getBucket() {
-    return findNotNullChildByClass(Bucket.class);
+  public BucketRef getBucketRef() {
+    return findNotNullChildByClass(BucketRef.class);
   }
 
   @Override
   @Nullable
-  public Collection getCollection() {
-    return findChildByClass(Collection.class);
+  public CollectionRef getCollectionRef() {
+    return findChildByClass(CollectionRef.class);
   }
 
   @Override
   @Nullable
-  public Namespace getNamespace() {
-    return findChildByClass(Namespace.class);
+  public NamespaceRef getNamespaceRef() {
+    return findChildByClass(NamespaceRef.class);
   }
 
   @Override
   @Nullable
-  public Scope getScope() {
-    return findChildByClass(Scope.class);
+  public ScopeRef getScopeRef() {
+    return findChildByClass(ScopeRef.class);
   }
 
 }

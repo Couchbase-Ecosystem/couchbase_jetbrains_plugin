@@ -27,10 +27,4 @@ public class IsExprImpl extends ASTWrapperPsiElement implements IsExpr {
     else super.accept(visitor);
   }
 
-  @Override
-  @NotNull
-  public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
-  }
-
 }

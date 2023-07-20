@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 public interface DqlStatement extends PsiElement {
 
   @Nullable
-  Infer getInfer();
+  InferStatement getInferStatement();
 
   @Nullable
-  Select getSelect();
+  SelectStatement getSelectStatement();
 
   @Nullable
   UpdateStatistics getUpdateStatistics();

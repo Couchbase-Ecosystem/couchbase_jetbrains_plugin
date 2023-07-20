@@ -29,8 +29,8 @@ public class KeyspacePartialImpl extends ASTWrapperPsiElement implements Keyspac
 
   @Override
   @NotNull
-  public Collection getCollection() {
-    return findNotNullChildByClass(Collection.class);
+  public CollectionRef getCollectionRef() {
+    return findNotNullChildByClass(CollectionRef.class);
   }
 
 }

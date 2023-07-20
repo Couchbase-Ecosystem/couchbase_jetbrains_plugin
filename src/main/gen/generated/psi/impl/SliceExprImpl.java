@@ -28,21 +28,9 @@ public class SliceExprImpl extends ASTWrapperPsiElement implements SliceExpr {
   }
 
   @Override
-  @Nullable
-  public EndExpr getEndExpr() {
-    return findChildByClass(EndExpr.class);
-  }
-
-  @Override
   @NotNull
-  public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
-  }
-
-  @Override
-  @NotNull
-  public StartExpr getStartExpr() {
-    return findNotNullChildByClass(StartExpr.class);
+  public List<Expr> getExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
   }
 
 }

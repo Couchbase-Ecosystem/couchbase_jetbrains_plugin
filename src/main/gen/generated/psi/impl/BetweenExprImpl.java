@@ -29,20 +29,8 @@ public class BetweenExprImpl extends ASTWrapperPsiElement implements BetweenExpr
 
   @Override
   @NotNull
-  public EndExpr getEndExpr() {
-    return findNotNullChildByClass(EndExpr.class);
-  }
-
-  @Override
-  @NotNull
-  public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
-  }
-
-  @Override
-  @NotNull
-  public StartExpr getStartExpr() {
-    return findNotNullChildByClass(StartExpr.class);
+  public List<Expr> getExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
   }
 
 }

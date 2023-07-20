@@ -41,8 +41,8 @@ public class WithClauseImpl extends ASTWrapperPsiElement implements WithClause {
 
   @Override
   @NotNull
-  public List<Select> getSelectList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Select.class);
+  public List<SelectStatement> getSelectStatementList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, SelectStatement.class);
   }
 
 }

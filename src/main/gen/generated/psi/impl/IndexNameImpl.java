@@ -29,8 +29,8 @@ public class IndexNameImpl extends ASTWrapperPsiElement implements IndexName {
 
   @Override
   @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }

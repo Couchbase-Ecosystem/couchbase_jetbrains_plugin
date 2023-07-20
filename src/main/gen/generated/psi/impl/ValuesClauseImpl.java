@@ -29,14 +29,14 @@ public class ValuesClauseImpl extends ASTWrapperPsiElement implements ValuesClau
 
   @Override
   @NotNull
-  public List<Key> getKeyList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Key.class);
+  public List<KeyExpr> getKeyExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, KeyExpr.class);
   }
 
   @Override
   @NotNull
-  public List<Value> getValueList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Value.class);
+  public List<ValueExpr> getValueExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, ValueExpr.class);
   }
 
 }

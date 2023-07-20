@@ -29,32 +29,32 @@ public class DmlStatementImpl extends ASTWrapperPsiElement implements DmlStateme
 
   @Override
   @Nullable
-  public Delete getDelete() {
-    return findChildByClass(Delete.class);
+  public DeleteStatement getDeleteStatement() {
+    return findChildByClass(DeleteStatement.class);
   }
 
   @Override
   @Nullable
-  public Insert getInsert() {
-    return findChildByClass(Insert.class);
+  public InsertStatement getInsertStatement() {
+    return findChildByClass(InsertStatement.class);
   }
 
   @Override
   @Nullable
-  public Merge getMerge() {
-    return findChildByClass(Merge.class);
+  public MergeStatement getMergeStatement() {
+    return findChildByClass(MergeStatement.class);
   }
 
   @Override
   @Nullable
-  public Update getUpdate() {
-    return findChildByClass(Update.class);
+  public UpdateStatement getUpdateStatement() {
+    return findChildByClass(UpdateStatement.class);
   }
 
   @Override
   @Nullable
-  public Upsert getUpsert() {
-    return findChildByClass(Upsert.class);
+  public UpsertStatement getUpsertStatement() {
+    return findChildByClass(UpsertStatement.class);
   }
 
 }

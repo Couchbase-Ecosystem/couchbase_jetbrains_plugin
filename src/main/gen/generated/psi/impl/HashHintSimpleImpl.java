@@ -29,8 +29,8 @@ public class HashHintSimpleImpl extends ASTWrapperPsiElement implements HashHint
 
   @Override
   @NotNull
-  public List<Keyspace> getKeyspaceList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Keyspace.class);
+  public List<KeyspaceStatement> getKeyspaceStatementList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, KeyspaceStatement.class);
   }
 
 }

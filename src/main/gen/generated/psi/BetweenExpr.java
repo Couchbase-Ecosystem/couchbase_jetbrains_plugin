@@ -8,12 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface BetweenExpr extends PsiElement {
 
   @NotNull
-  EndExpr getEndExpr();
-
-  @NotNull
-  Expr getExpr();
-
-  @NotNull
-  StartExpr getStartExpr();
+  List<Expr> getExprList();
 
 }

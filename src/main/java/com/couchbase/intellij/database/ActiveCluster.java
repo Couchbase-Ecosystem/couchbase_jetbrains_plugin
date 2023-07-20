@@ -2,14 +2,19 @@ package com.couchbase.intellij.database;
 
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
+import com.couchbase.intellij.database.entity.CouchbaseBucket;
+import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.intellij.ui.ColorUtil;
 
 import java.awt.*;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class ActiveCluster {
+public class ActiveCluster implements CouchbaseClusterEntity {
 
     private static final ActiveCluster activeCluster = new ActiveCluster();
     private Cluster cluster;
@@ -136,5 +141,29 @@ public class ActiveCluster {
 
     public void setReadOnlyMode(boolean mode) {
         this.savedCluster.setReadOnly(mode);
+    }
+
+    @Override
+    public String getName() {
+        return null;
+    }
+
+    @Override
+    public CouchbaseClusterEntity getParent() {
+        return null;
+    }
+
+    @Override
+    public Set<CouchbaseBucket> getChildren() {
+        Set<CouchbaseBucket> buckets = new HashSet<>();
+        cluster.buckets().getAllBuckets().forEach((b, settings) -> {
+            buckets.add(new CouchbaseBucket(this, b));
+        });
+        return buckets;
+    }
+
+    @Override
+    public Cluster getCluster() {
+        return cluster;
     }
 }

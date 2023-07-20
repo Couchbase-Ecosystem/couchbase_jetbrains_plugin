@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface IsExpr extends PsiElement {
 
-  @NotNull
-  Expr getExpr();
-
 }

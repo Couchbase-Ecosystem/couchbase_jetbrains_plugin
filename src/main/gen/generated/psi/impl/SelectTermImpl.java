@@ -29,8 +29,8 @@ public class SelectTermImpl extends ASTWrapperPsiElement implements SelectTerm {
 
   @Override
   @Nullable
-  public Select getSelect() {
-    return findChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findChildByClass(SelectStatement.class);
   }
 
   @Override

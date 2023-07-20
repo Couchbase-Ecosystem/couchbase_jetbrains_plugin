@@ -29,6 +29,12 @@ public class StatementImpl extends ASTWrapperPsiElement implements Statement {
 
   @Override
   @Nullable
+  public DclStatement getDclStatement() {
+    return findChildByClass(DclStatement.class);
+  }
+
+  @Override
+  @Nullable
   public DdlStatement getDdlStatement() {
     return findChildByClass(DdlStatement.class);
   }

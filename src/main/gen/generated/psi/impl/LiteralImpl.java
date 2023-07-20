@@ -35,24 +35,6 @@ public class LiteralImpl extends ASTWrapperPsiElement implements Literal {
 
   @Override
   @Nullable
-  public Missing getMissing() {
-    return findChildByClass(Missing.class);
-  }
-
-  @Override
-  @Nullable
-  public Nbr getNbr() {
-    return findChildByClass(Nbr.class);
-  }
-
-  @Override
-  @Nullable
-  public Null getNull() {
-    return findChildByClass(Null.class);
-  }
-
-  @Override
-  @Nullable
   public Str getStr() {
     return findChildByClass(Str.class);
   }

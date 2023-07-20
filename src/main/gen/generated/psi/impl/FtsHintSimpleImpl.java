@@ -29,8 +29,8 @@ public class FtsHintSimpleImpl extends ASTWrapperPsiElement implements FtsHintSi
 
   @Override
   @NotNull
-  public Keyspace getKeyspace() {
-    return findNotNullChildByClass(Keyspace.class);
+  public KeyspaceStatement getKeyspaceStatement() {
+    return findNotNullChildByClass(KeyspaceStatement.class);
   }
 
 }

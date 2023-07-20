@@ -29,8 +29,8 @@ public class SavepointnameImpl extends ASTWrapperPsiElement implements Savepoint
 
   @Override
   @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }

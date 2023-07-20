@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement;
 public interface SelectTerm extends PsiElement {
 
   @Nullable
-  Select getSelect();
+  SelectStatement getSelectStatement();
 
   @Nullable
   Subselect getSubselect();

@@ -33,10 +33,4 @@ public class ElementExprImpl extends ASTWrapperPsiElement implements ElementExpr
     return findNotNullChildByClass(Expr.class);
   }
 
-  @Override
-  @NotNull
-  public Position getPosition() {
-    return findNotNullChildByClass(Position.class);
-  }
-
 }

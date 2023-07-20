@@ -29,8 +29,8 @@ public class ParamsImpl extends ASTWrapperPsiElement implements Params {
 
   @Override
   @NotNull
-  public List<Identifier> getIdentifierList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Identifier.class);
+  public List<IdentifierRef> getIdentifierRefList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, IdentifierRef.class);
   }
 
 }

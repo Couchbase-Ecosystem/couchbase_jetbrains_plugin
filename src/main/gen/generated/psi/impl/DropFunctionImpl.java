@@ -29,8 +29,8 @@ public class DropFunctionImpl extends ASTWrapperPsiElement implements DropFuncti
 
   @Override
   @NotNull
-  public Function getFunction() {
-    return findNotNullChildByClass(Function.class);
+  public FunctionRef getFunctionRef() {
+    return findNotNullChildByClass(FunctionRef.class);
   }
 
 }

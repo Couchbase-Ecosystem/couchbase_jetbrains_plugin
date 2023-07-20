@@ -28,9 +28,15 @@ public class StrImpl extends ASTWrapperPsiElement implements Str {
   }
 
   @Override
-  @NotNull
-  public List<Chr> getChrList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Chr.class);
+  @Nullable
+  public DoubleQuotedString getDoubleQuotedString() {
+    return findChildByClass(DoubleQuotedString.class);
+  }
+
+  @Override
+  @Nullable
+  public SingleQuotedString getSingleQuotedString() {
+    return findChildByClass(SingleQuotedString.class);
   }
 
 }

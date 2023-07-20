@@ -8,9 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface KeyspacePrefix extends PsiElement {
 
   @NotNull
-  Bucket getBucket();
+  BucketRef getBucketRef();
 
   @Nullable
-  Namespace getNamespace();
+  NamespaceRef getNamespaceRef();
 
 }

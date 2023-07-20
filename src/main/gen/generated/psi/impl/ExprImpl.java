@@ -28,33 +28,33 @@ public class ExprImpl extends ASTWrapperPsiElement implements Expr {
   }
 
   @Override
-  @Nullable
-  public ArithmeticTerm getArithmeticTerm() {
-    return findChildByClass(ArithmeticTerm.class);
+  @NotNull
+  public List<ArithmeticTerm> getArithmeticTermList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, ArithmeticTerm.class);
   }
 
   @Override
-  @Nullable
-  public CaseExpr getCaseExpr() {
-    return findChildByClass(CaseExpr.class);
+  @NotNull
+  public List<CaseExpr> getCaseExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, CaseExpr.class);
   }
 
   @Override
-  @Nullable
-  public CollectionExpr getCollectionExpr() {
-    return findChildByClass(CollectionExpr.class);
+  @NotNull
+  public List<CollectionExpr> getCollectionExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, CollectionExpr.class);
   }
 
   @Override
-  @Nullable
-  public ComparisonTerm getComparisonTerm() {
-    return findChildByClass(ComparisonTerm.class);
+  @NotNull
+  public List<ComparisonTerm> getComparisonTermList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, ComparisonTerm.class);
   }
 
   @Override
-  @Nullable
-  public ConcatenationTerm getConcatenationTerm() {
-    return findChildByClass(ConcatenationTerm.class);
+  @NotNull
+  public List<ConcatenationTerm> getConcatenationTermList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, ConcatenationTerm.class);
   }
 
   @Override
@@ -64,15 +64,15 @@ public class ExprImpl extends ASTWrapperPsiElement implements Expr {
   }
 
   @Override
-  @Nullable
-  public FunctionCall getFunctionCall() {
-    return findChildByClass(FunctionCall.class);
+  @NotNull
+  public List<FunctionCall> getFunctionCallList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FunctionCall.class);
   }
 
   @Override
   @Nullable
-  public Identifier getIdentifier() {
-    return findChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findChildByClass(IdentifierRef.class);
   }
 
   @Override
@@ -82,21 +82,21 @@ public class ExprImpl extends ASTWrapperPsiElement implements Expr {
   }
 
   @Override
-  @Nullable
-  public LogicalTerm getLogicalTerm() {
-    return findChildByClass(LogicalTerm.class);
+  @NotNull
+  public List<LogicalTerm> getLogicalTermList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LogicalTerm.class);
   }
 
   @Override
-  @Nullable
-  public NestedExpr getNestedExpr() {
-    return findChildByClass(NestedExpr.class);
+  @NotNull
+  public List<NestedExpr> getNestedExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, NestedExpr.class);
   }
 
   @Override
-  @Nullable
-  public SubqueryExpr getSubqueryExpr() {
-    return findChildByClass(SubqueryExpr.class);
+  @NotNull
+  public List<SubqueryExpr> getSubqueryExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, SubqueryExpr.class);
   }
 
 }

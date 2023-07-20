@@ -29,14 +29,14 @@ public class KeyspacePrefixImpl extends ASTWrapperPsiElement implements Keyspace
 
   @Override
   @NotNull
-  public Bucket getBucket() {
-    return findNotNullChildByClass(Bucket.class);
+  public BucketRef getBucketRef() {
+    return findNotNullChildByClass(BucketRef.class);
   }
 
   @Override
   @Nullable
-  public Namespace getNamespace() {
-    return findChildByClass(Namespace.class);
+  public NamespaceRef getNamespaceRef() {
+    return findChildByClass(NamespaceRef.class);
   }
 
 }

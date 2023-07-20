@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface Statement extends PsiElement {
 
   @Nullable
+  DclStatement getDclStatement();
+
+  @Nullable
   DdlStatement getDdlStatement();
 
   @Nullable

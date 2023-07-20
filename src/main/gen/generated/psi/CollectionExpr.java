@@ -14,6 +14,9 @@ public interface CollectionExpr extends PsiElement {
   InExpr getInExpr();
 
   @Nullable
+  RangeCond getRangeCond();
+
+  @Nullable
   WithinExpr getWithinExpr();
 
 }

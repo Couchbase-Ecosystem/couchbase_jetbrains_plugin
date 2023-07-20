@@ -29,14 +29,14 @@ public class DqlStatementImpl extends ASTWrapperPsiElement implements DqlStateme
 
   @Override
   @Nullable
-  public Infer getInfer() {
-    return findChildByClass(Infer.class);
+  public InferStatement getInferStatement() {
+    return findChildByClass(InferStatement.class);
   }
 
   @Override
   @Nullable
-  public Select getSelect() {
-    return findChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findChildByClass(SelectStatement.class);
   }
 
   @Override

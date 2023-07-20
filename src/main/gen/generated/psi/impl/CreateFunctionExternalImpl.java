@@ -29,8 +29,8 @@ public class CreateFunctionExternalImpl extends ASTWrapperPsiElement implements 
 
   @Override
   @NotNull
-  public Function getFunction() {
-    return findNotNullChildByClass(Function.class);
+  public FunctionRef getFunctionRef() {
+    return findNotNullChildByClass(FunctionRef.class);
   }
 
   @Override

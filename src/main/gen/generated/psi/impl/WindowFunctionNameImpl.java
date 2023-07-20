@@ -29,8 +29,8 @@ public class WindowFunctionNameImpl extends ASTWrapperPsiElement implements Wind
 
   @Override
   @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }

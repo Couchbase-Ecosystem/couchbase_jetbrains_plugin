@@ -29,8 +29,8 @@ public class ArithmeticTermImpl extends ASTWrapperPsiElement implements Arithmet
 
   @Override
   @NotNull
-  public List<Expr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

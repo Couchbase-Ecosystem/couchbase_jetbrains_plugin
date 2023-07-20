@@ -29,20 +29,20 @@ public class DropScopeImpl extends ASTWrapperPsiElement implements DropScope {
 
   @Override
   @NotNull
-  public Bucket getBucket() {
-    return findNotNullChildByClass(Bucket.class);
+  public BucketRef getBucketRef() {
+    return findNotNullChildByClass(BucketRef.class);
   }
 
   @Override
   @Nullable
-  public Namespace getNamespace() {
-    return findChildByClass(Namespace.class);
+  public NamespaceRef getNamespaceRef() {
+    return findChildByClass(NamespaceRef.class);
   }
 
   @Override
   @NotNull
-  public Scope getScope() {
-    return findNotNullChildByClass(Scope.class);
+  public ScopeRef getScopeRef() {
+    return findNotNullChildByClass(ScopeRef.class);
   }
 
 }

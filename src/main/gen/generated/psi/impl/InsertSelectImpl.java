@@ -29,20 +29,20 @@ public class InsertSelectImpl extends ASTWrapperPsiElement implements InsertSele
 
   @Override
   @NotNull
-  public Key getKey() {
-    return findNotNullChildByClass(Key.class);
+  public KeyExpr getKeyExpr() {
+    return findNotNullChildByClass(KeyExpr.class);
   }
 
   @Override
   @NotNull
-  public Select getSelect() {
-    return findNotNullChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findNotNullChildByClass(SelectStatement.class);
   }
 
   @Override
   @Nullable
-  public Value getValue() {
-    return findChildByClass(Value.class);
+  public ValueExpr getValueExpr() {
+    return findChildByClass(ValueExpr.class);
   }
 
 }

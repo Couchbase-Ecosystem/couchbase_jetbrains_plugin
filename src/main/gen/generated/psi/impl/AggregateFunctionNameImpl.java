@@ -29,8 +29,8 @@ public class AggregateFunctionNameImpl extends ASTWrapperPsiElement implements A
 
   @Override
   @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }

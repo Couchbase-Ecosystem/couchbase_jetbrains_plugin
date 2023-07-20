@@ -29,14 +29,8 @@ public class WithinExprImpl extends ASTWrapperPsiElement implements WithinExpr {
 
   @Override
   @NotNull
-  public SearchExpr getSearchExpr() {
-    return findNotNullChildByClass(SearchExpr.class);
-  }
-
-  @Override
-  @NotNull
-  public TargetExpr getTargetExpr() {
-    return findNotNullChildByClass(TargetExpr.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

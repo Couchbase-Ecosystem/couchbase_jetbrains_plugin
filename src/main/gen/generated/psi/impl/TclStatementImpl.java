@@ -47,8 +47,8 @@ public class TclStatementImpl extends ASTWrapperPsiElement implements TclStateme
 
   @Override
   @Nullable
-  public Savepoint getSavepoint() {
-    return findChildByClass(Savepoint.class);
+  public SavepointStatement getSavepointStatement() {
+    return findChildByClass(SavepointStatement.class);
   }
 
   @Override

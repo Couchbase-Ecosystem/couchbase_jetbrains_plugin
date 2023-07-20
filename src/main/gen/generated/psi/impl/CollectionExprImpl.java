@@ -41,6 +41,12 @@ public class CollectionExprImpl extends ASTWrapperPsiElement implements Collecti
 
   @Override
   @Nullable
+  public RangeCond getRangeCond() {
+    return findChildByClass(RangeCond.class);
+  }
+
+  @Override
+  @Nullable
   public WithinExpr getWithinExpr() {
     return findChildByClass(WithinExpr.class);
   }

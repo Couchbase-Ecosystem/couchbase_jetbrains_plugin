@@ -29,8 +29,8 @@ public class ConcatenationTermImpl extends ASTWrapperPsiElement implements Conca
 
   @Override
   @NotNull
-  public List<Expr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

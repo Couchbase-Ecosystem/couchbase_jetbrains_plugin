@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public class Visitor extends PsiElementVisitor {
 
-  public void visitAdvise(@NotNull Advise o) {
+  public void visitAdviseStatement(@NotNull AdviseStatement o) {
     visitPsiElement(o);
   }
 
@@ -31,7 +31,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitAnd(@NotNull And o) {
+  public void visitAndExpr(@NotNull AndExpr o) {
     visitPsiElement(o);
   }
 
@@ -99,15 +99,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitArray(@NotNull Array o) {
-    visitPsiElement(o);
-  }
-
   public void visitArrayExpr(@NotNull ArrayExpr o) {
-    visitPsiElement(o);
-  }
-
-  public void visitBacktickedString(@NotNull BacktickedString o) {
     visitPsiElement(o);
   }
 
@@ -135,7 +127,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitBucket(@NotNull Bucket o) {
+  public void visitBucketRef(@NotNull BucketRef o) {
     visitPsiElement(o);
   }
 
@@ -143,19 +135,19 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitBuiltinFunction(@NotNull BuiltinFunction o) {
+    visitPsiElement(o);
+  }
+
   public void visitCaseExpr(@NotNull CaseExpr o) {
     visitPsiElement(o);
   }
 
-  public void visitChr(@NotNull Chr o) {
-    visitPsiElement(o);
-  }
-
-  public void visitCollection(@NotNull Collection o) {
-    visitPsiElement(o);
-  }
-
   public void visitCollectionExpr(@NotNull CollectionExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitCollectionRef(@NotNull CollectionRef o) {
     visitPsiElement(o);
   }
 
@@ -215,11 +207,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitDdlStatement(@NotNull DdlStatement o) {
+  public void visitDclStatement(@NotNull DclStatement o) {
     visitPsiElement(o);
   }
 
-  public void visitDelete(@NotNull Delete o) {
+  public void visitDdlStatement(@NotNull DdlStatement o) {
     visitPsiElement(o);
   }
 
@@ -235,7 +227,19 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitDeleteStatement(@NotNull DeleteStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitDmlStatement(@NotNull DmlStatement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitDoubleQuotedString(@NotNull DoubleQuotedString o) {
+    visitPsiElement(o);
+  }
+
+  public void visitDoubleQuotedStringCharacter(@NotNull DoubleQuotedStringCharacter o) {
     visitPsiElement(o);
   }
 
@@ -271,14 +275,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitEndExpr(@NotNull EndExpr o) {
-    visitPsiElement(o);
-  }
-
-  public void visitEscapedIdentifier(@NotNull EscapedIdentifier o) {
-    visitPsiElement(o);
-  }
-
   public void visitExecuteFunction(@NotNull ExecuteFunction o) {
     visitPsiElement(o);
   }
@@ -287,11 +283,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitExplain(@NotNull Explain o) {
-    visitPsiElement(o);
-  }
-
-  public void visitExponent(@NotNull Exponent o) {
+  public void visitExplainStatement(@NotNull ExplainStatement o) {
     visitPsiElement(o);
   }
 
@@ -304,10 +296,6 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitFilterClause(@NotNull FilterClause o) {
-    visitPsiElement(o);
-  }
-
-  public void visitFraction(@NotNull Fraction o) {
     visitPsiElement(o);
   }
 
@@ -347,19 +335,19 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitFuncs(@NotNull Funcs o) {
-    visitPsiElement(o);
-  }
-
-  public void visitFunction(@NotNull Function o) {
-    visitPsiElement(o);
-  }
-
   public void visitFunctionCall(@NotNull FunctionCall o) {
     visitPsiElement(o);
   }
 
   public void visitFunctionName(@NotNull FunctionName o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFunctionRef(@NotNull FunctionRef o) {
+    visitPsiElement(o);
+  }
+
+  public void visitGrantStatement(@NotNull GrantStatement o) {
     visitPsiElement(o);
   }
 
@@ -399,10 +387,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitHex(@NotNull Hex o) {
-    visitPsiElement(o);
-  }
-
   public void visitHintComment(@NotNull HintComment o) {
     visitPsiElement(o);
   }
@@ -411,7 +395,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitIdentifier(@NotNull Identifier o) {
+  public void visitIdentifierRef(@NotNull IdentifierRef o) {
     visitPsiElement(o);
   }
 
@@ -519,11 +503,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitInfer(@NotNull Infer o) {
-    visitPsiElement(o);
-  }
-
-  public void visitInsert(@NotNull Insert o) {
+  public void visitInferStatement(@NotNull InferStatement o) {
     visitPsiElement(o);
   }
 
@@ -531,11 +511,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitInsertValues(@NotNull InsertValues o) {
+  public void visitInsertStatement(@NotNull InsertStatement o) {
     visitPsiElement(o);
   }
 
-  public void visitIntgr(@NotNull Intgr o) {
+  public void visitInsertValues(@NotNull InsertValues o) {
     visitPsiElement(o);
   }
 
@@ -555,15 +535,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitKey(@NotNull Key o) {
-    visitPsiElement(o);
-  }
-
   public void visitKeyAttribs(@NotNull KeyAttribs o) {
     visitPsiElement(o);
   }
 
-  public void visitKeyspace(@NotNull Keyspace o) {
+  public void visitKeyExpr(@NotNull KeyExpr o) {
     visitPsiElement(o);
   }
 
@@ -599,7 +575,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitKwd(@NotNull Kwd o) {
+  public void visitKeyspaceStatement(@NotNull KeyspaceStatement o) {
     visitPsiElement(o);
   }
 
@@ -687,10 +663,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitMerge(@NotNull Merge o) {
-    visitPsiElement(o);
-  }
-
   public void visitMergeDelete(@NotNull MergeDelete o) {
     visitPsiElement(o);
   }
@@ -707,11 +679,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitMergeUpdate(@NotNull MergeUpdate o) {
+  public void visitMergeStatement(@NotNull MergeStatement o) {
     visitPsiElement(o);
   }
 
-  public void visitMissing(@NotNull Missing o) {
+  public void visitMergeUpdate(@NotNull MergeUpdate o) {
     visitPsiElement(o);
   }
 
@@ -723,19 +695,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitNameExpr(@NotNull NameExpr o) {
-    visitPsiElement(o);
-  }
-
   public void visitNameVar(@NotNull NameVar o) {
     visitPsiElement(o);
   }
 
-  public void visitNamespace(@NotNull Namespace o) {
-    visitPsiElement(o);
-  }
-
-  public void visitNbr(@NotNull Nbr o) {
+  public void visitNamespaceRef(@NotNull NamespaceRef o) {
     visitPsiElement(o);
   }
 
@@ -747,10 +711,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitNewline(@NotNull Newline o) {
-    visitPsiElement(o);
-  }
-
   public void visitNlHintJson(@NotNull NlHintJson o) {
     visitPsiElement(o);
   }
@@ -759,15 +719,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitNot(@NotNull Not o) {
+  public void visitNotExpr(@NotNull NotExpr o) {
     visitPsiElement(o);
   }
 
   public void visitNthvalFrom(@NotNull NthvalFrom o) {
-    visitPsiElement(o);
-  }
-
-  public void visitNull(@NotNull Null o) {
     visitPsiElement(o);
   }
 
@@ -787,7 +743,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitOr(@NotNull Or o) {
+  public void visitOrExpr(@NotNull OrExpr o) {
     visitPsiElement(o);
   }
 
@@ -843,11 +799,15 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitPosition(@NotNull Position o) {
+  public void visitProjection(@NotNull Projection o) {
     visitPsiElement(o);
   }
 
-  public void visitProjection(@NotNull Projection o) {
+  public void visitRangeCond(@NotNull RangeCond o) {
+    visitPsiElement(o);
+  }
+
+  public void visitRangeExpr(@NotNull RangeExpr o) {
     visitPsiElement(o);
   }
 
@@ -863,6 +823,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitRevokeStatement(@NotNull RevokeStatement o) {
+    visitPsiElement(o);
+  }
+
   public void visitRhsGeneric(@NotNull RhsGeneric o) {
     visitPsiElement(o);
   }
@@ -875,11 +839,15 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitRole(@NotNull Role o) {
+    visitPsiElement(o);
+  }
+
   public void visitRollbackTransaction(@NotNull RollbackTransaction o) {
     visitPsiElement(o);
   }
 
-  public void visitSavepoint(@NotNull Savepoint o) {
+  public void visitSavepointStatement(@NotNull SavepointStatement o) {
     visitPsiElement(o);
   }
 
@@ -887,19 +855,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitScope(@NotNull Scope o) {
-    visitPsiElement(o);
-  }
-
-  public void visitSearchExpr(@NotNull SearchExpr o) {
+  public void visitScopeRef(@NotNull ScopeRef o) {
     visitPsiElement(o);
   }
 
   public void visitSearchedCaseExpr(@NotNull SearchedCaseExpr o) {
-    visitPsiElement(o);
-  }
-
-  public void visitSelect(@NotNull Select o) {
     visitPsiElement(o);
   }
 
@@ -911,11 +871,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitSelectTerm(@NotNull SelectTerm o) {
+  public void visitSelectStatement(@NotNull SelectStatement o) {
     visitPsiElement(o);
   }
 
-  public void visitSequence(@NotNull Sequence o) {
+  public void visitSelectTerm(@NotNull SelectTerm o) {
     visitPsiElement(o);
   }
 
@@ -928,10 +888,6 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitSetTransaction(@NotNull SetTransaction o) {
-    visitPsiElement(o);
-  }
-
-  public void visitSignals(@NotNull Signals o) {
     visitPsiElement(o);
   }
 
@@ -951,15 +907,15 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitSingleQuotedString(@NotNull SingleQuotedString o) {
+    visitPsiElement(o);
+  }
+
+  public void visitSingleQuotedStringCharacter(@NotNull SingleQuotedStringCharacter o) {
+    visitPsiElement(o);
+  }
+
   public void visitSliceExpr(@NotNull SliceExpr o) {
-    visitPsiElement(o);
-  }
-
-  public void visitSqlKeywords(@NotNull SqlKeywords o) {
-    visitPsiElement(o);
-  }
-
-  public void visitStartExpr(@NotNull StartExpr o) {
     visitPsiElement(o);
   }
 
@@ -979,19 +935,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitTargetExpr(@NotNull TargetExpr o) {
-    visitPsiElement(o);
-  }
-
   public void visitTargetKeyspace(@NotNull TargetKeyspace o) {
     visitPsiElement(o);
   }
 
   public void visitTclStatement(@NotNull TclStatement o) {
-    visitPsiElement(o);
-  }
-
-  public void visitUnescapedIdentifier(@NotNull UnescapedIdentifier o) {
     visitPsiElement(o);
   }
 
@@ -1007,11 +955,11 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitUpdate(@NotNull Update o) {
+  public void visitUpdateFor(@NotNull UpdateFor o) {
     visitPsiElement(o);
   }
 
-  public void visitUpdateFor(@NotNull UpdateFor o) {
+  public void visitUpdateStatement(@NotNull UpdateStatement o) {
     visitPsiElement(o);
   }
 
@@ -1035,7 +983,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitUpsert(@NotNull Upsert o) {
+  public void visitUpsertStatement(@NotNull UpsertStatement o) {
     visitPsiElement(o);
   }
 
@@ -1087,7 +1035,7 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitValue(@NotNull Value o) {
+  public void visitValueExpr(@NotNull ValueExpr o) {
     visitPsiElement(o);
   }
 
@@ -1096,10 +1044,6 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitVar(@NotNull Var o) {
-    visitPsiElement(o);
-  }
-
-  public void visitVarExpr(@NotNull VarExpr o) {
     visitPsiElement(o);
   }
 

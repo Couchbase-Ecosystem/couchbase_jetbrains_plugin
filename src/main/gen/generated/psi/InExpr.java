@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface InExpr extends PsiElement {
 
   @NotNull
-  SearchExpr getSearchExpr();
-
-  @NotNull
-  TargetExpr getTargetExpr();
+  Expr getExpr();
 
 }

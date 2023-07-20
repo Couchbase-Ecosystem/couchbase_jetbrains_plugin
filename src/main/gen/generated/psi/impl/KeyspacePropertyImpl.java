@@ -29,8 +29,8 @@ public class KeyspacePropertyImpl extends ASTWrapperPsiElement implements Keyspa
 
   @Override
   @NotNull
-  public Keyspace getKeyspace() {
-    return findNotNullChildByClass(Keyspace.class);
+  public KeyspaceStatement getKeyspaceStatement() {
+    return findNotNullChildByClass(KeyspaceStatement.class);
   }
 
 }

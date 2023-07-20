@@ -11,15 +11,6 @@ public interface Literal extends PsiElement {
   Bool getBool();
 
   @Nullable
-  Missing getMissing();
-
-  @Nullable
-  Nbr getNbr();
-
-  @Nullable
-  Null getNull();
-
-  @Nullable
   Str getStr();
 
 }

@@ -29,14 +29,14 @@ public class UtilityStatementImpl extends ASTWrapperPsiElement implements Utilit
 
   @Override
   @Nullable
-  public Advise getAdvise() {
-    return findChildByClass(Advise.class);
+  public AdviseStatement getAdviseStatement() {
+    return findChildByClass(AdviseStatement.class);
   }
 
   @Override
   @Nullable
-  public Explain getExplain() {
-    return findChildByClass(Explain.class);
+  public ExplainStatement getExplainStatement() {
+    return findChildByClass(ExplainStatement.class);
   }
 
 }

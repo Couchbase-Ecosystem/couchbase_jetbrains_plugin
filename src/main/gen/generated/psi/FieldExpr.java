@@ -8,15 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface FieldExpr extends PsiElement {
 
   @Nullable
-  EscapedIdentifier getEscapedIdentifier();
-
-  @NotNull
   Expr getExpr();
 
   @Nullable
-  Identifier getIdentifier();
-
-  @Nullable
-  NameExpr getNameExpr();
+  IdentifierRef getIdentifierRef();
 
 }

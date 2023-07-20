@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface IndexName extends PsiElement {
 
   @NotNull
-  Identifier getIdentifier();
+  IdentifierRef getIdentifierRef();
 
 }

@@ -29,14 +29,14 @@ public class AnsiMergeInsertImpl extends ASTWrapperPsiElement implements AnsiMer
 
   @Override
   @NotNull
-  public Key getKey() {
-    return findNotNullChildByClass(Key.class);
+  public KeyExpr getKeyExpr() {
+    return findNotNullChildByClass(KeyExpr.class);
   }
 
   @Override
   @Nullable
-  public Value getValue() {
-    return findChildByClass(Value.class);
+  public ValueExpr getValueExpr() {
+    return findChildByClass(ValueExpr.class);
   }
 
   @Override

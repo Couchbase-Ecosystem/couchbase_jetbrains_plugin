@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface KeyspaceProperty extends PsiElement {
 
   @NotNull
-  Keyspace getKeyspace();
+  KeyspaceStatement getKeyspaceStatement();
 
 }

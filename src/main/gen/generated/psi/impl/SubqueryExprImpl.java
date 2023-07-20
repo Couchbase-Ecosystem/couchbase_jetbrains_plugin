@@ -29,8 +29,8 @@ public class SubqueryExprImpl extends ASTWrapperPsiElement implements SubqueryEx
 
   @Override
   @NotNull
-  public Select getSelect() {
-    return findNotNullChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findNotNullChildByClass(SelectStatement.class);
   }
 
 }

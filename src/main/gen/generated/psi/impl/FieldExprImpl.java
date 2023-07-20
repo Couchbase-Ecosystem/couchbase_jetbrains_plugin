@@ -29,26 +29,14 @@ public class FieldExprImpl extends ASTWrapperPsiElement implements FieldExpr {
 
   @Override
   @Nullable
-  public EscapedIdentifier getEscapedIdentifier() {
-    return findChildByClass(EscapedIdentifier.class);
-  }
-
-  @Override
-  @NotNull
   public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
+    return findChildByClass(Expr.class);
   }
 
   @Override
   @Nullable
-  public Identifier getIdentifier() {
-    return findChildByClass(Identifier.class);
-  }
-
-  @Override
-  @Nullable
-  public NameExpr getNameExpr() {
-    return findChildByClass(NameExpr.class);
+  public IdentifierRef getIdentifierRef() {
+    return findChildByClass(IdentifierRef.class);
   }
 
 }

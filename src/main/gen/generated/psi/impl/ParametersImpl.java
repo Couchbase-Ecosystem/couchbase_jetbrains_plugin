@@ -29,8 +29,8 @@ public class ParametersImpl extends ASTWrapperPsiElement implements Parameters {
 
   @Override
   @NotNull
-  public Array getArray() {
-    return findNotNullChildByClass(Array.class);
+  public ArrayExpr getArrayExpr() {
+    return findNotNullChildByClass(ArrayExpr.class);
   }
 
 }

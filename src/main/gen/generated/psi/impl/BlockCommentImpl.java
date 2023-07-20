@@ -27,10 +27,4 @@ public class BlockCommentImpl extends ASTWrapperPsiElement implements BlockComme
     else super.accept(visitor);
   }
 
-  @Override
-  @NotNull
-  public List<Newline> getNewlineList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Newline.class);
-  }
-
 }

@@ -7,40 +7,40 @@ import com.intellij.psi.PsiElement;
 
 public interface Expr extends PsiElement {
 
-  @Nullable
-  ArithmeticTerm getArithmeticTerm();
+  @NotNull
+  List<ArithmeticTerm> getArithmeticTermList();
 
-  @Nullable
-  CaseExpr getCaseExpr();
+  @NotNull
+  List<CaseExpr> getCaseExprList();
 
-  @Nullable
-  CollectionExpr getCollectionExpr();
+  @NotNull
+  List<CollectionExpr> getCollectionExprList();
 
-  @Nullable
-  ComparisonTerm getComparisonTerm();
+  @NotNull
+  List<ComparisonTerm> getComparisonTermList();
 
-  @Nullable
-  ConcatenationTerm getConcatenationTerm();
+  @NotNull
+  List<ConcatenationTerm> getConcatenationTermList();
 
   @Nullable
   Expr getExpr();
 
-  @Nullable
-  FunctionCall getFunctionCall();
+  @NotNull
+  List<FunctionCall> getFunctionCallList();
 
   @Nullable
-  Identifier getIdentifier();
+  IdentifierRef getIdentifierRef();
 
   @Nullable
   Literal getLiteral();
 
-  @Nullable
-  LogicalTerm getLogicalTerm();
+  @NotNull
+  List<LogicalTerm> getLogicalTermList();
 
-  @Nullable
-  NestedExpr getNestedExpr();
+  @NotNull
+  List<NestedExpr> getNestedExprList();
 
-  @Nullable
-  SubqueryExpr getSubqueryExpr();
+  @NotNull
+  List<SubqueryExpr> getSubqueryExprList();
 
 }
