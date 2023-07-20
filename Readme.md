@@ -118,3 +118,6 @@ Furthermore, the plugin performs validation checks, and if a user attempts to ru
 
 ## License
 Apache Software License Version 2.  See individual files for details.
+
+## Support
+This project is not officially supported by Couchbase, but it is actively maintained by Couchbase Employees. So if you find any bugs/issues or would like to suggest anything, feel free to open an issue here on github.
