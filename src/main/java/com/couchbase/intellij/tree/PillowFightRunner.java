@@ -9,7 +9,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -118,9 +117,8 @@ public class PillowFightRunner {
         stopButtonDialog.setVisible(true);
     }
 
-    public class StopButtonDialog extends JDialog {
-        private JButton stopButton;
-        private JTextArea opsPerSecLabel;
+    public static class StopButtonDialog extends JDialog {
+        private final JTextArea opsPerSecLabel;
 
         public StopButtonDialog(Process proc, PillowFightDialog pillowFightDialog) {
             super();
@@ -128,7 +126,7 @@ public class PillowFightRunner {
             opsPerSecLabel = new JTextArea("OPS/SEC:           ");
             opsPerSecLabel.setEditable(false);
             opsPerSecLabel.setBorder(JBUI.Borders.empty(0, 100));
-            stopButton = new JButton("Stop");
+            JButton stopButton = new JButton("Stop");
 
             this.addWindowListener(new WindowAdapter() {
                 @Override

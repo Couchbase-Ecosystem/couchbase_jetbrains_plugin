@@ -1,81 +1,74 @@
 package com.couchbase.intellij.tree;
 
-import javax.swing.*;
-import java.awt.*;
-
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTextField;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.util.ui.JBUI;
-
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.*;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-import com.intellij.ui.components.JBTextField;
-import com.intellij.openapi.ui.popup.Balloon;
 
 public class PillowFightDialog extends DialogWrapper {
-    private ComboBox<String> bucketComboBox;
-    private ComboBox<String> durabilityComboBox;
-    private JSpinner persistToSpinner;
-    private JCheckBox persistToCheckbox;
-    private JSpinner batchSizeSpinner;
-    private JCheckBox batchSizeCheckbox;
-    private JSpinner numberItemsSpinner;
-    private JCheckBox numberItemsCheckbox;
-    private JBTextField keyPrefixTextField;
-    private JSpinner numberThreadsSpinner;
-    private  JCheckBox numberThreadsCheckbox;
-    private JSpinner percentageSpinner;
-    private JCheckBox percentageCheckbox;
-    private ComboBox<String> noPopulationComboBox;
-    private ComboBox<String> populateOnlyComboBox;
-    private JSpinner minSizeSpinner;
-    private JCheckBox minSizeCheckbox;
-    private JSpinner maxSizeSpinner;
-    private JCheckBox maxSizeCheckbox;
-    private JSpinner numberCyclesSpinner;
-    private JCheckBox numberCyclesCheckbox;
-    private ComboBox<String> sequentialComboBox;
-    private JSpinner startAtSpinner;
-    private JCheckBox startAtCheckbox;
-    private ComboBox<String> timingsComboBox;
-    private JSpinner expirySpinner;
-    private JCheckBox expiryCheckbox;
-    private JSpinner replicateToSpinner;
-    private JCheckBox replicateToCheckbox;
-    private JSpinner lockSpinner;
-    private JCheckBox lockCheckbox;
-    private ComboBox<String> jsonComboBox;
-    private ComboBox<String> noopComboBox;
-    private ComboBox<String> subdocComboBox;
-    private JSpinner pathcountSpinner;
-    private JCheckBox pathcountCheckbox;
+    private static Balloon balloonHint;
+    private final ComboBox<String> bucketComboBox;
+    private final ComboBox<String> durabilityComboBox;
+    private final JSpinner persistToSpinner;
+    private final JCheckBox persistToCheckbox;
+    private final JSpinner batchSizeSpinner;
+    private final JCheckBox batchSizeCheckbox;
+    private final JSpinner numberItemsSpinner;
+    private final JCheckBox numberItemsCheckbox;
+    private final JBTextField keyPrefixTextField;
+    private final JSpinner numberThreadsSpinner;
+    private final JCheckBox numberThreadsCheckbox;
+    private final JSpinner percentageSpinner;
+    private final JCheckBox percentageCheckbox;
+    private final ComboBox<String> noPopulationComboBox;
+    private final ComboBox<String> populateOnlyComboBox;
+    private final JSpinner minSizeSpinner;
+    private final JCheckBox minSizeCheckbox;
+    private final JSpinner maxSizeSpinner;
+    private final JCheckBox maxSizeCheckbox;
+    private final JSpinner numberCyclesSpinner;
+    private final JCheckBox numberCyclesCheckbox;
+    private final ComboBox<String> sequentialComboBox;
+    private final JSpinner startAtSpinner;
+    private final JCheckBox startAtCheckbox;
+    private final ComboBox<String> timingsComboBox;
+    private final JSpinner expirySpinner;
+    private final JCheckBox expiryCheckbox;
+    private final JSpinner replicateToSpinner;
+    private final JCheckBox replicateToCheckbox;
+    private final JSpinner lockSpinner;
+    private final JCheckBox lockCheckbox;
+    private final ComboBox<String> jsonComboBox;
+    private final ComboBox<String> noopComboBox;
+    private final ComboBox<String> subdocComboBox;
+    private final JSpinner pathcountSpinner;
+    private final JCheckBox pathcountCheckbox;
     private JLabel errorMessage;
 
-    @Override
-    protected Action @NotNull [] createActions() {
-        Action okAction = getOKAction();
-        okAction.putValue(Action.NAME, "Start");
-        return new Action[]{okAction, getCancelAction()};
-    }
     protected PillowFightDialog(Project project) {
         super(project);
 
@@ -84,7 +77,7 @@ public class PillowFightDialog extends DialogWrapper {
         bucketComboBox = new ComboBox<>();
         try {
             Set<String> bucketNamesSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
-            String[] bucketNamesArray = bucketNamesSet.toArray(new String[bucketNamesSet.size()]);
+            String[] bucketNamesArray = bucketNamesSet.toArray(new String[0]);
             for (String s : bucketNamesArray) {
                 bucketComboBox.addItem(s);
             }
@@ -165,29 +158,6 @@ public class PillowFightDialog extends DialogWrapper {
         setValue(pathcountSpinner, pathcount, pathcountCheckbox);
     }
 
-    private JSpinner createJSpinner(int minValue) {
-        JSpinner currentJSpinner = new JSpinner(new SpinnerNumberModel(minValue, minValue, Integer.MAX_VALUE, 1));
-        return currentJSpinner;
-    }
-
-    private JCheckBox createCheckbox(JSpinner spinner) {
-        JCheckBox checkbox = new JCheckBox();
-        spinner.setEnabled(false);
-        checkbox.addChangeListener(e -> spinner.setEnabled(checkbox.isSelected()));
-        return checkbox;
-    }
-
-    private void setValue(ComboBox comboBox, String value) {
-        comboBox.setSelectedItem(value);
-    }
-
-    private void setValue(JSpinner spinner, String value, JCheckBox checkBox) {
-        if (value != null) {
-            spinner.setValue(Integer.valueOf(value));
-            checkBox.setSelected(true);
-        }
-    }
-
     private static JBPanel createLabelWithBalloon(String labelText, String hintText) {
         JBLabel label = new JBLabel(labelText);
         JBLabel questionMark = new JBLabel("?");
@@ -210,8 +180,6 @@ public class PillowFightDialog extends DialogWrapper {
         return panel;
     }
 
-    private static Balloon balloonHint;
-
     private static void showBalloonHint(JBLabel questionMark, String hintText) {
         JBPopupFactory factory = JBPopupFactory.getInstance();
         JTextArea textArea = new JTextArea(hintText);
@@ -230,6 +198,35 @@ public class PillowFightDialog extends DialogWrapper {
         if (balloonHint != null) {
             balloonHint.hide();
             balloonHint = null;
+        }
+    }
+
+    @Override
+    protected Action @NotNull [] createActions() {
+        Action okAction = getOKAction();
+        okAction.putValue(Action.NAME, "Start");
+        return new Action[]{okAction, getCancelAction()};
+    }
+
+    private JSpinner createJSpinner(int minValue) {
+        return new JSpinner(new SpinnerNumberModel(minValue, minValue, Integer.MAX_VALUE, 1));
+    }
+
+    private JCheckBox createCheckbox(JSpinner spinner) {
+        JCheckBox checkbox = new JCheckBox();
+        spinner.setEnabled(false);
+        checkbox.addChangeListener(e -> spinner.setEnabled(checkbox.isSelected()));
+        return checkbox;
+    }
+
+    private void setValue(ComboBox comboBox, String value) {
+        comboBox.setSelectedItem(value);
+    }
+
+    private void setValue(JSpinner spinner, String value, JCheckBox checkBox) {
+        if (value != null) {
+            spinner.setValue(Integer.valueOf(value));
+            checkBox.setSelected(true);
         }
     }
 
@@ -517,7 +514,7 @@ public class PillowFightDialog extends DialogWrapper {
     }
 
     private String getValue(ComboBox comboBox) {
-        return comboBox.getSelectedItem().toString();
+        return Objects.requireNonNull(comboBox.getSelectedItem()).toString();
     }
 
     @Override
@@ -556,7 +553,7 @@ public class PillowFightDialog extends DialogWrapper {
                 throw new RuntimeException(e);
             }
         } else {
-            errorMessage.setText("<html>" + errors.stream().collect(Collectors.joining("<br>")) + "</html>");
+            errorMessage.setText("<html>" + String.join("<br>", errors) + "</html>");
         }
     }
 }
