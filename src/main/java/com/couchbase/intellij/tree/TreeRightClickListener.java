@@ -92,6 +92,16 @@ public class TreeRightClickListener {
 
             JMenu tools = new JMenu("Tools");
 
+            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                JBMenuItem pillowFight = new JBMenuItem("Pillow Fight");
+                pillowFight.addActionListener(e13 -> {
+                    PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
+                    pillowFightDialog.show();
+                });
+                tools.add(pillowFight);
+                tools.addSeparator();
+            }
+
             JBMenuItem cbexport = new JBMenuItem("Data Export");
             cbexport.addActionListener(event -> {
                 ExportDialog dialog = new ExportDialog();
