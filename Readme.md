@@ -2,6 +2,10 @@
 
 Welcome to the official Couchbase plugin for the Jetbrains Platform
 
+The Couchbase JetBrains plugin provides support for Couchbase in JetBrains IDEs.
+
+This means that you can use your favorite IDE to develop Couchbase applications, complete with code completion, syntax highlighting, and debugging support.
+
 # Installation
 To install the plugin just search for Couchbase inside the plugins market place or go to https://plugins.jetbrains.com/plugin/22131-couchbase
 
