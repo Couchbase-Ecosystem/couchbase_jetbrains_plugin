@@ -28,11 +28,11 @@ import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.CBTools;
@@ -671,6 +671,8 @@ public class ImportDialog extends DialogWrapper {
 
                 // Parse the first element of the dataset to get the field names
                 String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
+                System.out.println("Sample element content in updating scope and collection fields "
+                        + sampleElementContent);
                 String[] sampleElementContentSplit = sampleElementContent.split(",");
 
                 for (String field : possibleScopeFields) {
@@ -761,6 +763,7 @@ public class ImportDialog extends DialogWrapper {
             if (useFieldValueSelected && datasetField.getText() != null) {
                 // Parse the first element of the dataset to get the field names
                 String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
+                System.out.println("Sample element content in updating key form fields " + sampleElementContent);
                 String[] sampleElementContentSplit = sampleElementContent.split(",");
 
                 for (String field : possibleKeyFields) {
