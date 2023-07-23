@@ -28,7 +28,7 @@ public class DDLExport {
         String scopePrefix = "`" + bucket + "`.`" + scope + "`";
 
         if (!"_default".equals(scope)) {
-            sb.append("CREATE SCOPE ").append(scopePrefix);
+            sb.append("CREATE SCOPE ").append(scopePrefix).append(";");
         }
         sb.append("\n");
 
@@ -44,11 +44,15 @@ public class DDLExport {
             sb.append("/* DDL for collection ").append(scope).append(".").append(spec.name()).append(" */");
             sb.append("\n");
             if (!"_default".equals(spec.name())) {
-                sb.append("CREATE COLLECTION ").append(scopePrefix).append(".`").append(spec.name()).append("` \n");
+                sb.append("CREATE COLLECTION ").append(scopePrefix).append(".`").append(spec.name()).append("`; \n");
             }
             if (includeIndexes) {
                 List<QueryIndex> result = DataLoader.listIndexes(bucket, scope, spec.name());
-                sb.append(result.stream().map(IndexUtils::getIndexDefinition).collect(Collectors.joining("\n")));
+                sb.append(result.stream().map(IndexUtils::getIndexDefinition).collect(Collectors.joining("; \n")));
+
+                if (result.size() > 1) {
+                    sb.append("; \n");
+                }
             }
             sb.append("\n");
         }
