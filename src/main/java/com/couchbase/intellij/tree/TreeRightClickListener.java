@@ -8,6 +8,7 @@ import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
@@ -99,6 +100,13 @@ public class TreeRightClickListener {
                 tools.add(pillowFight);
                 tools.addSeparator();
             }
+
+            JBMenuItem ddlExport = new JBMenuItem("DDL Export");
+            ddlExport.addActionListener(event -> {
+                DDLExportDialog dialog = new DDLExportDialog();
+                dialog.show();
+            });
+            tools.add(ddlExport);
 
             JBMenuItem cbexport = new JBMenuItem("Data Export");
             cbexport.addActionListener(event -> {

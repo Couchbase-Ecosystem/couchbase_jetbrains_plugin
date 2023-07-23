@@ -1,6 +1,7 @@
 package utils;
 
 import com.intellij.ui.TitledSeparator;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -120,4 +121,10 @@ public class TemplateUtil {
         return formatter.format(number);
     }
 
+    public static JPanel getLabelWithHelp(String text, String help) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        panel.add(new JBLabel(text));
+        panel.add(HelpIcon.createHelpIcon(help, 5));
+        return panel;
+    }
 }
