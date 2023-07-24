@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 import javax.swing.Action;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -50,6 +49,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBRadioButton;
@@ -65,9 +65,9 @@ public class ImportDialog extends DialogWrapper {
     // Declare UI components here
     private TextFieldWithBrowseButton datasetField;
 
-    private JComboBox<String> bucketCombo;
-    private JComboBox<String> scopeCombo;
-    private JComboBox<String> collectionCombo;
+    private ComboBox<String> bucketCombo;
+    private ComboBox<String> scopeCombo;
+    private ComboBox<String> collectionCombo;
 
     private JBRadioButton defaultScopeAndCollectionRadio;
     private JBRadioButton collectionRadio;
@@ -120,6 +120,8 @@ public class ImportDialog extends DialogWrapper {
 
     // Declare label for summary
     private JBLabel summaryLabel;
+
+    private TitledSeparator keyPreviewTitledSeparator;
 
     // Declare actions for back and next buttons
     private Action backAction;
@@ -203,7 +205,7 @@ public class ImportDialog extends DialogWrapper {
         Set<String> bucketSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
         String[] buckets = bucketSet.toArray(new String[0]);
 
-        bucketCombo = new JComboBox<>(buckets);
+        bucketCombo = new ComboBox<>(buckets);
         targetFormPanel.add(bucketCombo, c);
 
         // Radio buttons for scope and collection options
@@ -242,15 +244,16 @@ public class ImportDialog extends DialogWrapper {
 
         /// Set of scopes
         List<ScopeSpec> scopes = new ArrayList<>();
-        scopeCombo = new JComboBox<>();
+        scopeCombo = new ComboBox<>();
+        // Add a listener for when the bucketCombo is changed
         ActionListener bucketComboListener = (ActionEvent e) -> {
             Log.debug("Bucket combo box changed");
 
             // Get all scopes for selected bucket
             scopes.clear();
-            scopes.addAll(ActiveCluster.getInstance().get().bucket(bucketCombo.getSelectedItem().toString())
-                    .collections()
-                    .getAllScopes());
+            scopes.addAll(ActiveCluster.getInstance().get().bucket(
+                    bucketCombo.getSelectedItem().toString() == null ? "" : bucketCombo.getSelectedItem().toString())
+                    .collections().getAllScopes());
 
             // Update scope combo box items
             Set<String> scopeSet = scopes.stream()
@@ -286,9 +289,10 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        collectionCombo = new JComboBox<>();
-        // add a listener for when the scopeCombo is changed
-        scopeCombo.addActionListener((ActionEvent e) -> {
+        collectionCombo = new ComboBox<>();
+
+        // Add a listener for when the scopeCombo is changed
+        ActionListener scopeComboListener = (ActionEvent e) -> {
             Log.debug("Scope combo box changed");
 
             // Set of collections from the selected scope
@@ -351,7 +355,13 @@ public class ImportDialog extends DialogWrapper {
                     }
                 }
             }
-        });
+        };
+        scopeCombo.addActionListener(scopeComboListener);
+
+        // Trigger action listener for bucket combo box to update scope and collection
+        // combo box items
+        bucketComboListener.actionPerformed(new ActionEvent(bucketCombo, ActionEvent.ACTION_PERFORMED, null));
+
         targetFormPanel.add(collectionCombo, c);
 
         // Scope and collection fields
@@ -481,13 +491,22 @@ public class ImportDialog extends DialogWrapper {
 
         keyPanel.add(keyFormPanel, BorderLayout.CENTER);
 
+        JPanel keyPreviewPanel = new JPanel(new BorderLayout());
+        keyPreviewTitledSeparator = new TitledSeparator("Key Preview");
+        keyPreviewTitledSeparator.setVisible(false);
+        keyPreviewTitledSeparator.setEnabled(false);
+        keyPreviewPanel.add(keyPreviewTitledSeparator, BorderLayout.NORTH);
+
         keyPreviewArea = new JTextArea();
         keyPreviewArea.setEditable(false);
         keyPreviewArea.setLineWrap(true);
         keyPreviewArea.setWrapStyleWord(true);
         keyPreviewArea.setMinimumSize(new Dimension(150, 100));
         keyPreviewArea.setPreferredSize(new Dimension(150, 100));
-        keyPanel.add(keyPreviewArea, BorderLayout.SOUTH);
+
+        keyPreviewPanel.add(keyPreviewArea, BorderLayout.CENTER);
+
+        keyPanel.add(keyPreviewPanel, BorderLayout.SOUTH);
 
         // Set all labels to invisible and disabled by default
         fieldNameLabel.setVisible(false);
@@ -812,9 +831,8 @@ public class ImportDialog extends DialogWrapper {
 
         boolean keyPreviewVisible = useFieldValueSelected || customExpressionSelected;
 
-        // Replace keyPreviewPanel with keyPreviewArea
-        // keyPreviewPanel.setVisible(keyPreviewVisible);
-        // keyPreviewPanel.setEnabled(keyPreviewVisible);
+        keyPreviewTitledSeparator.setVisible(keyPreviewVisible);
+        keyPreviewTitledSeparator.setEnabled(keyPreviewVisible);
         keyPreviewArea.setVisible(keyPreviewVisible);
         keyPreviewArea.setEnabled(keyPreviewVisible);
 
@@ -864,7 +882,9 @@ public class ImportDialog extends DialogWrapper {
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JsonObject jsonObject = jsonArray.getObject(i);
                     if (jsonObject.containsKey(fieldName)) {
-                        previewContent.append("Preview: ").append(jsonObject.getString(fieldName)).append(".json\n");
+                        // previewContent.append("Preview:
+                        // ").append(jsonObject.getString(fieldName)).append(".json\n");
+                        previewContent.append(jsonObject.getString(fieldName)).append("\n");
                     }
                 }
 
@@ -904,7 +924,8 @@ public class ImportDialog extends DialogWrapper {
                         }
                     }
 
-                    previewContent.append("Preview: ").append(key).append(".json\n");
+                    // previewContent.append("Preview: ").append(key).append(".json\n");
+                    previewContent.append(key).append("\n");
                 }
 
                 // Set preview content in keyPreviewArea
