@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.couchbase.intellij.workbench.Log;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -56,30 +58,48 @@ public class FileUtils {
         }
     }
 
-    public static String sampleElementFromJsonArrayFile(String filePath) throws IOException {
-        // read the content of the file
-        String content = Files.readString(Paths.get(filePath));
-        // create an ObjectMapper instance to parse the JSON content
-        ObjectMapper mapper = new ObjectMapper();
-        // create a TypeReference object to specify the generic type information
-        TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {
-        };
-        // read the JSON content as a List of Maps
-        List<Map<String, Object>> jsonArray = mapper.readValue(content, typeRef);
-        // get the first element of the JSON array
-        Map<String, Object> firstElement = jsonArray.get(0);
-        // convert the first element to a JSON string
-        return mapper.writeValueAsString(firstElement);
+    public static String readElementFromJsonArrayFile(String filePath) throws IOException {
+        try {
+
+            String content = Files.readString(Paths.get(filePath));
+            ObjectMapper mapper = new ObjectMapper();
+            TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {
+            };
+            List<Map<String, Object>> jsonArray = mapper.readValue(content, typeRef);
+            Map<String, Object> firstElement = jsonArray.get(0);
+
+            return mapper.writeValueAsString(firstElement);
+
+        } catch (Exception e) {
+            Log.error(e);
+            return null;
+        }
     }
 
-    // public static String sampleElementFromJsonArrayFile(String filePath) throws
-    // IOException {
-    // // get content from first "{" to first "}"
-    // String content = Files.readString(Paths.get(filePath));
-    // int firstOpenBracketIndex = content.indexOf("{");
-    // int firstCloseBracketIndex = content.indexOf("}");
-    // return content.substring(firstOpenBracketIndex, firstCloseBracketIndex + 1);
-    // }
+    public static String sampleElementFromJsonArrayFile(String filePath) throws IOException {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonParser parser = mapper.createParser(Paths.get(filePath).toFile());
+            TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {
+            };
+            String result = null;
+
+            while (parser.nextToken() != null) {
+                if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
+                    Map<String, Object> jsonObject = parser.readValueAs(typeRef);
+                    result = mapper.writeValueAsString(jsonObject);
+                    break;
+                }
+            }
+
+            parser.close();
+
+            return result;
+        } catch (Exception e) {
+            Log.error(e);
+            return null;
+        }
+    }
 
     public static void createFolder(String folderPath) throws Exception {
         Path path = Paths.get(folderPath);

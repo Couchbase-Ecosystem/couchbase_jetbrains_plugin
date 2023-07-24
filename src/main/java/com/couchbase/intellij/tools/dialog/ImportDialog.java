@@ -34,8 +34,10 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
+import com.couchbase.intellij.types.EntityType;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tree.NewEntityCreationDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
@@ -138,7 +140,7 @@ public class ImportDialog extends DialogWrapper {
         this.project = project;
         init();
         setTitle("Import Data");
-        getWindow().setMinimumSize(new Dimension(600, 380));
+        getWindow().setMinimumSize(new Dimension(600, 400));
         setResizable(true);
         setOKButtonText("Import");
     }
@@ -151,7 +153,8 @@ public class ImportDialog extends DialogWrapper {
 
         // Page 1: Select dataset
         JPanel datasetPanel = new JPanel(new BorderLayout());
-        datasetPanel.add(new TitledSeparator("Select the Dataset"), BorderLayout.NORTH);
+        // datasetPanel.add(new TitledSeparator("Dataset Selection"),
+        // BorderLayout.NORTH);
 
         JPanel datasetFormPanel = new JPanel();
         datasetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
@@ -162,7 +165,7 @@ public class ImportDialog extends DialogWrapper {
         c.gridy = 0;
         c.weightx = 0.3;
         c.gridx = 0;
-        datasetFormPanel.add(new JBLabel("Dataset:"), c);
+        datasetFormPanel.add(new JBLabel("Select the Dataset:"), c);
         c.weightx = 0.7;
         c.gridx = 1;
 
@@ -262,6 +265,10 @@ public class ImportDialog extends DialogWrapper {
             // Trigger action listener for scope combo box to update collection combo box
             // items
             scopeCombo.actionPerformed(new ActionEvent(scopeCombo, ActionEvent.ACTION_PERFORMED, null));
+
+            if (scopeCombo.getItemCount() > 0) { // always true
+                scopeCombo.setSelectedIndex(0);
+            }
         };
         bucketCombo.addActionListener(bucketComboListener);
 
@@ -293,6 +300,56 @@ public class ImportDialog extends DialogWrapper {
             collectionCombo.removeAllItems();
             for (String collectionItem : collectionItems) {
                 collectionCombo.addItem(collectionItem);
+            }
+
+            if (collectionCombo.getItemCount() > 0) {
+                collectionCombo.setSelectedIndex(0);
+            } else {
+                // Check if the selected scope has any collections
+                String selectedScope = (String) scopeCombo.getSelectedItem();
+                if (selectedScope != null && !selectedScope.equals("_default")) {
+                    List<String> collectionsList = new ArrayList<>();
+                    for (int i = 0; i < collectionCombo.getItemCount(); i++) {
+                        collectionsList.add(collectionCombo.getItemAt(i));
+                    }
+                    if (collectionsList.isEmpty()) {
+                        // If the selected scope has no collections, inform the user and ask if they
+                        // want to create a new collection
+                        int result = Messages.showYesNoDialog(project,
+                                "The selected scope is empty. Would you like to create a new collection in this scope?",
+                                "Empty Scope", Messages.getQuestionIcon());
+                        if (result == Messages.YES) {
+                            // If the user selects yes, create a new collection
+                            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                                NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
+                                        project,
+                                        EntityType.COLLECTION,
+                                        bucketCombo.getSelectedItem().toString(),
+                                        selectedScope);
+                                entityCreationDialog.show();
+                                if (entityCreationDialog.isOK()) {
+                                    String collectionName = entityCreationDialog.getEntityName();
+                                    ActiveCluster.getInstance().get()
+                                            .bucket(bucketCombo.getSelectedItem().toString()).collections()
+                                            .createCollection(CollectionSpec.create(collectionName, selectedScope));
+                                    // Add the new collection to the list of options in the collection combo box
+                                    collectionsList.add(collectionName);
+                                    String[] collections = collectionsList.toArray(new String[0]);
+                                    collectionCombo.removeAllItems();
+                                    for (String collectionItem : collections) {
+                                        collectionCombo.addItem(collectionItem);
+                                    }
+                                    // Select the new collection in the combo box
+                                    collectionCombo.setSelectedItem(collectionName);
+                                }
+                            }
+                        } else {
+                            // Set the selected scope to _default and the selected collection to _default
+                            scopeCombo.setSelectedItem("_default");
+                            collectionCombo.setSelectedItem("_default");
+                        }
+                    }
+                }
             }
         });
         targetFormPanel.add(collectionCombo, c);
@@ -406,6 +463,7 @@ public class ImportDialog extends DialogWrapper {
 
         // In addListeners method, add listeners for relevant fields:
         fieldNameField.getDocument().addDocumentListener(new DocumentAdapter() {
+
             @Override
             protected void textChanged(DocumentEvent e) {
                 Log.debug("Field name field changed");
@@ -619,7 +677,7 @@ public class ImportDialog extends DialogWrapper {
 
     }
 
-    private void updateScopeAndCollectionFields() {
+    protected void updateScopeAndCollectionFields() {
         boolean collectionSelected = collectionRadio.isSelected();
 
         scopeLabel.setVisible(collectionSelected);
@@ -646,13 +704,13 @@ public class ImportDialog extends DialogWrapper {
 
         try {
             if (defaultScopeAndCollectionRadio.isSelected()) {
-                Log.debug("Default scope and collection selected");
+                Log.debug("Default scope and collection Radio selected");
 
                 // Set the scope and collection fields to null
                 targetScopeField = "_default";
                 targetCollectionField = "_default";
             } else if (collectionSelected) {
-                Log.debug("Collection selected");
+                Log.debug("collection Radio selected");
 
                 scopeCombo.addActionListener((ActionEvent e) -> {
                     Log.debug("Scope combo box changed");
@@ -666,8 +724,11 @@ public class ImportDialog extends DialogWrapper {
                             : "_default";
                 });
 
-            } else if (dynamicSelected && datasetField.getText() != null) {
-                Log.debug("Dataset field not null");
+                scopeCombo.actionPerformed(new ActionEvent(scopeCombo, ActionEvent.ACTION_PERFORMED, null));
+                collectionCombo.actionPerformed(new ActionEvent(collectionCombo, ActionEvent.ACTION_PERFORMED, null));
+
+            } else if (dynamicSelected) {
+                Log.debug("Dynamic scope and collection Radio selected");
 
                 // Parse the first element of the dataset to get the field names
                 String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetField.getText());
@@ -997,13 +1058,17 @@ public class ImportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
         try {
-            complexBucketImport(bucketCombo.getSelectedItem().toString(), datasetField.getText(), project);
+            complexBucketImport(
+                    bucketCombo.getSelectedItem().toString(),
+                    datasetField.getText(),
+                    project,
+                    datasetField.getText().endsWith(".json") ? "json" : "csv");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    protected void complexBucketImport(String bucket, String filePath, Project project) {
+    protected void complexBucketImport(String bucket, String filePath, Project project, String format) {
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing data", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
@@ -1015,7 +1080,7 @@ public class ImportDialog extends DialogWrapper {
                     // Create process builder for CB_IMPORT tool
                     ProcessBuilder processBuilder = new ProcessBuilder(
                             CBTools.getTool(CBTools.Type.CB_IMPORT).getPath(),
-                            "json",
+                            format,
                             "--no-ssl-verify",
                             "-c", ActiveCluster.getInstance().getClusterURL(),
                             "-u", ActiveCluster.getInstance().getUsername(),
@@ -1023,6 +1088,13 @@ public class ImportDialog extends DialogWrapper {
                             "-b", bucket,
                             "--format", "list",
                             "-d", "file://" + filePath);
+
+                    // Add additional options for CSV format
+                    if (format.equals("csv")) {
+                        processBuilder.command().add("--field-separator");
+                        processBuilder.command().add(",");
+                        processBuilder.command().add("--infer-types");
+                    }
 
                     // Add scope and collection options based on selected target location
                     if (targetLocationgroup.getSelection() == defaultScopeAndCollectionRadio.getModel()) {

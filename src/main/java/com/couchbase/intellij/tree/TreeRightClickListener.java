@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.types.EntityType;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;

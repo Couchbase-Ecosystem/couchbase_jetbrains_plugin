@@ -15,14 +15,11 @@ import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
+import com.couchbase.intellij.types.EntityType;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
-
-enum EntityType {
-    BUCKET, SCOPE, COLLECTION
-}
 
 public class NewEntityCreationDialog extends DialogWrapper {
 
@@ -34,7 +31,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
     private String scopeName;
     private String collectionName;
 
-    protected NewEntityCreationDialog(
+    public NewEntityCreationDialog(
             Project project,
             EntityType entityType,
 
