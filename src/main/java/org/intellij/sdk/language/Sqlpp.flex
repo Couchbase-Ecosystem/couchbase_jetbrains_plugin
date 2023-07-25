@@ -285,6 +285,7 @@ Backtick = "`"
       "/" { return GeneratedTypes.SLASH; }
       "%" { return GeneratedTypes.PERCENT; }
 //      "^" { return GeneratedTypes.CARET; }
+      "==" { return GeneratedTypes.DOUBLE_EQUAL; }
       "<" { return GeneratedTypes.LESSTHAN; }
       ">" { return GeneratedTypes.MORETHAN; }
       "<=" { return GeneratedTypes.LESSTHAN_OR_EQUAL; }

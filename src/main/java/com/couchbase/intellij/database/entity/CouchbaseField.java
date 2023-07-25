@@ -3,11 +3,11 @@ package com.couchbase.intellij.database.entity;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import generated.psi.Obj;
+import kotlin.collections.ArrayDeque;
 
 import javax.naming.PartialResultException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CouchbaseField implements CouchbaseClusterEntity {
@@ -45,10 +45,16 @@ public class CouchbaseField implements CouchbaseClusterEntity {
         return flattenArray(properties);
     }
     protected Set<CouchbaseField> flattenArray(JsonObject items) {
-        String type = items.getString("type");
-        if (type.equals("object")) {
+        Object typeObj = items.get("type");
+        List types;
+        if (typeObj instanceof JsonArray) {
+            types = ((JsonArray) typeObj).toList();
+        } else {
+            types = Arrays.asList((String) typeObj);
+        }
+        if (types.contains("object")) {
             return CouchbaseField.fromObject(documentFlavor, this, items.getObject("properties"));
-        } else if (type.equals("array")) {
+        } else if (types.contains("array")) {
             return flattenArray(items.getObject("items"));
         }
 
@@ -57,7 +63,7 @@ public class CouchbaseField implements CouchbaseClusterEntity {
 
     public static Set<CouchbaseField> fromObject(CouchbaseDocumentFlavor flavor, CouchbaseField parent, JsonObject object) {
         JsonObject fields = object.getObject("properties");
-        return fields.getNames().stream()
+        return fields == null ? Collections.EMPTY_SET : fields.getNames().stream()
                 .map(field -> new CouchbaseField(flavor, parent, field, fields.getObject(field)))
                 .collect(Collectors.toSet());
     }

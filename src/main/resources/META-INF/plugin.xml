@@ -86,7 +86,7 @@
                 implementationClass="org.intellij.sdk.language.SqlppSyntaxHighlighterFactory"/>
 
         <completion.contributor language="sqlpp"
-                                implementationClass="org.intellij.sdk.language.SqlppCompletionContributor"/>
+                                implementationClass="org.intellij.sdk.language.completion.SqlppCompletionContributor"/>
 
 
     </extensions>

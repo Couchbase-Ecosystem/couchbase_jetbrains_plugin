@@ -1,14 +1,15 @@
 {
 
   parserClass="generated.GeneratedParser"
-  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+  extends="org.intellij.sdk.language.psi.SqlppPSIWrapper"
+
 
   elementTypeHolderClass="generated.GeneratedTypes"
   elementTypeClass="org.intellij.sdk.language.psi.SqlppElementType"
   tokenTypeClass="org.intellij.sdk.language.psi.SqlppTokenType"
 }
 
-sequence ::= statement ( COLON statement )* COLON?
+statement-sequence ::= statement ( SEMICOLON statement )* SEMICOLON?
 
 statement ::= dcl-statement |
               ddl-statement |
@@ -38,18 +39,18 @@ other-statement ::= alter-index
                   | execute-function
 
 
-create-scope ::= CREATE SCOPE ( namespace-ref SEMICOLON )? bucket-ref DOT scope-ref ( IF NOT EXISTS )?
+create-scope ::= CREATE SCOPE ( namespace-ref COLON )? bucket-ref DOT scope-ref ( IF NOT EXISTS )?
 
-create-collection ::= CREATE COLLECTION ( ( namespace-ref SEMICOLON )? bucket-ref DOT scope-ref DOT )?
+create-collection ::= CREATE COLLECTION ( ( namespace-ref COLON )? bucket-ref DOT scope-ref DOT )?
                       collection-ref ( IF NOT EXISTS )?
 
 
 
-drop-scope ::= DROP SCOPE ( namespace-ref SEMICOLON )? bucket-ref DOT scope-ref ( IF EXISTS )?
+drop-scope ::= DROP SCOPE ( namespace-ref COLON )? bucket-ref DOT scope-ref ( IF EXISTS )?
 
 
 
-drop-collection ::= DROP COLLECTION ( ( namespace-ref SEMICOLON )? bucket-ref DOT scope-ref DOT )?
+drop-collection ::= DROP COLLECTION ( ( namespace-ref COLON )? bucket-ref DOT scope-ref DOT )?
                     collection-ref ( IF EXISTS )?
 
 
@@ -109,9 +110,9 @@ drop-index ::= DROP INDEX ( index-path DOT index-name ( IF EXISTS )? |
 
 index-path ::= keyspace-full | keyspace-prefix | keyspace-partial
 
-keyspace-full ::= namespace-ref SEMICOLON bucket-ref DOT scope-ref DOT collection-ref
+keyspace-full ::= namespace-ref COLON bucket-ref DOT scope-ref DOT collection-ref
 
-keyspace-prefix ::= ( namespace-ref SEMICOLON )? bucket-ref
+keyspace-prefix ::= ( namespace-ref COLON )? bucket-ref
 
 create-function ::= create-function-inline | create-function-external
 
@@ -123,7 +124,7 @@ create-function-external ::= CREATE ( OR REPLACE )? FUNCTION function-ref LPAREN
                              ( IF NOT EXISTS )?
                              LANGUAGE JAVASCRIPT AS obj AT
 
-function-ref ::= ( namespace-ref SEMICOLON ( bucket-ref DOT scope-ref DOT )? )? identifier-ref
+function-ref ::= ( namespace-ref COLON ( bucket-ref DOT scope-ref DOT )? )? identifier-ref
 
 params ::= identifier-ref ( COMMA identifier-ref )* | ELLIPSIS
 
@@ -216,8 +217,8 @@ set-clause ::= SET ( path EQUAL expr update-for? )
 
 unset-clause ::= UNSET path update-for? (COMMA path update-for?)*
 
-update-for ::= (FOR (name-var SEMICOLON)? var (IN | WITHIN) path
-               (COMMA (name-var SEMICOLON)? var (IN | WITHIN) path)* )+
+update-for ::= (FOR (name-var COLON)? var (IN | WITHIN) path
+               (COMMA (name-var COLON)? var (IN | WITHIN) path)* )+
                (WHEN cond)? END
 /* end::update-for[] */
 
@@ -275,7 +276,7 @@ from-keyspace ::= keyspace-ref ( AS? alias )? use-clause?
 
 keyspace-ref ::= keyspace-path | keyspace-partial
 
-keyspace-path ::= ( namespace-ref SEMICOLON )? bucket-ref ( DOT scope-ref DOT collection-ref )?
+keyspace-path ::= ( namespace-ref COLON )? bucket-ref ( DOT scope-ref DOT collection-ref )?
 
 keyspace-partial ::= collection-ref
 
@@ -508,13 +509,13 @@ json-hint ::= ordered-hint-json
              | hash-hint-json
              | nl-hint-json
 
-ordered-hint-json ::= QUOTED_ORDERED SEMICOLON TRUE
+ordered-hint-json ::= QUOTED_ORDERED COLON TRUE
 
-gsi-hint-json ::= QUOTED_INDEX SEMICOLON ( index-array | index-object )
+gsi-hint-json ::= QUOTED_INDEX COLON ( index-array | index-object )
 
-fts-hint-json ::= QUOTED_INDEX_FTS SEMICOLON ( index-array | index-object )
+fts-hint-json ::= QUOTED_INDEX_FTS COLON ( index-array | index-object )
 
-nl-hint-json ::= QUOTED_USE_NS SEMICOLON ( keyspace-array | keyspace-object )
+nl-hint-json ::= QUOTED_USE_NS COLON ( keyspace-array | keyspace-object )
 
 hash-hint-json ::= QUOTED_USE_HASH  ( hash-array | hash-object )
 
@@ -522,7 +523,7 @@ index-array ::= LBRACKET index-object ( COMMA index-object )* RBRACKET
 
 index-object ::= LBRACE keyspace-property COMMA indexes-property RBRACE
 
-indexes-property ::= QUOTED_INDEXES SEMICOLON ( NULL
+indexes-property ::= QUOTED_INDEXES COLON ( NULL
                                      | DQUOTE index DQUOTE
                                      | LBRACKET DQUOTE index DQUOTE ( COMMA DQUOTE index DQUOTE )* RBRACKET )
 
@@ -530,30 +531,34 @@ keyspace-array ::= LBRACKET keyspace-object ( COMMA keyspace-object )* RBRACKET
 
 keyspace-object ::= LBRACE keyspace-property RBRACE
 
-keyspace-property ::= ( QUOTED_KEYSPACE | QUOTED_ALIAS ) SEMICOLON DQUOTE keyspace-statement DQUOTE
+keyspace-property ::= ( QUOTED_KEYSPACE | QUOTED_ALIAS ) COLON DQUOTE keyspace-statement DQUOTE
 
 hash-array ::= LBRACKET hash-object ( COMMA hash-object )* RBRACKET
 
 hash-object ::= LBRACE keyspace-property ( COMMA option-property )? RBRACE
 
-option-property ::= QUOTED_OPTION SEMICOLON ( QUOTED_BUILD | QUOTED_PROBE | NULL )
+option-property ::= QUOTED_OPTION COLON ( QUOTED_BUILD | QUOTED_PROBE | NULL )
 
 /***************
  * Expressions *
  ***************/
 
-expr ::= ( literal | identifier-ref | LPAREN expr RPAREN )
-        (
-             arithmetic-term |
-             comparison-term |
-             concatenation-term |
-             logical-term |
-             case-expr |
-             collection-expr |
-             nested-expr |
-             function-call |
-             subquery-expr
-         )*
+expr ::= (
+            (
+                literal |
+                identifier-ref |
+                nested-expr |
+                function-call |
+                subquery-expr
+            ) (
+                comparison-term |
+                arithmetic-term |
+                concatenation-term |
+                logical-term |
+                collection-expr
+            )*
+         ) |
+         case-expr
 
 
 
@@ -588,15 +593,13 @@ arithmetic-term ::= PLUS expr |
                     PERCENT expr |
                     MINUS_SIGN expr
 
-
-
 comparison-term ::= relational-expr |
                     between-expr |
                     like-expr |
                     is-expr
 
-relational-expr ::= EQUAL expr |
-                    DOUBLE_EQUAL expr |
+relational-expr ::= DOUBLE_EQUAL expr |
+                    EQUAL expr |
                     NOT_EQUAL expr |
                     LESSTHAN_OR_MORETHAN expr |
                     MORETHAN expr |
@@ -646,8 +649,8 @@ within-expr ::= NOT? WITHIN expr
 
 range-cond ::= ( ( ANY | SOME ) ( AND EVERY )? | EVERY ) range-expr SATISFIES cond END
 
-range-expr ::= ( name-var SEMICOLON )? var ( IN | WITHIN ) expr
-            ( COMMA ( name-var SEMICOLON )? var ( IN | WITHIN ) expr )*
+range-expr ::= ( name-var COLON )? var ( IN | WITHIN ) expr
+            ( COMMA ( name-var COLON )? var ( IN | WITHIN ) expr )*
 
 var ::= identifier-ref
 name-var ::= identifier-ref
@@ -666,7 +669,7 @@ field-expr ::= DOT ( identifier-ref | ( ( escaped-identifier | LBRACKET expr RBR
 
 element-expr ::= LBRACKET expr RBRACKET
 
-slice-expr ::= LBRACKET expr SEMICOLON expr? RBRACKET
+slice-expr ::= LBRACKET expr COLON expr? RBRACKET
 
 
 function-call ::= builtin-function |
