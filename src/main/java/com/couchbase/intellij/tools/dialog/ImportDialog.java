@@ -86,7 +86,7 @@ public class ImportDialog extends DialogWrapper {
     private JBRadioButton customExpressionRadio;
 
     private JBTextField fieldNameField;
-    private JBTextField expressionField;
+    private JBTextField customExpressionField;
 
     private JBTextField skipFirstField;
     private JBCheckBox skipFirstCheck;
@@ -116,7 +116,7 @@ public class ImportDialog extends DialogWrapper {
     private JBLabel collectionFieldLabel;
     private JBLabel keyLabel;
     private JBLabel fieldNameLabel;
-    private JBLabel expressionLabel;
+    private JBLabel customExpressionLabel;
     private JBLabel skipFirstLabel;
     private JBLabel importUptoLabel;
     private JBLabel ignoreFieldsLabel;
@@ -463,14 +463,14 @@ public class ImportDialog extends DialogWrapper {
         c.gridy = 2;
         c.weightx = 0.3;
         c.gridx = 0;
-        expressionLabel = new JBLabel("Expression:");
-        keyFormPanel.add(expressionLabel, c);
+        customExpressionLabel = new JBLabel("Custom Expression:");
+        keyFormPanel.add(customExpressionLabel, c);
 
         c.weightx = 0.7;
         c.gridx = 1;
 
-        expressionField = new JBTextField();
-        keyFormPanel.add(expressionField, c);
+        customExpressionField = new JBTextField();
+        keyFormPanel.add(customExpressionField, c);
 
         // In addListeners method, add listeners for relevant fields:
         fieldNameField.getDocument().addDocumentListener(new DocumentAdapter() {
@@ -482,10 +482,10 @@ public class ImportDialog extends DialogWrapper {
             }
         });
 
-        expressionField.getDocument().addDocumentListener(new DocumentAdapter() {
+        customExpressionField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
-                Log.debug("Expression field changed" + expressionField.getText());
+                Log.debug("Custom Expression field changed" + customExpressionField.getText());
                 updateKeyPreview();
             }
         });
@@ -511,15 +511,15 @@ public class ImportDialog extends DialogWrapper {
 
         // Set all labels to invisible and disabled by default
         fieldNameLabel.setVisible(false);
-        expressionLabel.setVisible(false);
+        customExpressionLabel.setVisible(false);
         fieldNameLabel.setEnabled(false);
-        expressionLabel.setEnabled(false);
+        customExpressionLabel.setEnabled(false);
 
         // Set all fields to invisible and disabled by default
         fieldNameField.setVisible(false);
-        expressionField.setVisible(false);
+        customExpressionField.setVisible(false);
         fieldNameField.setEnabled(false);
-        expressionField.setEnabled(false);
+        customExpressionField.setEnabled(false);
 
         // Set the preview panel to invisible and disabled by default
         keyPreviewArea.setVisible(false);
@@ -678,7 +678,7 @@ public class ImportDialog extends DialogWrapper {
         customExpressionRadio.addActionListener(e -> updateSummary());
 
         fieldNameField.getDocument().addDocumentListener(updateSummaryListener);
-        expressionField.getDocument().addDocumentListener(updateSummaryListener);
+        customExpressionField.getDocument().addDocumentListener(updateSummaryListener);
 
         // Add listeners for Page 4 fields
         skipFirstField.getDocument().addDocumentListener(updateSummaryListener);
@@ -818,10 +818,10 @@ public class ImportDialog extends DialogWrapper {
 
         boolean customExpressionSelected = customExpressionRadio.isSelected();
 
-        expressionLabel.setVisible(customExpressionSelected);
-        expressionField.setVisible(customExpressionSelected);
-        expressionLabel.setEnabled(customExpressionSelected);
-        expressionField.setEnabled(customExpressionSelected);
+        customExpressionLabel.setVisible(customExpressionSelected);
+        customExpressionField.setVisible(customExpressionSelected);
+        customExpressionLabel.setEnabled(customExpressionSelected);
+        customExpressionField.setEnabled(customExpressionSelected);
 
         boolean keyPreviewVisible = useFieldValueSelected || customExpressionSelected;
 
@@ -888,10 +888,10 @@ public class ImportDialog extends DialogWrapper {
                 Log.debug("Custom expression radio selected");
 
                 // Generate preview based on custom expression
-                String expression = expressionField.getText();
+                String expression = customExpressionField.getText();
 
                 // Extract field names from custom expression using regular expression
-                Pattern pattern = Pattern.compile("%(\\w+)-value%");
+                Pattern pattern = Pattern.compile("%(\\w+)%");
                 Matcher matcher = pattern.matcher(expression);
                 List<String> fieldNames = new ArrayList<>();
                 while (matcher.find()) {
@@ -911,7 +911,7 @@ public class ImportDialog extends DialogWrapper {
                     String key = expression;
                     for (String fieldName : fieldNames) {
                         if (jsonObject.containsKey(fieldName)) {
-                            key = key.replace("%" + fieldName + "-value%", jsonObject.getString(fieldName));
+                            key = key.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
                         }
                     }
 
@@ -969,7 +969,7 @@ public class ImportDialog extends DialogWrapper {
             summary.append(fieldNameField.getText());
         } else if (customExpressionRadio.isSelected()) {
             summary.append("Generate key based on custom expression - Expression: ");
-            summary.append(expressionField.getText());
+            summary.append(customExpressionField.getText());
         }
         summary.append("<br><br>");
 
@@ -1010,11 +1010,11 @@ public class ImportDialog extends DialogWrapper {
             ignoreFieldsField
                     .setText((scopeFieldField.getText() + "," +
                             collectionFieldField.getText() + "," +
-                            fieldNameField.getText().replaceAll("%(\\w+)-value%", "$1"))
+                            fieldNameField.getText().replaceAll("%(\\w+)%", "$1"))
                             .replaceAll("^,*|,*$", "")); // remove leading and trailing commas
         } else if (collectionRadio.isSelected()) {
             ignoreFieldsField
-                    .setText((fieldNameField.getText().replaceAll("%(\\w+)-value%", "$1"))
+                    .setText((fieldNameField.getText().replaceAll("%(\\w+)%", "$1"))
                             .replaceAll("^,*|,*$", "")); // remove leading and trailing commas
         }
 
@@ -1139,14 +1139,16 @@ public class ImportDialog extends DialogWrapper {
                         processBuilder.command().add(targetScopeField + "." + targetCollectionField);
                     } else if (targetLocationGroup.getSelection() == dynamicScopeAndCollectionRadio.getModel()) {
                         // Import data into dynamic scope and collection
-                        // TODO: Add options for dynamic scope and collection
+                        processBuilder.command().add("--scope-collection-exp");
+                        processBuilder.command().add("%" + scopeFieldField.getText() + "%.%"
+                                + collectionFieldField.getText() + "%");
                     }
 
                     // Add document key options based on selected key option
                     if (keyGroup.getSelection() == generateUUIDRadio.getModel()) {
                         // Generate random UUID for each document
                         processBuilder.command().add("-g");
-                        processBuilder.command().add("%uuid%");
+                        processBuilder.command().add("#UUID#");
                     } else if (keyGroup.getSelection() == useFieldValueRadio.getModel()) {
                         // Use the value of a field as the key
                         processBuilder.command().add("-g");
@@ -1154,7 +1156,7 @@ public class ImportDialog extends DialogWrapper {
                     } else if (keyGroup.getSelection() == customExpressionRadio.getModel()) {
                         // Generate key based on custom expression
                         processBuilder.command().add("-g");
-                        processBuilder.command().add(expressionField.getText());
+                        processBuilder.command().add(customExpressionField.getText());
                     }
 
                     // Add advanced options
