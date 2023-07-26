@@ -78,8 +78,8 @@ public class ImportDialog extends DialogWrapper {
     private JBRadioButton collectionRadio;
     private JBRadioButton dynamicScopeAndCollectionRadio;
 
-    private JBTextField scopeFieldField;
-    private JBTextField collectionFieldField;
+    private JBTextField dynamicScopeFieldField;
+    private JBTextField dynamicCollectionFieldField;
 
     private JBRadioButton generateUUIDRadio;
     private JBRadioButton useFieldValueRadio;
@@ -297,12 +297,22 @@ public class ImportDialog extends DialogWrapper {
                 Log.debug("Scope combo box changed"
                         + Optional.ofNullable(scopeCombo.getSelectedItem()).map(Object::toString).orElse("null"));
 
-                // Set of collections from the selected scope
+                String selectedScope = (String) scopeCombo.getSelectedItem();
+                if (selectedScope == null || selectedScope.isEmpty() || selectedScope.equals("_default")) {
+                    // Set the selected scope to _default and the selected collection to _default
+                    scopeCombo.setSelectedItem("_default");
+                    collectionCombo.setSelectedItem("_default");
+                    return;
+                }
 
+                // Set of collections from the selected scope
                 String[] collectionItems = scopes.stream()
-                        .filter(scope -> scope.name().equals(scopeCombo.getSelectedItem()))
+                        .filter(scope -> scope.name().equals(selectedScope))
                         .flatMap(scope -> scope.collections().stream())
-                        .map(CollectionSpec::name).distinct().toArray(String[]::new);
+                        .map(CollectionSpec::name)
+                        .distinct()
+                        .toArray(String[]::new);
+
                 collectionCombo.removeAllItems();
                 for (String collectionItem : collectionItems) {
                     collectionCombo.addItem(collectionItem);
@@ -311,50 +321,40 @@ public class ImportDialog extends DialogWrapper {
                 if (collectionCombo.getItemCount() > 0) {
                     collectionCombo.setSelectedIndex(0);
                 } else {
-                    // Check if the selected scope has any collections
-                    String selectedScope = (String) scopeCombo.getSelectedItem();
-                    if (selectedScope != null && !selectedScope.isEmpty() && !selectedScope.equals("_default")) {
-                        List<String> collectionsList = new ArrayList<>();
-                        for (int i = 0; i < collectionCombo.getItemCount(); i++) {
-                            collectionsList.add(collectionCombo.getItemAt(i));
-                        }
-                        if (collectionsList.isEmpty()) {
-                            // If the selected scope has no collections, inform the user and ask if they
-                            // want to create a new collection
-                            int result = Messages.showYesNoDialog(project,
-                                    "The selected scope is empty. Would you like to create a new collection in this scope?",
-                                    "Empty Scope", Messages.getQuestionIcon());
-                            if (result == Messages.YES) {
-                                // If the user selects yes, create a new collection
-                                if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-                                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
-                                            project,
-                                            EntityType.COLLECTION,
-                                            Objects.requireNonNull(bucketCombo.getSelectedItem()).toString(),
-                                            selectedScope);
-                                    entityCreationDialog.show();
-                                    if (entityCreationDialog.isOK()) {
-                                        String collectionName = entityCreationDialog.getEntityName();
-                                        ActiveCluster.getInstance().get()
-                                                .bucket(bucketCombo.getSelectedItem().toString()).collections()
-                                                .createCollection(CollectionSpec.create(collectionName, selectedScope));
-                                        // Add the new collection to the list of options in the collection combo box
-                                        collectionsList.add(collectionName);
-                                        String[] collections = collectionsList.toArray(new String[0]);
-                                        collectionCombo.removeAllItems();
-                                        for (String collectionItem : collections) {
-                                            collectionCombo.addItem(collectionItem);
-                                        }
-                                        // Select the new collection in the combo box
-                                        collectionCombo.setSelectedItem(collectionName);
-                                    }
-                                }
-                            } else {
-                                // Set the selected scope to _default and the selected collection to _default
-                                scopeCombo.setSelectedItem("_default");
-                                collectionCombo.setSelectedItem("_default");
+                    // If the selected scope has no collections, inform the user and ask if they
+                    // want to create a new collection
+                    int result = Messages.showYesNoDialog(project,
+                            "The selected scope is empty. Would you like to create a new collection in this scope?",
+                            "Empty Scope", Messages.getQuestionIcon());
+
+                    if (result == Messages.YES) {
+                        // If the user selects yes, create a new collection
+                        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
+                                    project,
+                                    EntityType.COLLECTION,
+                                    Objects.requireNonNull(bucketCombo.getSelectedItem()).toString(),
+                                    selectedScope);
+                            entityCreationDialog.show();
+
+                            if (entityCreationDialog.isOK()) {
+                                String collectionName = entityCreationDialog.getEntityName();
+                                ActiveCluster.getInstance().get()
+                                        .bucket(bucketCombo.getSelectedItem().toString()).collections()
+                                        .createCollection(CollectionSpec.create(collectionName, selectedScope));
+
+                                // Add the new collection to the list of options in the collection combo box
+                                collectionCombo.addItem(collectionName);
+
+                                // Select the new collection in the combo box
+                                collectionCombo.setSelectedItem(collectionName);
                             }
                         }
+                    } else {
+                        // If the user selects no, set the selected scope to _default and the selected
+                        // collection to _default
+                        scopeCombo.setSelectedItem("_default");
+                        collectionCombo.setSelectedItem("_default");
                     }
                 }
             } catch (Exception ex) {
@@ -362,6 +362,7 @@ public class ImportDialog extends DialogWrapper {
                 ex.printStackTrace();
             }
         };
+
         scopeCombo.addActionListener(scopeComboListener);
         targetFormPanel.add(collectionCombo, c);
 
@@ -375,8 +376,8 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        scopeFieldField = new JBTextField();
-        targetFormPanel.add(scopeFieldField, c);
+        dynamicScopeFieldField = new JBTextField();
+        targetFormPanel.add(dynamicScopeFieldField, c);
 
         c.gridy = 5;
         c.weightx = 0.3;
@@ -386,8 +387,8 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        collectionFieldField = new JBTextField();
-        targetFormPanel.add(collectionFieldField, c);
+        dynamicCollectionFieldField = new JBTextField();
+        targetFormPanel.add(dynamicCollectionFieldField, c);
 
         // Set all labels to invisible and disabled by default
         scopeLabel.setVisible(false);
@@ -403,13 +404,13 @@ public class ImportDialog extends DialogWrapper {
         // Set all fields to invisible and disabled by default
         scopeCombo.setVisible(false);
         collectionCombo.setVisible(false);
-        scopeFieldField.setVisible(false);
-        collectionFieldField.setVisible(false);
+        dynamicScopeFieldField.setVisible(false);
+        dynamicCollectionFieldField.setVisible(false);
 
         scopeCombo.setEnabled(false);
         collectionCombo.setEnabled(false);
-        scopeFieldField.setEnabled(false);
-        collectionFieldField.setEnabled(false);
+        dynamicScopeFieldField.setEnabled(false);
+        dynamicCollectionFieldField.setEnabled(false);
 
         targetPanel.add(targetFormPanel, BorderLayout.CENTER);
 
@@ -647,7 +648,10 @@ public class ImportDialog extends DialogWrapper {
 
         // Add listeners for Page 3 radio buttons
         generateUUIDRadio.addActionListener(e -> updateKeyFormFields());
-        useFieldValueRadio.addActionListener(e -> updateKeyFormFields());
+        useFieldValueRadio.addActionListener(e -> {
+            updateKeyFormFields();
+            updateIgnoreFieldsTextField();
+        });
         customExpressionRadio.addActionListener(e -> updateKeyFormFields());
 
         DocumentAdapter updateSummaryListener = new DocumentAdapter() {
@@ -659,7 +663,6 @@ public class ImportDialog extends DialogWrapper {
         };
 
         // Add listeners for Page 1 fields
-        // Add listener for datasetField
         datasetField.getTextField().getDocument().addDocumentListener(updateSummaryListener);
         // Add listeners for Page 2 fields
         defaultScopeAndCollectionRadio.addActionListener(e -> updateSummary());
@@ -669,8 +672,8 @@ public class ImportDialog extends DialogWrapper {
         scopeCombo.addActionListener(e -> updateSummary());
         collectionCombo.addActionListener(e -> updateSummary());
 
-        scopeFieldField.getDocument().addDocumentListener(updateSummaryListener);
-        collectionFieldField.getDocument().addDocumentListener(updateSummaryListener);
+        dynamicScopeFieldField.getDocument().addDocumentListener(updateSummaryListener);
+        dynamicCollectionFieldField.getDocument().addDocumentListener(updateSummaryListener);
 
         // Add listeners for Page 3 fields
         generateUUIDRadio.addActionListener(e -> updateSummary());
@@ -688,11 +691,7 @@ public class ImportDialog extends DialogWrapper {
         skipFirstCheck.addActionListener(e -> updateSummary());
         importUptoCheck.addActionListener(e -> updateSummary());
         ignoreFieldsCheck.addActionListener(e -> updateSummary());
-
-        // Replace threadsField with threadsSpinner
-        // threadsField.getDocument().addDocumentListener(updateSummaryListener);
         threadsSpinner.addChangeListener(e -> updateSummary());
-
         verboseCheck.addActionListener(e -> updateSummary());
 
     }
@@ -713,14 +712,14 @@ public class ImportDialog extends DialogWrapper {
         boolean dynamicSelected = dynamicScopeAndCollectionRadio.isSelected();
 
         scopeFieldLabel.setVisible(dynamicSelected);
-        scopeFieldField.setVisible(dynamicSelected);
+        dynamicScopeFieldField.setVisible(dynamicSelected);
         scopeFieldLabel.setEnabled(dynamicSelected);
-        scopeFieldField.setEnabled(dynamicSelected);
+        dynamicScopeFieldField.setEnabled(dynamicSelected);
 
         collectionFieldLabel.setVisible(dynamicSelected);
-        collectionFieldField.setVisible(dynamicSelected);
+        dynamicCollectionFieldField.setVisible(dynamicSelected);
         collectionFieldLabel.setEnabled(dynamicSelected);
-        collectionFieldField.setEnabled(dynamicSelected);
+        dynamicCollectionFieldField.setEnabled(dynamicSelected);
 
         try {
             if (defaultScopeAndCollectionRadio.isSelected()) {
@@ -752,7 +751,7 @@ public class ImportDialog extends DialogWrapper {
                 for (String field : possibleScopeFields) {
                     for (String element : sampleElementContentSplit) {
                         if (element.contains(field)) {
-                            scopeFieldField.setText(field);
+                            dynamicScopeFieldField.setText("%" + field + "%");
                             targetScopeField = element.substring(element.indexOf(":") + 1);
                             break;
                         }
@@ -761,7 +760,7 @@ public class ImportDialog extends DialogWrapper {
                 for (String field : possibleCollectionFields) {
                     for (String element : sampleElementContentSplit) {
                         if (element.contains(field)) {
-                            collectionFieldField.setText(field);
+                            dynamicCollectionFieldField.setText("%" + field + "%");
                             targetCollectionField = element.substring(element.indexOf(":") + 1);
                             break;
                         }
@@ -772,12 +771,12 @@ public class ImportDialog extends DialogWrapper {
 
                 // Just in case the scope and collection fields are user-changed
                 // then update all 4 fields with the latest values
-                scopeFieldField.getDocument().addDocumentListener(new DocumentAdapter() {
+                dynamicScopeFieldField.getDocument().addDocumentListener(new DocumentAdapter() {
                     @Override
                     protected void textChanged(@NotNull DocumentEvent e) {
-                        Log.debug("Scope field changed" + scopeFieldField.getText());
+                        Log.debug("Scope field changed" + dynamicScopeFieldField.getText());
                         for (String element : sampleElementContentSplit) {
-                            if (element.contains(scopeFieldField.getText())) {
+                            if (element.contains(dynamicScopeFieldField.getText())) {
                                 targetScopeField = element.substring(element.indexOf(":") + 1);
                                 break;
                             }
@@ -786,12 +785,12 @@ public class ImportDialog extends DialogWrapper {
                     }
                 });
 
-                collectionFieldField.getDocument().addDocumentListener(new DocumentAdapter() {
+                dynamicCollectionFieldField.getDocument().addDocumentListener(new DocumentAdapter() {
                     @Override
                     protected void textChanged(@NotNull DocumentEvent e) {
-                        Log.debug("Collection field changed" + collectionFieldField.getText());
+                        Log.debug("Collection field changed" + dynamicCollectionFieldField.getText());
                         for (String element : sampleElementContentSplit) {
-                            if (element.contains(collectionFieldField.getText())) {
+                            if (element.contains(dynamicCollectionFieldField.getText())) {
                                 targetCollectionField = element.substring(element.indexOf(":") + 1);
                                 break;
                             }
@@ -954,9 +953,9 @@ public class ImportDialog extends DialogWrapper {
             summary.append(collectionCombo.getSelectedItem());
         } else if (dynamicScopeAndCollectionRadio.isSelected()) {
             summary.append("Dynamic Scope and Collection - Scope Field: ");
-            summary.append(scopeFieldField.getText());
+            summary.append(dynamicScopeFieldField.getText());
             summary.append(", Collection Field: ");
-            summary.append(collectionFieldField.getText());
+            summary.append(dynamicCollectionFieldField.getText());
         }
         summary.append("<br><br>");
 
@@ -1005,19 +1004,45 @@ public class ImportDialog extends DialogWrapper {
     }
 
     protected void updateIgnoreFieldsTextField() {
+        String ignoreFieldsText = "";
 
         if (dynamicScopeAndCollectionRadio.isSelected()) {
-            ignoreFieldsField
-                    .setText((scopeFieldField.getText() + "," +
-                            collectionFieldField.getText() + "," +
-                            fieldNameField.getText().replaceAll("%(\\w+)%", "$1"))
-                            .replaceAll("^,*|,*$", "")); // remove leading and trailing commas
+            String fieldNameText = fieldNameField.getText();
+            List<String> wordsWithPercentSymbols = new ArrayList<>();
+
+            // Extract words with percent symbols from scope and add them to the list
+            String scopeText = dynamicScopeFieldField.getText();
+            if (!scopeText.isEmpty()) {
+                wordsWithPercentSymbols.addAll(extractWordsWithPercentSymbols(scopeText));
+            }
+
+            // Extract words with percent symbols from collection and add them to the list
+            String collectionText = dynamicCollectionFieldField.getText();
+            if (!collectionText.isEmpty()) {
+                wordsWithPercentSymbols.addAll(extractWordsWithPercentSymbols(collectionText));
+            }
+
+            // Combine all the words into a comma-separated string
+            ignoreFieldsText = fieldNameText + "," + String.join(",", wordsWithPercentSymbols);
         } else if (collectionRadio.isSelected()) {
-            ignoreFieldsField
-                    .setText((fieldNameField.getText().replaceAll("%(\\w+)%", "$1"))
-                            .replaceAll("^,*|,*$", "")); // remove leading and trailing commas
+            // If collectionRadio is selected, just use the fieldNameText
+            ignoreFieldsText = fieldNameField.getText();
         }
 
+        // Remove any leading or trailing commas
+        ignoreFieldsText = ignoreFieldsText.replaceAll("^,+|,+$", "");
+
+        // Set the text in ignoreFieldsField
+        ignoreFieldsField.setText(ignoreFieldsText);
+    }
+
+    private List<String> extractWordsWithPercentSymbols(String text) {
+        List<String> wordsWithPercentSymbols = new ArrayList<>();
+        Matcher matcher = Pattern.compile("%(\\w+)%").matcher(text);
+        while (matcher.find()) {
+            wordsWithPercentSymbols.add(matcher.group(1));
+        }
+        return wordsWithPercentSymbols;
     }
 
     protected String[] getSampleElementContentSplit(String datasetFieldText) throws IOException {
@@ -1140,8 +1165,8 @@ public class ImportDialog extends DialogWrapper {
                     } else if (targetLocationGroup.getSelection() == dynamicScopeAndCollectionRadio.getModel()) {
                         // Import data into dynamic scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add("%" + scopeFieldField.getText() + "%.%"
-                                + collectionFieldField.getText() + "%");
+                        processBuilder.command().add(dynamicScopeFieldField.getText() + "."
+                                + dynamicCollectionFieldField.getText());
                     }
 
                     // Add document key options based on selected key option
