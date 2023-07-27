@@ -27,4 +27,10 @@ public class IdentifierRefImpl extends SqlppPSIWrapper implements IdentifierRef 
     else super.accept(visitor);
   }
 
+  @Override
+  @Nullable
+  public EscapedIdentifier getEscapedIdentifier() {
+    return findChildByClass(EscapedIdentifier.class);
+  }
+
 }

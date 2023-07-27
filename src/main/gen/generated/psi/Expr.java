@@ -23,9 +23,6 @@ public interface Expr extends PsiElement {
   List<ConcatenationTerm> getConcatenationTermList();
 
   @Nullable
-  EscapedIdentifier getEscapedIdentifier();
-
-  @Nullable
   FunctionCall getFunctionCall();
 
   @Nullable

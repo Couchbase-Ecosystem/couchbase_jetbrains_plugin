@@ -91,4 +91,9 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     public void testUpdateSet() {
         checkCompletes("UPDATE test SET ", "parent-field");
     }
+
+    @Test
+    public void testUpdateSetExpression() {
+        checkCompletes("UPDATE travel-sample.inventory.hotel SET `airlineid` = '100' + ", "parent-field");
+    }
 }

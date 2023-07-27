@@ -7,4 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface IdentifierRef extends PsiElement {
 
+  @Nullable
+  EscapedIdentifier getEscapedIdentifier();
+
 }

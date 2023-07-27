@@ -126,9 +126,18 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         if (element.getPrevSibling() != null && element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT) {
             PsiElement dot = element.getPrevSibling();
             if (PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).accepts(dot.getPrevSibling())
-                || dot.getPrevSibling() instanceof IdentifierRef) {
-                List<String> path = getPath(element.getPrevSibling());
+                    || dot.getPrevSibling() instanceof IdentifierRef) {
+                List<String> path = getPath(dot.getPrevSibling());
                 completeForPath(cluster, path, result);
+            } else if (PlatformPatterns.psiElement(GeneratedTypes.STATEMENT).accepts(dot.getPrevSibling())) {
+                PsiElement pathEnd = dot.getPrevSibling();
+                while (pathEnd != null && pathEnd.getNode().getElementType() != GeneratedTypes.IDENTIFIER_REF) {
+                    pathEnd = pathEnd.getLastChild();
+                }
+                if (pathEnd != null) {
+                    List<String> path = getPath(pathEnd);
+                    completeForPath(cluster, path, result);
+                }
             } else if (dot.getPrevSibling() instanceof StatementImpl) {
                 PsiElement statement = dot.getPrevSibling();
                 while (statement.getLastChild() != null) {
@@ -166,10 +175,20 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         }
     }
 
+    private String getIdentifier(PsiElement element) {
+        if (element.getNode().getElementType() == GeneratedTypes.IDENTIFIER_REF) {
+            element = element.getLastChild();
+        }
+        if (element.getNode().getElementType() == GeneratedTypes.ESCAPED_IDENTIFIER) {
+            element = element.getFirstChild().getNextSibling();
+        }
+        return element.getText();
+    }
+
     private List<String> getPath(PsiElement element) {
         List<String> result = new ArrayList<>();
 
-        result.add(element.getText());
+        result.add(getIdentifier(element));
         while (element.getPrevSibling() != null &&
                 element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT &&
                 element.getPrevSibling().getPrevSibling() instanceof IdentifierRef) {
