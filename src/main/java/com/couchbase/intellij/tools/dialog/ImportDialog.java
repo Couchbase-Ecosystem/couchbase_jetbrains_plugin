@@ -1127,11 +1127,11 @@ public class ImportDialog extends DialogWrapper {
                             CBTools.getTool(CBTools.Type.CB_IMPORT).getPath(),
                             fileFormat,
                             "--no-ssl-verify",
-                            "-c", ActiveCluster.getInstance().getClusterURL(),
-                            "-u", ActiveCluster.getInstance().getUsername(),
-                            "-p", ActiveCluster.getInstance().getPassword(),
-                            "-b", bucket,
-                            "-d", "file://" + filePath);
+                            "--cluster", ActiveCluster.getInstance().getClusterURL(),
+                            "--username", ActiveCluster.getInstance().getUsername(),
+                            "--password", ActiveCluster.getInstance().getPassword(),
+                            "--bucket", bucket,
+                            "--dataset", "file://" + filePath);
 
                     // Add additional options for CSV format
                     if (fileFormat.equals("csv")) {
@@ -1172,15 +1172,15 @@ public class ImportDialog extends DialogWrapper {
                     // Add document key options based on selected key option
                     if (keyGroup.getSelection() == generateUUIDRadio.getModel()) {
                         // Generate random UUID for each document
-                        processBuilder.command().add("-g");
+                        processBuilder.command().add("--generate-key");
                         processBuilder.command().add("#UUID#");
                     } else if (keyGroup.getSelection() == useFieldValueRadio.getModel()) {
                         // Use the value of a field as the key
-                        processBuilder.command().add("-g");
+                        processBuilder.command().add("--generate-key");
                         processBuilder.command().add("%" + fieldNameField.getText() + "%");
                     } else if (keyGroup.getSelection() == customExpressionRadio.getModel()) {
                         // Generate key based on custom expression
-                        processBuilder.command().add("-g");
+                        processBuilder.command().add("--generate-key");
                         processBuilder.command().add(customExpressionField.getText());
                     }
 
@@ -1204,11 +1204,11 @@ public class ImportDialog extends DialogWrapper {
                         processBuilder.command().add(ignoreFieldsField.getText());
                     }
 
-                    processBuilder.command().add("-t");
+                    processBuilder.command().add("--threads");
                     processBuilder.command().add(threadsSpinner.getValue().toString());
 
                     if (verboseCheck.isSelected()) {
-                        processBuilder.command().add("-v ");
+                        processBuilder.command().add("--verbose");
                     }
 
                     Log.debug("Command: " + processBuilder.command());
