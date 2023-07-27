@@ -1153,40 +1153,44 @@ public class ImportDialog extends DialogWrapper {
                         }
                     }
 
-                    // Add scope and collection options based on selected target location
+                    // Add scope and collection options based on the selected target location
                     if (targetLocationGroup.getSelection() == defaultScopeAndCollectionRadio.getModel()) {
                         // Import data into default scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add("_default._default");
+                        processBuilder.command().add("'_default._default'");
                     } else if (targetLocationGroup.getSelection() == collectionRadio.getModel()) {
-                        // Import data into selected scope and collection
+                        // Import data into the selected scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add(targetScopeField + "." + targetCollectionField);
+                        processBuilder.command().add("'" + targetScopeField + "." + targetCollectionField + "'");
                     } else if (targetLocationGroup.getSelection() == dynamicScopeAndCollectionRadio.getModel()) {
                         // Import data into dynamic scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add(dynamicScopeFieldField.getText() + "."
-                                + dynamicCollectionFieldField.getText());
+                        processBuilder.command().add("'" + dynamicScopeFieldField.getText() + "."
+                                + dynamicCollectionFieldField.getText() + "'");
                     }
 
-                    // Add document key options based on selected key option
+                    // Add document key options based on the selected key option
                     if (keyGroup.getSelection() == generateUUIDRadio.getModel()) {
                         // Generate random UUID for each document
                         processBuilder.command().add("--generate-key");
-                        processBuilder.command().add("#UUID#");
+                        processBuilder.command().add("'#UUID#'");
                     } else if (keyGroup.getSelection() == useFieldValueRadio.getModel()) {
                         // Use the value of a field as the key
                         processBuilder.command().add("--generate-key");
-                        processBuilder.command().add("%" + fieldNameField.getText() + "%");
+                        processBuilder.command().add("'" + fieldNameField.getText() + "'");
                     } else if (keyGroup.getSelection() == customExpressionRadio.getModel()) {
-                        // Generate key based on custom expression
+                        // Generate key based on the custom expression
                         processBuilder.command().add("--generate-key");
-                        processBuilder.command().add(customExpressionField.getText());
+                        processBuilder.command().add("'" + customExpressionField.getText() + "'");
                     }
 
                     // Add advanced options
                     if (skipFirstCheck.isSelected()) {
-                        processBuilder.command().add("--skip-rows");
+                        if (fileFormat.equals("json")) {
+                            processBuilder.command().add("--skip-docs");
+                        } else if (fileFormat.equals("csv")) {
+                            processBuilder.command().add("--skip-rows");
+                        }
                         processBuilder.command().add(skipFirstField.getText());
                     }
 
