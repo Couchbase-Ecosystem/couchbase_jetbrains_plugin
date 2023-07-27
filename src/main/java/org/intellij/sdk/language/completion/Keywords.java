@@ -22,6 +22,7 @@ public class Keywords extends CompletionProvider<CompletionParameters> {
     private static final List<LookupElementBuilder> KWD = Arrays.stream(SqlppTokenSets.KEYWORDS.getTypes())
             .map(kw -> LookupElementBuilder.create(kw.toString().replace("SqlppTokenType.", "")))
             .collect(Collectors.toList());
+
     public Keywords(CompletionContributor with) {
         with.extend(
                     CompletionType.BASIC,

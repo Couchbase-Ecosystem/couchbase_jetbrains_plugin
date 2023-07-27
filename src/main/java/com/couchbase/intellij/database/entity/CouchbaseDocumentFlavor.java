@@ -4,15 +4,17 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonObject;
 
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class CouchbaseDocumentFlavor implements CouchbaseClusterEntity {
     private CouchbaseCollection parent;
     private JsonObject properties;
 
+    private Set<CouchbaseField> children;
+
     public CouchbaseDocumentFlavor(CouchbaseCollection parent, JsonObject properties) {
         this.parent = parent;
         this.properties = properties;
+        children = CouchbaseField.fromObject(this, null, properties);
     }
 
     @Override
@@ -26,12 +28,17 @@ public class CouchbaseDocumentFlavor implements CouchbaseClusterEntity {
     }
 
     @Override
+    public void updateSchema() {
+        // noop
+    }
+
+    @Override
     public Cluster getCluster() {
         return parent.getCluster();
     }
 
     @Override
     public Set<CouchbaseField> getChildren() {
-        return CouchbaseField.fromObject(this, null, properties);
+        return children;
     }
 }

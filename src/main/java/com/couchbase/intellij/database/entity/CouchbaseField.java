@@ -3,10 +3,7 @@ package com.couchbase.intellij.database.entity;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
-import generated.psi.Obj;
-import kotlin.collections.ArrayDeque;
 
-import javax.naming.PartialResultException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,6 +20,7 @@ public class CouchbaseField implements CouchbaseClusterEntity {
         this.parent = parent;
         this.name = name;
         this.properties = properties;
+        this.children = flattenArray(properties);
     }
 
     @Override
@@ -36,13 +34,18 @@ public class CouchbaseField implements CouchbaseClusterEntity {
     }
 
     @Override
+    public void updateSchema() {
+        // noop
+    }
+
+    @Override
     public Cluster getCluster() {
         return documentFlavor.getCluster();
     }
 
     @Override
     public Set<CouchbaseField> getChildren() {
-        return flattenArray(properties);
+        return children;
     }
     protected Set<CouchbaseField> flattenArray(JsonObject items) {
         Object typeObj = items.get("type");

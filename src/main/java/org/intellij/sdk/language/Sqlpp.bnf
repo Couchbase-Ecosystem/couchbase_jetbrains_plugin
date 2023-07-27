@@ -547,6 +547,7 @@ expr ::= (
             (
                 literal |
                 identifier-ref |
+                escaped-identifier |
                 nested-expr |
                 function-call |
                 subquery-expr
@@ -585,7 +586,9 @@ single-quoted-string-character ::= (
 bool ::= TRUE | FALSE
 
 
-identifier-ref ::= IDENTIFIER | ESCAPED_IDENTIFIER
+identifier-ref ::= IDENTIFIER
+
+escaped-identifier ::= BACKTICK IDENTIFIER BACKTICK
 
 arithmetic-term ::= PLUS expr |
                     ASTERISK expr |

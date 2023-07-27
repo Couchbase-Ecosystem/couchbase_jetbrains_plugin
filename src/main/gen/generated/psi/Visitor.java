@@ -275,6 +275,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitEscapedIdentifier(@NotNull EscapedIdentifier o) {
+    visitPsiElement(o);
+  }
+
   public void visitExecuteFunction(@NotNull ExecuteFunction o) {
     visitPsiElement(o);
   }

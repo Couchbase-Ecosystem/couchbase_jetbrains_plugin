@@ -5,15 +5,6 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FieldExpr extends PsiElement {
-
-  @Nullable
-  EscapedIdentifier getEscapedIdentifier();
-
-  @Nullable
-  Expr getExpr();
-
-  @Nullable
-  IdentifierRef getIdentifierRef();
+public interface EscapedIdentifier extends PsiElement {
 
 }

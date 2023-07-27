@@ -77,6 +77,7 @@ public interface GeneratedTypes {
   IElementType DROP_SCOPE = new SqlppElementType("DROP_SCOPE");
   IElementType DROP_STATEMENT = new SqlppElementType("DROP_STATEMENT");
   IElementType ELEMENT_EXPR = new SqlppElementType("ELEMENT_EXPR");
+  IElementType ESCAPED_IDENTIFIER = new SqlppElementType("ESCAPED_IDENTIFIER");
   IElementType EXECUTE_FUNCTION = new SqlppElementType("EXECUTE_FUNCTION");
   IElementType EXISTS_EXPR = new SqlppElementType("EXISTS_EXPR");
   IElementType EXPLAIN_STATEMENT = new SqlppElementType("EXPLAIN_STATEMENT");
@@ -299,6 +300,7 @@ public interface GeneratedTypes {
   IElementType ASC = new SqlppTokenType("ASC");
   IElementType ASTERISK = new SqlppTokenType("ASTERISK");
   IElementType AT = new SqlppTokenType("AT");
+  IElementType BACKTICK = new SqlppTokenType("BACKTICK");
   IElementType BEGIN = new SqlppTokenType("BEGIN");
   IElementType BETWEEN = new SqlppTokenType("BETWEEN");
   IElementType BLOCK_COMMENT_OPEN = new SqlppTokenType("BLOCK_COMMENT_OPEN");
@@ -328,7 +330,6 @@ public interface GeneratedTypes {
   IElementType END = new SqlppTokenType("END");
   IElementType EQUAL = new SqlppTokenType("EQUAL");
   IElementType ESCAPED_DQUOTE = new SqlppTokenType("ESCAPED_DQUOTE");
-  IElementType ESCAPED_IDENTIFIER = new SqlppTokenType("ESCAPED_IDENTIFIER");
   IElementType ESCAPED_QUOTE = new SqlppTokenType("ESCAPED_QUOTE");
   IElementType ESCAPE_SEQUENCE = new SqlppTokenType("ESCAPE_SEQUENCE");
   IElementType EVERY = new SqlppTokenType("EVERY");
@@ -686,6 +687,9 @@ public interface GeneratedTypes {
       }
       else if (type == ELEMENT_EXPR) {
         return new ElementExprImpl(node);
+      }
+      else if (type == ESCAPED_IDENTIFIER) {
+        return new EscapedIdentifierImpl(node);
       }
       else if (type == EXECUTE_FUNCTION) {
         return new ExecuteFunctionImpl(node);

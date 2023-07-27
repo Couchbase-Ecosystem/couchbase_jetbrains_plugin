@@ -59,6 +59,12 @@ public class ExprImpl extends SqlppPSIWrapper implements Expr {
 
   @Override
   @Nullable
+  public EscapedIdentifier getEscapedIdentifier() {
+    return findChildByClass(EscapedIdentifier.class);
+  }
+
+  @Override
+  @Nullable
   public FunctionCall getFunctionCall() {
     return findChildByClass(FunctionCall.class);
   }

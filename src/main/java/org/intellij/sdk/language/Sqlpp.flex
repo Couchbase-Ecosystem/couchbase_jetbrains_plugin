@@ -23,10 +23,9 @@ FRACTION = (\.[0-9]+)
 EXPONENT = ([eE][-+]?[0-9]+)
 NBR = (-?{INTGR}{FRACTION}?{EXPONENT}?)
 
-IDT = [a-zA-Z_][0-9a-zA-Z_$]*
+IDT = [a-zA-Z_][0-9a-zA-Z_\-$]*
 HEX = [0-9a-fA-F]
 CHR = (\\[\\\/bfnrt]|\\u{HEX}{HEX}{HEX}{HEX})
-ESCAPED_IDT = `{IDT}`
 ASTERISK = \*
 OPEN_BRACKET = \[
 CLOSE_BRACKET = \]
@@ -293,6 +292,7 @@ Backtick = "`"
       "!=" { return GeneratedTypes.NOT_EQUAL; }
       "=" { return GeneratedTypes.EQUAL; }
       {NBR} {return GeneratedTypes.NBR;}
+      "`" { return GeneratedTypes.BACKTICK; }
 
       "ABS" { return GeneratedTypes.FUNCS; }
       "ACOS" { return GeneratedTypes.FUNCS; }
@@ -479,7 +479,6 @@ Backtick = "`"
     "WEEKDAY_MILLIS" { return GeneratedTypes.FUNCS; }
     "WEEKDAY_STR" { return GeneratedTypes.FUNCS; }
       {IDT} { return GeneratedTypes.IDENTIFIER; }
-      {ESCAPED_IDT} { return GeneratedTypes.ESCAPED_IDENTIFIER; }
       {ASTERISK} { return GeneratedTypes.ASTERISK; }
       {OPEN_BRACKET} { return GeneratedTypes.LBRACKET; }
       {CLOSE_BRACKET} { return GeneratedTypes.RBRACKET; }

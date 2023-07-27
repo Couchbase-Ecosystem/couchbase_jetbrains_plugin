@@ -11,38 +11,20 @@ import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class FieldExprImpl extends SqlppPSIWrapper implements FieldExpr {
+public class EscapedIdentifierImpl extends SqlppPSIWrapper implements EscapedIdentifier {
 
-  public FieldExprImpl(@NotNull ASTNode node) {
+  public EscapedIdentifierImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitFieldExpr(this);
+    visitor.visitEscapedIdentifier(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof Visitor) accept((Visitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public EscapedIdentifier getEscapedIdentifier() {
-    return findChildByClass(EscapedIdentifier.class);
-  }
-
-  @Override
-  @Nullable
-  public Expr getExpr() {
-    return findChildByClass(Expr.class);
-  }
-
-  @Override
-  @Nullable
-  public IdentifierRef getIdentifierRef() {
-    return findChildByClass(IdentifierRef.class);
   }
 
 }
