@@ -185,14 +185,12 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private void scheduleSchemaUpdate() {
         if (!schemaUpdating.get() && System.currentTimeMillis() - lastSchemaUpdate > 60000) {
             schemaUpdating.set(true);
-            if (buckets == null) {
-                new Task.ConditionalModal(null, "Reading Couchbase cluster schema", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        doUpdateSchema();
-                    }
-                }.queue();
-            }
+            new Task.ConditionalModal(null, "Reading Couchbase cluster schema", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    doUpdateSchema();
+                }
+            }.queue();
         }
     }
 
