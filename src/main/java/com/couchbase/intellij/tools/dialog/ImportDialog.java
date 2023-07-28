@@ -1205,7 +1205,7 @@ public class ImportDialog extends DialogWrapper {
 
                     if (ignoreFieldsCheck.isSelected()) {
                         processBuilder.command().add("--ignore-fields");
-                        processBuilder.command().add(ignoreFieldsField.getText());
+                        processBuilder.command().add("'" + ignoreFieldsField.getText() + "'");
                     }
 
                     processBuilder.command().add("--threads");
@@ -1233,7 +1233,6 @@ public class ImportDialog extends DialogWrapper {
                         ApplicationManager.getApplication().invokeLater(
                                 () -> Messages.showInfoMessage("Data imported successfully", "Import Complete"));
                     } else {
-                        // Read the error stream of the process to get more information about the error
                         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
                         StringBuilder errorMessage = new StringBuilder();
                         String line;
@@ -1242,9 +1241,13 @@ public class ImportDialog extends DialogWrapper {
                         }
                         reader.close();
 
-                        Log.error("An error occurred while trying to import the data: " + errorMessage);
+                        Log.error(
+                                "An error occurred while trying to import the data: " + errorMessage + "with exit code "
+                                        + exitCode);
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(
-                                "An error occurred while trying to import the data:\n" + errorMessage,
+                                "An error occurred while trying to import the data:\n" + errorMessage
+                                        + "\nwith exit code "
+                                        + exitCode,
                                 "Import Error"));
                     }
                 } catch (Exception e) {
