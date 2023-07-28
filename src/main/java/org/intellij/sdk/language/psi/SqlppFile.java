@@ -3,23 +3,20 @@
 package org.intellij.sdk.language.psi;
 
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
-import com.intellij.lang.ASTNode;
+import com.intellij.extapi.psi.PsiFileBase;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.psi.FileViewProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import generated.psi.Alias;
 import org.intellij.sdk.language.SQLPPFileType;
 import org.intellij.sdk.language.SQLPPLanguage;
-import com.intellij.extapi.psi.PsiFileBase;
-import com.intellij.openapi.fileTypes.FileType;
-import com.intellij.psi.FileViewProvider;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SqlppFile extends PsiFileBase {
+  private static List<String> context;
   public SqlppFile(@NotNull FileViewProvider viewProvider) {
     super(viewProvider, SQLPPLanguage.INSTANCE);
   }
@@ -42,5 +39,13 @@ public class SqlppFile extends PsiFileBase {
       PsiElement targetPsi = aliasPsi.getPrevSibling();
     });
     return result;
+  }
+
+  public List<String> getClusterContext() {
+    return new ArrayList<>(context == null ? Collections.EMPTY_LIST : context);
+  }
+
+  public void setClusterContext(List<String> context) {
+    this.context = context;
   }
 }
