@@ -319,8 +319,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
                     contextLabel.revalidate();
-                    selectedBucketContext = null;
-                    selectedScopeContext = null;
+                    setSelectedContext(Collections.EMPTY_LIST);
                 }
             };
 
@@ -378,8 +377,7 @@ public class CustomSqlFileEditor implements FileEditor {
                             topPanel.revalidate();
                         }
                     });
-                    selectedBucketContext = null;
-                    selectedScopeContext = null;
+                    setSelectedContext(Collections.EMPTY_LIST);
                     cachedPreviousSelectedConnection = e.getItem().toString();
                 }
             }

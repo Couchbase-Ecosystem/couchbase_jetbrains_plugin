@@ -20,10 +20,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Identifiers extends CompletionProvider<CompletionParameters> {
     private static final Logger log = Logger.getInstance(Identifiers.class);
+
     public Identifiers(CompletionContributor with) {
         // match any identifier inside an expression
         with.extend(
@@ -49,21 +51,21 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         with.extend(
                 CompletionType.BASIC,
                 PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                       .with(new PatternCondition<PsiElement>("backtick") {
+                        .with(new PatternCondition<PsiElement>("backtick") {
 
-                           @Override
-                           public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
-                               if (element.getPrevSibling() != null) {
-                                   if ("`".equals(element.getPrevSibling().getText())) {
-                                       return true;
-                                   } else if (element.getPrevSibling() instanceof PsiErrorElement) {
-                                       PsiElement tick = element.getPrevSibling().getPrevSibling();
-                                       return tick != null && "`".equals(tick.getText());
-                                   }
-                               }
-                               return false;
-                           }
-                       }),
+                            @Override
+                            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
+                                if (element.getPrevSibling() != null) {
+                                    if ("`".equals(element.getPrevSibling().getText())) {
+                                        return true;
+                                    } else if (element.getPrevSibling() instanceof PsiErrorElement) {
+                                        PsiElement tick = element.getPrevSibling().getPrevSibling();
+                                        return tick != null && "`".equals(tick.getText());
+                                    }
+                                }
+                                return false;
+                            }
+                        }),
                 this
         );
 
@@ -113,6 +115,15 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                         }),
                 this
         );
+
+        // after failed expression
+        with.extend(
+                CompletionType.BASIC,
+                PlatformPatterns.psiElement()
+                        .inFile(PlatformPatterns.psiFile(SqlppFile.class))
+                        .with(Utils.AFTER_FAILED_EXPR),
+                this
+        );
     }
 
     @Override
@@ -122,32 +133,61 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
             return;
         }
 
-        PsiElement element = parameters.getPosition();
+        PsiElement element = Utils.cleanErrorIfPresent(parameters.getPosition());
+
         PsiFile psiFile = element.getContainingFile();
         List<String> path = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
-        if (element.getPrevSibling() != null && element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT) {
-            PsiElement dot = element.getPrevSibling();
-            if (PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).accepts(dot.getPrevSibling())
-                    || dot.getPrevSibling() instanceof IdentifierRef) {
-                path.addAll(getPath(dot.getPrevSibling()));
-            } else if (PlatformPatterns.psiElement(GeneratedTypes.STATEMENT).accepts(dot.getPrevSibling())) {
-                PsiElement pathEnd = dot.getPrevSibling();
-                while (pathEnd != null && pathEnd.getNode().getElementType() != GeneratedTypes.IDENTIFIER_REF) {
-                    pathEnd = pathEnd.getLastChild();
-                }
-                if (pathEnd != null) {
-                    path.addAll(getPath(pathEnd));
-                }
-            }
+
+
+        if (PlatformPatterns.psiElement().inside(PlatformPatterns.psiElement(GeneratedTypes.KEYSPACE_PATH)).accepts(element)) {
+            // need to get up to the level of ref-ref to find the dot and skip fake ident
+            element = element.getParent().getParent();
         }
-        if (!path.isEmpty()) {
-            completeForPath(cluster, path, result);
-        } else {
+
+        path.addAll(Utils.getPath(element));
+
+//        if (element.getPrevSibling() != null && element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT) {
+//            PsiElement dot = element.getPrevSibling();
+//            if (PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).accepts(dot.getPrevSibling())
+//                    || SqlppTokenSets.REFS.contains(dot.getPrevSibling().getNode().getElementType())
+//                    || dot.getPrevSibling() instanceof IdentifierRef) {
+//                path.addAll(getPath(dot.getPrevSibling()));
+//            } else if (PlatformPatterns.psiElement(GeneratedTypes.STATEMENT).accepts(dot.getPrevSibling())) {
+//                PsiElement pathEnd = dot.getPrevSibling();
+//                while (pathEnd != null && pathEnd.getNode().getElementType() != GeneratedTypes.IDENTIFIER_REF) {
+//                    pathEnd = pathEnd.getLastChild();
+//                }
+//                if (pathEnd != null) {
+//                    path.addAll(getPath(pathEnd));
+//                }
+//            }
+//        }
+        if (path.isEmpty()) {
             appendRecursively(0, cluster, result, (depth, entity) -> depth <= 5);
+        } else {
+            completeForPath(cluster, path, result, 0, (depth, entity) -> depth <= 5);
         }
+
+        appendAliases(element, cluster, path, result);
     }
 
-    private void completeForPath(CouchbaseClusterEntity from, List<String> to, CompletionResultSet result) {
+    private void appendAliases(PsiElement element, ActiveCluster cluster, List<String> path, CompletionResultSet result) {
+        String name = path.size() > 0 ? path.get(0) : null;
+        Utils.findAlias(element, name).forEach(alias -> {
+            String aliasName = Utils.getAliasName(alias).get();
+            if (aliasName.equals(name)) {
+                List<String> aliasPath = Utils.getAliasPath(alias);
+                int rm = aliasPath.size();
+                aliasPath.addAll(path);
+                aliasPath.remove(rm);
+                completeForPath(cluster, aliasPath, result, 0, (d, e) -> d <= 5);
+            } else {
+                result.addElement(LookupElementBuilder.create(aliasName));
+            }
+        });
+    }
+
+    private void completeForPath(CouchbaseClusterEntity from, List<String> to, CompletionResultSet result, int depth, BiPredicate<Integer, CouchbaseClusterEntity> passer) {
         if (to == null || to.isEmpty()) {
             from.getChildren().stream()
                     .flatMap(e -> {
@@ -165,40 +205,30 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         } else {
             String name = to.get(0);
             if (name != null) {
-                Optional<? extends CouchbaseClusterEntity> child = from.getChildren().stream()
-                        .filter(Objects::nonNull)
-                        .filter(e -> name.equals(e.getName()))
-                        .findFirst();
-                if (child.isPresent()) {
-                    List<String> subList = new ArrayList<>(to);
-                    subList.remove(0);
-                    completeForPath(child.get(), subList, result);
+                Set<? extends CouchbaseClusterEntity> children = from.getChildren() == null ? Collections.EMPTY_SET :
+                        from.getChildren().stream()
+                                // ignore elements with no name
+                                .flatMap(e -> e.getName() == null ? e.getChildren() == null ? Stream.empty() : e.getChildren().stream() : Stream.of(e))
+                                .filter(Objects::nonNull)
+                                .filter(e -> e.getName().startsWith(name))
+                                .collect(Collectors.toSet());
+                for (CouchbaseClusterEntity child : children) {
+                    if (name.equals(child.getName())) {
+                        List<String> subList = new ArrayList<>(to);
+                        subList.remove(0);
+                        completeForPath(child, subList, result, depth + 1, passer);
+                    } else {
+                        result.addElement(LookupElementBuilder.create(child.getName()));
+                    }
+                }
+                if (children.isEmpty()) {
+                    if (passer.test(depth, from) && from.getChildren() != null) {
+                        from.getChildren().forEach(c -> completeForPath(c, to, result, depth + 1, passer));
+                    }
+
                 }
             }
         }
-    }
-
-    private String getIdentifier(PsiElement element) {
-        if (element.getNode().getElementType() == GeneratedTypes.IDENTIFIER_REF) {
-            element = element.getLastChild();
-        }
-        if (element.getNode().getElementType() == GeneratedTypes.ESCAPED_IDENTIFIER) {
-            element = element.getFirstChild().getNextSibling();
-        }
-        return element.getText();
-    }
-
-    private List<String> getPath(PsiElement element) {
-        List<String> result = new ArrayList<>();
-
-        result.add(getIdentifier(element));
-        while (element.getPrevSibling() != null &&
-                element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT &&
-                element.getPrevSibling().getPrevSibling() instanceof IdentifierRef) {
-            element = element.getPrevSibling().getPrevSibling();
-            result.add(0, element.getText());
-        }
-        return result;
     }
 
     private static void appendRecursively(int depth, CouchbaseClusterEntity entity, CompletionResultSet result, BiPredicate<Integer, CouchbaseClusterEntity> filter) {

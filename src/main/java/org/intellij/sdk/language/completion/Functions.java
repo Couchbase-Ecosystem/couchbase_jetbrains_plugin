@@ -2,14 +2,13 @@ package org.intellij.sdk.language.completion;
 
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElement;
-import com.intellij.codeInsight.lookup.LookupElementBuilder;
+import com.intellij.lang.parser.GeneratedParserUtilBase;
+import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
-import com.intellij.psi.PsiErrorElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.impl.source.tree.FileElement;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.util.ProcessingContext;
 import generated.GeneratedTypes;
-import generated.psi.Statement;
 import generated.psi.impl.ExprImpl;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +50,7 @@ public class Functions extends CompletionProvider<CompletionParameters> {
 
     static {
         Arrays.stream(SQLPP_FUNC)
-                .map(LookupElementBuilder::create)
+                .map(s -> new CouchbaseLookupItem(s, false))
                 .forEach(LOOKUPS::add);
     }
 
@@ -64,14 +63,47 @@ public class Functions extends CompletionProvider<CompletionParameters> {
         with.extend(
                 CompletionType.BASIC,
                 PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new DebugPatternCondition<>())
+                        .with(Utils.EXCLUDE_FUNCTIONS)
                         .inFile(
                                 PlatformPatterns.psiFile(SqlppFile.class)
                         )
-                        .afterSibling(
-                                PlatformPatterns.psiElement(GeneratedTypes.LPAREN)
-                                        .afterSibling(PlatformPatterns.psiElement(GeneratedTypes.FUNCS))
-                        ),
+                        .with(Utils.INCLUDE_FUNCTIONS),
+                this
+        );
+        with.extend(
+                CompletionType.BASIC,
+                PlatformPatterns.psiElement()
+                        .inFile(PlatformPatterns.psiFile(SqlppFile.class))
+                        .with(Utils.EXCLUDE_FUNCTIONS)
+                        .with(new PatternCondition<PsiElement>("custom places") {
+                            @Override
+                            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
+                                return PlatformPatterns.psiElement()
+                                        .afterSiblingSkipping(
+                                                PlatformPatterns.psiElement(PsiWhiteSpace.class),
+                                                PlatformPatterns.psiElement(GeneratedTypes.EQUAL)
+                                        ).accepts(element);
+                            }
+                        }),
+                this
+        );
+        // after failed expression
+        with.extend(
+                CompletionType.BASIC,
+                PlatformPatterns.psiElement()
+                        .inFile(PlatformPatterns.psiFile(SqlppFile.class))
+                        .with(Utils.EXCLUDE_FUNCTIONS)
+                        .with(Utils.AFTER_FAILED_EXPR),
+                this
+        );
+
+        // inside DummyBlock
+        with.extend(
+                CompletionType.BASIC,
+                PlatformPatterns.psiElement()
+                        .inFile(PlatformPatterns.psiFile(SqlppFile.class))
+                        .inside(PlatformPatterns.psiElement(GeneratedParserUtilBase.DummyBlock.class))
+                        .with(Utils.EXCLUDE_FUNCTIONS),
                 this
         );
     }

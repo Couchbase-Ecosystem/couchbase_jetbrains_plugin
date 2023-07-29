@@ -56,7 +56,7 @@ public class CouchbaseField implements CouchbaseClusterEntity {
             types = Arrays.asList((String) typeObj);
         }
         if (types.contains("object")) {
-            return CouchbaseField.fromObject(documentFlavor, this, items.getObject("properties"));
+            return CouchbaseField.fromObject(documentFlavor, this, items);
         } else if (types.contains("array")) {
             return flattenArray(items.getObject("items"));
         }

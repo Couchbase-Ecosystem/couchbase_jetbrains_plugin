@@ -4,6 +4,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.*;
 import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixture4TestCase;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.junit.Test;
@@ -17,16 +18,22 @@ import java.util.function.Consumer;
 
 public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
-    private void checkCompletes(String text, String complete) {
-        checkCompletes(null,text, complete);
+    private void assertCompletes(String text, String complete) {
+        assertCompletes(null, text, complete);
     }
-    private void checkCompletes(List<String> context, String text, String complete) {
-        checkCompletes(context, text, items -> {
-            assertTrue(items.length > 0);
-            assertTrue(Arrays.stream(items).anyMatch(i -> complete.equals(i.getLookupString())));
+
+    private void assertCompletes(List<String> context, String text, String complete) {
+        assertCompletes(context, text, items -> {
+            if (complete == null) {
+                assertNull(items);
+            } else {
+                assertTrue(items.length > 0);
+                assertTrue(Arrays.stream(items).anyMatch(i -> complete.equals(i.getLookupString())));
+            }
         });
     }
-    private void checkCompletes(List<String> context, String text, Consumer<LookupElement[]> checker) {
+
+    private void assertCompletes(List<String> context, String text, Consumer<LookupElement[]> checker) {
         ActiveCluster activeClusterInstance = Mockito.mock(ActiveCluster.class);
         Cluster cluster = Mockito.mock(Cluster.class);
         CouchbaseBucket bucket = Mockito.mock(CouchbaseBucket.class);
@@ -61,8 +68,10 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         Mockito.when(activeClusterInstance.getCluster()).thenReturn(cluster);
         ActiveCluster.setInstance(activeClusterInstance);
 
-        myFixture.configureByText("test.sqlpp", "");
-        myFixture.type(text);
+        if (!text.contains(CodeInsightTestFixture.CARET_MARKER)) {
+            text += CodeInsightTestFixture.CARET_MARKER;
+        }
+        myFixture.configureByText("test.sqlpp", text);
         ((SqlppFile) myFixture.getFile()).setClusterContext(context);
         LookupElement[] items = myFixture.completeBasic();
         checker.accept(items);
@@ -70,64 +79,139 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testInExpr() {
-        checkCompletes("select test, ", "bucket-entity");
+        assertCompletes("select test, ", "bucket-entity");
     }
 
     @Test
     public void testInFunction() {
-        checkCompletes("select * from test, TOOBJ(", "bucket-entity");
+        assertCompletes("select * from test, TOOBJ(", "bucket-entity");
     }
 
     @Test
     public void testEscaped() {
-        checkCompletes("select `", "bucket-entity");
+        assertCompletes("select `", "bucket-entity");
     }
 
     @Test
     public void testDot() {
-        checkCompletes("select bucket-entity.", "scope-entity");
+        assertCompletes("select bucket-entity.", "scope-entity");
     }
 
     @Test
     public void testField() {
-        checkCompletes("select ", "parent-field");
+        assertCompletes("select ", "parent-field");
     }
 
     @Test
     public void testEscapedDot() {
-        checkCompletes("select `bucket-entity`.", "scope-entity");
+        assertCompletes("select `bucket-entity`.", "scope-entity");
     }
 
     @Test
     public void testEscapedDotCollection() {
-        checkCompletes("select `bucket-entity`.`scope-entity`.`collection-entity`.", "parent-field");
+        assertCompletes("select `bucket-entity`.`scope-entity`.`collection-entity`.", "parent-field");
+    }
+
+    @Test
+    public void testSubFields() {
+        assertCompletes("select `bucket-entity`.`scope-entity`.`collection-entity`.parent-field.", "child-field");
+    }
+
+    @Test
+    public void testSubFieldsViaContext() {
+        assertCompletes(Arrays.asList("bucket-entity", "scope-entity"),
+                "select * from `collection-entity`.parent-field.", "child-field");
+    }
+
+    @Test
+    public void testInWhere() {
+        assertCompletes(Arrays.asList("bucket-entity", "scope-entity"),
+                "SELECT * from collection-entity where collection-entity.parent-field.",
+                "child-field");
     }
 
     @Test
     public void testDotEscape() {
-        checkCompletes("select bucket-entity.`", "scope-entity");
+        assertCompletes("select bucket-entity.`", "scope-entity");
     }
 
     @Test
     public void testDoubleDot() {
-        checkCompletes("select * from bucket-entity.scope-entity.", "collection-entity");
+        assertCompletes("select * from bucket-entity.scope-entity.", "collection-entity");
     }
 
     @Test
     public void testUpdateSet() {
-        checkCompletes("UPDATE test SET ", "parent-field");
+        assertCompletes("UPDATE test SET ", "parent-field");
     }
 
     @Test
     public void testUpdateSetExpression() {
-        checkCompletes("UPDATE travel-sample.inventory.hotel SET `airlineid` = '100' + ", "parent-field");
+        assertCompletes("UPDATE travel-sample.inventory.hotel SET `airlineid` = '100' + ", "parent-field");
     }
 
     @Test
     public void testUsesEditorContext() {
-        checkCompletes(Arrays.asList("other-bucket-entity", "other-scope-entity"), "SELECT ", items -> {
+        assertCompletes(Arrays.asList("other-bucket-entity", "other-scope-entity"), "SELECT ", items -> {
             assertTrue(Arrays.stream(items).anyMatch(item -> "other-collection-entity".equals(item.getLookupString())));
             assertTrue(Arrays.stream(items).noneMatch(item -> "collection-entity".equals(item.getLookupString())));
         });
+    }
+
+    @Test
+    public void testInConditions() {
+        assertCompletes("SELECT * from landmark.geo.accuracy where landmark.geo.accuracy = ");
+    }
+
+    private void assertCompletes(String s) {
+        assertCompletes(s, "bucket-entity");
+    }
+
+    @Test
+    public void testAfterFailedCondition() {
+        assertCompletes("SELECT * from landmark.geo.accuracy where landmark.geo.accuracy = 100 +");
+    }
+
+    @Test
+    public void testPaths() {
+        assertCompletes(
+                Arrays.asList("bucket-entity", "scope-entity"),
+                "SELECT * from collection-entity where landmark.geo.accuracy = 100 + 300 and collection-entity.",
+                "parent-field"
+        );
+    }
+
+    @Test
+    public void testExpressionChild() {
+        assertCompletes(
+                Arrays.asList("bucket-entity", "scope-entity"),
+                "SELECT * from collection-entity where landmark.geo.accuracy = 100 + 300 and collection-entity.parent-field.",
+                "child-field"
+        );
+    }
+
+    @Test
+    public void testPartialIdentifiers() {
+        assertCompletes("UPDATE collection-entity SET paren", null);
+    }
+
+    @Test
+    public void testAlias() {
+        assertCompletes("select * from test as test_alias where ", "test_alias");
+    }
+
+    @Test
+    public void testAliasPath() {
+        assertCompletes("select * from bucket-entity.scope-entity.collection-entity as test_alias where test_alias.", "parent-field");
+    }
+
+    @Test
+    public void testAliasPathSubfield() {
+        assertCompletes("select * from bucket-entity.scope-entity.collection-entity as test_alias where test_alias.parent-field.", "child-field");
+    }
+
+    @Test
+    public void testAliasPathSubfieldInFunction() {
+        assertCompletes("select * from bucket-entity.scope-entity.collection-entity as test_alias where test_alias.parent-field.child-field  = lower(test_alias.parent-field.", "child-field");
     }
 }

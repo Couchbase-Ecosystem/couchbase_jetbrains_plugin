@@ -270,6 +270,12 @@ public interface SqlppTokenSets {
 
 //          GeneratedTypes.XOR
   );
+    TokenSet REFS = TokenSet.create(
+            GeneratedTypes.BUCKET_REF,
+            GeneratedTypes.SCOPE_REF,
+            GeneratedTypes.COLLECTION_REF,
+            GeneratedTypes.IDENTIFIER_REF
+    );
 }
 
 
