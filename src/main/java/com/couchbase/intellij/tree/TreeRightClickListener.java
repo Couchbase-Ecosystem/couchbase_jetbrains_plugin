@@ -91,7 +91,7 @@ public class TreeRightClickListener {
 
             JMenu tools = new JMenu("Tools");
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).isAvailable()) {
                 JBMenuItem pillowFight = new JBMenuItem("Pillow Fight");
                 pillowFight.addActionListener(e13 -> {
                     PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
@@ -108,14 +108,16 @@ public class TreeRightClickListener {
             });
             tools.add(ddlExport);
 
-            JBMenuItem cbexport = new JBMenuItem("Data Export");
-            cbexport.addActionListener(event -> {
-                ExportDialog dialog = new ExportDialog();
-                dialog.show();
-            });
-            tools.add(cbexport);
+            if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
+                JBMenuItem cbexport = new JBMenuItem("Data Export");
+                cbexport.addActionListener(event -> {
+                    ExportDialog dialog = new ExportDialog();
+                    dialog.show();
+                });
+                tools.add(cbexport);
+            }
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
                 JBMenuItem cbimport = new JBMenuItem("Data Import");
                 tools.add(cbimport);
             }
