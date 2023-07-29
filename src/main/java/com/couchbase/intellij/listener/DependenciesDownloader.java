@@ -130,7 +130,7 @@ public class DependenciesDownloader {
         if (CBTools.getTool(CBTools.Type.SHELL).getStatus() == ToolStatus.NOT_AVAILABLE
                 && !isInstalled(toolsPath, downloads.get(TOOL_SHELL), CBTools.Type.SHELL)) {
             //avoiding 2 threads to install the same thing at the same time
-            Log.debug("Downloading CB Shell");
+            Log.info("Downloading CB Shell. The feature will be automatically enabled when the download is complete.");
             CBTools.getTool(CBTools.Type.SHELL).setStatus(ToolStatus.DOWNLOADING);
             downloadAndUnzip(shellPath, shell);
         } else {
@@ -143,7 +143,7 @@ public class DependenciesDownloader {
         if (CBTools.getTool(CBTools.Type.CB_IMPORT).getStatus() == ToolStatus.NOT_AVAILABLE
                 && !isInstalled(toolsPath, downloads.get(TOOL_IMPORT_EXPORT), CBTools.Type.CB_EXPORT)) {
             //avoiding 2 threads to install the same thing at the same time
-            Log.debug("Downloading CB Import/Export");
+            Log.info("Downloading CB Import/Export. The feature will be automatically enabled when the download is complete.");
             CBTools.getTool(CBTools.Type.CB_EXPORT).setStatus(ToolStatus.DOWNLOADING);
             CBTools.getTool(CBTools.Type.CB_IMPORT).setStatus(ToolStatus.DOWNLOADING);
             downloadAndUnzip(cbImportDir, cbImport);
@@ -158,7 +158,7 @@ public class DependenciesDownloader {
         if (CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getStatus() == ToolStatus.NOT_AVAILABLE
                 && !isInstalled(toolsPath, downloads.get(ALL_TOOLS), CBTools.Type.CBC_PILLOW_FIGHT)) {
 
-            Log.debug("Downloading CB tools");
+            Log.info("Downloading CB tools. The feature will be automatically enabled when the download is complete.");
             CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).setStatus(ToolStatus.DOWNLOADING);
             CBTools.getTool(CBTools.Type.MCTIMINGS).setStatus(ToolStatus.DOWNLOADING);
             downloadAndUnzip(toolsDir, cbTools);
@@ -171,7 +171,6 @@ public class DependenciesDownloader {
 
 
     private void setToolActive(ToolStatus status, String path, ToolSpec spec) {
-
         for (Map.Entry<CBTools.Type, String> entry : spec.getToolsMap().entrySet()) {
             CBTools.getTool(entry.getKey()).setPath(path + File.separator + entry.getValue());
             CBTools.getTool(entry.getKey()).setStatus(status);
