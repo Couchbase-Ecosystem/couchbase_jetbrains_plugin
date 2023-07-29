@@ -83,4 +83,9 @@ public class KeywordsTest extends LightPlatformCodeInsightFixture4TestCase {
     public void testAliasPathSubfieldInFunction() {
         assertNotCompletes("select * from bucket-entity.scope-entity.collection-entity as test_alias where test_alias.parent-field.child-field  = lower(test_alias.parent-field.");
     }
+
+    @Test
+    public void testDeleteFromPath() {
+        assertNotCompletes("delete from travel-sample.inventory.");
+    }
 }

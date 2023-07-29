@@ -175,6 +175,9 @@ public class Utils {
     }
 
     public static boolean isAfterDot(PsiElement element) {
+        while (!(element.getParent() instanceof PsiFile) && SqlppTokenSets.REFS.contains(element.getParent().getNode().getElementType())) {
+            element = element.getParent();
+        }
         while (element.getPrevSibling() != null) {
             if (element.getPrevSibling() instanceof GeneratedParserUtilBase.DummyBlock) {
                 if (element.getPrevSibling().getLastChild() != null && element.getPrevSibling().getLastChild().getNode().getElementType() == GeneratedTypes.DOT) {
