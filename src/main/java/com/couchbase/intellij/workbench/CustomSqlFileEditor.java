@@ -32,10 +32,8 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
@@ -44,6 +42,7 @@ public class CustomSqlFileEditor implements FileEditor {
     private final EditorWrapper queryEditor;
     private final VirtualFile file;
     private final Project project;
+    private final Map<Key<?>, Object> data = new HashMap<>();
     JPanel panel;
     private JLabel historyLabel;
     private JComponent component;
@@ -272,7 +271,6 @@ public class CustomSqlFileEditor implements FileEditor {
         panel.add(topPanel, BorderLayout.NORTH);
     }
 
-
     private JPanel getQueryContextPanel() {
         JPanel contextPanel = new JPanel(new FlowLayout());
         JLabel conLabel = new JLabel("Connection:");
@@ -468,15 +466,23 @@ public class CustomSqlFileEditor implements FileEditor {
         return (otherState, level1) -> false;
     }
 
+    @Nullable
     @Override
     public <T> T getUserData(@NotNull Key<T> key) {
-        return null;
+        @SuppressWarnings("unchecked")
+        T result = (T) data.get(key);
+
+        return result;
     }
 
     @Override
-    public <T> void putUserData(@NotNull Key<T> key, T value) {
+    public <T> void putUserData(@NotNull Key<T> key, @Nullable T value) {
+        if (value == null) {
+            data.remove(key);
+        } else {
+            data.put(key, value);
+        }
     }
-
 
     static class EditorWrapper {
         private final Editor viewer;
@@ -503,6 +509,5 @@ public class CustomSqlFileEditor implements FileEditor {
             EditorFactory.getInstance().releaseEditor(Objects.requireNonNullElseGet(viewer, textEditor::getEditor));
         }
     }
-
 
 }

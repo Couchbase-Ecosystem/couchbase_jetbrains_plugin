@@ -98,7 +98,7 @@ public class PillowFightRunner {
             command.add("--json");
         }
         if (noop.equals("Enable")) {
-            command.add(" --noop");
+            command.add("--noop");
         }
         if (subdoc.equals("Enable")) {
             command.add("--subdoc");
@@ -106,6 +106,10 @@ public class PillowFightRunner {
         if (pathcount != null) {
             command.add("--pathcount");
             command.add(pathcount);
+        }
+
+        if (Log.isDebug()) {
+            Log.debug(String.join(" ", command));
         }
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
