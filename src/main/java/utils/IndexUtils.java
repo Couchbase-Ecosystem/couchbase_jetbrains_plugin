@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 public class IndexUtils {
 
-    public static String getIndexDefinition(QueryIndex qi) {
+    public static String getIndexDefinition(QueryIndex qi, boolean defer) {
         StringBuilder sb = new StringBuilder();
 
         if (qi.primary()) {
@@ -37,6 +37,10 @@ public class IndexUtils {
 
         if (qi.partition().isPresent()) {
             sb.append(" PARTITION BY ").append(qi.partition().get());
+        }
+
+        if (defer) {
+            sb.append(" WITH {\"defer_build\":true}");
         }
         return sb.toString();
     }

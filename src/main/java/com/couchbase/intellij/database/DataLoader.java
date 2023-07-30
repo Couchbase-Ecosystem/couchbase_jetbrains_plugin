@@ -524,7 +524,7 @@ public class DataLoader {
             if (!results.isEmpty()) {
                 for (QueryIndex qi : results) {
                     String fileName = qi.name() + ".sqlpp";
-                    VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), SQLPPFormatter.format(IndexUtils.getIndexDefinition(qi)));
+                    VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), SQLPPFormatter.format(IndexUtils.getIndexDefinition(qi, false)));
                     virtualFile.putUserData(READ_ONLY, "true");
 
                     IndexNodeDescriptor node = new IndexNodeDescriptor(idxs.getBucket(), idxs.getScope(), idxs.getCollection(), fileName, virtualFile);
