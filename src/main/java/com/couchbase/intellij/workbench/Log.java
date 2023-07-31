@@ -3,6 +3,7 @@ package com.couchbase.intellij.workbench;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 
 import java.io.PrintWriter;
@@ -24,8 +25,15 @@ public class Log {
 
     public static ConsoleView getLogger() {
         if (console == null) {
-            console = TextConsoleBuilderFactory.getInstance().createBuilder(
-                    ProjectManager.getInstance().getDefaultProject()).getConsole();
+            ProjectManager projectManager = ProjectManager.getInstance();
+            Project[] openProjects = projectManager.getOpenProjects();
+
+            if (openProjects.length == 0) {
+                throw new IllegalStateException("No non-default projects are open");
+            }
+
+            Project nonDefaultProject = openProjects[0];
+            console = TextConsoleBuilderFactory.getInstance().createBuilder(nonDefaultProject).getConsole();
         }
         return console;
     }
@@ -39,6 +47,12 @@ public class Log {
     public static void debug(String message) {
         if (logLevel >= 3) {
             getLogger().print("\n" + message, ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+        }
+    }
+
+    public static void debug(String message, Exception e) {
+        if (logLevel >= 3) {
+            getLogger().print("\n" + message + " error: " + convertToString(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
         }
     }
 

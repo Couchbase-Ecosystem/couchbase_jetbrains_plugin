@@ -273,7 +273,7 @@ public class CBExport {
     }
 
     private static String getEncodedIndexes(List<QueryIndex> indexes) {
-        String result = indexes.stream().map(IndexUtils::getIndexDefinition).collect(Collectors.joining("#"));
+        String result = indexes.stream().map(e -> IndexUtils.getIndexDefinition(e, false)).collect(Collectors.joining("#"));
         return Base64.getEncoder().encodeToString(result.getBytes());
     }
 

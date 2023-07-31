@@ -9,6 +9,7 @@ import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tools.dialog.ImportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
@@ -93,7 +94,7 @@ public class TreeRightClickListener {
 
             JMenu tools = new JMenu("Tools");
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).isAvailable()) {
                 JBMenuItem pillowFight = new JBMenuItem("Pillow Fight");
                 pillowFight.addActionListener(e13 -> {
                     PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
@@ -103,14 +104,23 @@ public class TreeRightClickListener {
                 tools.addSeparator();
             }
 
-            JBMenuItem cbexport = new JBMenuItem("Data Export");
-            cbexport.addActionListener(event -> {
-                ExportDialog dialog = new ExportDialog();
+            JBMenuItem ddlExport = new JBMenuItem("DDL Export");
+            ddlExport.addActionListener(event -> {
+                DDLExportDialog dialog = new DDLExportDialog();
                 dialog.show();
             });
-            tools.add(cbexport);
+            tools.add(ddlExport);
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
+                JBMenuItem cbexport = new JBMenuItem("Data Export");
+                cbexport.addActionListener(event -> {
+                    ExportDialog dialog = new ExportDialog();
+                    dialog.show();
+                });
+                tools.add(cbexport);
+            }
+
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
                 JBMenuItem cbimport = new JBMenuItem("Data Import");
                 cbimport.addActionListener(event -> {
                     ImportDialog dialog = new ImportDialog(project);
