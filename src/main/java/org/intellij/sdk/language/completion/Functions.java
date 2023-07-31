@@ -57,7 +57,8 @@ public class Functions extends CompletionProvider<CompletionParameters> {
     public Functions(CompletionContributor with) {
         with.extend(
                 CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(ExprImpl.class),
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(ExprImpl.class)
+                        .with(Utils.EXCLUDE_FUNCTIONS),
                 this
         );
         with.extend(

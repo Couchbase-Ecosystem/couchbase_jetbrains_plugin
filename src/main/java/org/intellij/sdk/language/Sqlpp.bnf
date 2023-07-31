@@ -545,6 +545,7 @@ option-property ::= QUOTED_OPTION COLON ( QUOTED_BUILD | QUOTED_PROBE | NULL )
 
 expr ::= (
             (
+                path |
                 literal |
                 identifier-ref |
                 nested-expr |

@@ -138,12 +138,6 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         PsiFile psiFile = element.getContainingFile();
         List<String> path = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
 
-
-        if (PlatformPatterns.psiElement().inside(PlatformPatterns.psiElement(GeneratedTypes.KEYSPACE_PATH)).accepts(element)) {
-            // need to get up to the level of ref-ref to find the dot and skip fake ident
-            element = element.getParent().getParent();
-        }
-
         path.addAll(Utils.getPath(element));
 
 //        if (element.getPrevSibling() != null && element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT) {
@@ -187,21 +181,23 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         });
     }
 
-    private void completeForPath(CouchbaseClusterEntity from, List<String> to, CompletionResultSet result, int depth, BiPredicate<Integer, CouchbaseClusterEntity> passer) {
+    private void completeForPath(CouchbaseClusterEntity from, List<String> to, CompletionResultSet result, int depth, BiPredicate<Integer, CouchbaseClusterEntity> failureRecoverGate) {
         if (to == null || to.isEmpty()) {
-            from.getChildren().stream()
-                    .flatMap(e -> {
-                        if (e.getName() == null) {
-                            return e.getChildren().stream();
-                        } else {
-                            return Stream.of(e);
-                        }
-                    })
-                    .map(CouchbaseClusterEntity::getName)
-                    .filter(Objects::nonNull)
-                    .map(LookupElementBuilder::create)
-                    .peek(e -> log.debug(String.format("Complete option: %s", e.getLookupString())))
-                    .forEach(result::addElement);
+            if (from.getChildren() != null) {
+                from.getChildren().stream()
+                        .flatMap(e -> {
+                            if (e.getName() == null) {
+                                return e.getChildren().stream();
+                            } else {
+                                return Stream.of(e);
+                            }
+                        })
+                        .map(CouchbaseClusterEntity::getName)
+                        .filter(Objects::nonNull)
+                        .map(LookupElementBuilder::create)
+                        .peek(e -> log.debug(String.format("Complete option: %s", e.getLookupString())))
+                        .forEach(result::addElement);
+            }
         } else {
             String name = to.get(0);
             if (name != null) {
@@ -216,16 +212,15 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                     if (name.equals(child.getName())) {
                         List<String> subList = new ArrayList<>(to);
                         subList.remove(0);
-                        completeForPath(child, subList, result, depth + 1, passer);
+                        completeForPath(child, subList, result, depth + 1, failureRecoverGate);
                     } else {
                         result.addElement(LookupElementBuilder.create(child.getName()));
                     }
                 }
                 if (children.isEmpty()) {
-                    if (passer.test(depth, from) && from.getChildren() != null) {
-                        from.getChildren().forEach(c -> completeForPath(c, to, result, depth + 1, passer));
+                    if (failureRecoverGate.test(depth, from) && from.getChildren() != null) {
+                        from.getChildren().forEach(c -> completeForPath(c, to, result, depth + 1, failureRecoverGate));
                     }
-
                 }
             }
         }

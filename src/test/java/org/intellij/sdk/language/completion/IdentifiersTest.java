@@ -214,4 +214,9 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     public void testAliasPathSubfieldInFunction() {
         assertCompletes("select * from bucket-entity.scope-entity.collection-entity as test_alias where test_alias.parent-field.child-field  = lower(test_alias.parent-field.", "child-field");
     }
+
+    @Test
+    public void testSubQuery() {
+        assertCompletes("delete from travel-sample.inventory.hotel as ap WHERE ap.directions in (select ");
+    }
 }

@@ -90,16 +90,17 @@ public class Utils {
     }
 
     public static Optional<Statement> getErroredStatement(PsiElement element, boolean immediate) {
-        return getError(element, immediate).map(e -> {
-            PsiElement psi = e;
-            while (psi.getPrevSibling() != null) {
-                if (psi.getPrevSibling().getNode().getElementType() == GeneratedTypes.STATEMENT) {
-                    break;
-                }
-                psi = psi.getPrevSibling();
-            }
-            return (Statement) psi.getPrevSibling();
-        }).filter(Objects::nonNull);
+        return Optional.ofNullable(getError(element, immediate).map(e -> (PsiElement) e).orElseGet(() -> element))
+                .map(e -> {
+                    PsiElement psi = e;
+                    while (psi.getPrevSibling() != null) {
+                        if (psi.getPrevSibling().getNode().getElementType() == GeneratedTypes.STATEMENT) {
+                            break;
+                        }
+                        psi = psi.getPrevSibling();
+                    }
+                    return (Statement) psi.getPrevSibling();
+                }).filter(Objects::nonNull);
     }
 
     public static PsiElement getRightmostElement(PsiElement element, Predicate<PsiElement> breaker) {
@@ -141,6 +142,9 @@ public class Utils {
                 }
                 return element.getPrevSibling().getPrevSibling();
             }
+            if (isInFailedSubQuery(element)) {
+                return element;
+            }
             return getPreviousSibling(element, Utils::isDummyBlock)
                     .flatMap(Utils::unwrapDummyBlock)
                     .orElseGet(() -> Utils.getErroredStatement(element, true)
@@ -149,7 +153,7 @@ public class Utils {
                             .orElse(element)
                     );
         }
-        return element;
+        return Utils.walkUpDotIfPresent(element);
     }
 
     public static boolean isDummyBlock(PsiElement element) {
@@ -166,7 +170,7 @@ public class Utils {
     public static PsiElement walkUpDotIfPresent(PsiElement element) {
         PsiElement original = element;
         while (element.getParent() != null) {
-            if (isAfterDot(element)) {
+            if (!isAfterDot(element.getParent())) {
                 return element;
             }
             element = element.getParent();
@@ -175,7 +179,7 @@ public class Utils {
     }
 
     public static boolean isAfterDot(PsiElement element) {
-        while (!(element.getParent() instanceof PsiFile) && SqlppTokenSets.REFS.contains(element.getParent().getNode().getElementType())) {
+        while (element.getParent() != null && !(element.getParent() instanceof PsiFile) && SqlppTokenSets.REFS.contains(element.getParent().getNode().getElementType())) {
             element = element.getParent();
         }
         while (element.getPrevSibling() != null) {
@@ -288,5 +292,22 @@ public class Utils {
                 )
                 .map(e -> getPath(e))
                 .orElse((List<String>) Collections.EMPTY_LIST);
+    }
+
+    public static boolean isInFailedSubQuery(PsiElement element) {
+        while (element.getPrevSibling() != null) {
+            if (element.getNode().getElementType() == GeneratedTypes.SELECT) {
+                break;
+            }
+            element = element.getPrevSibling();
+        }
+
+        while (element.getPrevSibling() != null) {
+            if (element.getNode().getElementType() == GeneratedTypes.LPAREN) {
+                return true;
+            }
+            element = element.getPrevSibling();
+        }
+        return false;
     }
 }
