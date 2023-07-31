@@ -56,11 +56,19 @@ public class FileUtils {
     public static void unzipFile(String zipFilePath, String destDir) throws IOException {
         String osName = System.getProperty("os.name").toLowerCase();
 
+        String zipFilePathCanonical, destDirCanonical;
+        try {
+            zipFilePathCanonical = new File(zipFilePath).getCanonicalPath();
+            destDirCanonical = new File(destDir).getCanonicalPath();
+        } catch (IOException e) {
+            throw new RuntimeException("Error canonicalizing path", e);
+        }
+
         String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path \"" + zipFilePath + "\" -DestinationPath \"" + destDir + "\" -Force"};
+            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path \"" + zipFilePathCanonical + "\" -DestinationPath \"" + destDirCanonical + "\" -Force"};
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
-            unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePath, "-d", destDir};
+            unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical};
         } else {
             throw new UnsupportedOperationException("Unsupported operating system: " + osName);
         }

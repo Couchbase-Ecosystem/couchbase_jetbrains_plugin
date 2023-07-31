@@ -2,7 +2,7 @@ package com.couchbase.intellij.tree.node;
 
 import com.intellij.openapi.util.IconLoader;
 
-public class BucketNodeDescriptor extends NodeDescriptor {
+public class BucketNodeDescriptor extends CounterNodeDescriptor {
 
     private String connectionId;
 

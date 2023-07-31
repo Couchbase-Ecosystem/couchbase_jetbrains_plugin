@@ -70,7 +70,9 @@ public class JComboCheckBox extends JComboBox {
                 displayLabel.setText(String.join(", ", getSelectedItems()));
                 displayLabel.setForeground(Color.GRAY);
                 displayLabel.setFont(displayLabel.getFont().deriveFont(Font.PLAIN, 12f));
-                listener.accept(getSelectedItems());
+                if (listener != null) {
+                    listener.accept(getSelectedItems());
+                }
                 hidePopup();
             }
         };

@@ -47,9 +47,8 @@ import com.intellij.util.ui.JBUI;
 
 public class CouchbaseWindowContent extends JPanel {
 
+    static Project project;
     private static DefaultTreeModel treeModel;
-    private static Project project;
-
     private static JPanel toolBarPanel;
 
     public CouchbaseWindowContent(Project project) {
@@ -211,12 +210,13 @@ public class CouchbaseWindowContent extends JPanel {
                     }
                 } else if (userObject instanceof CollectionNodeDescriptor) {
                     CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
-                    setText(descriptor.getText());
-                    if (descriptor.getQueryFilter() == null || descriptor.getQueryFilter().trim().isEmpty()) {
-                        setIcon(descriptor.getIcon());
-                    } else {
-                        setIcon(IconLoader.getIcon("/assets/icons/filter.svg", CouchbaseWindowContent.class));
+
+                    Icon icon = descriptor.getIcon();
+                    if (descriptor.getQueryFilter() != null && !descriptor.getQueryFilter().trim().isEmpty()) {
+                        icon = IconLoader.getIcon("/assets/icons/filter.svg", CouchbaseWindowContent.class);
                     }
+
+                    return new CounterPanel(icon, new JLabel(descriptor.getText()), descriptor.getCounterPanel());
                 } else if (userObject instanceof ConnectionNodeDescriptor) {
                     ConnectionNodeDescriptor descriptor = (ConnectionNodeDescriptor) userObject;
                     if (descriptor.getText().equals(ActiveCluster.getInstance().getId())
@@ -229,6 +229,10 @@ public class CouchbaseWindowContent extends JPanel {
                         setIcon(descriptor.getIcon());
                         setText(descriptor.getText());
                     }
+                } else if (userObject instanceof CounterNodeDescriptor) {
+                    CounterNodeDescriptor descriptor = (CounterNodeDescriptor) userObject;
+                    return new CounterPanel(descriptor.getIcon(), new JLabel(descriptor.getText()), descriptor.getCounterPanel());
+
                 } else if (userObject instanceof NodeDescriptor) {
                     NodeDescriptor descriptor = (NodeDescriptor) userObject;
                     setIcon(descriptor.getIcon());
@@ -249,6 +253,16 @@ public class CouchbaseWindowContent extends JPanel {
             lbl2.setBorder(JBUI.Borders.empty(0, 3));
             add(lbl2);
             add(text);
+        }
+    }
+
+    static class CounterPanel extends JPanel {
+        public CounterPanel(Icon icon, JLabel text, JPanel counter) {
+            setLayout(new FlowLayout(FlowLayout.LEFT, 0, 2));
+            add(new JLabel(icon));
+            text.setBorder(JBUI.Borders.empty(0, 3));
+            add(text);
+            add(counter);
         }
     }
 }
