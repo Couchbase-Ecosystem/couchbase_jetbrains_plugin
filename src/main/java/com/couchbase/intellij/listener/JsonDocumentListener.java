@@ -8,6 +8,7 @@ import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.InferHelper;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -18,6 +19,8 @@ import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.concurrent.TimeUnit;
 
 public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
@@ -93,5 +96,6 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
     private void saveFile(Collection collection, VirtualFile file, Document document) {
         MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), JsonObject.fromJson(document.getText()));
         file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
+        InferHelper.invalidateInferCacheIfOlder(collection.bucketName(), collection.scopeName(), collection.name(), TimeUnit.MINUTES.toMillis(1));
     }
 }

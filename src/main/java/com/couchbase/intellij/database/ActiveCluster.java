@@ -220,6 +220,11 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     @Override
+    public SavedCluster getSavedCluster() {
+        return savedCluster;
+    }
+
+    @Override
     public Cluster getCluster() {
         return cluster;
     }
