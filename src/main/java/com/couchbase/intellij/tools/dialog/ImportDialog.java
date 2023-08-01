@@ -1,6 +1,8 @@
 
 package com.couchbase.intellij.tools.dialog;
 
+import static utils.ProcessUtils.printOutput;
+
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -1157,16 +1159,16 @@ public class ImportDialog extends DialogWrapper {
                     if (targetLocationGroup.getSelection() == defaultScopeAndCollectionRadio.getModel()) {
                         // Import data into default scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add("'_default._default'");
+                        processBuilder.command().add("_default._default");
                     } else if (targetLocationGroup.getSelection() == collectionRadio.getModel()) {
                         // Import data into the selected scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add("'" + targetScopeField + "." + targetCollectionField + "'");
+                        processBuilder.command().add(targetScopeField + "." + targetCollectionField);
                     } else if (targetLocationGroup.getSelection() == dynamicScopeAndCollectionRadio.getModel()) {
                         // Import data into dynamic scope and collection
                         processBuilder.command().add("--scope-collection-exp");
-                        processBuilder.command().add("'" + dynamicScopeFieldField.getText() + "."
-                                + dynamicCollectionFieldField.getText() + "'");
+                        processBuilder.command().add(dynamicScopeFieldField.getText() + "."
+                                + dynamicCollectionFieldField.getText());
                     }
 
                     // Add document key options based on the selected key option
@@ -1177,7 +1179,7 @@ public class ImportDialog extends DialogWrapper {
                     } else if (keyGroup.getSelection() == useFieldValueRadio.getModel()) {
                         // Use the value of a field as the key
                         processBuilder.command().add("--generate-key");
-                        processBuilder.command().add("'" + fieldNameField.getText() + "'");
+                        processBuilder.command().add("'%" + fieldNameField.getText() + "%'");
                     } else if (keyGroup.getSelection() == customExpressionRadio.getModel()) {
                         // Generate key based on the custom expression
                         processBuilder.command().add("--generate-key");
@@ -1218,14 +1220,9 @@ public class ImportDialog extends DialogWrapper {
                     Log.debug("Command: " + processBuilder.command());
                     System.out.println("Command: " + processBuilder.command());
 
-                    // Check if indexes should be created and create them if necessary
-                    boolean createIndexes = shouldCreateIndexes();
-                    if (createIndexes) {
-                        createIndexes(bucket, targetScopeField, targetCollectionField);
-                    }
-
                     // Execute CB_IMPORT tool using process builder
                     Process process = processBuilder.start();
+                    printOutput(process, "Output from CB_IMPORT: ");
                     int exitCode = process.waitFor();
 
                     if (exitCode == 0) {
@@ -1257,65 +1254,6 @@ public class ImportDialog extends DialogWrapper {
                 }
             }
         });
-    }
-
-    protected boolean shouldCreateIndexes() {
-        final boolean[] result = new boolean[1];
-        ApplicationManager.getApplication().invokeLater(() -> result[0] = Messages.showYesNoDialog(
-                "<html>This dataset contains indexes. Would you like to also create them?"
-                        + "<br><small>If the indexes already exist in your environment, they won't be recreated.</small></html>",
-                "CB Import", Messages.getQuestionIcon()) == Messages.YES);
-        return result[0];
-    }
-
-    protected void createIndexes(String bucket, String scope, String collection) {
-        try {
-            // Read file content and parse into a Couchbase JSON array
-            String fileContent = Files.readString(Paths.get(datasetField.getText()));
-            JsonArray jsonArray = JsonArray.fromJson(fileContent);
-
-            // Iterate over each element in the JSON array
-            for (int i = 0; i < jsonArray.size(); i++) {
-                JsonObject jsonObject = jsonArray.getObject(i);
-
-                // Check if the element contains an index definition
-                if (jsonObject.containsKey("indexDef")) {
-                    JsonObject indexDef = jsonObject.getObject("indexDef");
-
-                    // Extract index name and fields from index definition
-                    String indexName = indexDef.getString("name");
-                    JsonArray indexFields = indexDef.getArray("fields");
-
-                    // Build CREATE INDEX statement
-                    StringBuilder createIndexStatement = new StringBuilder();
-                    createIndexStatement.append("CREATE INDEX ");
-                    createIndexStatement.append(indexName);
-                    createIndexStatement.append(" ON ");
-                    createIndexStatement.append(bucket);
-                    createIndexStatement.append(".");
-                    createIndexStatement.append(scope);
-                    createIndexStatement.append(".");
-                    createIndexStatement.append(collection);
-                    createIndexStatement.append("(");
-
-                    for (int j = 0; j < indexFields.size(); j++) {
-                        if (j > 0) {
-                            createIndexStatement.append(", ");
-                        }
-                        createIndexStatement.append(indexFields.getString(j));
-                    }
-
-                    createIndexStatement.append(")");
-
-                    // Execute CREATE INDEX statement
-                    ActiveCluster.getInstance().get().query(createIndexStatement.toString());
-                }
-            }
-        } catch (Exception e) {
-            Log.error("Exception occurred", e);
-            ApplicationManager.getApplication().invokeLater(() -> Messages
-                    .showErrorDialog("An error occurred while trying to create indexes", "Create Indexes Error"));
-        }
     }
 
 }
