@@ -1,5 +1,7 @@
 package org.intellij.sdk.language.completion;
 
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.intellij.lang.parser.GeneratedParserUtilBase;
 import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
@@ -18,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Utils {
@@ -277,21 +280,39 @@ public class Utils {
     }
 
     public static Optional<String> getAliasName(Alias a) {
-        return getPreviousSibling(a, s -> s.getNode().getElementType() == GeneratedTypes.AS)
-                .map(s -> getIdentifier(a));
+        return getPreviousSibling(a, s -> s instanceof PsiWhiteSpace)
+                .map(PsiElement::getNextSibling)
+                .map(Utils::getIdentifier);
     }
 
     public static List<String> getAliasPath(Alias alias) {
         return getPreviousSibling(alias, e -> e.getNode().getElementType() == GeneratedTypes.AS)
+                .map(Optional::of)
+                .orElseGet(() -> getPreviousSibling(alias, e -> e instanceof PsiWhiteSpace))
                 .flatMap(as -> getPreviousSibling(as, Utils::isIdentifierOrRef)
                         .map(Optional::of)
                         .orElseGet(() -> getPreviousSibling(as, e -> e instanceof KeyspaceRef)
                                 .map(Utils::getRightmostElement)
-                                .map(Utils::walkUpDotIfPresent)
                         )
+                        .map(Utils::walkUpDotIfPresent)
                 )
                 .map(e -> getPath(e))
                 .orElse((List<String>) Collections.EMPTY_LIST);
+    }
+
+    public static List<String> expandCollectionPath(String s) {
+        Set<List<String>> matches = ActiveCluster.getInstance().getChildren().stream()
+                .flatMap(b -> b.getChildren().stream())
+                .flatMap(scope -> scope.getChildren().stream())
+                .filter(c -> c.getName().equalsIgnoreCase(s))
+                .map(CouchbaseCollection::pathElements)
+                .collect(Collectors.toSet());
+
+        if (matches.size() == 1) {
+            return matches.iterator().next();
+        }
+
+        throw new IllegalArgumentException("Failed to unambiguously maa name '" + s + "' to collection");
     }
 
     public static boolean isInFailedSubQuery(PsiElement element) {

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import java.awt.*;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -222,6 +223,21 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     @Override
     public SavedCluster getSavedCluster() {
         return savedCluster;
+    }
+
+    @Override
+    public CouchbaseClusterEntity getRoot() {
+        return this;
+    }
+
+    @Override
+    public String path() {
+        return "";
+    }
+
+    @Override
+    public List<String> pathElements() {
+        return new ArrayList<>();
     }
 
     @Override

@@ -140,22 +140,6 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
 
         path.addAll(Utils.getPath(element));
 
-//        if (element.getPrevSibling() != null && element.getPrevSibling().getNode().getElementType() == GeneratedTypes.DOT) {
-//            PsiElement dot = element.getPrevSibling();
-//            if (PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).accepts(dot.getPrevSibling())
-//                    || SqlppTokenSets.REFS.contains(dot.getPrevSibling().getNode().getElementType())
-//                    || dot.getPrevSibling() instanceof IdentifierRef) {
-//                path.addAll(getPath(dot.getPrevSibling()));
-//            } else if (PlatformPatterns.psiElement(GeneratedTypes.STATEMENT).accepts(dot.getPrevSibling())) {
-//                PsiElement pathEnd = dot.getPrevSibling();
-//                while (pathEnd != null && pathEnd.getNode().getElementType() != GeneratedTypes.IDENTIFIER_REF) {
-//                    pathEnd = pathEnd.getLastChild();
-//                }
-//                if (pathEnd != null) {
-//                    path.addAll(getPath(pathEnd));
-//                }
-//            }
-//        }
         if (path.isEmpty()) {
             appendRecursively(0, cluster, result, (depth, entity) -> depth <= 5);
         } else {
@@ -171,6 +155,9 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
             String aliasName = Utils.getAliasName(alias).get();
             if (aliasName.equals(name)) {
                 List<String> aliasPath = Utils.getAliasPath(alias);
+                if (aliasPath.size() == 1) {
+                    aliasPath = Utils.expandCollectionPath(aliasPath.get(0));
+                }
                 int rm = aliasPath.size();
                 aliasPath.addAll(path);
                 aliasPath.remove(rm);
