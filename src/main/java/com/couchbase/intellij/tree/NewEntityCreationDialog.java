@@ -15,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
-import com.couchbase.intellij.types.EntityType;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -133,5 +132,9 @@ public class NewEntityCreationDialog extends DialogWrapper {
 
     public String getEntityName() {
         return textField.getText();
+    }
+
+    public enum EntityType {
+        BUCKET, SCOPE, COLLECTION
     }
 }

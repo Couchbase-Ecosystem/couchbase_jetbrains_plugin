@@ -11,7 +11,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.intellij.workbench.Log;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -99,6 +103,90 @@ public class FileUtils {
             Log.error(e);
             return null;
         }
+    }
+
+    public static boolean checkFieldsInJson(String fieldText, String dataset, String detectedCouchbaseJsonFormat) {
+        Pattern pattern = Pattern.compile("%(.*?)%");
+        Matcher matcher = pattern.matcher(fieldText);
+        while (matcher.find()) {
+            String match = matcher.group(1);
+            if (!FileUtils.checkFieldInJson(dataset, detectedCouchbaseJsonFormat, match)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean checkFieldInJson(String filePath, String detectedCouchbaseJsonFormat, String fieldText) {
+        boolean isValidField = true;
+        try {
+            String sampleElement = FileUtils.sampleElementFromJsonArrayFile(filePath);
+            if (sampleElement != null) {
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> jsonObject = mapper.readValue(sampleElement,
+                        new TypeReference<Map<String, Object>>() {
+                        });
+                if (!jsonObject.containsKey(fieldText)) {
+                    isValidField = false;
+                }
+            } else {
+                isValidField = false;
+            }
+        } catch (Exception e) {
+            Log.error("An error occurred while validating the field: " + e.getMessage());
+            isValidField = false;
+        }
+        return isValidField;
+    }
+
+    public static String validateAndDetectCouchbaseJsonFormat(String filePath) throws IOException {
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
+            String firstLine = reader.readLine();
+            if (firstLine != null && firstLine.trim().startsWith("[")) {
+                // File starts with a '[' character, so it's probably in list format
+                String content = firstLine + "\n" + reader.lines().collect(Collectors.joining("\n"));
+                if (isValidJson(content)) {
+                    return "list";
+                }
+            } else if (firstLine != null && isValidJson(firstLine)) {
+                // First line is a valid JSON object, so the file is probably in lines format
+                while ((firstLine = reader.readLine()) != null) {
+                    if (!isValidJson(firstLine)) {
+                        return null;
+                    }
+                }
+                return "lines";
+            }
+        }
+        return null;
+    }
+
+    private static boolean isValidJson(String json) {
+        try {
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.readTree(json);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static int countJsonDocs(String format, String filePath) throws IOException {
+        int count = 0;
+        if (format.equals("lines")) {
+            // Count the number of lines in the file
+            try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
+                while (reader.readLine() != null) {
+                    count++;
+                }
+            }
+        } else if (format.equals("list")) {
+            // Parse the JSON array and count the number of elements
+            String content = Files.readString(Paths.get(filePath));
+            JsonArray jsonArray = JsonArray.fromJson(content);
+            count = jsonArray.size();
+        }
+        return count;
     }
 
     public static void createFolder(String folderPath) throws Exception {
