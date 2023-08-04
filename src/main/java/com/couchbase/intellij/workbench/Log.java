@@ -50,6 +50,12 @@ public class Log {
         }
     }
 
+    public static void debug(String message, Exception e) {
+        if (logLevel >= 3) {
+            getLogger().print("\n" + message + " error: " + convertToString(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
+        }
+    }
+
     public static void error(Class c, String message, Exception e) {
 
         String exception = convertToString(e);

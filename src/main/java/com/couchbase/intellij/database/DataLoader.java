@@ -102,11 +102,13 @@ public class DataLoader {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
         if (userObject instanceof BucketNodeDescriptor) {
+            BucketNodeDescriptor node = (BucketNodeDescriptor) userObject;
             CompletableFuture.runAsync(() -> {
                 try {
-                    String bucketName = ((BucketNodeDescriptor) parentNode.getUserObject()).getText();
+                    String bucketName = node.getText();
                     List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections().getAllScopes();
                     parentNode.removeAllChildren();
+                    node.setCounter(formatCount(scopes.size()));
 
                     if (!scopes.isEmpty()) {
 
@@ -145,16 +147,15 @@ public class DataLoader {
             CompletableFuture.runAsync(() -> {
                 try {
                     parentNode.removeAllChildren();
-                    ScopeNodeDescriptor cols = (ScopeNodeDescriptor) userObject;
-
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(cols.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(cols.getText())).flatMap(scope -> scope.collections().stream()).collect(Collectors.toList());
-
+                    ScopeNodeDescriptor scopeDesc = (ScopeNodeDescriptor) userObject;
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).collect(Collectors.toList());
+                    scopeDesc.setCounter(formatCount(collections.size()));
                     if (!collections.isEmpty()) {
                         for (CollectionSpec spec : collections) {
 
-                            String filter = QueryFiltersStorage.getInstance().getValue().getQueryFilter(ActiveCluster.getInstance().getId(), cols.getBucket(), cols.getText(), spec.name());
+                            String filter = QueryFiltersStorage.getInstance().getValue().getQueryFilter(ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), spec.name());
 
-                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), cols.getBucket(), cols.getText(), filter));
+                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), filter));
 
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                             parentNode.add(childNode);
@@ -186,6 +187,8 @@ public class DataLoader {
                     DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
                     schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                     parentNode.add(schemaNode);
+                    colNode.setCounter("...");
+                    countCollectionAsync(colNode);
 
                     DefaultMutableTreeNode indexes = new DefaultMutableTreeNode(new IndexesNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText()));
                     indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
@@ -521,7 +524,7 @@ public class DataLoader {
             if (!results.isEmpty()) {
                 for (QueryIndex qi : results) {
                     String fileName = qi.name() + ".sqlpp";
-                    VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), SQLPPFormatter.format(IndexUtils.getIndexDefinition(qi)));
+                    VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), SQLPPFormatter.format(IndexUtils.getIndexDefinition(qi, false)));
                     virtualFile.putUserData(READ_ONLY, "true");
 
                     IndexNodeDescriptor node = new IndexNodeDescriptor(idxs.getBucket(), idxs.getScope(), idxs.getCollection(), fileName, virtualFile);
@@ -574,5 +577,36 @@ public class DataLoader {
             }
         }
         folder.delete();
+    }
+
+    private static void countCollectionAsync(CollectionNodeDescriptor colNode) {
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                String query = "Select count(meta().id) as total from `" + colNode.getText() + "`";
+                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
+                if (colNode.getQueryFilter() == null || colNode.getQueryFilter().trim().isEmpty()) {
+                    colNode.setCounter(formatCount(results.get(0).getInt("total")));
+                } else {
+                    String queryFilter = "Select count(meta().id) as total from `" + colNode.getText() + "` WHERE " + colNode.getQueryFilter();
+                    final List<JsonObject> filteredResults = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(queryFilter).rowsAsObject();
+                    colNode.setCounter(formatCount(filteredResults.get(0).getInt("total")) + " of " + formatCount(results.get(0).getInt("total")));
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.debug("Failed to count collection" + colNode.getText(), e);
+            }
+        });
+    }
+
+    public static String formatCount(int num) {
+        if (num < 1000) {
+            return String.valueOf(num);
+        } else if (num < 1000000) {
+            return String.format("%.1fk", num / 1000.0);
+        } else {
+            return String.format("%.2fM", num / 1000000.0);
+        }
     }
 }
