@@ -10,7 +10,6 @@ import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.table.JBTable;
@@ -194,7 +193,6 @@ public class DatabaseConnectionDialog extends DialogWrapper {
         errorLabel.setForeground(Color.decode("#FF4444"));
         messageLabel = new JLabel();
         messageLabel.setBorder(JBUI.Borders.emptyTop(5));
-        messageLabel.setForeground(JBColor.GREEN);
         notificationPanel.add(messageLabel, BorderLayout.NORTH);
         notificationPanel.add(errorLabel, BorderLayout.SOUTH);
 

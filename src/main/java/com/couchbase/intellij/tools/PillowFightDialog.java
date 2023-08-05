@@ -1,4 +1,4 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tools;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
@@ -69,8 +69,11 @@ public class PillowFightDialog extends DialogWrapper {
     private final JCheckBox pathcountCheckbox;
     private JLabel errorMessage;
 
-    protected PillowFightDialog(Project project) {
+    private Project project;
+
+    public PillowFightDialog(Project project) {
         super(project);
+        this.project = project;
 
         setTitle("Pillow Fight");
 
@@ -548,7 +551,7 @@ public class PillowFightDialog extends DialogWrapper {
             super.doOKAction();
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
-                pillowFightRunner.runPillowFightCommand(getValue(bucketComboBox), getValue(durabilityComboBox), getValue(persistToSpinner), getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(), getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox), getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner), getValue(numberCyclesSpinner), getValue(sequentialComboBox), getValue(startAtSpinner), getValue(timingsComboBox), getValue(expirySpinner), getValue(replicateToSpinner), getValue(lockSpinner), getValue(jsonComboBox), getValue(noopComboBox), getValue(subdocComboBox), getValue(pathcountSpinner));
+                pillowFightRunner.runPillowFightCommand(project, getValue(bucketComboBox), getValue(durabilityComboBox), getValue(persistToSpinner), getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(), getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox), getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner), getValue(numberCyclesSpinner), getValue(sequentialComboBox), getValue(startAtSpinner), getValue(timingsComboBox), getValue(expirySpinner), getValue(replicateToSpinner), getValue(lockSpinner), getValue(jsonComboBox), getValue(noopComboBox), getValue(subdocComboBox), getValue(pathcountSpinner));
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }

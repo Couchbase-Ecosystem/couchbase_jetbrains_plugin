@@ -1,7 +1,5 @@
 package com.couchbase.intellij.tree.node;
 
-import com.intellij.util.ui.JBUI;
-
 import javax.swing.*;
 import java.awt.*;
 
@@ -13,7 +11,6 @@ public abstract class CounterNodeDescriptor extends NodeDescriptor {
         super(text, icon);
         counter = new JLabel("");
         panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        panel.setBorder(JBUI.Borders.empty());
         panel.add(counter);
     }
 

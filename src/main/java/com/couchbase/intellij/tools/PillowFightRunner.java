@@ -1,8 +1,8 @@
-package com.couchbase.intellij.tree;
+package com.couchbase.intellij.tools;
 
 import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.project.Project;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -15,10 +15,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.couchbase.intellij.tree.CouchbaseWindowContent.project;
-
 public class PillowFightRunner {
-    public void runPillowFightCommand(String bucket, String durability, String persistTo, String batchSize, String numberItems, String keyPrefix, String numberThreads, String percentage, String noPopulation, String populateOnly, String minSize, String maxSize, String numberCycles, String sequential, String startAt, String timings, String expiry, String replicateTo, String lock, String json, String noop, String subdoc, String pathcount) throws IOException, InterruptedException {
+    public void runPillowFightCommand(Project project, String bucket, String durability, String persistTo, String batchSize, String numberItems, String keyPrefix, String numberThreads, String percentage, String noPopulation, String populateOnly, String minSize, String maxSize, String numberCycles, String sequential, String startAt, String timings, String expiry, String replicateTo, String lock, String json, String noop, String subdoc, String pathcount) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getPath());
         command.add("-U");

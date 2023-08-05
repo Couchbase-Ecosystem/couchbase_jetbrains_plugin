@@ -8,6 +8,7 @@ import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
