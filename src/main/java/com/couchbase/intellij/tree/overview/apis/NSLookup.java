@@ -34,7 +34,6 @@ public class NSLookup {
                 String record = records[records.length - 1];
                 record = record.replace("cloud.couchbase.com.", "cloud.couchbase.com");
                 servers.add(record);
-                System.out.println(record);
             }
 
         } catch (NamingException e) {

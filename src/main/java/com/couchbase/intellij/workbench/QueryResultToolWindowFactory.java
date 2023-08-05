@@ -57,6 +57,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
 
+    private Project project;
+
     public QueryResultToolWindowFactory() {
         instance = this;
     }
@@ -68,6 +70,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        this.project = project;
         JBTabs tabs = new JBTabsImpl(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
@@ -133,14 +136,16 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         toolbar.setTargetComponent(topPanel);
 
         topPanel.add(toolbar.getComponent(), BorderLayout.EAST);
-        Document document = EditorFactory.getInstance().createDocument("{\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"}");
-        editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, false);
+
+
+        Document document = EditorFactory.getInstance().createDocument("{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
+        editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, true);
         EditorSettings editorSettings = editor.getSettings();
-        editorSettings.setVirtualSpace(false);
-        editorSettings.setAdditionalColumnsCount(3);
-        editorSettings.setAdditionalLinesCount(8);
         editorSettings.setLineNumbersShown(true);
         editorSettings.setFoldingOutlineShown(true);
+        editorSettings.setAutoCodeFoldingEnabled(true);
+        editorSettings.setIndentGuidesShown(true);
+
 
         htmlPanel = new HtmlPanel();
         htmlPanel.loadHTML(getEmptyExplain());
@@ -281,7 +286,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             cachedResults = convertedResults;
 
             statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(convertedResults)));
+            ApplicationManager.getApplication().runWriteAction(() -> {
+                editor.getDocument().setText(gson.toJson(convertedResults));
+            });
 
             String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
             htmlPanel.loadHTML(content);

@@ -2,12 +2,13 @@ package com.couchbase.intellij.tools.dialog;
 
 
 import com.intellij.ui.Gray;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import utils.ColorHelper;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicComboBoxUI;
 import javax.swing.plaf.basic.BasicComboPopup;
@@ -28,8 +29,12 @@ public class JComboCheckBox extends JComboBox {
     private Consumer<List<String>> listener;
 
     public JComboCheckBox() {
-        displayLabel = new JBLabel("");
-        displayLabel.setForeground(Color.GRAY);
+        displayLabel = new JBLabel("") {
+            @Override
+            public Color getForeground() {
+                return JBColor.foreground();
+            }
+        };
         displayLabel.setFont(displayLabel.getFont().deriveFont(Font.PLAIN, 12f));
 
         setRenderer(new DefaultListCellRenderer() {
@@ -41,23 +46,21 @@ public class JComboCheckBox extends JComboBox {
                 if (index == -1) {
                     return displayLabel;
                 }
-                displayLabel.setForeground(Color.GRAY);
 
                 JCheckBox checkBox = (JCheckBox) value;
                 checkBox.setBackground(isSelected ? selectionBackground : list.getBackground());
-                checkBox.setForeground(isSelected ? Color.white : foregroundColor);
+                checkBox.setForeground(isSelected ? JBColor.white : foregroundColor);
 
                 if (isSelected) {
                     checkBox.setBorder(BorderFactory.createCompoundBorder(new RoundedLineBorder(selectionBackground, 1, 5, true), BorderFactory.createEmptyBorder(2, 5, 2, 5)));
-                    checkBox.setOpaque(true);
                 } else {
                     checkBox.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
-                    checkBox.setOpaque(false);
-                }
 
+                }
                 return checkBox;
             }
         });
+
 
         mouseAdapter = new MouseAdapter() {
             @Override
@@ -68,8 +71,8 @@ public class JComboCheckBox extends JComboBox {
                 JCheckBox checkbox = (JCheckBox) list.getModel().getElementAt(location);
                 checkbox.setSelected(!checkbox.isSelected());
                 displayLabel.setText(String.join(", ", getSelectedItems()));
-                displayLabel.setForeground(Color.GRAY);
                 displayLabel.setFont(displayLabel.getFont().deriveFont(Font.PLAIN, 12f));
+                displayLabel.revalidate();
                 if (listener != null) {
                     listener.accept(getSelectedItems());
                 }
@@ -85,24 +88,33 @@ public class JComboCheckBox extends JComboBox {
                 return popup;
             }
 
+//            @Override
+//            protected JButton createArrowButton() {
+//                BasicArrowButton button = new CustomArrowButton(BasicArrowButton.SOUTH, getBackground(), Gray._205, Gray._175, border);
+//                button.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+//                return button;
+//            }
+
             @Override
             protected JButton createArrowButton() {
-                BasicArrowButton button = new CustomArrowButton(BasicArrowButton.SOUTH, getBackground(), Gray._205, Gray._175, border);
+                Color background = UIManager.getColor("ComboBox.background");
+                Color defaultShadow = UIManager.getColor("Button.shadow");
+                Color defaultDarkShadow = UIManager.getColor("Button.darkShadow");
+                Color defaultHighlight = UIManager.getColor("Button.highlight");
+
+                BasicArrowButton button = new CustomArrowButton(BasicArrowButton.SOUTH, background, defaultShadow, defaultDarkShadow, defaultHighlight);
                 button.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
                 return button;
             }
 
-            @Override
-            protected void installDefaults() {
-                super.installDefaults();
-                Border border = UIManager.getBorder("ComboBox.border");
-                if (border != null) {
-                    LookAndFeel.installBorder(comboBox, "ComboBox.border");
-                }
-            }
         });
 
-        setBorder(BorderFactory.createCompoundBorder(JBUI.Borders.empty(3), BorderFactory.createCompoundBorder(new RoundedLineBorder(border, 1, 5, true), BorderFactory.createEmptyBorder(2, -1, 2, 5))));
+
+        Color borderColor = UIManager.getColor("TextField.borderColor");
+        if (ColorHelper.isDarkTheme()) {
+            borderColor = border;
+        }
+        setBorder(BorderFactory.createCompoundBorder(JBUI.Borders.empty(3), BorderFactory.createCompoundBorder(new RoundedLineBorder(borderColor, 1, 5, true), BorderFactory.createEmptyBorder(2, -1, 2, 5))));
     }
 
     public void removeAllItems() {
@@ -165,7 +177,7 @@ public class JComboCheckBox extends JComboBox {
             }
         };
 
-        checkBox.setOpaque(false);
+        checkBox.setOpaque(true);
         checkBox.setBorder(JBUI.Borders.empty());
         super.addItem(checkBox);
     }
@@ -180,5 +192,6 @@ public class JComboCheckBox extends JComboBox {
         }
         return list;
     }
+
 
 }

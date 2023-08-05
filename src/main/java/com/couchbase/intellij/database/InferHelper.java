@@ -54,7 +54,7 @@ public class InferHelper {
             JsonObject inferSchemaRow = array.getObject(i);
 
             String tooltip = "#docs: " + inferSchemaRow.getNumber("#docs") + ", pattern: " + inferSchemaRow.getString("Flavor");
-            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern Found #" + (i + 1), tooltip);
+            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern #" + (i + 1), tooltip);
             DefaultMutableTreeNode flavorNode = new DefaultMutableTreeNode(sf);
             parentNode.add(flavorNode);
             JsonObject properties = inferSchemaRow.getObject("properties");
