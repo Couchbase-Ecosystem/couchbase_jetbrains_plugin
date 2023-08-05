@@ -88,13 +88,6 @@ public class JComboCheckBox extends JComboBox {
                 return popup;
             }
 
-//            @Override
-//            protected JButton createArrowButton() {
-//                BasicArrowButton button = new CustomArrowButton(BasicArrowButton.SOUTH, getBackground(), Gray._205, Gray._175, border);
-//                button.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-//                return button;
-//            }
-
             @Override
             protected JButton createArrowButton() {
                 Color background = UIManager.getColor("ComboBox.background");
