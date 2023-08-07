@@ -33,6 +33,18 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         });
     }
 
+    private void assertNotCompletes(String text, String notComplete) {
+        assertNotCompletes(null, text, notComplete);
+    }
+
+    private void assertNotCompletes(List<String> context, String text, String notComplete) {
+        assertCompletes(context, text, items -> {
+            if (items != null && items.length != 0) {
+                assertFalse(Arrays.stream(items).anyMatch(i -> notComplete.equals(i.getLookupString())));
+            }
+        });
+    }
+
     private void assertCompletes(List<String> context, String text, Consumer<LookupElement[]> checker) {
         ActiveCluster activeClusterInstance = Mockito.mock(ActiveCluster.class);
         Mockito.when(activeClusterInstance.pathElements()).thenCallRealMethod();
@@ -44,8 +56,10 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         CouchbaseCollection collection = Mockito.mock(CouchbaseCollection.class);
         CouchbaseCollection otherCollection = Mockito.mock(CouchbaseCollection.class);
         CouchbaseDocumentFlavor flavor = Mockito.mock(CouchbaseDocumentFlavor.class);
+        CouchbaseDocumentFlavor otherFlavor = Mockito.mock(CouchbaseDocumentFlavor.class);
         CouchbaseField parentField = Mockito.mock(CouchbaseField.class);
         CouchbaseField childField = Mockito.mock(CouchbaseField.class);
+        CouchbaseField otherParentField = Mockito.mock(CouchbaseField.class);
 
         Mockito.when(bucket.getName()).thenReturn("bucket-entity");
         Mockito.when(bucket.pathElements()).thenCallRealMethod();
@@ -62,8 +76,6 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         Mockito.when(collection.getParent()).thenReturn(scope);
         Mockito.when(otherCollection.getName()).thenReturn("other-collection-entity");
         Mockito.when(otherCollection.getParent()).thenReturn(otherScope);
-        Mockito.when(parentField.getName()).thenReturn("parent-field");
-        Mockito.when(childField.getName()).thenReturn("child-field");
 
         Mockito.when(activeClusterInstance.getChildren()).thenReturn(new HashSet<>(Arrays.asList(bucket, otherBucket)));
         Mockito.when(bucket.getChildren()).thenReturn(new HashSet<>(Arrays.asList(scope)));
@@ -72,11 +84,16 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         Mockito.when(otherScope.getChildren()).thenReturn(new HashSet<>(Arrays.asList(otherCollection)));
 
         Mockito.when(collection.getChildren()).thenReturn(new HashSet<>(Arrays.asList(flavor)));
-        Mockito.when(otherCollection.getChildren()).thenReturn(new HashSet<>());
+        Mockito.when(otherCollection.getChildren()).thenReturn(new HashSet<>(Collections.singletonList(otherFlavor)));
         Mockito.when(flavor.getChildren()).thenReturn(new HashSet<>(Arrays.asList(parentField)));
+        Mockito.when(otherFlavor.getChildren()).thenReturn(new HashSet<>(Collections.singletonList(otherParentField)));
         Mockito.when(parentField.getChildren()).thenReturn(new HashSet<>(Arrays.asList(childField)));
         Mockito.when(childField.getChildren()).thenReturn(Collections.EMPTY_SET);
         Mockito.when(activeClusterInstance.getCluster()).thenReturn(cluster);
+
+        Mockito.when(parentField.getName()).thenReturn("parent-field");
+        Mockito.when(childField.getName()).thenReturn("child-field");
+        Mockito.when(otherParentField.getName()).thenReturn("other-parent-field");
         ActiveCluster.setInstance(activeClusterInstance);
 
         if (!text.contains(CodeInsightTestFixture.CARET_MARKER)) {
@@ -95,7 +112,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testInFunction() {
-        assertCompletes("select * from test, TOOBJ(", "bucket-entity");
+        assertCompletes("select * from collection-entity, TOOBJ(", "parent-field");
     }
 
     @Test
@@ -153,12 +170,12 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testUpdateSet() {
-        assertCompletes("UPDATE test SET ", "parent-field");
+        assertCompletes("UPDATE collection-entity SET ", "parent-field");
     }
 
     @Test
     public void testUpdateSetExpression() {
-        assertCompletes("UPDATE travel-sample.inventory.hotel SET `airlineid` = '100' + ", "parent-field");
+        assertCompletes("UPDATE collection-entity SET `airlineid` = '100' + ", "parent-field");
     }
 
     @Test
@@ -171,7 +188,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testInConditions() {
-        assertCompletes("SELECT * from landmark.geo.accuracy where landmark.geo.accuracy = ");
+        assertCompletes("SELECT * from collection-entity where landmark.geo.accuracy = ", "parent-field");
     }
 
     private void assertCompletes(String s) {
@@ -180,7 +197,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testAfterFailedCondition() {
-        assertCompletes("SELECT * from landmark.geo.accuracy where landmark.geo.accuracy = 100 +");
+        assertCompletes("SELECT * from other-collection-entity where landmark.geo.accuracy = 100 +", "other-parent-field");
     }
 
     @Test
@@ -239,5 +256,13 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     @Test
     public void testNoAsAlias() {
         assertCompletes("select * from bucket-entity.scope-entity.collection-entity c where c.", "parent-field");
+    }
+
+    @Test
+    public void testStatementContext() {
+        assertCompletes("select * from collection-entity where ", "parent-field");
+        assertCompletes("select * from other-collection-entity where ", "other-parent-field");
+        assertNotCompletes("select * from collection-entity where ", "other-parent-field");
+        assertNotCompletes("select * from other-collection-entity where ", "parent-field");
     }
 }

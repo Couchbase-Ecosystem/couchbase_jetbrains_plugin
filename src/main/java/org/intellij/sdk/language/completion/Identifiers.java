@@ -126,6 +126,9 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         );
     }
 
+    private static final BiPredicate<Integer, CouchbaseClusterEntity> passer = (depth, entity) -> depth <= 3;
+    private static final BiPredicate<Integer, CouchbaseClusterEntity> emptyPathPasser = (depth, entity) -> depth <= 5;
+
     @Override
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
         ActiveCluster cluster = ActiveCluster.getInstance();
@@ -135,18 +138,39 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
 
         PsiElement element = Utils.cleanErrorIfPresent(parameters.getPosition());
 
+        List<List<String>> statementContexts = Utils.getStatementContexts(element);
+        List<String> completePath = Utils.getPath(element);
+
+        statementContexts.forEach(statementContext -> completeForContext(result, cluster, element, statementContext, completePath));
+        if (statementContexts.isEmpty() || !completePath.isEmpty()) {
+            completeForContext(result, cluster, element, Collections.EMPTY_LIST, completePath);
+        }
+        appendAliases(element, cluster, completePath, result);
+    }
+
+    private void completeForContext(CompletionResultSet result, ActiveCluster cluster, PsiElement element, List<String> statementContext, List<String> completePath) {
         PsiFile psiFile = element.getContainingFile();
-        List<String> path = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
-
-        path.addAll(Utils.getPath(element));
-
-        if (path.isEmpty()) {
-            appendRecursively(0, cluster, result, (depth, entity) -> depth <= 5);
+        List<String> editorContext = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
+        List<String> path = new ArrayList<>(editorContext);
+        path.addAll(statementContext);
+        if (!path.isEmpty() && !completePath.isEmpty()) {
+            if (completePath.get(0).equalsIgnoreCase(path.get(path.size() - 1))) {
+                int rm = path.size();
+                path.addAll(completePath);
+                path.remove(rm);
+            } else {
+                path.addAll(completePath);
+            }
         } else {
-            completeForPath(cluster, path, result, 0, (depth, entity) -> depth <= 5);
+            path.addAll(completePath);
         }
 
-        appendAliases(element, cluster, path, result);
+        if (path.isEmpty()) {
+            appendRecursively(0, cluster, result, emptyPathPasser);
+        } else {
+            completeForPath(cluster, path, result, 0, passer);
+        }
+
     }
 
     private void appendAliases(PsiElement element, ActiveCluster cluster, List<String> path, CompletionResultSet result) {
@@ -161,7 +185,7 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                 int rm = aliasPath.size();
                 aliasPath.addAll(path);
                 aliasPath.remove(rm);
-                completeForPath(cluster, aliasPath, result, 0, (d, e) -> d <= 5);
+                completeForPath(cluster, aliasPath, result, 0, passer);
             } else {
                 result.addElement(LookupElementBuilder.create(aliasName));
             }
@@ -200,7 +224,7 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                         List<String> subList = new ArrayList<>(to);
                         subList.remove(0);
                         completeForPath(child, subList, result, depth + 1, failureRecoverGate);
-                    } else {
+                    } else if (to.size() == 1) {
                         result.addElement(LookupElementBuilder.create(child.getName()));
                     }
                 }

@@ -62,7 +62,7 @@ public class Utils {
     };
 
     public static boolean isAfterFailedExpr(PsiElement element) {
-        return getErroredStatement(element, false)
+        return isInFailedSubQuery(element) || getErroredStatement(element, false)
                 .map(el -> getRightmostElement(el, c -> c.getNode().getElementType() == GeneratedTypes.EXPR))
                 .filter(el -> el.getNode().getElementType() == GeneratedTypes.EXPR)
                 .isPresent();
@@ -93,6 +93,9 @@ public class Utils {
     }
 
     public static Optional<Statement> getErroredStatement(PsiElement element, boolean immediate) {
+        if (isInFailedSubQuery(element)) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(getError(element, immediate).map(e -> (PsiElement) e).orElseGet(() -> element))
                 .map(e -> {
                     PsiElement psi = e;
@@ -330,5 +333,14 @@ public class Utils {
             element = element.getPrevSibling();
         }
         return false;
+    }
+
+    public static List<List<String>> getStatementContexts(PsiElement element) {
+        return getStatement(element)
+                .stream()
+                .flatMap(statement -> PsiTreeUtil.findChildrenOfType(statement, KeyspaceRef.class).stream())
+                .map(Utils::getRightmostElement)
+                .map(Utils::getPath)
+                .collect(Collectors.toList());
     }
 }
