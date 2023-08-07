@@ -49,6 +49,10 @@ public class NewConnectionDialog extends DialogWrapper {
     private JBTable eventLogTable;
     private Project project;
 
+    private JBTextField apiKeyField;
+
+    private JPasswordField apiSecretField;
+
     private JPanel wrapperPanel;
 
     public NewConnectionDialog(Project project, Tree tree) {
@@ -413,9 +417,9 @@ public class NewConnectionDialog extends DialogWrapper {
         c.insets = JBUI.insets(5);
 
         JLabel apiKeyLabel = new JLabel("API Key:");
-        JBTextField apiKeyField = new JBTextField(30);
+        apiKeyField = new JBTextField(30);
         JLabel apiSecretLabel = new JLabel("API Secret:");
-        JPasswordField apiSecretField = new JPasswordField(30);
+        apiSecretField = new JPasswordField(30);
 
         c.fill = GridBagConstraints.BOTH;
         c.gridy = 0;
@@ -502,7 +506,8 @@ public class NewConnectionDialog extends DialogWrapper {
         topThirdPanel.add(consoleScrollPane, gbc);
 
 
-        tabbedPane.addTab("Management API Keys", managementAPIKeysPanel);
+        //TODO: Enable this when the new Capella Rest API is live
+        //tabbedPane.addTab("Management API Keys", managementAPIKeysPanel);
         // Add "Connection Troubleshooting" tab
         thirdPanel = new JBPanel(new BorderLayout());
         thirdPanel.setBorder(JBUI.Borders.empty(10));
