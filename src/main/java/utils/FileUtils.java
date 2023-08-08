@@ -66,7 +66,7 @@ public class FileUtils {
 
         String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path \"" + zipFilePathCanonical + "\" -DestinationPath \"" + destDirCanonical + "\" -Force"};
+            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical + "' -Force"};
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
             unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical};
         } else {

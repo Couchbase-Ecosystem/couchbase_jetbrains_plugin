@@ -54,7 +54,7 @@ public class TreeToolBarBuilder {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Add connection action code here
-                DatabaseConnectionDialog dialog = new DatabaseConnectionDialog(project, tree);
+                NewConnectionDialog dialog = new NewConnectionDialog(project, tree);
                 dialog.show();
             }
         };

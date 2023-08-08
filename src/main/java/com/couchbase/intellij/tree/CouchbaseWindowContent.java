@@ -233,6 +233,7 @@ public class CouchbaseWindowContent extends JPanel {
             setLayout(new FlowLayout(FlowLayout.LEFT, 0, 2));
             add(new JLabel(icon));
             text.setBorder(JBUI.Borders.empty(0, 3));
+            setOpaque(true);
             add(text);
             add(counter);
         }
