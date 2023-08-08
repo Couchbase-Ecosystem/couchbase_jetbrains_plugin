@@ -108,6 +108,7 @@ public class ImportDialog extends DialogWrapper {
 
     protected JPanel cardPanel;
     protected JPanel mainPanel;
+    protected JPanel universalErrorPanel;
     protected JPanel datasetPanel;
     protected JPanel datasetFormPanel;
     protected JPanel datasetLabelHelpPanel;
@@ -139,12 +140,11 @@ public class ImportDialog extends DialogWrapper {
 
     protected JTextArea keyPreviewArea;
 
-    protected JBLabel datasetFormErrorLabel;
+    protected JBLabel universalErrorLabel;
     protected JBLabel scopeLabel;
     protected JBLabel collectionLabel;
     protected JBLabel scopeFieldLabel;
     protected JBLabel collectionFieldLabel;
-    protected JBLabel targetFormErrorLabel;
     protected JBLabel fieldNameLabel;
     protected JBLabel customExpressionLabel;
     protected JBLabel customExpressionInfoLabel;
@@ -153,7 +153,6 @@ public class ImportDialog extends DialogWrapper {
     protected JBLabel ignoreFieldsLabel;
     protected JBLabel threadsLabel;
     protected JBLabel verboseLabel;
-    protected JBLabel advancedFormErrorLabel;
     protected JBLabel summaryLabel;
 
     protected TitledSeparator keyPreviewTitledSeparator;
@@ -199,6 +198,14 @@ public class ImportDialog extends DialogWrapper {
 
         mainPanel.add(cardPanel, BorderLayout.CENTER);
 
+        universalErrorPanel = new JPanel();
+        universalErrorPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        universalErrorLabel = new JBLabel();
+        universalErrorLabel.setForeground(Color.decode("#FF4444"));
+        universalErrorLabel.setVisible(false);
+        universalErrorPanel.add(universalErrorLabel);
+        mainPanel.add(universalErrorPanel, BorderLayout.SOUTH);
+
         addListeners();
         return mainPanel;
     }
@@ -223,13 +230,6 @@ public class ImportDialog extends DialogWrapper {
 
         datasetField = new TextFieldWithBrowseButton();
         datasetFormPanel.add(datasetField, c);
-
-        datasetFormErrorLabel = new JBLabel("Please select a valid file.");
-        datasetFormErrorLabel.setForeground(Color.decode("#FF4444"));
-        datasetFormErrorLabel.setVisible(false);
-        c.gridy = 1;
-        c.gridx = 1;
-        datasetFormPanel.add(datasetFormErrorLabel, c);
 
         datasetPanel.add(datasetFormPanel, BorderLayout.CENTER);
 
@@ -348,10 +348,6 @@ public class ImportDialog extends DialogWrapper {
         c.gridy = 6;
         c.gridx = 1;
         c.weightx = 1.0;
-        targetFormErrorLabel = new JBLabel("");
-        targetFormErrorLabel.setForeground(Color.decode("#FF4444"));
-        targetFormErrorLabel.setVisible(false);
-        targetFormPanel.add(targetFormErrorLabel, c);
 
         scopeLabelHelpPanel.setVisible(false);
         collectionLabelHelpPanel.setVisible(false);
@@ -438,7 +434,6 @@ public class ImportDialog extends DialogWrapper {
         customExpressionField = new JBTextField();
         keyFormPanel.add(customExpressionField, c);
 
-        // Add info label
         c.gridy = 4;
         c.weightx = 1.0;
         c.gridwidth = GridBagConstraints.REMAINDER;
@@ -576,10 +571,6 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 1.0;
         c.gridwidth = GridBagConstraints.REMAINDER;
         c.gridx = 0;
-        advancedFormErrorLabel = new JBLabel("Please enter valid values.");
-        advancedFormErrorLabel.setForeground(Color.decode("#FF4444"));
-        advancedFormErrorLabel.setVisible(false);
-        advancedFormPanel.add(advancedFormErrorLabel, c);
 
         advancedPanel.add(advancedFormPanel, BorderLayout.CENTER);
 
@@ -723,7 +714,6 @@ public class ImportDialog extends DialogWrapper {
         bucketCombo.addActionListener(e -> handleBucketComboBoxChange());
         scopeCombo.addActionListener(e -> handleScopeComboBoxChange());
 
-        // bucketCombo, scopeCombo, and collectionCombo should include valid values
         ActionListener comboListener = e -> validateAndEnableNextButton();
         bucketCombo.addActionListener(comboListener);
         scopeCombo.addActionListener(comboListener);
@@ -868,7 +858,6 @@ public class ImportDialog extends DialogWrapper {
     protected void validateAndEnableNextButton() {
         boolean isValid = true;
         if (currentPage == 1) {
-            // Validate dataset field
             String datasetText = datasetField.getText();
             boolean isValidDataset = !(datasetText.isEmpty()
                     || !(datasetText.endsWith(".json") || datasetText.endsWith(".csv")));
@@ -876,34 +865,31 @@ public class ImportDialog extends DialogWrapper {
             if (!isValidDataset) {
                 isValid = false;
                 Log.error("Validation failed: Dataset field is empty or does not have a valid file extension");
-                datasetFormErrorLabel.setText("Please select a valid file.");
-                datasetFormErrorLabel.setVisible(true);
+                universalErrorLabel.setText("Please select a valid file.");
+                universalErrorLabel.setVisible(true);
             } else {
                 try {
-                    // Validate and detect Couchbase JSON format
                     detectedCouchbaseJsonFormat = FileUtils.validateAndDetectCouchbaseJsonFormat(datasetText);
                     if (detectedCouchbaseJsonFormat == null) {
                         highlightField(datasetField, false);
                         isValid = false;
                         Log.error("Validation failed: Dataset file is not in a valid Couchbase JSON format");
-                        datasetFormErrorLabel.setText("Dataset file is not in a valid Couchbase JSON format.");
-                        datasetFormErrorLabel.setVisible(true);
+                        universalErrorLabel.setText("Dataset file is not in a valid Couchbase JSON format.");
+                        universalErrorLabel.setVisible(true);
                     } else {
-                        // Update the UI with the detected format
-                        datasetFormErrorLabel.setVisible(false);
+                        universalErrorLabel.setVisible(false);
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     highlightField(datasetField, false);
                     isValid = false;
                     Log.error("An error occurred while validating the dataset file: " + ex.getMessage());
-                    datasetFormErrorLabel.setText("An error occurred while validating the dataset file.");
-                    datasetFormErrorLabel.setVisible(true);
+                    universalErrorLabel.setText("An error occurred while validating the dataset file.");
+                    universalErrorLabel.setVisible(true);
                 }
             }
         } else if (currentPage == 2) {
 
-            // Validate dynamic scope and collection fields
             if (dynamicScopeAndCollectionRadio.isSelected()) {
                 String dynamicScopeText = dynamicScopeFieldField.getText();
                 String dynamicCollectionText = dynamicCollectionFieldField.getText();
@@ -917,7 +903,6 @@ public class ImportDialog extends DialogWrapper {
                 }
             }
 
-            // Validate scope and collection fields
             String scopeFieldText = dynamicScopeFieldField.getText();
             boolean isValidScope = FileUtils.checkFieldsInJson(scopeFieldText,
                     datasetField.getText(), detectedCouchbaseJsonFormat);
@@ -933,13 +918,12 @@ public class ImportDialog extends DialogWrapper {
             if (!isValidScope || !isValidCollection) {
                 isValid = false;
                 Log.error("Validation failed: Scope and/or Collection fields are not valid");
-                targetFormErrorLabel.setText("Scope and/or Collection fields are not valid.");
-                targetFormErrorLabel.setVisible(true);
+                universalErrorLabel.setText("Scope and/or Collection fields are not valid.");
+                universalErrorLabel.setVisible(true);
             } else {
-                targetFormErrorLabel.setVisible(false);
+                universalErrorLabel.setVisible(false);
             }
 
-            // Validate radio boxes and combo boxes
             if (!defaultScopeAndCollectionRadio.isSelected() && !collectionRadio.isSelected()
                     && !dynamicScopeAndCollectionRadio.isSelected()) {
                 isValid = false;
@@ -951,7 +935,7 @@ public class ImportDialog extends DialogWrapper {
             }
 
         } else if (currentPage == 3) {
-            // Validate field name and custom expression fields
+            List<String> errorMessages = new ArrayList<>();
             if (useFieldValueRadio.isSelected()) {
                 String fieldNameText = fieldNameField.getText();
                 boolean isValidFieldName = !fieldNameText.isEmpty();
@@ -959,6 +943,7 @@ public class ImportDialog extends DialogWrapper {
                 if (!isValidFieldName) {
                     isValid = false;
                     Log.error("Validation failed: Field name field is empty");
+                    errorMessages.add("Field name field is empty.");
                 }
             } else if (customExpressionRadio.isSelected()) {
                 String customExpressionText = customExpressionField.getText();
@@ -967,6 +952,7 @@ public class ImportDialog extends DialogWrapper {
                 if (!isValidCustomExpression) {
                     isValid = false;
                     Log.error("Validation failed: Custom expression field is empty");
+                    errorMessages.add("Custom expression field is empty.");
                 } else if (customExpressionText.contains("#UUID#")
                         || customExpressionText.contains("#MONO_INCR#")) {
                     customExpressionInfoLabel.setVisible(true);
@@ -974,14 +960,20 @@ public class ImportDialog extends DialogWrapper {
                     customExpressionInfoLabel.setVisible(false);
                 }
             }
-            // Validate radio boxes
             if (!generateUUIDRadio.isSelected() && !useFieldValueRadio.isSelected()
                     && !customExpressionRadio.isSelected()) {
                 isValid = false;
                 Log.error("Validation failed: No key option radio box selected");
+                errorMessages.add("No key option radio box selected.");
             }
+
+            String errorMessage = String.join("\n", errorMessages);
+            if (errorMessage.length() > 100) {
+                errorMessage = "Multiple validation errors occurred. Please check the fields for more information.";
+            }
+            universalErrorLabel.setText(errorMessage);
+            universalErrorLabel.setVisible(!errorMessages.isEmpty());
         } else if (currentPage == 4) {
-            // Validate skip first, import up to, and ignore fields fields
             int numDocsInDataset = 0;
             try {
                 numDocsInDataset = FileUtils.countJsonDocs(detectedCouchbaseJsonFormat, datasetField.getText());
@@ -990,6 +982,8 @@ public class ImportDialog extends DialogWrapper {
             }
 
             int skipFirstValue = 0;
+            List<String> errorMessages = new ArrayList<>();
+            boolean isSkipFirstValid = true;
             if (skipFirstCheck.isSelected()) {
                 String skipFirstText = skipFirstField.getText();
 
@@ -1001,22 +995,21 @@ public class ImportDialog extends DialogWrapper {
                     highlightField(skipFirstField, isWithinBounds);
                     if (!isWithinBounds) {
                         isValid = false;
+                        isSkipFirstValid = false;
                         Log.error("Validation failed: Skip first value exceeds number of documents in the dataset");
-                        advancedFormErrorLabel.setText("Skip first value exceeds number of documents in the dataset.");
-                        advancedFormErrorLabel.setVisible(true);
-                    } else {
-                        advancedFormErrorLabel.setVisible(false);
+                        errorMessages.add("Skip first value exceeds number of documents in the dataset.");
                     }
                 } else {
                     highlightField(skipFirstField, false);
                     isValid = false;
+                    isSkipFirstValid = false;
                     Log.error("Validation failed: Skip first field does not contain a valid non-negative integer");
-                    advancedFormErrorLabel.setText("Skip first field does not contain a valid non-negative integer.");
-                    advancedFormErrorLabel.setVisible(true);
+                    errorMessages.add("Skip first field does not contain a valid non-negative integer.");
                 }
             }
 
             int importUptoValue = 0;
+            boolean isImportUptoValid = true;
             if (importUptoCheck.isSelected()) {
                 String importUptoText = importUptoField.getText();
 
@@ -1028,37 +1021,31 @@ public class ImportDialog extends DialogWrapper {
                     highlightField(importUptoField, isWithinBounds);
                     if (!isWithinBounds) {
                         isValid = false;
+                        isImportUptoValid = false;
                         Log.error("Validation failed: Import up to value exceeds number of documents in the dataset");
-                        advancedFormErrorLabel
-                                .setText("Import up to value exceeds number of documents in the dataset.");
-                        advancedFormErrorLabel.setVisible(true);
-                    } else {
-                        advancedFormErrorLabel.setVisible(false);
+                        errorMessages.add("Import up to value exceeds number of documents in the dataset.");
                     }
                 } else {
                     highlightField(importUptoField, false);
                     isValid = false;
+                    isImportUptoValid = false;
                     Log.error("Validation failed: Import up to field does not contain a valid non-negative integer");
-                    advancedFormErrorLabel.setText("Import up to field does not contain a valid non-negative integer.");
-                    advancedFormErrorLabel.setVisible(true);
+                    errorMessages.add("Import up to field does not contain a valid non-negative integer.");
                 }
             }
 
-            // Check that the sum of skipFirst and importUpto is less than or equal to the
-            // total number of documents
             if (skipFirstCheck.isSelected() && importUptoCheck.isSelected()) {
                 boolean isWithinBounds = (skipFirstValue + importUptoValue) <= numDocsInDataset;
-                highlightField(skipFirstField, isWithinBounds);
-                highlightField(importUptoField, isWithinBounds);
+                if (isSkipFirstValid && isImportUptoValid) {
+                    highlightField(skipFirstField, isWithinBounds);
+                    highlightField(importUptoField, isWithinBounds);
+                }
                 if (!isWithinBounds) {
                     isValid = false;
                     Log.error(
                             "Validation failed: The sum of skip first and import up to values exceeds the number of documents in the dataset");
-                    advancedFormErrorLabel.setText(
+                    errorMessages.add(
                             "The sum of skip first and import up to values exceeds the number of documents in the dataset.");
-                    advancedFormErrorLabel.setVisible(true);
-                } else {
-                    advancedFormErrorLabel.setVisible(false);
                 }
             }
 
@@ -1069,13 +1056,16 @@ public class ImportDialog extends DialogWrapper {
                 if (!isValidIgnoreFields) {
                     isValid = false;
                     Log.error("Validation failed: Ignore fields field is empty");
-                    advancedFormErrorLabel.setText("Ignore fields field is empty.");
-                    advancedFormErrorLabel.setVisible(true);
-                } else {
-                    advancedFormErrorLabel.setVisible(false);
+                    errorMessages.add("Ignore fields field is empty.");
                 }
             }
 
+            String errorMessage = String.join("\n", errorMessages);
+            if (errorMessage.length() > 100) {
+                errorMessage = "Multiple validation errors occurred. Please check the fields for more information.";
+            }
+            universalErrorLabel.setText(errorMessage);
+            universalErrorLabel.setVisible(!errorMessages.isEmpty());
         }
 
         nextButton.setEnabled(isValid);
@@ -1340,12 +1330,10 @@ public class ImportDialog extends DialogWrapper {
     protected JComponent createSouthPanel() {
         panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        // Create and add the Cancel button
         JButton cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(e -> doCancelAction());
         panel.add(cancelButton);
 
-        // Create and add the Back button
         backButton = new JButton("Back");
         backButton.addActionListener(e -> {
             previousPage();
@@ -1358,7 +1346,6 @@ public class ImportDialog extends DialogWrapper {
         backButton.setVisible(currentPage > 1);
         panel.add(backButton);
 
-        // Create and add the Next/Import button
         nextButton = new JButton("Next");
         nextButton.addActionListener(e -> {
             if (currentPage == 5) {
@@ -1397,7 +1384,6 @@ public class ImportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
         try {
-            // TODO: Resolve fileFormat issue
             String bucket = bucketCombo.getSelectedItem().toString();
             String filePath = datasetField.getText();
             ButtonModel targetLocationGroupSelection = targetLocationGroup.getSelection();
