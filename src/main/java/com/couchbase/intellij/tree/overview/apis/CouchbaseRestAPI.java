@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.overview.apis;
 
 import com.couchbase.client.core.deps.com.google.common.reflect.TypeToken;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.Permissions;
 import com.couchbase.intellij.workbench.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -78,7 +79,14 @@ public class CouchbaseRestAPI {
         return gson.fromJson(content, BucketOverview.class);
     }
 
-    private static String callSingleEndpoint(String endpoint, String cbURL, boolean isSSL, String username, String password) throws Exception {
+    public static Permissions callWhoAmIEndpoint() throws Exception {
+        String content = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/whoami", ActiveCluster.getInstance().getClusterURL(),
+                ActiveCluster.getInstance().isSSLEnabled(), ActiveCluster.getInstance().getUsername(), ActiveCluster.getInstance().getPassword());
+        Gson gson = new GsonBuilder().serializeNulls().create();
+        return gson.fromJson(content, Permissions.class);
+    }
+
+    public static String callSingleEndpoint(String endpoint, String cbURL, boolean isSSL, String username, String password) throws Exception {
         List<String> servers = NSLookup.getServerURL(cbURL);
         return callEndpoint(endpoint, servers.get(0), isSSL, username, password);
     }

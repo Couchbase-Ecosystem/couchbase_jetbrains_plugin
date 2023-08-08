@@ -3,6 +3,7 @@ package com.couchbase.intellij.database;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.intellij.ui.ColorUtil;
 
 import java.awt.*;
@@ -21,6 +22,8 @@ public class ActiveCluster {
     private String version;
 
     private Color color;
+
+    private Permissions permissions; // Store user permissions
 
     private ActiveCluster() {
     }
@@ -60,6 +63,15 @@ public class ActiveCluster {
             if (savedCluster.getColor() != null) {
                 this.color = Color.decode(savedCluster.getColor());
             }
+
+            // Fetch user permissions from the "Who am I" endpoint using CouchbaseRestAPI
+            try {
+                Permissions permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
+                this.permissions = permissions;
+            } catch (Exception e) {
+                // Handle Exception
+            }
+
         } catch (Exception e) {
             if (cluster != null) {
                 cluster.disconnect();
@@ -68,12 +80,95 @@ public class ActiveCluster {
         }
     }
 
+//    public Permissions getPermissions() {
+//        if (permissions == null) {
+//            try {
+//                permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
+//            } catch (Exception e) {
+//
+//                return null;
+//            }
+//        }
+//        return permissions;
+//    }
+
+    public boolean isAdmin() {
+        if (permissions == null || permissions.getRoles() == null) {
+            return false;
+        }
+
+        for (Permissions.Role role : permissions.getRoles()) {
+            if ("admin".equals(role.getRole())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean canWrite(String bucket, String scope) {
+        if (permissions == null || permissions.getRoles() == null) {
+            return false;
+        }
+
+        for (Permissions.Role role : permissions.getRoles()) {
+            if ("data_writer".equals(role.getRole()) &&
+                    (role.getBucketName().equals("*") || bucket.equals(role.getBucketName())) &&
+                    (role.getScopeName().equals("*") || scope.equals(role.getScopeName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isScopeAdmin(String bucket, String scope) {
+        if (permissions == null || permissions.getRoles() == null) {
+            return false;
+        }
+
+        for (Permissions.Role role : permissions.getRoles()) {
+            if ("scope_admin".equals(role.getRole()) &&
+                    (role.getBucketName().equals("*") || bucket.equals(role.getBucketName())) &&
+                    (role.getScopeName().equals("*") || scope.equals(role.getScopeName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasApplicationAccess() {
+        if(permissions == null || permissions.getRoles() == null) {
+            return false;
+        }
+
+        for(Permissions.Role role : permissions.getRoles()) {
+            if("bucket_full_access".equals(role.getRole())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isBucketAdmin(String bucket) {
+        if (permissions == null || permissions.getRoles() == null) {
+            return false;
+        }
+
+        for (Permissions.Role role : permissions.getRoles()) {
+            if ("bucket_admin".equals(role.getRole()) &&
+                    (role.getBucketName().equals("*") || bucket.equals(role.getBucketName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void disconnect() {
         cluster.disconnect();
         this.savedCluster = null;
         this.cluster = null;
         this.password = null;
         this.color = null;
+        this.permissions = null;
     }
 
     public String getUsername() {
