@@ -2,15 +2,21 @@
 
 package org.intellij.sdk.language.psi;
 
-import org.intellij.sdk.language.SQLPPFileType;
-import org.intellij.sdk.language.SQLPPLanguage;
+import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.intellij.extapi.psi.PsiFileBase;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.psi.FileViewProvider;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.util.PsiTreeUtil;
+import generated.psi.Alias;
+import org.intellij.sdk.language.SQLPPFileType;
+import org.intellij.sdk.language.SQLPPLanguage;
 import org.jetbrains.annotations.NotNull;
 
-public class SqlppFile extends PsiFileBase {
+import java.util.*;
 
+public class SqlppFile extends PsiFileBase {
+  private static List<String> context;
   public SqlppFile(@NotNull FileViewProvider viewProvider) {
     super(viewProvider, SQLPPLanguage.INSTANCE);
   }
@@ -26,4 +32,20 @@ public class SqlppFile extends PsiFileBase {
     return "Sqlpp File";
   }
 
+  public Map<String, CouchbaseClusterEntity> getAliases() {
+    Map<String, CouchbaseClusterEntity> result = new HashMap<>();
+    PsiTreeUtil.collectElementsOfType(getNode().getPsi(), Alias.class).forEach(aliasPsi -> {
+      PsiElement namePsi = aliasPsi.getNextSibling();
+      PsiElement targetPsi = aliasPsi.getPrevSibling();
+    });
+    return result;
+  }
+
+  public List<String> getClusterContext() {
+    return new ArrayList<>(context == null ? Collections.EMPTY_LIST : context);
+  }
+
+  public void setClusterContext(List<String> context) {
+    this.context = context;
+  }
 }

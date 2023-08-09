@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class KeyspaceFullImpl extends ASTWrapperPsiElement implements KeyspaceFull {
+public class KeyspaceFullImpl extends SqlppPSIWrapper implements KeyspaceFull {
 
   public KeyspaceFullImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,26 +29,26 @@ public class KeyspaceFullImpl extends ASTWrapperPsiElement implements KeyspaceFu
 
   @Override
   @NotNull
-  public Bucket getBucket() {
-    return findNotNullChildByClass(Bucket.class);
+  public BucketRef getBucketRef() {
+    return findNotNullChildByClass(BucketRef.class);
   }
 
   @Override
   @NotNull
-  public Collection getCollection() {
-    return findNotNullChildByClass(Collection.class);
+  public CollectionRef getCollectionRef() {
+    return findNotNullChildByClass(CollectionRef.class);
   }
 
   @Override
   @NotNull
-  public Namespace getNamespace() {
-    return findNotNullChildByClass(Namespace.class);
+  public NamespaceRef getNamespaceRef() {
+    return findNotNullChildByClass(NamespaceRef.class);
   }
 
   @Override
   @NotNull
-  public Scope getScope() {
-    return findNotNullChildByClass(Scope.class);
+  public ScopeRef getScopeRef() {
+    return findNotNullChildByClass(ScopeRef.class);
   }
 
 }

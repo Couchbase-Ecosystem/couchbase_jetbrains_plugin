@@ -1,5 +1,13 @@
 package com.couchbase.intellij.persistence;
 
+import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.persistence.storage.ClustersStorage;
+
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 public class SavedCluster {
     private String id;
     private String name;
@@ -12,6 +20,8 @@ public class SavedCluster {
     private String defaultBucket;
 
     private Boolean readOnly;
+
+    private Long inferCachePeriod;
 
     public String getId() {
         return id;
@@ -87,5 +97,74 @@ public class SavedCluster {
                 ", sslEnable=" + sslEnable +
                 ", defaultBucket='" + defaultBucket + '\'' +
                 '}';
+    }
+
+    public JsonObject getInferCacheValue(String key) {
+        Map<String, String> inferCacheValues = ClustersStorage.getInstance().getValue().getInferCache().get(getId());
+        if (inferCacheValues == null) {
+            inferCacheValues = new HashMap<>();
+            ClustersStorage.getInstance().getValue().getInferCache().put(getId(), inferCacheValues);
+        }
+        if (isInferCacheValid(key)) {
+            String cache = inferCacheValues.get(key);
+            if (cache != null) {
+                byte[] src = Base64.getDecoder().decode(cache);
+                return JsonObject.fromJson(src);
+            }
+        }
+        return null;
+    }
+
+    public void setInferCacheValue(String key, JsonObject infer) {
+        Map<String, String> inferCacheValues = ClustersStorage.getInstance().getValue().getInferCache().get(getId());
+        if (inferCacheValues == null) {
+            inferCacheValues = new HashMap<>();
+            ClustersStorage.getInstance().getValue().getInferCache().put(getId(), inferCacheValues);
+        }
+        Map<String, Long> inferValuesUpdateTimes = ClustersStorage.getInstance().getValue().getInferCacheUpdateTimes().get(getId());
+        if (inferValuesUpdateTimes == null) {
+            inferValuesUpdateTimes = new HashMap<>();
+            ClustersStorage.getInstance().getValue().getInferCacheUpdateTimes().put(getId(), inferValuesUpdateTimes);
+        }
+        inferCacheValues.put(key, infer == null ? null : Base64.getEncoder().encodeToString(infer.toString().getBytes()));
+        inferValuesUpdateTimes.put(key, System.currentTimeMillis());
+    }
+
+    public boolean isInferCacheValid(String key) {
+        Map<String, Long> inferValuesUpdateTimes = ClustersStorage.getInstance().getValue().getInferCacheUpdateTimes().get(getId());
+        if (inferValuesUpdateTimes == null) {
+            inferValuesUpdateTimes = new HashMap<>();
+            ClustersStorage.getInstance().getValue().getInferCacheUpdateTimes().put(getId(), inferValuesUpdateTimes);
+        }
+        if (inferCachePeriod == null || inferCachePeriod == 0) {
+            inferCachePeriod = TimeUnit.DAYS.toMillis(3);
+        }
+        return System.currentTimeMillis() - inferValuesUpdateTimes.getOrDefault(key, 0L) < inferCachePeriod;
+    }
+
+    public Map<String, String> getInferCacheValues() {
+        Map<String, String> inferCacheValues = ClustersStorage.getInstance().getValue().getInferCache().get(getId());
+        if (inferCacheValues == null) {
+            inferCacheValues = new HashMap<>();
+            ClustersStorage.getInstance().getValue().getInferCache().put(getId(), inferCacheValues);
+        }
+        return inferCacheValues;
+    }
+
+    public Map<String, Long> getInferValuesUpdateTimes() {
+        Map<String, Long> inferValuesUpdateTimes = ClustersStorage.getInstance().getValue().getInferCacheUpdateTimes().get(getId());
+        if (inferValuesUpdateTimes == null) {
+            inferValuesUpdateTimes = new HashMap<>();
+            ClustersStorage.getInstance().getValue().getInferCacheUpdateTimes().put(getId(), inferValuesUpdateTimes);
+        }
+        return inferValuesUpdateTimes;
+    }
+
+    public Long getInferCachePeriod() {
+        return inferCachePeriod == null ? 0 : inferCachePeriod;
+    }
+
+    public void setInferCachePeriod(Long inferCachePeriod) {
+        this.inferCachePeriod = inferCachePeriod;
     }
 }

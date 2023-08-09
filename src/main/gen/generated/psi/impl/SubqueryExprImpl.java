@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class SubqueryExprImpl extends ASTWrapperPsiElement implements SubqueryExpr {
+public class SubqueryExprImpl extends SqlppPSIWrapper implements SubqueryExpr {
 
   public SubqueryExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class SubqueryExprImpl extends ASTWrapperPsiElement implements SubqueryEx
 
   @Override
   @NotNull
-  public Select getSelect() {
-    return findNotNullChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findNotNullChildByClass(SelectStatement.class);
   }
 
 }

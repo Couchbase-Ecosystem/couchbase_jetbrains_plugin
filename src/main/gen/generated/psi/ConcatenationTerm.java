@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface ConcatenationTerm extends PsiElement {
 
   @NotNull
-  List<Expr> getExprList();
+  Expr getExpr();
 
 }

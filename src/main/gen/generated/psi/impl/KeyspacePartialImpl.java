@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class KeyspacePartialImpl extends ASTWrapperPsiElement implements KeyspacePartial {
+public class KeyspacePartialImpl extends SqlppPSIWrapper implements KeyspacePartial {
 
   public KeyspacePartialImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class KeyspacePartialImpl extends ASTWrapperPsiElement implements Keyspac
 
   @Override
   @NotNull
-  public Collection getCollection() {
-    return findNotNullChildByClass(Collection.class);
+  public CollectionRef getCollectionRef() {
+    return findNotNullChildByClass(CollectionRef.class);
   }
 
 }

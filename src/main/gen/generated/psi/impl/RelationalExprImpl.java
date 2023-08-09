@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class RelationalExprImpl extends ASTWrapperPsiElement implements RelationalExpr {
+public class RelationalExprImpl extends SqlppPSIWrapper implements RelationalExpr {
 
   public RelationalExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class RelationalExprImpl extends ASTWrapperPsiElement implements Relation
 
   @Override
   @NotNull
-  public List<Expr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

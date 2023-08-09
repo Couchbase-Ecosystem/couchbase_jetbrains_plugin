@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class TclStatementImpl extends ASTWrapperPsiElement implements TclStatement {
+public class TclStatementImpl extends SqlppPSIWrapper implements TclStatement {
 
   public TclStatementImpl(@NotNull ASTNode node) {
     super(node);
@@ -47,8 +47,8 @@ public class TclStatementImpl extends ASTWrapperPsiElement implements TclStateme
 
   @Override
   @Nullable
-  public Savepoint getSavepoint() {
-    return findChildByClass(Savepoint.class);
+  public SavepointStatement getSavepointStatement() {
+    return findChildByClass(SavepointStatement.class);
   }
 
   @Override

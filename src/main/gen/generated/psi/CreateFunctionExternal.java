@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement;
 public interface CreateFunctionExternal extends PsiElement {
 
   @NotNull
-  Function getFunction();
+  FunctionRef getFunctionRef();
 
   @NotNull
   Obj getObj();

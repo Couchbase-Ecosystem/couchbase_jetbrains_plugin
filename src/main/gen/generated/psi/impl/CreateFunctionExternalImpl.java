@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class CreateFunctionExternalImpl extends ASTWrapperPsiElement implements CreateFunctionExternal {
+public class CreateFunctionExternalImpl extends SqlppPSIWrapper implements CreateFunctionExternal {
 
   public CreateFunctionExternalImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class CreateFunctionExternalImpl extends ASTWrapperPsiElement implements 
 
   @Override
   @NotNull
-  public Function getFunction() {
-    return findNotNullChildByClass(Function.class);
+  public FunctionRef getFunctionRef() {
+    return findNotNullChildByClass(FunctionRef.class);
   }
 
   @Override

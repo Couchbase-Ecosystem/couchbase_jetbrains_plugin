@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface KeyspacePartial extends PsiElement {
 
   @NotNull
-  Collection getCollection();
+  CollectionRef getCollectionRef();
 
 }

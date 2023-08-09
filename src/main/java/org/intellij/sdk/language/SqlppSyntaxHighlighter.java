@@ -10,6 +10,7 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighterBase;
 import com.intellij.psi.TokenType;
 import com.intellij.psi.tree.IElementType;
 import generated.GeneratedTypes;
+import org.intellij.sdk.language.psi.SqlppTokenSets;
 import org.jetbrains.annotations.NotNull;
 
 import static com.intellij.openapi.editor.colors.TextAttributesKey.createTextAttributesKey;
@@ -63,7 +64,7 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
 
     @Override
     public TextAttributesKey @NotNull [] getTokenHighlights(IElementType tokenType) {
-        if (tokenType.equals(GeneratedTypes.SQL_KEYWORDS)) {
+        if (SqlppTokenSets.KEYWORDS.contains(tokenType)) {
             return KEY_KEYS;
         }
         if (tokenType.equals(GeneratedTypes.BOOL)) {
@@ -74,14 +75,12 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
             return FUNCTION_KEYS;
         }
 
-        if (tokenType.equals(GeneratedTypes.SIGNALS)
-                || tokenType.equals(GeneratedTypes.IDENTIFIER)
-                || tokenType.equals(ESCAPED_IDENTIFIER)) {
+        if (SqlppTokenSets.PUNCTUATION.contains(tokenType)) {
             return SEPARATOR_KEYS;
         }
 
 
-        if (tokenType.equals(GeneratedTypes.STR)) {
+        if (SqlppTokenSets.STRINGS.contains(tokenType)) {
             return STRING_KEYS;
         }
 
@@ -89,7 +88,7 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
             return NUMBER_KEYS;
         }
 
-        if (tokenType.equals(GeneratedTypes.BACKTICKED_STRING)) {
+        if (SqlppTokenSets.IDENTIFIERS.contains(tokenType)) {
             return ESCAPED_IDENTIFIER_KEYS;
         }
 

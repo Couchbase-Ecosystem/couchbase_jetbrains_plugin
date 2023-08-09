@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class CreateScopeImpl extends ASTWrapperPsiElement implements CreateScope {
+public class CreateScopeImpl extends SqlppPSIWrapper implements CreateScope {
 
   public CreateScopeImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,20 +29,20 @@ public class CreateScopeImpl extends ASTWrapperPsiElement implements CreateScope
 
   @Override
   @NotNull
-  public Bucket getBucket() {
-    return findNotNullChildByClass(Bucket.class);
+  public BucketRef getBucketRef() {
+    return findNotNullChildByClass(BucketRef.class);
   }
 
   @Override
   @Nullable
-  public Namespace getNamespace() {
-    return findChildByClass(Namespace.class);
+  public NamespaceRef getNamespaceRef() {
+    return findChildByClass(NamespaceRef.class);
   }
 
   @Override
   @NotNull
-  public Scope getScope() {
-    return findNotNullChildByClass(Scope.class);
+  public ScopeRef getScopeRef() {
+    return findNotNullChildByClass(ScopeRef.class);
   }
 
 }

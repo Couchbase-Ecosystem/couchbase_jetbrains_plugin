@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class FunctionCallImpl extends ASTWrapperPsiElement implements FunctionCall {
+public class FunctionCallImpl extends SqlppPSIWrapper implements FunctionCall {
 
   public FunctionCallImpl(@NotNull ASTNode node) {
     super(node);
@@ -31,6 +31,12 @@ public class FunctionCallImpl extends ASTWrapperPsiElement implements FunctionCa
   @Nullable
   public AggregateFunction getAggregateFunction() {
     return findChildByClass(AggregateFunction.class);
+  }
+
+  @Override
+  @Nullable
+  public BuiltinFunction getBuiltinFunction() {
+    return findChildByClass(BuiltinFunction.class);
   }
 
   @Override

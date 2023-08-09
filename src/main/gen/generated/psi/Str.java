@@ -7,7 +7,10 @@ import com.intellij.psi.PsiElement;
 
 public interface Str extends PsiElement {
 
-  @NotNull
-  List<Chr> getChrList();
+  @Nullable
+  DoubleQuotedString getDoubleQuotedString();
+
+  @Nullable
+  SingleQuotedString getSingleQuotedString();
 
 }

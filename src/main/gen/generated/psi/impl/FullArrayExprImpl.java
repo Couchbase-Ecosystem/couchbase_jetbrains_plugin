@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class FullArrayExprImpl extends ASTWrapperPsiElement implements FullArrayExpr {
+public class FullArrayExprImpl extends SqlppPSIWrapper implements FullArrayExpr {
 
   public FullArrayExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -43,12 +43,6 @@ public class FullArrayExprImpl extends ASTWrapperPsiElement implements FullArray
   @NotNull
   public List<Var> getVarList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, Var.class);
-  }
-
-  @Override
-  @NotNull
-  public VarExpr getVarExpr() {
-    return findNotNullChildByClass(VarExpr.class);
   }
 
 }

@@ -11,6 +11,9 @@ public interface FunctionCall extends PsiElement {
   AggregateFunction getAggregateFunction();
 
   @Nullable
+  BuiltinFunction getBuiltinFunction();
+
+  @Nullable
   OrdinaryFunction getOrdinaryFunction();
 
   @Nullable

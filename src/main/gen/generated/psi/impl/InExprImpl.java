@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class InExprImpl extends ASTWrapperPsiElement implements InExpr {
+public class InExprImpl extends SqlppPSIWrapper implements InExpr {
 
   public InExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,14 +29,8 @@ public class InExprImpl extends ASTWrapperPsiElement implements InExpr {
 
   @Override
   @NotNull
-  public SearchExpr getSearchExpr() {
-    return findNotNullChildByClass(SearchExpr.class);
-  }
-
-  @Override
-  @NotNull
-  public TargetExpr getTargetExpr() {
-    return findNotNullChildByClass(TargetExpr.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

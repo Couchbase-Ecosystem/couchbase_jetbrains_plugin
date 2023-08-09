@@ -8,9 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface ValuesClause extends PsiElement {
 
   @NotNull
-  List<Key> getKeyList();
+  List<KeyExpr> getKeyExprList();
 
   @NotNull
-  List<Value> getValueList();
+  List<ValueExpr> getValueExprList();
 
 }

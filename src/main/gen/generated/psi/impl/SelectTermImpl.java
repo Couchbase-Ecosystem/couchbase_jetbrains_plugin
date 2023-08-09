@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class SelectTermImpl extends ASTWrapperPsiElement implements SelectTerm {
+public class SelectTermImpl extends SqlppPSIWrapper implements SelectTerm {
 
   public SelectTermImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class SelectTermImpl extends ASTWrapperPsiElement implements SelectTerm {
 
   @Override
   @Nullable
-  public Select getSelect() {
-    return findChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findChildByClass(SelectStatement.class);
   }
 
   @Override

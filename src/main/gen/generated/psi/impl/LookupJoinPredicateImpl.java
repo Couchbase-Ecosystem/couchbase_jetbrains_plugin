@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class LookupJoinPredicateImpl extends ASTWrapperPsiElement implements LookupJoinPredicate {
+public class LookupJoinPredicateImpl extends SqlppPSIWrapper implements LookupJoinPredicate {
 
   public LookupJoinPredicateImpl(@NotNull ASTNode node) {
     super(node);

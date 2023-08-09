@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class ArithmeticTermImpl extends ASTWrapperPsiElement implements ArithmeticTerm {
+public class ArithmeticTermImpl extends SqlppPSIWrapper implements ArithmeticTerm {
 
   public ArithmeticTermImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class ArithmeticTermImpl extends ASTWrapperPsiElement implements Arithmet
 
   @Override
   @NotNull
-  public List<Expr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

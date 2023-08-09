@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 public interface AnsiMergeInsert extends PsiElement {
 
   @NotNull
-  Key getKey();
+  KeyExpr getKeyExpr();
 
   @Nullable
-  Value getValue();
+  ValueExpr getValueExpr();
 
   @Nullable
   WhereClause getWhereClause();

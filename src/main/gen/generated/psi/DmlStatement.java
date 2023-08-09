@@ -8,18 +8,18 @@ import com.intellij.psi.PsiElement;
 public interface DmlStatement extends PsiElement {
 
   @Nullable
-  Delete getDelete();
+  DeleteStatement getDeleteStatement();
 
   @Nullable
-  Insert getInsert();
+  InsertStatement getInsertStatement();
 
   @Nullable
-  Merge getMerge();
+  MergeStatement getMergeStatement();
 
   @Nullable
-  Update getUpdate();
+  UpdateStatement getUpdateStatement();
 
   @Nullable
-  Upsert getUpsert();
+  UpsertStatement getUpsertStatement();
 
 }

@@ -8,12 +8,12 @@ import com.intellij.psi.PsiElement;
 public interface DropScope extends PsiElement {
 
   @NotNull
-  Bucket getBucket();
+  BucketRef getBucketRef();
 
   @Nullable
-  Namespace getNamespace();
+  NamespaceRef getNamespaceRef();
 
   @NotNull
-  Scope getScope();
+  ScopeRef getScopeRef();
 
 }

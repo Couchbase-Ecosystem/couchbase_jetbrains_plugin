@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface SubqueryExpr extends PsiElement {
 
   @NotNull
-  Select getSelect();
+  SelectStatement getSelectStatement();
 
 }

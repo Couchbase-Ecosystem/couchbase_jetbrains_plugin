@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class BlockHintCommentImpl extends ASTWrapperPsiElement implements BlockHintComment {
+public class BlockHintCommentImpl extends SqlppPSIWrapper implements BlockHintComment {
 
   public BlockHintCommentImpl(@NotNull ASTNode node) {
     super(node);

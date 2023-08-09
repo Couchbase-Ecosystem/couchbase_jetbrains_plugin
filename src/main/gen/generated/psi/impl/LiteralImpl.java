@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class LiteralImpl extends ASTWrapperPsiElement implements Literal {
+public class LiteralImpl extends SqlppPSIWrapper implements Literal {
 
   public LiteralImpl(@NotNull ASTNode node) {
     super(node);
@@ -31,24 +31,6 @@ public class LiteralImpl extends ASTWrapperPsiElement implements Literal {
   @Nullable
   public Bool getBool() {
     return findChildByClass(Bool.class);
-  }
-
-  @Override
-  @Nullable
-  public Missing getMissing() {
-    return findChildByClass(Missing.class);
-  }
-
-  @Override
-  @Nullable
-  public Nbr getNbr() {
-    return findChildByClass(Nbr.class);
-  }
-
-  @Override
-  @Nullable
-  public Null getNull() {
-    return findChildByClass(Null.class);
   }
 
   @Override
