@@ -17,6 +17,7 @@ import generated.psi.IdentifierRef;
 import generated.psi.impl.ExprImpl;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
+import org.jsoup.helper.StringUtil;
 
 import java.util.*;
 import java.util.function.BiPredicate;
@@ -129,6 +130,21 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
     private static final BiPredicate<Integer, CouchbaseClusterEntity> passer = (depth, entity) -> depth <= 3;
     private static final BiPredicate<Integer, CouchbaseClusterEntity> emptyPathPasser = (depth, entity) -> depth <= 5;
 
+    private static boolean appendRecursively(int depth, CouchbaseClusterEntity entity, CompletionResultSet result, BiPredicate<Integer, CouchbaseClusterEntity> filter) {
+        boolean found = false;
+        String name = entity.getName();
+        if (name != null && (filter == null || filter.test(depth, entity))) {
+//            log.debug("Completion appended recursively: " + name + "; depth: " + depth);
+            result.addElement(LookupElementBuilder.create(name));
+            found = true;
+        }
+
+        if (entity.getChildren() != null) {
+            found |= 0 > entity.getChildren().stream().filter(c -> appendRecursively(depth + 1, c, result, filter)).count();
+        }
+        return found;
+    }
+
     @Override
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
         ActiveCluster cluster = ActiveCluster.getInstance();
@@ -138,44 +154,49 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
 
         PsiElement element = Utils.cleanErrorIfPresent(parameters.getPosition());
 
-        List<List<String>> statementContexts = Utils.getStatementContexts(element);
-        List<String> completePath = Utils.getPath(element);
-
-        statementContexts.forEach(statementContext -> completeForContext(result, cluster, element, statementContext, completePath));
-        if (statementContexts.isEmpty() || !completePath.isEmpty()) {
-            completeForContext(result, cluster, element, Collections.EMPTY_LIST, completePath);
-        }
-        appendAliases(element, cluster, completePath, result);
-    }
-
-    private void completeForContext(CompletionResultSet result, ActiveCluster cluster, PsiElement element, List<String> statementContext, List<String> completePath) {
         PsiFile psiFile = element.getContainingFile();
         List<String> editorContext = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
-        List<String> path = new ArrayList<>(editorContext);
-        path.addAll(statementContext);
-        if (!path.isEmpty() && !completePath.isEmpty()) {
-            if (completePath.get(0).equalsIgnoreCase(path.get(path.size() - 1))) {
-                int rm = path.size();
-                path.addAll(completePath);
-                path.remove(rm);
-            } else {
-                path.addAll(completePath);
+        List<List<String>> statementContexts = Utils.getStatementContexts(element);
+        List<String> completePath = Utils.getPath(element);
+        boolean openContext = Utils.isOpenContext(element);
+        log.info("Open context: " + openContext);
+
+        if (!completePath.isEmpty()) {
+            log.info("Path completion: " + StringUtil.join(completePath, "."));
+            if (!appendAliases(element, cluster, completePath, result) &&
+                    0 == Utils.findEntities(cluster, openContext, editorContext, statementContexts, completePath)
+                            .peek(e -> log.debug("potential path target: " + e.path()))
+                            .filter(entity -> completeForPath(entity, Collections.EMPTY_LIST, result))
+                            .count()) {
+                log.info("failed path completion");
+                completePath = Collections.EMPTY_LIST;
             }
-        } else {
-            path.addAll(completePath);
         }
 
-        if (path.isEmpty()) {
-            appendRecursively(0, cluster, result, emptyPathPasser);
-        } else {
-            completeForPath(cluster, path, result, 0, passer);
-        }
+        if (completePath.isEmpty()) {
+            log.info("Empty path completion");
+            appendAliases(element, cluster, Collections.EMPTY_LIST, result);
+            if (editorContext.isEmpty() && openContext) {
+                log.info("Empty statement context completion");
+                appendRecursively(0, cluster, result, emptyPathPasser);
+            }
 
+            if (!statementContexts.isEmpty()) {
+                log.info("STATEMENT context completion");
+                Utils.findEntities(cluster, openContext, editorContext, statementContexts, Collections.EMPTY_LIST)
+                        .forEach(entity -> completeForPath((CouchbaseClusterEntity) entity, Collections.EMPTY_LIST, result));
+            }
+
+            if (!editorContext.isEmpty() && Utils.isOpenContext(element)) {
+                log.info("EDITOR context completion");
+                completeForPath(cluster, editorContext, result);
+            }
+        }
     }
 
-    private void appendAliases(PsiElement element, ActiveCluster cluster, List<String> path, CompletionResultSet result) {
+    private boolean appendAliases(PsiElement element, ActiveCluster cluster, List<String> path, CompletionResultSet result) {
         String name = path.size() > 0 ? path.get(0) : null;
-        Utils.findAlias(element, name).forEach(alias -> {
+        return 0 < Utils.findAlias(element, name).filter(alias -> {
             String aliasName = Utils.getAliasName(alias).get();
             if (aliasName.equals(name)) {
                 List<String> aliasPath = Utils.getAliasPath(alias);
@@ -185,17 +206,20 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                 int rm = aliasPath.size();
                 aliasPath.addAll(path);
                 aliasPath.remove(rm);
-                completeForPath(cluster, aliasPath, result, 0, passer);
+                boolean rt = completeForPath(cluster, aliasPath, result);
+                return rt;
             } else {
                 result.addElement(LookupElementBuilder.create(aliasName));
+                return false;
             }
-        });
+        }).count();
     }
 
-    private void completeForPath(CouchbaseClusterEntity from, List<String> to, CompletionResultSet result, int depth, BiPredicate<Integer, CouchbaseClusterEntity> failureRecoverGate) {
+    private boolean completeForPath(CouchbaseClusterEntity from, List<String> to, CompletionResultSet result) {
+        boolean found = false;
         if (to == null || to.isEmpty()) {
             if (from.getChildren() != null) {
-                from.getChildren().stream()
+                long suggested = from.getChildren().stream()
                         .flatMap(e -> {
                             if (e.getName() == null) {
                                 return e.getChildren().stream();
@@ -207,7 +231,9 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                         .filter(Objects::nonNull)
                         .map(LookupElementBuilder::create)
                         .peek(e -> log.debug(String.format("Complete option: %s", e.getLookupString())))
-                        .forEach(result::addElement);
+                        .peek(result::addElement)
+                        .count();
+                return true;
             }
         } else {
             String name = to.get(0);
@@ -223,28 +249,35 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                     if (name.equals(child.getName())) {
                         List<String> subList = new ArrayList<>(to);
                         subList.remove(0);
-                        completeForPath(child, subList, result, depth + 1, failureRecoverGate);
+                        found |= completeForPath(child, subList, result);
                     } else if (to.size() == 1) {
                         result.addElement(LookupElementBuilder.create(child.getName()));
-                    }
-                }
-                if (children.isEmpty()) {
-                    if (failureRecoverGate.test(depth, from) && from.getChildren() != null) {
-                        from.getChildren().forEach(c -> completeForPath(c, to, result, depth + 1, failureRecoverGate));
+                        found = true;
                     }
                 }
             }
         }
+        return found;
     }
 
-    private static void appendRecursively(int depth, CouchbaseClusterEntity entity, CompletionResultSet result, BiPredicate<Integer, CouchbaseClusterEntity> filter) {
-        String name = entity.getName();
-        if (name != null && (filter == null || filter.test(depth, entity))) {
-            result.addElement(LookupElementBuilder.create(name));
+    private boolean completeForContext(CompletionResultSet result, ActiveCluster cluster, PsiElement element, List<String> editorContext, List<String> statementContext, List<String> completePath) {
+        List<String> path = new ArrayList<>(editorContext);
+        path.addAll(statementContext);
+        if (!path.isEmpty() && !completePath.isEmpty()) {
+            if (completePath.get(0).equalsIgnoreCase(path.get(path.size() - 1))) {
+                int rm = path.size();
+                path.addAll(completePath);
+                path.remove(rm);
+            } else {
+                path.addAll(completePath);
+            }
+        } else {
+            path.addAll(completePath);
         }
 
-        if (entity.getChildren() != null) {
-            entity.getChildren().stream().forEach(c -> appendRecursively(depth + 1, c, result, filter));
+        if (!path.isEmpty()) {
+            return completeForPath(cluster, path, result);
         }
+        return false;
     }
 }

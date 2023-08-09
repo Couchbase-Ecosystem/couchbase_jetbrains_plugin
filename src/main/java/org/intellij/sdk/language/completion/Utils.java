@@ -1,6 +1,7 @@
 package org.intellij.sdk.language.completion;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.intellij.lang.parser.GeneratedParserUtilBase;
 import com.intellij.patterns.PatternCondition;
@@ -63,8 +64,6 @@ public class Utils {
 
     public static boolean isAfterFailedExpr(PsiElement element) {
         return isInFailedSubQuery(element) || getErroredStatement(element, false)
-                .map(el -> getRightmostElement(el, c -> c.getNode().getElementType() == GeneratedTypes.EXPR))
-                .filter(el -> el.getNode().getElementType() == GeneratedTypes.EXPR)
                 .isPresent();
     }
 
@@ -342,5 +341,59 @@ public class Utils {
                 .map(Utils::getRightmostElement)
                 .map(Utils::getPath)
                 .collect(Collectors.toList());
+    }
+
+    public static Stream<? extends CouchbaseClusterEntity> findEntities(CouchbaseClusterEntity from, boolean openContext, List<String> editorContext, List<List<String>> statementContexts, List<String> path) {
+        List<List<String>> options = new ArrayList<>();
+        if (!editorContext.isEmpty()) {
+            if (openContext) {
+                options.add(editorContext);
+            }
+            statementContexts.stream()
+                    .map(ctx -> {
+                        List<String> editorOption = new ArrayList(editorContext);
+                        editorOption.addAll(ctx);
+                        return editorOption;
+                    }).forEach(options::add);
+        }
+        if (statementContexts.isEmpty() || openContext) {
+            options.add(Collections.EMPTY_LIST);
+        } else {
+            statementContexts.stream()
+                    .map(context -> context.equals(path) ? Collections.EMPTY_LIST : context)
+                    .forEach(options::add);
+        }
+
+        return options.stream()
+                .distinct()
+                .flatMap(p -> from.navigate(p))
+                .flatMap(option -> option.navigate(path));
+    }
+
+    public static boolean isOpenContext(PsiElement element) {
+        return getStatement(element)
+                .map(statement -> {
+                    PsiElement[] projections = PsiTreeUtil.collectElements(statement, e -> e.getNode().getElementType() == GeneratedTypes.PROJECTION);
+                    if (projections != null &&
+                            Arrays.stream(projections).anyMatch(projection -> PsiTreeUtil.isAncestor(projection, element, true))) {
+                        return true;
+                    }
+
+                    PsiElement[] fromClauses = PsiTreeUtil.collectElements(statement, e -> e.getNode().getElementType() == GeneratedTypes.FROM_CLAUSE);
+                    if (fromClauses != null &&
+                            Arrays.stream(fromClauses).anyMatch(fromClause -> PsiTreeUtil.isAncestor(fromClause, element, true))) {
+                        return true;
+                    }
+
+                    PsiElement[] targetKeyspaces = PsiTreeUtil.collectElements(statement, e -> e.getNode().getElementType() == GeneratedTypes.TARGET_KEYSPACE);
+                    if (targetKeyspaces != null &&
+                            Arrays.stream(targetKeyspaces).anyMatch(targetKeyspace -> PsiTreeUtil.isAncestor(targetKeyspace, element, true))) {
+                        return true;
+                    }
+
+                    return (targetKeyspaces == null || targetKeyspaces.length == 0) &&
+                            (fromClauses == null || fromClauses.length == 0) &&
+                            (projections == null || projections.length == 0);
+                }).orElse(true);
     }
 }

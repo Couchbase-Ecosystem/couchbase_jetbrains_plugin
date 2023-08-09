@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     private void assertCompletes(String text, String complete) {
-        assertCompletes(null, text, complete);
+        assertCompletes(Collections.EMPTY_LIST, text, complete);
     }
 
     private void assertCompletes(List<String> context, String text, String complete) {
@@ -82,7 +82,6 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         Mockito.when(otherBucket.getChildren()).thenReturn(new HashSet<>(Arrays.asList(otherScope)));
         Mockito.when(scope.getChildren()).thenReturn(new HashSet<>(Arrays.asList(collection)));
         Mockito.when(otherScope.getChildren()).thenReturn(new HashSet<>(Arrays.asList(otherCollection)));
-
         Mockito.when(collection.getChildren()).thenReturn(new HashSet<>(Arrays.asList(flavor)));
         Mockito.when(otherCollection.getChildren()).thenReturn(new HashSet<>(Collections.singletonList(otherFlavor)));
         Mockito.when(flavor.getChildren()).thenReturn(new HashSet<>(Arrays.asList(parentField)));
@@ -95,6 +94,33 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         Mockito.when(childField.getName()).thenReturn("child-field");
         Mockito.when(otherParentField.getName()).thenReturn("other-parent-field");
         ActiveCluster.setInstance(activeClusterInstance);
+
+        Mockito.when(activeClusterInstance.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(activeClusterInstance.getChild(Mockito.anyString())).thenCallRealMethod();
+
+        Mockito.when(bucket.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(bucket.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(scope.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(scope.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(collection.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(collection.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(flavor.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(flavor.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(parentField.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(parentField.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(childField.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(childField.getChild(Mockito.anyString())).thenCallRealMethod();
+
+        Mockito.when(otherBucket.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(otherBucket.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(otherScope.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(otherScope.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(otherCollection.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(otherCollection.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(otherFlavor.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(otherFlavor.getChild(Mockito.anyString())).thenCallRealMethod();
+        Mockito.when(otherParentField.navigate(Mockito.anyList())).thenCallRealMethod();
+        Mockito.when(otherParentField.getChild(Mockito.anyString())).thenCallRealMethod();
 
         if (!text.contains(CodeInsightTestFixture.CARET_MARKER)) {
             text += CodeInsightTestFixture.CARET_MARKER;
@@ -225,7 +251,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testAlias() {
-        assertCompletes("select * from test as test_alias where ", "test_alias");
+        assertCompletes("select * from collection-entity as test_alias where ", "test_alias");
     }
 
     @Test
@@ -245,7 +271,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testSubQuery() {
-        assertCompletes("delete from travel-sample.inventory.hotel as ap WHERE ap.directions in (select ");
+        assertCompletes("delete from travel-sample.inventory.hotel as ap WHERE ap.directions in (select ", "parent-field");
     }
 
     @Test
@@ -262,6 +288,10 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     public void testStatementContext() {
         assertCompletes("select * from collection-entity where ", "parent-field");
         assertCompletes("select * from other-collection-entity where ", "other-parent-field");
+    }
+
+    @Test
+    public void testNotStatementContext() {
         assertNotCompletes("select * from collection-entity where ", "other-parent-field");
         assertNotCompletes("select * from other-collection-entity where ", "parent-field");
     }

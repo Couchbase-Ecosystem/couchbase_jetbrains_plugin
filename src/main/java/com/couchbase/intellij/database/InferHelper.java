@@ -7,7 +7,6 @@ import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
-import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -54,9 +53,7 @@ public class InferHelper {
                 }
             }
         } catch (Exception e) {
-            Log.error(e);
-            e.printStackTrace();
-            System.err.println("Could not infer the schema of the collection " + e);
+            log.debug("Could not infer the schema of the collection", e);
             return null;
         }
     }

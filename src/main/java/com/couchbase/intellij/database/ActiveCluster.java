@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 public class ActiveCluster implements CouchbaseClusterEntity {
 
@@ -171,6 +172,19 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     @Override
     public CouchbaseClusterEntity getParent() {
         return null;
+    }
+
+    @Override
+    public Stream<? extends CouchbaseClusterEntity> getChild(String name) {
+        return getChildren().stream()
+                .flatMap(b -> Stream.concat(
+                        Stream.of(b),
+                        Stream.concat(
+                                b.getChildren().stream(),
+                                b.getChildren().stream().flatMap(s -> s.getChildren().stream())
+                        )
+                ))
+                .filter(e -> name.equalsIgnoreCase(e.getName()));
     }
 
     @Override
