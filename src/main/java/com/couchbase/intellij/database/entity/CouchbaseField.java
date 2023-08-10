@@ -15,12 +15,25 @@ public class CouchbaseField implements CouchbaseClusterEntity {
     private JsonObject properties;
     private Set<CouchbaseField> children = new HashSet<>();
 
+    private String type;
+
     public CouchbaseField(CouchbaseDocumentFlavor documentFlavor, CouchbaseField parent, String name, JsonObject properties) {
         this.documentFlavor = documentFlavor;
         this.parent = parent;
         this.name = name;
         this.properties = properties;
         this.children = flattenArray(properties);
+        Object type = properties.get("type");
+        if (type instanceof JsonArray) {
+            type = ((JsonArray) type).toList().stream()
+                    .filter(Objects::nonNull)
+                    .filter(t -> !"null".equals(t))
+                    .findFirst().orElse(null);
+        }
+
+        if (type instanceof String) {
+            this.type = (String) type;
+        }
     }
 
     @Override
@@ -69,5 +82,27 @@ public class CouchbaseField implements CouchbaseClusterEntity {
         return fields == null ? Collections.EMPTY_SET : fields.getNames().stream()
                 .map(field -> new CouchbaseField(flavor, parent, field, fields.getObject(field)))
                 .collect(Collectors.toSet());
+    }
+
+    public void addZeroValue(JsonObject target) {
+        if ("string".equals(type)) {
+            target.put(getName(), "");
+        } else if ("number".equals(type)) {
+            target.put(getName(), 0);
+        } else if ("object".equals(type)) {
+            JsonObject value = JsonObject.create();
+            getChildren().forEach(child -> child.addZeroValue(value));
+            target.put(getName(), value);
+        } else if ("boolean".equals(type)) {
+            target.put(getName(), false);
+        } else if ("array".equals(type)) {
+            JsonArray value = JsonArray.create();
+            JsonObject sample = JsonObject.create();
+            getChildren().forEach(child -> child.addZeroValue(sample));
+            value.add(sample);
+            target.put(getName(), value);
+        } else {
+            target.put(getName(), (String) null);
+        }
     }
 }
