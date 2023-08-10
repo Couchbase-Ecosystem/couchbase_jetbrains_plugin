@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBPanel;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +21,7 @@ import java.awt.*;
 public class OpenDocumentDialog extends DialogWrapper {
     private static final int MINIMUM_WIDTH = 300;
     private JPanel panel;
-    private JTextField textField;
+    private JBTextField textField;
 
     private Project project;
     private String bucket;
@@ -51,7 +52,7 @@ public class OpenDocumentDialog extends DialogWrapper {
         }
 
         setResizable(true);
-        getPeer().getWindow().setMinimumSize(new Dimension(400, 200));
+        getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
     }
 
     public static boolean isValidDocumentId(String documentId) {
@@ -77,21 +78,35 @@ public class OpenDocumentDialog extends DialogWrapper {
         errorLabel.setBorder(JBUI.Borders.empty(10, 0));
         errorLabel.setForeground(Color.decode("#FF4444"));
         JLabel label = new JLabel(createDocument ? "New Document Id:" : "Document Id:");
-        textField = new JTextField();
+        textField = new JBTextField(30);
         generateStub = new JCheckBox("Generate template document");
 
         panel = new JBPanel<>(new BorderLayout());
-        JPanel idLine = new JBPanel<>(new BorderLayout());
-        JPanel option = new JBPanel<>(new BorderLayout());
-        idLine.add(label, BorderLayout.WEST);
-        idLine.add(textField, BorderLayout.CENTER);
-        if (createDocument) {
-            option.add(generateStub, BorderLayout.WEST);
-        }
-        option.add(errorLabel, BorderLayout.SOUTH);
 
-        panel.add(idLine, BorderLayout.NORTH);
-        panel.add(option, BorderLayout.SOUTH);
+        JPanel formPanel = new JBPanel<>(new GridBagLayout());
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.anchor = GridBagConstraints.WEST;
+        gc.insets = JBUI.insets(5);
+
+        gc.gridy = 0;
+        gc.gridx = 0;
+        gc.weightx = 0.4;
+        formPanel.add(label, gc);
+
+        gc.gridy = 0;
+        gc.gridx = 1;
+        gc.weightx = 0.6;
+        formPanel.add(textField, gc);
+
+        if (createDocument) {
+            gc.gridy = 1;
+            gc.gridx = 1;
+            gc.weightx = 1;
+            formPanel.add(generateStub, gc);
+        }
+
+        panel.add(formPanel, BorderLayout.NORTH);
+        panel.add(errorLabel, BorderLayout.SOUTH);
 
         return panel;
     }
