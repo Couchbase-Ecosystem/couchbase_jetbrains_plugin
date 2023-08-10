@@ -13,6 +13,7 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.intellij.VirtualFileKeys;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
 import com.couchbase.intellij.persistence.Clusters;
 import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
@@ -251,7 +252,7 @@ public class DataLoader {
      * @param node    Node where the virtual file will be stored
      * @param tree    used to set the loading status
      */
-    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew) {
+    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew, boolean generateStub) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
@@ -272,6 +273,21 @@ public class DataLoader {
                 SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
                 tree.setPaintBusy(false);
                 return;
+            } else if (generateStub) {
+                docContent = ActiveCluster.getInstance().getChild(node.getBucket())
+                        .flatMap(bucket -> bucket.getChild(node.getScope()))
+                        .flatMap(scope -> scope.getChild(node.getCollection()))
+                        .map(col -> ((CouchbaseCollection) col).generateDocument())
+                        .filter(Objects::nonNull)
+                        .peek(o -> {
+                            if (o.containsKey("id")) {
+                                o.put("id", node.getId());
+                            } else if (o.containsKey("ID")) {
+                                o.put("ID", node.getId());
+                            }
+                        })
+                        .map(JsonObject::toString)
+                        .findFirst().orElse(docContent);
             }
         } catch (TimeoutException te) {
             te.printStackTrace();

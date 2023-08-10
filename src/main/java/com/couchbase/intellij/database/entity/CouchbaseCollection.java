@@ -11,6 +11,7 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -97,5 +98,12 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
             updateSchema();
         }
         return children;
+    }
+
+    public JsonObject generateDocument() {
+        return getChildren().stream().sorted(Comparator.comparingLong(flavor -> -flavor.getSampleSize()))
+                .map(CouchbaseDocumentFlavor::generateDocument)
+                .findFirst()
+                .orElse(null);
     }
 }

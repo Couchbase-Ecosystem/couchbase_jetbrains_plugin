@@ -85,7 +85,7 @@ public class CouchbaseWindowContent extends JPanel {
                                 descriptor.setVirtualFile(null);
                             }
 
-                            DataLoader.loadDocument(project, descriptor, tree, false);
+                            DataLoader.loadDocument(project, descriptor, tree, false, false);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);

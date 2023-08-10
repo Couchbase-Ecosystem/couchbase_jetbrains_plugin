@@ -29,6 +29,8 @@ public class OpenDocumentDialog extends DialogWrapper {
 
     private JLabel errorLabel;
 
+    private JCheckBox generateStub;
+
     private boolean createDocument;
 
     private Tree tree;
@@ -49,7 +51,7 @@ public class OpenDocumentDialog extends DialogWrapper {
         }
 
         setResizable(true);
-        getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
+        getPeer().getWindow().setMinimumSize(new Dimension(400, 200));
     }
 
     public static boolean isValidDocumentId(String documentId) {
@@ -76,11 +78,20 @@ public class OpenDocumentDialog extends DialogWrapper {
         errorLabel.setForeground(Color.decode("#FF4444"));
         JLabel label = new JLabel(createDocument ? "New Document Id:" : "Document Id:");
         textField = new JTextField();
+        generateStub = new JCheckBox("Generate template document");
 
         panel = new JBPanel<>(new BorderLayout());
-        panel.add(label, BorderLayout.WEST);
-        panel.add(textField, BorderLayout.CENTER);
-        panel.add(errorLabel, BorderLayout.SOUTH);
+        JPanel idLine = new JBPanel<>(new BorderLayout());
+        JPanel option = new JBPanel<>(new BorderLayout());
+        idLine.add(label, BorderLayout.WEST);
+        idLine.add(textField, BorderLayout.CENTER);
+        if (createDocument) {
+            option.add(generateStub, BorderLayout.WEST);
+        }
+        option.add(errorLabel, BorderLayout.SOUTH);
+
+        panel.add(idLine, BorderLayout.NORTH);
+        panel.add(option, BorderLayout.SOUTH);
 
         return panel;
     }
@@ -105,7 +116,7 @@ public class OpenDocumentDialog extends DialogWrapper {
 
         String fileName = textField.getText() + ".json";
         FileNodeDescriptor descriptor = new FileNodeDescriptor(fileName, bucket, scope, collection, textField.getText(), null);
-        DataLoader.loadDocument(project, descriptor, tree, true);
+        DataLoader.loadDocument(project, descriptor, tree, true, generateStub != null && generateStub.isSelected());
 
         VirtualFile virtualFile = descriptor.getVirtualFile();
         if (virtualFile != null) {
