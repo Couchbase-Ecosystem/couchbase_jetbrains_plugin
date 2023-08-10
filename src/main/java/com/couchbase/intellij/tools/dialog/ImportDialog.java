@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.ButtonModel;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
@@ -213,11 +215,52 @@ public class ImportDialog extends DialogWrapper {
     protected JPanel createDatasetPanel() {
         datasetPanel = new JPanel(new BorderLayout());
 
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new GridBagLayout());
+        GridBagConstraints d = new GridBagConstraints();
+        d.fill = GridBagConstraints.HORIZONTAL;
+        d.gridy = 0;
+        d.weightx = 0.5;
+        d.gridx = 0;
+        d.insets = JBUI.insets(5);
+
+        JPanel listHeadingPanel = TemplateUtil.getLabelWithHelp("Lists",
+                "<html>[<br>" +
+                        "{<br>" +
+                        "\"key\": \"mykey1\",<br>" +
+                        "\"value\": \"myvalue1\"<br>" +
+                        "},<br>" +
+                        "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
+                        "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
+                        "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
+                        "]</html>");
+        JLabel listDefinitionLabel = new JLabel(
+                "<html>The list format specifies a file which contains a JSON list where<br>each element in the list is a JSON document. The file may only contain a<br>single list, but the list may be specified over multiple lines. This format<br>is specified by setting the --format option to \"list\". Below is an example<br>of a file in list format.</html>");
+
+        JPanel linesHeadingPanel = TemplateUtil.getLabelWithHelp("Lines",
+                "<html>{\"key\": \"mykey1\", \"value\": \"myvalue1\"}<br>" +
+                        "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
+                        "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
+                        "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
+                        "</html>");
+
+        JLabel linesDefinitionLabel = new JLabel(
+                "<html>The lines format specifies a file that contains one JSON document on<br>every line in the file. This format is specified by setting the --format<br>option to \"lines\". Below is an example of a file in lines format.</html>");
+
+        contentPanel.add(listHeadingPanel, d);
+        d.gridy++;
+        contentPanel.add(listDefinitionLabel, d);
+        d.gridy++;
+        contentPanel.add(linesHeadingPanel, d);
+        d.gridy++;
+        contentPanel.add(linesDefinitionLabel, d);
+
         datasetFormPanel = new JPanel();
         datasetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
         datasetFormPanel.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = JBUI.insets(5);
 
         c.gridy = 0;
         c.weightx = 0.3;
@@ -231,14 +274,19 @@ public class ImportDialog extends DialogWrapper {
         datasetField = new TextFieldWithBrowseButton();
         datasetFormPanel.add(datasetField, c);
 
-        datasetPanel.add(datasetFormPanel, BorderLayout.CENTER);
+        d.gridy++;
+        contentPanel.add(datasetFormPanel, d);
+        datasetPanel.add(contentPanel, BorderLayout.NORTH);
 
         return datasetPanel;
     }
 
     protected JPanel createTargetPanel() {
         targetPanel = new JPanel(new BorderLayout());
-        targetPanel.add(new TitledSeparator("Target Location"), BorderLayout.NORTH);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.add(new TitledSeparator("Target Location"));
 
         targetFormPanel = new JPanel();
         targetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
@@ -345,10 +393,6 @@ public class ImportDialog extends DialogWrapper {
         dynamicCollectionFieldField = new JBTextField();
         targetFormPanel.add(dynamicCollectionFieldField, c);
 
-        c.gridy = 6;
-        c.gridx = 1;
-        c.weightx = 1.0;
-
         scopeLabelHelpPanel.setVisible(false);
         collectionLabelHelpPanel.setVisible(false);
         scopeFieldLabelHelpPanel.setVisible(false);
@@ -359,14 +403,18 @@ public class ImportDialog extends DialogWrapper {
         dynamicScopeFieldField.setVisible(false);
         dynamicCollectionFieldField.setVisible(false);
 
-        targetPanel.add(targetFormPanel, BorderLayout.CENTER);
+        contentPanel.add(targetFormPanel);
+        targetPanel.add(contentPanel, BorderLayout.NORTH);
 
         return targetPanel;
     }
 
     protected JPanel createKeyPanel() {
         keyPanel = new JPanel(new BorderLayout());
-        keyPanel.add(new TitledSeparator("Document Key"), BorderLayout.NORTH);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.add(new TitledSeparator("Document Key"));
 
         keyFormPanel = new JPanel();
         keyFormPanel.setBorder(JBUI.Borders.empty(0, 10));
@@ -438,13 +486,15 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 1.0;
         c.gridwidth = GridBagConstraints.REMAINDER;
         c.gridx = 0;
+
         customExpressionInfoLabel = new JBLabel(
-                "<html>Note: If #UUID# or #MONO_INCR# tags are used, placeholders are used in preview area,<br>but appropriate key values will be generated during import.</html>");
+                "<html>Note: If #UUID# tag is used, the UUID values in the preview area might not match the actual UUID values generated during import.</html>");
         customExpressionInfoLabel.setForeground(Color.decode("#FFA500"));
         customExpressionInfoLabel.setVisible(false);
         keyFormPanel.add(customExpressionInfoLabel, c);
 
-        keyPanel.add(keyFormPanel, BorderLayout.CENTER);
+        contentPanel.add(keyFormPanel);
+        keyPanel.add(contentPanel, BorderLayout.NORTH);
 
         keyPreviewPanel = new JPanel(new BorderLayout());
         keyPreviewTitledSeparator = new TitledSeparator("Key Preview");
@@ -461,7 +511,7 @@ public class ImportDialog extends DialogWrapper {
 
         keyPreviewPanel.add(keyPreviewArea, BorderLayout.CENTER);
 
-        keyPanel.add(keyPreviewPanel, BorderLayout.SOUTH);
+        contentPanel.add(keyPreviewPanel);
 
         fieldNameLabelHelpPanel.setVisible(false);
         customExpressionLabelHelpPanel.setVisible(false);
@@ -469,14 +519,17 @@ public class ImportDialog extends DialogWrapper {
         fieldNameField.setVisible(false);
         customExpressionField.setVisible(false);
 
-        keyPreviewArea.setVisible(false);
+        keyPreviewPanel.setVisible(false);
 
         return keyPanel;
     }
 
     protected JPanel createAdvancedPanel() {
         advancedPanel = new JPanel(new BorderLayout());
-        advancedPanel.add(new TitledSeparator("Advanced Options"), BorderLayout.NORTH);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.add(new TitledSeparator("Advanced Options"));
 
         advancedFormPanel = new JPanel();
         advancedFormPanel.setBorder(JBUI.Borders.empty(0, 10));
@@ -567,22 +620,23 @@ public class ImportDialog extends DialogWrapper {
         verboseCheck = new JBCheckBox();
         advancedFormPanel.add(verboseCheck, c);
 
-        c.gridy = 5;
-        c.weightx = 1.0;
-        c.gridwidth = GridBagConstraints.REMAINDER;
-        c.gridx = 0;
-
-        advancedPanel.add(advancedFormPanel, BorderLayout.CENTER);
+        contentPanel.add(advancedFormPanel);
+        advancedPanel.add(contentPanel, BorderLayout.NORTH);
 
         return advancedPanel;
     }
 
     protected JPanel createSummaryPanel() {
         summaryPanel = new JPanel(new BorderLayout());
-        summaryPanel.add(new TitledSeparator("Summary"), BorderLayout.NORTH);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.add(new TitledSeparator("Summary"));
 
         summaryLabel = new JBLabel();
-        summaryPanel.add(summaryLabel, BorderLayout.CENTER);
+        contentPanel.add(summaryLabel);
+
+        summaryPanel.add(contentPanel, BorderLayout.NORTH);
 
         return summaryPanel;
     }
@@ -857,6 +911,7 @@ public class ImportDialog extends DialogWrapper {
 
     protected void validateAndEnableNextButton() {
         boolean isValid = true;
+        List<String> errorMessages = new ArrayList<>();
         if (currentPage == 1) {
             String datasetText = datasetField.getText();
             boolean isValidDataset = !(datasetText.isEmpty()
@@ -865,8 +920,7 @@ public class ImportDialog extends DialogWrapper {
             if (!isValidDataset) {
                 isValid = false;
                 Log.error("Validation failed: Dataset field is empty or does not have a valid file extension");
-                universalErrorLabel.setText("Please select a valid file.");
-                universalErrorLabel.setVisible(true);
+                errorMessages.add("Please select a valid file.");
             } else {
                 try {
                     detectedCouchbaseJsonFormat = FileUtils.validateAndDetectCouchbaseJsonFormat(datasetText);
@@ -874,18 +928,14 @@ public class ImportDialog extends DialogWrapper {
                         highlightField(datasetField, false);
                         isValid = false;
                         Log.error("Validation failed: Dataset file is not in a valid Couchbase JSON format");
-                        universalErrorLabel.setText("Dataset file is not in a valid Couchbase JSON format.");
-                        universalErrorLabel.setVisible(true);
-                    } else {
-                        universalErrorLabel.setVisible(false);
+                        errorMessages.add("Dataset file is not in a valid Couchbase JSON format.");
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     highlightField(datasetField, false);
                     isValid = false;
                     Log.error("An error occurred while validating the dataset file: " + ex.getMessage());
-                    universalErrorLabel.setText("An error occurred while validating the dataset file.");
-                    universalErrorLabel.setVisible(true);
+                    errorMessages.add("An error occurred while validating the dataset file.");
                 }
             }
         } else if (currentPage == 2) {
@@ -900,6 +950,7 @@ public class ImportDialog extends DialogWrapper {
                 if (!isValidDynamicScope || !isValidDynamicCollection) {
                     isValid = false;
                     Log.error("Validation failed: Dynamic scope and/or collection fields are empty");
+                    errorMessages.add("Dynamic scope and/or collection fields are empty.");
                 }
             }
 
@@ -918,24 +969,22 @@ public class ImportDialog extends DialogWrapper {
             if (!isValidScope || !isValidCollection) {
                 isValid = false;
                 Log.error("Validation failed: Scope and/or Collection fields are not valid");
-                universalErrorLabel.setText("Scope and/or Collection fields are not valid.");
-                universalErrorLabel.setVisible(true);
-            } else {
-                universalErrorLabel.setVisible(false);
+                errorMessages.add("Scope and/or Collection fields are not valid.");
             }
 
             if (!defaultScopeAndCollectionRadio.isSelected() && !collectionRadio.isSelected()
                     && !dynamicScopeAndCollectionRadio.isSelected()) {
                 isValid = false;
                 Log.error("Validation failed: No target location radio box selected");
+                errorMessages.add("No target location radio box selected.");
             } else if (collectionRadio.isSelected()
                     && (scopeCombo.getSelectedItem() == null || collectionCombo.getSelectedItem() == null)) {
                 isValid = false;
                 Log.error("Validation failed: Scope and/or collection combo box not selected");
+                errorMessages.add("Scope and/or collection combo box not selected.");
             }
 
         } else if (currentPage == 3) {
-            List<String> errorMessages = new ArrayList<>();
             if (useFieldValueRadio.isSelected()) {
                 String fieldNameText = fieldNameField.getText();
                 boolean isValidFieldName = !fieldNameText.isEmpty();
@@ -967,12 +1016,6 @@ public class ImportDialog extends DialogWrapper {
                 errorMessages.add("No key option radio box selected.");
             }
 
-            String errorMessage = String.join("\n", errorMessages);
-            if (errorMessage.length() > 100) {
-                errorMessage = "Multiple validation errors occurred. Please check the fields for more information.";
-            }
-            universalErrorLabel.setText(errorMessage);
-            universalErrorLabel.setVisible(!errorMessages.isEmpty());
         } else if (currentPage == 4) {
             int numDocsInDataset = 0;
             try {
@@ -982,7 +1025,6 @@ public class ImportDialog extends DialogWrapper {
             }
 
             int skipFirstValue = 0;
-            List<String> errorMessages = new ArrayList<>();
             boolean isSkipFirstValid = true;
             if (skipFirstCheck.isSelected()) {
                 String skipFirstText = skipFirstField.getText();
@@ -1059,14 +1101,11 @@ public class ImportDialog extends DialogWrapper {
                     errorMessages.add("Ignore fields field is empty.");
                 }
             }
-
-            String errorMessage = String.join("\n", errorMessages);
-            if (errorMessage.length() > 100) {
-                errorMessage = "Multiple validation errors occurred. Please check the fields for more information.";
-            }
-            universalErrorLabel.setText(errorMessage);
-            universalErrorLabel.setVisible(!errorMessages.isEmpty());
         }
+
+        String errorMessage = "<html>" + String.join("<br>", errorMessages) + "</html>";
+        universalErrorLabel.setText(errorMessage);
+        universalErrorLabel.setVisible(!errorMessages.isEmpty());
 
         nextButton.setEnabled(isValid);
     }
@@ -1196,7 +1235,7 @@ public class ImportDialog extends DialogWrapper {
         boolean keyPreviewVisible = useFieldValueSelected || customExpressionSelected;
 
         keyPreviewTitledSeparator.setVisible(keyPreviewVisible);
-        keyPreviewArea.setVisible(keyPreviewVisible);
+        keyPreviewPanel.setVisible(keyPreviewVisible);
 
         try {
             Log.debug("Updating key form fields: ");
@@ -1260,6 +1299,7 @@ public class ImportDialog extends DialogWrapper {
                 JsonArray jsonArray = JsonArray.fromJson(fileContent);
 
                 StringBuilder previewContent = new StringBuilder();
+                int monoIncrValue = 1;
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JsonObject jsonObject = jsonArray.getObject(i);
 
@@ -1268,6 +1308,15 @@ public class ImportDialog extends DialogWrapper {
                         if (jsonObject.containsKey(fieldName)) {
                             key = key.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
                         }
+                    }
+
+                    if (key.contains("#UUID#")) {
+                        key = key.replace("#UUID#", UUID.randomUUID().toString());
+                    }
+
+                    if (key.contains("#MONO_INCR#")) {
+                        key = key.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                        monoIncrValue++;
                     }
 
                     previewContent.append(key).append("\n");
