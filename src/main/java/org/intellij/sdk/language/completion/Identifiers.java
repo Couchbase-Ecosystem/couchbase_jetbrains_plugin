@@ -17,7 +17,6 @@ import generated.psi.IdentifierRef;
 import generated.psi.impl.ExprImpl;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.helper.StringUtil;
 
 import java.util.*;
 import java.util.function.BiPredicate;
@@ -162,7 +161,6 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         log.info("Open context: " + openContext);
 
         if (!completePath.isEmpty()) {
-            log.info("Path completion: " + StringUtil.join(completePath, "."));
             if (!appendAliases(element, cluster, completePath, result) &&
                     0 == Utils.findEntities(cluster, openContext, editorContext, statementContexts, completePath)
                             .peek(e -> log.debug("potential path target: " + e.path()))
