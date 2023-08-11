@@ -23,7 +23,7 @@ public class ActiveCluster {
 
     private Color color;
 
-    private Permissions permissions; // Store user permissions
+    private Permissions permissions;
 
     private ActiveCluster() {
     }
@@ -64,14 +64,6 @@ public class ActiveCluster {
                 this.color = Color.decode(savedCluster.getColor());
             }
 
-            // Fetch user permissions from the "Who am I" endpoint using CouchbaseRestAPI
-            try {
-                Permissions permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
-                this.permissions = permissions;
-            } catch (Exception e) {
-                // Handle Exception
-            }
-
         } catch (Exception e) {
             if (cluster != null) {
                 cluster.disconnect();
@@ -80,86 +72,15 @@ public class ActiveCluster {
         }
     }
 
-//    public Permissions getPermissions() {
-//        if (permissions == null) {
-//            try {
-//                permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
-//            } catch (Exception e) {
-//
-//                return null;
-//            }
-//        }
-//        return permissions;
-//    }
-
-    public boolean isAdmin() {
-        if (permissions == null || permissions.getRoles() == null) {
-            return false;
-        }
-
-        for (Permissions.Role role : permissions.getRoles()) {
-            if ("admin".equals(role.getRole())) {
-                return true;
+    public PermissionChecker getPermissions() throws Exception {
+        if (permissions == null) {
+            try {
+                permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
+            } catch (Exception e) {
+                throw e;
             }
         }
-        return false;
-    }
-
-    public boolean canWrite(String bucket, String scope) {
-        if (permissions == null || permissions.getRoles() == null) {
-            return false;
-        }
-
-        for (Permissions.Role role : permissions.getRoles()) {
-            if ("data_writer".equals(role.getRole()) &&
-                    (role.getBucketName().equals("*") || bucket.equals(role.getBucketName())) &&
-                    (role.getScopeName().equals("*") || scope.equals(role.getScopeName()))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean isScopeAdmin(String bucket, String scope) {
-        if (permissions == null || permissions.getRoles() == null) {
-            return false;
-        }
-
-        for (Permissions.Role role : permissions.getRoles()) {
-            if ("scope_admin".equals(role.getRole()) &&
-                    (role.getBucketName().equals("*") || bucket.equals(role.getBucketName())) &&
-                    (role.getScopeName().equals("*") || scope.equals(role.getScopeName()))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean hasApplicationAccess() {
-        if(permissions == null || permissions.getRoles() == null) {
-            return false;
-        }
-
-        for(Permissions.Role role : permissions.getRoles()) {
-            if("bucket_full_access".equals(role.getRole())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean isBucketAdmin(String bucket) {
-        if (permissions == null || permissions.getRoles() == null) {
-            return false;
-        }
-
-        for (Permissions.Role role : permissions.getRoles()) {
-            if ("bucket_admin".equals(role.getRole()) &&
-                    (role.getBucketName().equals("*") || bucket.equals(role.getBucketName()))) {
-                return true;
-            }
-        }
-        return false;
+        return new PermissionChecker(permissions);
     }
 
     public void disconnect() {

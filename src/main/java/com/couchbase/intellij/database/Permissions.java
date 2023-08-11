@@ -5,6 +5,7 @@ public class Permissions {
     private List<Role> roles;
     private String id;
     private String domain;
+    private String name;
     private String password_change_date;
 
     public List<Role> getRoles() {
@@ -30,6 +31,10 @@ public class Permissions {
     public void setDomain(String domain) {
         this.domain = domain;
     }
+
+    public String getName() { return name;}
+
+    public void setName(String name) { this.name = name; }
 
     public String getPasswordChangeDate() {
         return password_change_date;
