@@ -5,6 +5,7 @@ import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -36,6 +37,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private String version;
 
     private Color color;
+    private Permissions permissions;
 
     private Set<CouchbaseBucket> buckets;
     private long lastSchemaUpdate = 0;
@@ -93,6 +95,17 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         }
     }
 
+    public PermissionChecker getPermissions() throws Exception {
+        if (permissions == null) {
+            try {
+                permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
+            } catch (Exception e) {
+                throw e;
+            }
+        }
+        return new PermissionChecker(permissions);
+    }
+
     public void disconnect() {
         cluster.disconnect();
         this.savedCluster = null;
@@ -100,6 +113,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.password = null;
         this.color = null;
         this.buckets = null;
+        this.permissions = null;
     }
 
     public String getUsername() {
