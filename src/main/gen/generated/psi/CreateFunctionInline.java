@@ -11,7 +11,7 @@ public interface CreateFunctionInline extends PsiElement {
   Body getBody();
 
   @NotNull
-  Function getFunction();
+  FunctionRef getFunctionRef();
 
   @Nullable
   Params getParams();

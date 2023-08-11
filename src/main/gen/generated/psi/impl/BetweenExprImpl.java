@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class BetweenExprImpl extends ASTWrapperPsiElement implements BetweenExpr {
+public class BetweenExprImpl extends SqlppPSIWrapper implements BetweenExpr {
 
   public BetweenExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,20 +29,8 @@ public class BetweenExprImpl extends ASTWrapperPsiElement implements BetweenExpr
 
   @Override
   @NotNull
-  public EndExpr getEndExpr() {
-    return findNotNullChildByClass(EndExpr.class);
-  }
-
-  @Override
-  @NotNull
-  public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
-  }
-
-  @Override
-  @NotNull
-  public StartExpr getStartExpr() {
-    return findNotNullChildByClass(StartExpr.class);
+  public List<Expr> getExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
   }
 
 }

@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class CollectionExprImpl extends ASTWrapperPsiElement implements CollectionExpr {
+public class CollectionExprImpl extends SqlppPSIWrapper implements CollectionExpr {
 
   public CollectionExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -37,6 +37,12 @@ public class CollectionExprImpl extends ASTWrapperPsiElement implements Collecti
   @Nullable
   public InExpr getInExpr() {
     return findChildByClass(InExpr.class);
+  }
+
+  @Override
+  @Nullable
+  public RangeCond getRangeCond() {
+    return findChildByClass(RangeCond.class);
   }
 
   @Override

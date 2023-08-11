@@ -22,8 +22,11 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.util.ui.JBUI;
 import org.intellij.sdk.language.SQLPPFormatter;
+import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,8 +35,8 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
@@ -316,8 +319,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
                     contextLabel.revalidate();
-                    selectedBucketContext = null;
-                    selectedScopeContext = null;
+                    setSelectedContext(Collections.EMPTY_LIST);
                 }
             };
 
@@ -337,8 +339,7 @@ public class CustomSqlFileEditor implements FileEditor {
                         public void actionPerformed(@NotNull AnActionEvent e) {
                             contextLabel.setText(bucket + " > " + spec.name());
                             contextLabel.revalidate();
-                            selectedBucketContext = bucket;
-                            selectedScopeContext = spec.name();
+                            setSelectedContext(Arrays.asList(bucket, spec.name()));
                         }
                     };
 
@@ -376,8 +377,7 @@ public class CustomSqlFileEditor implements FileEditor {
                             topPanel.revalidate();
                         }
                     });
-                    selectedBucketContext = null;
-                    selectedScopeContext = null;
+                    setSelectedContext(Collections.EMPTY_LIST);
                     cachedPreviousSelectedConnection = e.getItem().toString();
                 }
             }
@@ -493,6 +493,29 @@ public class CustomSqlFileEditor implements FileEditor {
         }
         return true;
     }
+    /**
+     * Does not update the UI
+     * Used in testing only
+     * * @param context
+     */
+    public void setSelectedContext(List<String> context) {
+        if (context.size() > 0) {
+            this.selectedBucketContext = context.get(0);
+            if (context.size() > 1) {
+                this.selectedScopeContext = context.get(1);
+            } else {
+                this.selectedScopeContext = null;
+            }
+        } else {
+            this.selectedBucketContext = null;
+            this.selectedScopeContext = null;
+        }
+        PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+        if (psiFile instanceof SqlppFile) {
+            ((SqlppFile) psiFile).setClusterContext(context);
+        }
+    }
+
 
     static class EditorWrapper {
         private final Editor viewer;
@@ -520,4 +543,14 @@ public class CustomSqlFileEditor implements FileEditor {
         }
     }
 
+    public List<String> getSelectedContext() {
+        List<String> result = new ArrayList<>();
+        if (selectedBucketContext != null) {
+            result.add(selectedBucketContext);
+            if (selectedScopeContext != null) {
+                result.add(selectedScopeContext);
+            }
+        }
+        return result;
+    }
 }

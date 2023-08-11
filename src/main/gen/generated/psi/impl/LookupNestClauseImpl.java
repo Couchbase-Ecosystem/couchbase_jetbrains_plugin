@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class LookupNestClauseImpl extends ASTWrapperPsiElement implements LookupNestClause {
+public class LookupNestClauseImpl extends SqlppPSIWrapper implements LookupNestClause {
 
   public LookupNestClauseImpl(@NotNull ASTNode node) {
     super(node);

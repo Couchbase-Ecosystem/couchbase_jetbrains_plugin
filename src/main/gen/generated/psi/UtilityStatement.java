@@ -8,9 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface UtilityStatement extends PsiElement {
 
   @Nullable
-  Advise getAdvise();
+  AdviseStatement getAdviseStatement();
 
   @Nullable
-  Explain getExplain();
+  ExplainStatement getExplainStatement();
 
 }

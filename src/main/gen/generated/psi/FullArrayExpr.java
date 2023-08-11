@@ -16,7 +16,4 @@ public interface FullArrayExpr extends PsiElement {
   @NotNull
   List<Var> getVarList();
 
-  @NotNull
-  VarExpr getVarExpr();
-
 }

@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 public interface KeyspaceFull extends PsiElement {
 
   @NotNull
-  Bucket getBucket();
+  BucketRef getBucketRef();
 
   @NotNull
-  Collection getCollection();
+  CollectionRef getCollectionRef();
 
   @NotNull
-  Namespace getNamespace();
+  NamespaceRef getNamespaceRef();
 
   @NotNull
-  Scope getScope();
+  ScopeRef getScopeRef();
 
 }

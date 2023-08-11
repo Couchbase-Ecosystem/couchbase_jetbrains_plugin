@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class AggregateQuantifierImpl extends ASTWrapperPsiElement implements AggregateQuantifier {
+public class AggregateQuantifierImpl extends SqlppPSIWrapper implements AggregateQuantifier {
 
   public AggregateQuantifierImpl(@NotNull ASTNode node) {
     super(node);

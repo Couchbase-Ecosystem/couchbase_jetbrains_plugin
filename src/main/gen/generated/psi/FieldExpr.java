@@ -10,13 +10,10 @@ public interface FieldExpr extends PsiElement {
   @Nullable
   EscapedIdentifier getEscapedIdentifier();
 
-  @NotNull
+  @Nullable
   Expr getExpr();
 
   @Nullable
-  Identifier getIdentifier();
-
-  @Nullable
-  NameExpr getNameExpr();
+  IdentifierRef getIdentifierRef();
 
 }

@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class StrImpl extends ASTWrapperPsiElement implements Str {
+public class StrImpl extends SqlppPSIWrapper implements Str {
 
   public StrImpl(@NotNull ASTNode node) {
     super(node);
@@ -28,9 +28,15 @@ public class StrImpl extends ASTWrapperPsiElement implements Str {
   }
 
   @Override
-  @NotNull
-  public List<Chr> getChrList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Chr.class);
+  @Nullable
+  public DoubleQuotedString getDoubleQuotedString() {
+    return findChildByClass(DoubleQuotedString.class);
+  }
+
+  @Override
+  @Nullable
+  public SingleQuotedString getSingleQuotedString() {
+    return findChildByClass(SingleQuotedString.class);
   }
 
 }

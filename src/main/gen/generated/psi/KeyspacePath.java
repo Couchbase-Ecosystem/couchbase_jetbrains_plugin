@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 public interface KeyspacePath extends PsiElement {
 
   @NotNull
-  Bucket getBucket();
+  BucketRef getBucketRef();
 
   @Nullable
-  Collection getCollection();
+  CollectionRef getCollectionRef();
 
   @Nullable
-  Namespace getNamespace();
+  NamespaceRef getNamespaceRef();
 
   @Nullable
-  Scope getScope();
+  ScopeRef getScopeRef();
 
 }

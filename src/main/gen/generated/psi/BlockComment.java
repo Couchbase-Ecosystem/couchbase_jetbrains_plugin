@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface BlockComment extends PsiElement {
 
-  @NotNull
-  List<Newline> getNewlineList();
-
 }

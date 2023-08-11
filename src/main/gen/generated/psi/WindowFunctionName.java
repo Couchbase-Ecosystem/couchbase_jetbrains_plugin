@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface WindowFunctionName extends PsiElement {
 
   @NotNull
-  Identifier getIdentifier();
+  IdentifierRef getIdentifierRef();
 
 }

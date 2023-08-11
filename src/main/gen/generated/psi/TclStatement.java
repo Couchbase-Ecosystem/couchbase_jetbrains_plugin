@@ -17,7 +17,7 @@ public interface TclStatement extends PsiElement {
   RollbackTransaction getRollbackTransaction();
 
   @Nullable
-  Savepoint getSavepoint();
+  SavepointStatement getSavepointStatement();
 
   @Nullable
   SetTransaction getSetTransaction();

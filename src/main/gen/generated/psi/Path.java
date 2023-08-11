@@ -11,6 +11,6 @@ public interface Path extends PsiElement {
   List<Expr> getExprList();
 
   @NotNull
-  List<Identifier> getIdentifierList();
+  List<IdentifierRef> getIdentifierRefList();
 
 }

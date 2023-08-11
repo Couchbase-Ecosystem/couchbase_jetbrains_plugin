@@ -11,6 +11,6 @@ public interface ExecuteFunction extends PsiElement {
   List<Expr> getExprList();
 
   @NotNull
-  Function getFunction();
+  FunctionRef getFunctionRef();
 
 }

@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface FtsHintSimple extends PsiElement {
 
   @NotNull
-  Keyspace getKeyspace();
+  KeyspaceStatement getKeyspaceStatement();
 
 }

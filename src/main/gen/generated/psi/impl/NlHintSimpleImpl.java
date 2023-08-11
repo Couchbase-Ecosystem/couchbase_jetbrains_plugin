@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class NlHintSimpleImpl extends ASTWrapperPsiElement implements NlHintSimple {
+public class NlHintSimpleImpl extends SqlppPSIWrapper implements NlHintSimple {
 
   public NlHintSimpleImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class NlHintSimpleImpl extends ASTWrapperPsiElement implements NlHintSimp
 
   @Override
   @NotNull
-  public List<Keyspace> getKeyspaceList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Keyspace.class);
+  public List<KeyspaceStatement> getKeyspaceStatementList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, KeyspaceStatement.class);
   }
 
 }

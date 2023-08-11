@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class CommentImpl extends ASTWrapperPsiElement implements Comment {
+public class CommentImpl extends SqlppPSIWrapper implements Comment {
 
   public CommentImpl(@NotNull ASTNode node) {
     super(node);
