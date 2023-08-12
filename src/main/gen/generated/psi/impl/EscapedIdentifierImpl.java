@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class EscapedIdentifierImpl extends ASTWrapperPsiElement implements EscapedIdentifier {
+public class EscapedIdentifierImpl extends SqlppPSIWrapper implements EscapedIdentifier {
 
   public EscapedIdentifierImpl(@NotNull ASTNode node) {
     super(node);
@@ -25,12 +25,6 @@ public class EscapedIdentifierImpl extends ASTWrapperPsiElement implements Escap
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof Visitor) accept((Visitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public List<Chr> getChrList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Chr.class);
   }
 
 }

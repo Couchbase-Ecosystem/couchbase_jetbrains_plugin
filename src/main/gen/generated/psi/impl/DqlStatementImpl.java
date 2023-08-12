@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class DqlStatementImpl extends ASTWrapperPsiElement implements DqlStatement {
+public class DqlStatementImpl extends SqlppPSIWrapper implements DqlStatement {
 
   public DqlStatementImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,14 +29,14 @@ public class DqlStatementImpl extends ASTWrapperPsiElement implements DqlStateme
 
   @Override
   @Nullable
-  public Infer getInfer() {
-    return findChildByClass(Infer.class);
+  public InferStatement getInferStatement() {
+    return findChildByClass(InferStatement.class);
   }
 
   @Override
   @Nullable
-  public Select getSelect() {
-    return findChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findChildByClass(SelectStatement.class);
   }
 
   @Override

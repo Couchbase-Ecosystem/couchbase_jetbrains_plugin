@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface LikeExpr extends PsiElement {
 
   @NotNull
-  List<Expr> getExprList();
+  Expr getExpr();
 
 }

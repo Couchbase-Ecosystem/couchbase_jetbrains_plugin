@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface EscapedIdentifier extends PsiElement {
 
-  @NotNull
-  List<Chr> getChrList();
-
 }

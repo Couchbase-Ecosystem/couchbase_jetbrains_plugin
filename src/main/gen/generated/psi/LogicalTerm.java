@@ -8,12 +8,12 @@ import com.intellij.psi.PsiElement;
 public interface LogicalTerm extends PsiElement {
 
   @Nullable
-  And getAnd();
+  AndExpr getAndExpr();
 
   @Nullable
-  Not getNot();
+  NotExpr getNotExpr();
 
   @Nullable
-  Or getOr();
+  OrExpr getOrExpr();
 
 }

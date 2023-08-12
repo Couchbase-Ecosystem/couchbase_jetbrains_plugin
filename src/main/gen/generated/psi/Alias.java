@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface Alias extends PsiElement {
 
   @NotNull
-  Identifier getIdentifier();
+  IdentifierRef getIdentifierRef();
 
 }

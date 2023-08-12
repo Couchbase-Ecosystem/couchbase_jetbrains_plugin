@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class LogicalTermImpl extends ASTWrapperPsiElement implements LogicalTerm {
+public class LogicalTermImpl extends SqlppPSIWrapper implements LogicalTerm {
 
   public LogicalTermImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,20 +29,20 @@ public class LogicalTermImpl extends ASTWrapperPsiElement implements LogicalTerm
 
   @Override
   @Nullable
-  public And getAnd() {
-    return findChildByClass(And.class);
+  public AndExpr getAndExpr() {
+    return findChildByClass(AndExpr.class);
   }
 
   @Override
   @Nullable
-  public Not getNot() {
-    return findChildByClass(Not.class);
+  public NotExpr getNotExpr() {
+    return findChildByClass(NotExpr.class);
   }
 
   @Override
   @Nullable
-  public Or getOr() {
-    return findChildByClass(Or.class);
+  public OrExpr getOrExpr() {
+    return findChildByClass(OrExpr.class);
   }
 
 }

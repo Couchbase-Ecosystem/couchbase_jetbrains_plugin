@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class KeyspacePropertyImpl extends ASTWrapperPsiElement implements KeyspaceProperty {
+public class KeyspacePropertyImpl extends SqlppPSIWrapper implements KeyspaceProperty {
 
   public KeyspacePropertyImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class KeyspacePropertyImpl extends ASTWrapperPsiElement implements Keyspa
 
   @Override
   @NotNull
-  public Keyspace getKeyspace() {
-    return findNotNullChildByClass(Keyspace.class);
+  public KeyspaceStatement getKeyspaceStatement() {
+    return findNotNullChildByClass(KeyspaceStatement.class);
   }
 
 }

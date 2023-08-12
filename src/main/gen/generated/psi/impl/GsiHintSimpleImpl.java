@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class GsiHintSimpleImpl extends ASTWrapperPsiElement implements GsiHintSimple {
+public class GsiHintSimpleImpl extends SqlppPSIWrapper implements GsiHintSimple {
 
   public GsiHintSimpleImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class GsiHintSimpleImpl extends ASTWrapperPsiElement implements GsiHintSi
 
   @Override
   @NotNull
-  public Keyspace getKeyspace() {
-    return findNotNullChildByClass(Keyspace.class);
+  public KeyspaceStatement getKeyspaceStatement() {
+    return findNotNullChildByClass(KeyspaceStatement.class);
   }
 
 }

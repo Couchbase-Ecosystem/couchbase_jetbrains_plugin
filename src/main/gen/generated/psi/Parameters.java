@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface Parameters extends PsiElement {
 
   @NotNull
-  Array getArray();
+  ArrayExpr getArrayExpr();
 
 }

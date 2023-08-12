@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class WindowFunctionNameImpl extends ASTWrapperPsiElement implements WindowFunctionName {
+public class WindowFunctionNameImpl extends SqlppPSIWrapper implements WindowFunctionName {
 
   public WindowFunctionNameImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,8 +29,8 @@ public class WindowFunctionNameImpl extends ASTWrapperPsiElement implements Wind
 
   @Override
   @NotNull
-  public Identifier getIdentifier() {
-    return findNotNullChildByClass(Identifier.class);
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }

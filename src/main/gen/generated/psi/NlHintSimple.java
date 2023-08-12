@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface NlHintSimple extends PsiElement {
 
   @NotNull
-  List<Keyspace> getKeyspaceList();
+  List<KeyspaceStatement> getKeyspaceStatementList();
 
 }

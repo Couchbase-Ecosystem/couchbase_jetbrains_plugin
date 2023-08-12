@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class FieldExprImpl extends ASTWrapperPsiElement implements FieldExpr {
+public class FieldExprImpl extends SqlppPSIWrapper implements FieldExpr {
 
   public FieldExprImpl(@NotNull ASTNode node) {
     super(node);
@@ -34,21 +34,15 @@ public class FieldExprImpl extends ASTWrapperPsiElement implements FieldExpr {
   }
 
   @Override
-  @NotNull
+  @Nullable
   public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
+    return findChildByClass(Expr.class);
   }
 
   @Override
   @Nullable
-  public Identifier getIdentifier() {
-    return findChildByClass(Identifier.class);
-  }
-
-  @Override
-  @Nullable
-  public NameExpr getNameExpr() {
-    return findChildByClass(NameExpr.class);
+  public IdentifierRef getIdentifierRef() {
+    return findChildByClass(IdentifierRef.class);
   }
 
 }

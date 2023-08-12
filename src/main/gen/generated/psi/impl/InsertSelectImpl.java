@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class InsertSelectImpl extends ASTWrapperPsiElement implements InsertSelect {
+public class InsertSelectImpl extends SqlppPSIWrapper implements InsertSelect {
 
   public InsertSelectImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,20 +29,20 @@ public class InsertSelectImpl extends ASTWrapperPsiElement implements InsertSele
 
   @Override
   @NotNull
-  public Key getKey() {
-    return findNotNullChildByClass(Key.class);
+  public KeyExpr getKeyExpr() {
+    return findNotNullChildByClass(KeyExpr.class);
   }
 
   @Override
   @NotNull
-  public Select getSelect() {
-    return findNotNullChildByClass(Select.class);
+  public SelectStatement getSelectStatement() {
+    return findNotNullChildByClass(SelectStatement.class);
   }
 
   @Override
   @Nullable
-  public Value getValue() {
-    return findChildByClass(Value.class);
+  public ValueExpr getValueExpr() {
+    return findChildByClass(ValueExpr.class);
   }
 
 }

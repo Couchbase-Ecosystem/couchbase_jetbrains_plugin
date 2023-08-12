@@ -1,11 +1,18 @@
 package utils;
 
+import com.couchbase.intellij.tree.NewConnectionDialog;
+import com.intellij.openapi.ui.popup.Balloon;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBPanel;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
@@ -78,6 +85,50 @@ public class TemplateUtil {
         titledSeparator.setBorder(JBUI.Borders.empty(20, 0));
         titledSeparator.setMaximumSize(new Dimension(Integer.MAX_VALUE, titledSeparator.getPreferredSize().height));
         return titledSeparator;
+    }
+
+    public static JBPanel createComponentWithBalloon(Component component, String hintText) {
+        Icon icon = IconLoader.getIcon("/assets/icons/question_circle.svg", NewConnectionDialog.class);
+        JLabel questionMark = new JLabel(icon);
+        questionMark.setBorder(JBUI.Borders.emptyLeft(5));
+
+        JBPopupFactory factory = JBPopupFactory.getInstance();
+        JTextArea textArea = new JTextArea(hintText);
+        textArea.setBackground(UIManager.getColor("ToolTip.background"));
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setColumns(40);
+        textArea.setSize(textArea.getPreferredSize());
+
+        questionMark.addMouseListener(new MouseAdapter() {
+            Balloon balloonHint;
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (balloonHint == null || balloonHint.isDisposed()) {
+                    balloonHint = factory.createBalloonBuilder(textArea)
+                            .setFillColor(UIManager.getColor("ToolTip.background"))
+                            .setAnimationCycle(0)
+                            .createBalloon();
+                    balloonHint.show(factory.guessBestPopupLocation(questionMark), Balloon.Position.below);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (balloonHint != null) {
+                    balloonHint.hide();
+                    balloonHint = null;
+                }
+            }
+        });
+
+        JBPanel panel = new JBPanel(new BorderLayout());
+        panel.add(component, BorderLayout.WEST);
+        panel.add(questionMark, BorderLayout.CENTER);
+
+        return panel;
     }
 
     public static String fmtByte(long bytes) {

@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface Params extends PsiElement {
 
   @NotNull
-  List<Identifier> getIdentifierList();
+  List<IdentifierRef> getIdentifierRefList();
 
 }

@@ -10,7 +10,4 @@ public interface ElementExpr extends PsiElement {
   @NotNull
   Expr getExpr();
 
-  @NotNull
-  Position getPosition();
-
 }

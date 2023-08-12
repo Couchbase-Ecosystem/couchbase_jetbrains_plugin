@@ -13,6 +13,7 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.intellij.VirtualFileKeys;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
 import com.couchbase.intellij.persistence.Clusters;
 import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
@@ -31,6 +32,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.progress.PerformInBackgroundOption;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -42,6 +46,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
+import org.jetbrains.annotations.NotNull;
 import utils.IndexUtils;
 import utils.OSUtil;
 
@@ -57,6 +62,7 @@ import java.nio.file.attribute.DosFileAttributeView;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.VirtualFileKeys.READ_ONLY;
@@ -202,6 +208,7 @@ public class DataLoader {
                 String query = "Select meta(couchbaseAlias).id as cbFileNameId from `" + colNode.getText() + "` as couchbaseAlias " + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                 final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
+                InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
 
                 if (!results.isEmpty()) {
                     for (JsonObject obj : results) {
@@ -245,7 +252,7 @@ public class DataLoader {
      * @param node    Node where the virtual file will be stored
      * @param tree    used to set the loading status
      */
-    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew) {
+    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew, boolean generateStub) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
@@ -266,6 +273,21 @@ public class DataLoader {
                 SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
                 tree.setPaintBusy(false);
                 return;
+            } else if (generateStub) {
+                docContent = ActiveCluster.getInstance().getChild(node.getBucket())
+                        .flatMap(bucket -> bucket.getChild(node.getScope()))
+                        .flatMap(scope -> scope.getChild(node.getCollection()))
+                        .map(col -> ((CouchbaseCollection) col).generateDocument())
+                        .filter(Objects::nonNull)
+                        .peek(o -> {
+                            if (o.containsKey("id")) {
+                                o.put("id", node.getId());
+                            } else if (o.containsKey("ID")) {
+                                o.put("ID", node.getId());
+                            }
+                        })
+                        .map(JsonObject::toString)
+                        .findFirst().orElse(docContent);
             }
         } catch (TimeoutException te) {
             te.printStackTrace();
@@ -334,16 +356,20 @@ public class DataLoader {
                     String scopeName = colNode.getScope();
                     String bucketName = colNode.getBucket();
 
-                    JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
+                    new Task.ConditionalModal(null, String.format("Running INFER for collection %s.%s.%s", bucketName, scopeName, collectionName), true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                        @Override
+                        public void run(@NotNull ProgressIndicator indicator) {
+                            JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
+                            if (inferenceQueryResults != null) {
+                                JsonArray array = inferenceQueryResults.getArray("content");
+                                InferHelper.extractArray(parentNode, array);
+                            } else {
+                                System.err.println("Could not infer the schema for " + colNode.getText());
+                            }
 
-                    if (inferenceQueryResults != null) {
-                        JsonArray array = inferenceQueryResults.getArray("content");
-                        InferHelper.extractArray(parentNode, array);
-                    } else {
-                        System.err.println("Could not infer the schema for " + colNode.getText());
-                    }
-
-                    treeModel.nodeStructureChanged(parentNode);
+                            treeModel.nodeStructureChanged(parentNode);
+                        }
+                    }.queue();
                 } catch (Exception e) {
                     Log.error(e);
                     e.printStackTrace();

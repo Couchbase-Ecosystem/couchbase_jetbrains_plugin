@@ -4,10 +4,12 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tools.dialog.ImportDialog;
@@ -41,6 +43,7 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
 
@@ -444,6 +447,14 @@ public class TreeRightClickListener {
                 tree.expandPath(treePath);
             });
         }
+
+        popup.addSeparator();
+        JBMenuItem refreshDocuments = new JBMenuItem("Refresh Documents");
+        refreshDocuments.addActionListener(actionEvent -> {
+            InferHelper.invalidateInferCacheIfOlder(col.getBucket(), col.getScope(), col.getText(), TimeUnit.MINUTES.toMillis(1));
+            DataLoader.listDocuments(clickedNode, tree, 0);
+        });
+        popup.add(refreshDocuments);
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
             popup.addSeparator();

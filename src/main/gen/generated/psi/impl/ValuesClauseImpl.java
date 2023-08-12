@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class ValuesClauseImpl extends ASTWrapperPsiElement implements ValuesClause {
+public class ValuesClauseImpl extends SqlppPSIWrapper implements ValuesClause {
 
   public ValuesClauseImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,14 +29,14 @@ public class ValuesClauseImpl extends ASTWrapperPsiElement implements ValuesClau
 
   @Override
   @NotNull
-  public List<Key> getKeyList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Key.class);
+  public List<KeyExpr> getKeyExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, KeyExpr.class);
   }
 
   @Override
   @NotNull
-  public List<Value> getValueList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Value.class);
+  public List<ValueExpr> getValueExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, ValueExpr.class);
   }
 
 }

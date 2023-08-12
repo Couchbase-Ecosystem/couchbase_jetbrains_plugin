@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.ui.ColorUtil;
 
 import java.awt.*;
 
@@ -41,5 +42,11 @@ public class ColorHelper {
         Color keywordColor = keywordAttributes.getForegroundColor();
         string = String.format("#%02x%02x%02x", keywordColor.getRed(), keywordColor.getGreen(), keywordColor.getBlue());
         return string;
+    }
+
+    public static boolean isDarkTheme() {
+        EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
+        Color bgColor = scheme.getDefaultBackground();
+        return ColorUtil.isDark(bgColor);
     }
 }

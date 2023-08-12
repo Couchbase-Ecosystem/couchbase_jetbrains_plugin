@@ -4,9 +4,10 @@ import com.couchbase.client.core.api.query.CoreQueryResult;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
-import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.lang.reflect.Field;
@@ -15,9 +16,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class InferHelper {
+    public static final Logger log = Logger.getInstance(InferHelper.class);
 
     public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) {
         try {
+            SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
+            String path = String.format("%s.%s.%s", bucketName, scopeName, collectionName).toLowerCase();
+            if (savedCluster.isInferCacheValid(path)) {
+                log.info("Loaded " + path + " cached infer results");
+                return savedCluster.getInferCacheValue(path);
+            }
+            log.warn("Inferring " + path + " from cluster...");
             String query = "INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\"sample_size\": 2000}";
             QueryResult result = ActiveCluster.getInstance().get().query(query);
 
@@ -36,16 +45,39 @@ public class InferHelper {
                                 objList.add(obj);
                             }
                     );
-                    return objList.get(0);
+                    JsonObject r = objList.get(0);
+                    savedCluster.setInferCacheValue(path, r);
+                    return r;
                 } else {
                     throw ex;
                 }
             }
         } catch (Exception e) {
-            Log.error(e);
-            e.printStackTrace();
-            System.err.println("Could not infer the schema of the collection " + e);
+            log.debug("Could not infer the schema of the collection", e);
             return null;
+        }
+    }
+
+    public static void invalidateCache(String bucket, String scope, String collection) {
+        String path = String.format("%s.%s.%s", bucket, scope, collection).toLowerCase();
+        SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
+        if (savedCluster != null) {
+            log.info("Invalidated infer cache for " + path);
+            ActiveCluster.getInstance().getSavedCluster().getInferValuesUpdateTimes().put(path, 0L);
+        } else {
+            throw new RuntimeException("No active cluster");
+        }
+    }
+
+    public static void invalidateInferCacheIfOlder(String bucket, String scope, String collection, long period) {
+        String path = String.format("%s.%s.%s", bucket, scope, collection).toLowerCase();
+        SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
+        if (savedCluster != null) {
+            if (System.currentTimeMillis() - savedCluster.getInferValuesUpdateTimes().get(path) >= period) {
+                invalidateCache(bucket, scope, collection);
+            }
+        } else {
+            throw new RuntimeException("No active cluster");
         }
     }
 
@@ -54,7 +86,7 @@ public class InferHelper {
             JsonObject inferSchemaRow = array.getObject(i);
 
             String tooltip = "#docs: " + inferSchemaRow.getNumber("#docs") + ", pattern: " + inferSchemaRow.getString("Flavor");
-            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern Found #" + (i + 1), tooltip);
+            SchemaFlavorNodeDescriptor sf = new SchemaFlavorNodeDescriptor("Pattern #" + (i + 1), tooltip);
             DefaultMutableTreeNode flavorNode = new DefaultMutableTreeNode(sf);
             parentNode.add(flavorNode);
             JsonObject properties = inferSchemaRow.getObject("properties");

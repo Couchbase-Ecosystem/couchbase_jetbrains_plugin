@@ -7,13 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface SliceExpr extends PsiElement {
 
-  @Nullable
-  EndExpr getEndExpr();
-
   @NotNull
-  Expr getExpr();
-
-  @NotNull
-  StartExpr getStartExpr();
+  List<Expr> getExprList();
 
 }

@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class UtilityStatementImpl extends ASTWrapperPsiElement implements UtilityStatement {
+public class UtilityStatementImpl extends SqlppPSIWrapper implements UtilityStatement {
 
   public UtilityStatementImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,14 +29,14 @@ public class UtilityStatementImpl extends ASTWrapperPsiElement implements Utilit
 
   @Override
   @Nullable
-  public Advise getAdvise() {
-    return findChildByClass(Advise.class);
+  public AdviseStatement getAdviseStatement() {
+    return findChildByClass(AdviseStatement.class);
   }
 
   @Override
   @Nullable
-  public Explain getExplain() {
-    return findChildByClass(Explain.class);
+  public ExplainStatement getExplainStatement() {
+    return findChildByClass(ExplainStatement.class);
   }
 
 }

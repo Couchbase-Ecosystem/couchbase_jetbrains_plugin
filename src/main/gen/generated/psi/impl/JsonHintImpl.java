@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class JsonHintImpl extends ASTWrapperPsiElement implements JsonHint {
+public class JsonHintImpl extends SqlppPSIWrapper implements JsonHint {
 
   public JsonHintImpl(@NotNull ASTNode node) {
     super(node);

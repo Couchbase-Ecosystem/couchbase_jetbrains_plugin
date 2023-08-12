@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.GeneratedTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class SetClauseImpl extends ASTWrapperPsiElement implements SetClause {
+public class SetClauseImpl extends SqlppPSIWrapper implements SetClause {
 
   public SetClauseImpl(@NotNull ASTNode node) {
     super(node);

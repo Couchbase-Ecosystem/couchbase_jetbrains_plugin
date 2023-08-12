@@ -22,8 +22,11 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.util.ui.JBUI;
 import org.intellij.sdk.language.SQLPPFormatter;
+import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,8 +35,8 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
@@ -51,6 +54,8 @@ public class CustomSqlFileEditor implements FileEditor {
     private String selectedScopeContext;
     private String cachedPreviousSelectedConnection;
     private JPanel topPanel;
+
+    private ComboBox<String> conCombo;
 
     CustomSqlFileEditor(Project project, VirtualFile file) {
         this.file = file;
@@ -99,15 +104,11 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                String editorText = queryEditor.getDocument().getText();
-                SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
-
-                if (selectionModel.hasSelection()) {
-                    editorText = selectionModel.getSelectedText();
+                if (!isSameConnection()) {
+                    return;
                 }
-
-                if (QueryExecutor.executeQuery(NORMAL, editorText, selectedBucketContext, selectedScopeContext,
-                        currentHistoryIndex, project)) {
+                String editorText = getQuery();
+                if (QueryExecutor.executeQuery(NORMAL, editorText, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project)) {
                     int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
                     currentHistoryIndex = historySize - 1;
                     SwingUtilities.invokeLater(() -> {
@@ -124,15 +125,12 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Advise", "Get index recommendations about your query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                String editorText = queryEditor.getDocument().getText();
-                SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
-
-                if (selectionModel.hasSelection()) {
-                    editorText = selectionModel.getSelectedText();
+                if (!isSameConnection()) {
+                    return;
                 }
+                String editorText = getQuery();
 
-                QueryExecutor.executeQuery(ADVISE, editorText, selectedBucketContext, selectedScopeContext,
-                        -1, project);
+                QueryExecutor.executeQuery(ADVISE, editorText, selectedBucketContext, selectedScopeContext, -1, project);
             }
         });
 
@@ -140,15 +138,12 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Explain", "Explains the query phases", explainIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                String editorText = queryEditor.getDocument().getText();
-                SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
-
-                if (selectionModel.hasSelection()) {
-                    editorText = selectionModel.getSelectedText();
+                if (!isSameConnection()) {
+                    return;
                 }
+                String editorText = getQuery();
 
-                QueryExecutor.executeQuery(EXPLAIN, editorText, selectedBucketContext, selectedScopeContext,
-                        -1, project);
+                QueryExecutor.executeQuery(EXPLAIN, editorText, selectedBucketContext, selectedScopeContext, -1, project);
             }
         });
 
@@ -206,9 +201,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (currentHistoryIndex + 1 < QueryHistoryStorage.getInstance().getValue().getHistory().size()) {
                     currentHistoryIndex++;
 
-                    ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument()
-                            .setText(QueryHistoryStorage.getInstance()
-                                    .getValue().getHistory().get(currentHistoryIndex)));
+                    ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex)));
 
                     SwingUtilities.invokeLater(() -> {
                         historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
@@ -271,6 +264,17 @@ public class CustomSqlFileEditor implements FileEditor {
         panel.add(topPanel, BorderLayout.NORTH);
     }
 
+    @Nullable
+    private String getQuery() {
+        String editorText = queryEditor.getDocument().getText();
+        SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
+
+        if (selectionModel.hasSelection()) {
+            editorText = selectionModel.getSelectedText();
+        }
+        return editorText;
+    }
+
     private JPanel getQueryContextPanel() {
         JPanel contextPanel = new JPanel(new FlowLayout());
         JLabel conLabel = new JLabel("Connection:");
@@ -293,17 +297,17 @@ public class CustomSqlFileEditor implements FileEditor {
 
         Map<String, SavedCluster> clusters = ClustersStorage.getInstance().getValue().getMap();
 
-        ComboBox<String> comboBox = new ComboBox<>();
-        comboBox.setFont(comboBox.getFont().deriveFont(10f));
+        conCombo = new ComboBox<>();
+        conCombo.setFont(conCombo.getFont().deriveFont(10f));
         Dimension maxSize = new Dimension(200, 20);
-        comboBox.setMaximumSize(maxSize);
+        conCombo.setMaximumSize(maxSize);
 
         for (Map.Entry<String, SavedCluster> entry : clusters.entrySet()) {
-            comboBox.addItem(entry.getValue().getId());
+            conCombo.addItem(entry.getValue().getId());
         }
-        contextPanel.add(comboBox);
-        comboBox.addActionListener(e -> {
-            String selectedClusterId = (String) comboBox.getSelectedItem();
+        contextPanel.add(conCombo);
+        conCombo.addActionListener(e -> {
+            String selectedClusterId = (String) conCombo.getSelectedItem();
 
             if (selectedClusterId == null) {
                 return;
@@ -315,8 +319,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
                     contextLabel.revalidate();
-                    selectedBucketContext = null;
-                    selectedScopeContext = null;
+                    setSelectedContext(Collections.EMPTY_LIST);
                 }
             };
 
@@ -336,8 +339,7 @@ public class CustomSqlFileEditor implements FileEditor {
                         public void actionPerformed(@NotNull AnActionEvent e) {
                             contextLabel.setText(bucket + " > " + spec.name());
                             contextLabel.revalidate();
-                            selectedBucketContext = bucket;
-                            selectedScopeContext = spec.name();
+                            setSelectedContext(Arrays.asList(bucket, spec.name()));
                         }
                     };
 
@@ -348,7 +350,7 @@ public class CustomSqlFileEditor implements FileEditor {
             }
         });
 
-        comboBox.addItemListener(e -> {
+        conCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 String item = (String) e.getItem();
 
@@ -358,8 +360,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (ActiveCluster.getInstance().get() == null || !item.equals(ActiveCluster.getInstance().getId())) {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected.", "Workbench Error"));
 
-                    SwingUtilities.invokeLater(() -> comboBox
-                            .setSelectedItem(cachedPreviousSelectedConnection));
+                    SwingUtilities.invokeLater(() -> conCombo.setSelectedItem(cachedPreviousSelectedConnection));
                 } else {
                     SwingUtilities.invokeLater(() -> {
                         contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
@@ -376,18 +377,17 @@ public class CustomSqlFileEditor implements FileEditor {
                             topPanel.revalidate();
                         }
                     });
-                    selectedBucketContext = null;
-                    selectedScopeContext = null;
+                    setSelectedContext(Collections.EMPTY_LIST);
                     cachedPreviousSelectedConnection = e.getItem().toString();
                 }
             }
         });
 
         if (ActiveCluster.getInstance().get() == null) {
-            comboBox.setSelectedItem(null);
+            conCombo.setSelectedItem(null);
             cachedPreviousSelectedConnection = null;
         } else {
-            comboBox.setSelectedItem(ActiveCluster.getInstance().getId());
+            conCombo.setSelectedItem(ActiveCluster.getInstance().getId());
             cachedPreviousSelectedConnection = ActiveCluster.getInstance().getId();
         }
 
@@ -469,8 +469,7 @@ public class CustomSqlFileEditor implements FileEditor {
     @Nullable
     @Override
     public <T> T getUserData(@NotNull Key<T> key) {
-        @SuppressWarnings("unchecked")
-        T result = (T) data.get(key);
+        @SuppressWarnings("unchecked") T result = (T) data.get(key);
 
         return result;
     }
@@ -483,6 +482,40 @@ public class CustomSqlFileEditor implements FileEditor {
             data.put(key, value);
         }
     }
+
+    private boolean isSameConnection() {
+        if (ActiveCluster.getInstance().get() == null) {
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("There is no active connection.", "Workbench Error"));
+            return false;
+        } else if (!conCombo.getSelectedItem().toString().equals(ActiveCluster.getInstance().getId())) {
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("The current active connection is no longer the same selected in your workbench.", "Workbench Error"));
+            return false;
+        }
+        return true;
+    }
+    /**
+     * Does not update the UI
+     * Used in testing only
+     * * @param context
+     */
+    public void setSelectedContext(List<String> context) {
+        if (context.size() > 0) {
+            this.selectedBucketContext = context.get(0);
+            if (context.size() > 1) {
+                this.selectedScopeContext = context.get(1);
+            } else {
+                this.selectedScopeContext = null;
+            }
+        } else {
+            this.selectedBucketContext = null;
+            this.selectedScopeContext = null;
+        }
+        PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+        if (psiFile instanceof SqlppFile) {
+            ((SqlppFile) psiFile).setClusterContext(context);
+        }
+    }
+
 
     static class EditorWrapper {
         private final Editor viewer;
@@ -510,4 +543,14 @@ public class CustomSqlFileEditor implements FileEditor {
         }
     }
 
+    public List<String> getSelectedContext() {
+        List<String> result = new ArrayList<>();
+        if (selectedBucketContext != null) {
+            result.add(selectedBucketContext);
+            if (selectedScopeContext != null) {
+                result.add(selectedScopeContext);
+            }
+        }
+        return result;
+    }
 }

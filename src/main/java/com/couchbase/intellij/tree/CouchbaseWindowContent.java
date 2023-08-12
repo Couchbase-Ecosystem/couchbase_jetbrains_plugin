@@ -85,7 +85,7 @@ public class CouchbaseWindowContent extends JPanel {
                                 descriptor.setVirtualFile(null);
                             }
 
-                            DataLoader.loadDocument(project, descriptor, tree, false);
+                            DataLoader.loadDocument(project, descriptor, tree, false, false);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -233,6 +233,7 @@ public class CouchbaseWindowContent extends JPanel {
             setLayout(new FlowLayout(FlowLayout.LEFT, 0, 2));
             add(new JLabel(icon));
             text.setBorder(JBUI.Borders.empty(0, 3));
+            setOpaque(true);
             add(text);
             add(counter);
         }
