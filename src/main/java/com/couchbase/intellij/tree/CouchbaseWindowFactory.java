@@ -14,8 +14,5 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
         Content content = contentFactory.createContent(couchbaseWindowContent, "Explorer", false);
         toolWindow.getContentManager().addContent(content);
-
-
-
     }
 }

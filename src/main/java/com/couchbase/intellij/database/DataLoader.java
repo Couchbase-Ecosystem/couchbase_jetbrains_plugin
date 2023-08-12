@@ -205,7 +205,7 @@ public class DataLoader {
 
 
                 String filter = colNode.getQueryFilter();
-                String query = "Select meta(couchbaseAlias).id as cbFileNameId from `" + colNode.getText() + "` as couchbaseAlias " + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
+                String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias " + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                 final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
                 InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
@@ -213,8 +213,14 @@ public class DataLoader {
                 if (!results.isEmpty()) {
                     for (JsonObject obj : results) {
                         String docId = obj.getString("cbFileNameId");
+                        String type = obj.getString("cbMetaType");
                         String fileName = docId + ".json";
-                        FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId, null);
+                        FileNodeDescriptor.FileType fileType = "base64".equals(type)?FileNodeDescriptor.FileType.BINARY:FileNodeDescriptor.FileType.JSON;
+                        if(fileType == FileNodeDescriptor.FileType.BINARY) {
+                            fileName = docId;
+                        }
+                        FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId,
+                                fileType,  null);
                         DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                         parentNode.add(jsonFileNode);
                     }
@@ -364,7 +370,7 @@ public class DataLoader {
                                 JsonArray array = inferenceQueryResults.getArray("content");
                                 InferHelper.extractArray(parentNode, array);
                             } else {
-                                System.err.println("Could not infer the schema for " + colNode.getText());
+                                Log.debug("Could not infer the schema for " + colNode.getText());
                             }
 
                             treeModel.nodeStructureChanged(parentNode);

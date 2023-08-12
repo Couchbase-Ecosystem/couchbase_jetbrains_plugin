@@ -28,8 +28,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.ColorChooser;
+import com.intellij.ui.ColorPicker;
+import com.intellij.ui.ColorPickerListener;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.Consumer;
 import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.Nullable;
 import utils.TimeUtils;
 
 import javax.swing.*;
@@ -40,6 +44,8 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
@@ -130,19 +136,27 @@ public class TreeRightClickListener {
 
             JBMenuItem colorAction = new JBMenuItem("Set Connection Color");
             colorAction.addActionListener(event -> {
-                Color initialColor = Color.RED;  // the color initially selected in the dialog
-                boolean enableOpacity = true;    // whether to allow the user to choose an opacity
-                String title = "Choose a Color for This Connection"; // the title of the dialog
+                Color initialColor = Color.RED;
+                ColorPickerListener colorPickerListener = new ColorPickerListener() {
+                    @Override
+                    public void colorChanged(Color newColor) {
+                        if (newColor != null) {
+                            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, newColor);
+                            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                            Border compound = BorderFactory.createCompoundBorder(margin, line);
+                            toolBarPanel.setBorder(compound);
+                            toolBarPanel.revalidate();
+                            ActiveCluster.getInstance().setColor(newColor);
+                        }
+                    }
 
-                Color chosenColor = ColorChooser.chooseColor(tree, title, initialColor, enableOpacity);
-                if (chosenColor != null) {
-                    Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, chosenColor);
-                    Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
-                    Border compound = BorderFactory.createCompoundBorder(margin, line);
-                    toolBarPanel.setBorder(compound);
-                    toolBarPanel.revalidate();
-                    ActiveCluster.getInstance().setColor(chosenColor);
-                }
+                    @Override
+                    public void closed(@Nullable Color color) {
+                        //do nothing
+                    }
+                };
+
+                ColorPicker.showDialog(tree, "Choose a Color for This Connection", initialColor, true, List.of(colorPickerListener), true);
             });
             colors.add(colorAction);
 
@@ -430,9 +444,10 @@ public class TreeRightClickListener {
         popup.add(refreshDocuments);
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-            popup.addSeparator();
-            if (!"_default".equals(col.getText()) && !"_default".equals(col.getScope())) {
+
+            if (!"_default".equals(col.getScope()) || (!"_default".equals(col.getText()) && "_default".equals(col.getScope()))) {
                 // Add "Delete Collection" option
+                popup.addSeparator();
                 JBMenuItem deleteCollectionItem = new JBMenuItem("Delete Collection");
                 deleteCollectionItem.addActionListener(e1 -> {
                     int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());

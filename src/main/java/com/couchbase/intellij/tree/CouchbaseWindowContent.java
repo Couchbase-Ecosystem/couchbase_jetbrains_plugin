@@ -4,6 +4,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -79,7 +80,10 @@ public class CouchbaseWindowContent extends JPanel {
                     if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
-
+                            if(descriptor.getType() == FileNodeDescriptor.FileType.BINARY) {
+                                Messages.showInfoMessage("Couchbase Plugin", "You can't open binary files via the plugin");
+                                return;
+                            }
                             //always force to load the file from server on read only mode.
                             if (ActiveCluster.getInstance().isReadOnlyMode()) {
                                 descriptor.setVirtualFile(null);
@@ -91,9 +95,8 @@ public class CouchbaseWindowContent extends JPanel {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                                 fileEditorManager.openFile(virtualFile, true);
 
-
                             } else {
-                                System.err.println("virtual file is null");
+                                Log.debug("virtual file is null");
                             }
                         } else if (userObject instanceof IndexNodeDescriptor) {
                             IndexNodeDescriptor descriptor = (IndexNodeDescriptor) userObject;
@@ -102,9 +105,8 @@ public class CouchbaseWindowContent extends JPanel {
                                 OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
                                 FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
 
-
                             } else {
-                                System.err.println("virtual file is null");
+                                Log.debug("virtual file is null");
                             }
                         } else if (userObject instanceof MissingIndexNodeDescriptor) {
 

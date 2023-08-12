@@ -51,8 +51,20 @@ public class TreeActionHandler {
 
             }
 
+            if (newActiveNode == null) {
+                newActiveNode = new DefaultMutableTreeNode(new ConnectionNodeDescriptor(savedCluster.getId(),
+                        savedCluster, true));
+            } else {
+                ((ConnectionNodeDescriptor) newActiveNode.getUserObject()).setActive(true);
+                newActiveNode.removeAllChildren();
+            }
+
+            final DefaultMutableTreeNode disconnectNode = newActiveNode;
+
             try {
-                ActiveCluster.getInstance().connect(savedCluster);
+                ActiveCluster.getInstance().connect(savedCluster, () -> {
+                    disconnectFromCluster(disconnectNode, (ConnectionNodeDescriptor) disconnectNode.getUserObject(), tree);
+                });
 
                 if (toolBarPanel != null) {
 
@@ -102,17 +114,10 @@ public class TreeActionHandler {
                     Log.error("Could not append cbcache/ folder to .gitignore", e);
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                         " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
                 return;
-            }
-
-            if (newActiveNode == null) {
-                newActiveNode = new DefaultMutableTreeNode(new ConnectionNodeDescriptor(savedCluster.getId(),
-                        savedCluster, true));
-            } else {
-                ((ConnectionNodeDescriptor) newActiveNode.getUserObject()).setActive(true);
-                newActiveNode.removeAllChildren();
             }
 
             newActiveNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));

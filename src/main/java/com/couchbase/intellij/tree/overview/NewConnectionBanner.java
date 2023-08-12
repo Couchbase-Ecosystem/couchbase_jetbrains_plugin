@@ -34,7 +34,7 @@ public class NewConnectionBanner {
                 "            <td style='background:#e32623; border:1px solid red; padding:5px;color: #fff;'>\n" +
                 "                <a href='https://cloud.couchbase.com/sign-up'\n" +
                 "                   style='font-family: Tahoma, sans-serif; color: #fff; font-weight:normal; text-align:center; text-decoration: none; display: inline-block;'>\n" +
-                "                    <span style='font-size: 12px; font-family: Arial, sans-serif;color: #FFFFFF; font-weight:normal; line-height:1.5em; text-align:center;'>Sign up to Capella >></span>\n" +
+                "                    <span style='font-size: 12px; font-family: Arial, sans-serif;color: #FFFFFF; font-weight:normal; line-height:1.5em; text-align:center;'>Sign up for Capella >></span>\n" +
                 "                </a>\n" +
                 "            </td>\n" +
                 "        </tr>\n" +

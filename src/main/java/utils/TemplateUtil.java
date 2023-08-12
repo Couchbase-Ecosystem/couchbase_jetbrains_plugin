@@ -141,6 +141,7 @@ public class TemplateUtil {
         }
     }
 
+
     public static String fmtDouble(Double value) {
 
         if (value == null) {
@@ -167,7 +168,7 @@ public class TemplateUtil {
 
     public static String formatNumber(long number) {
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
-        symbols.setGroupingSeparator('.');
+        symbols.setGroupingSeparator(' ');
         DecimalFormat formatter = new DecimalFormat("###,###", symbols);
         return formatter.format(number);
     }
