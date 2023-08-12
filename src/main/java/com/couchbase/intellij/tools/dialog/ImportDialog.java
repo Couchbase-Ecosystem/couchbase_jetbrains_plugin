@@ -9,11 +9,12 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -37,8 +38,6 @@ import javax.swing.event.DocumentEvent;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.couchbase.client.java.json.JsonArray;
-import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
@@ -47,6 +46,9 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tree.NewEntityCreationDialog;
 import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.workbench.Log;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaTextBorder;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
@@ -406,6 +408,7 @@ public class ImportDialog extends DialogWrapper {
         contentPanel.add(targetFormPanel);
         targetPanel.add(contentPanel, BorderLayout.NORTH);
 
+        handleBucketComboBoxChange();
         return targetPanel;
     }
 
@@ -474,7 +477,7 @@ public class ImportDialog extends DialogWrapper {
         c.gridx = 0;
         customExpressionLabel = new JBLabel("Custom Expression:");
         customExpressionLabelHelpPanel = TemplateUtil.getLabelWithHelp(customExpressionLabel,
-                "<html>Specify the custom expression to generate the document key. You can use the following variables: <ul><li><b>#UUID#</b> - Random UUID</li><li><b>#FIELDNAME#</b> - Value of the field specified above</li></ul></html>");
+                "<html>Specify the custom expression to generate the document key. You can use the following variables: <ul><li><b>#UUID#</b> - Random UUID</li><li><b>%FIELDNAME%</b> - Value of the field specified above</li></ul></html>");
         keyFormPanel.add(customExpressionLabelHelpPanel, c);
         c.weightx = 0.7;
         c.gridx = 1;
@@ -616,6 +619,10 @@ public class ImportDialog extends DialogWrapper {
         advancedFormPanel.add(verboseLabelHelpPanel, c);
         c.weightx = 0.7;
         c.gridx = 1;
+
+        skipFirstField.setEnabled(false);
+        importUptoField.setEnabled(false);
+        ignoreFieldsField.setEnabled(true);
 
         verboseCheck = new JBCheckBox();
         advancedFormPanel.add(verboseCheck, c);
@@ -807,7 +814,10 @@ public class ImportDialog extends DialogWrapper {
         });
 
         // Page 4: Advanced Options
-        ActionListener checkListener = e -> validateAndEnableNextButton();
+        ActionListener checkListener = e -> {
+            enableFields();
+            validateAndEnableNextButton();
+        };
         skipFirstCheck.addActionListener(checkListener);
         skipFirstField.getDocument().addDocumentListener(documentAdapter);
 
@@ -815,12 +825,19 @@ public class ImportDialog extends DialogWrapper {
         importUptoField.getDocument().addDocumentListener(documentAdapter);
 
         ignoreFieldsCheck.addActionListener(e -> {
+            enableFields();
             updateIgnoreFieldsTextField();
             validateAndEnableNextButton();
         });
 
         ignoreFieldsField.getDocument().addDocumentListener(documentAdapter);
 
+    }
+
+    private void enableFields() {
+        skipFirstField.setEnabled(skipFirstCheck.isSelected());
+        importUptoField.setEnabled(importUptoCheck.isSelected());
+        ignoreFieldsField.setEnabled(ignoreFieldsCheck.isSelected());
     }
 
     protected void handleBucketComboBoxChange() {
@@ -841,6 +858,7 @@ public class ImportDialog extends DialogWrapper {
             for (String scopeItem : scopeItems) {
                 scopeCombo.addItem(scopeItem);
             }
+            handleScopeComboBoxChange();
         } catch (Exception ex) {
             Log.error(ex);
             ex.printStackTrace();
@@ -853,11 +871,14 @@ public class ImportDialog extends DialogWrapper {
                     + Optional.ofNullable(scopeCombo.getSelectedItem()).map(Object::toString).orElse("null"));
 
             String selectedScope = (String) scopeCombo.getSelectedItem();
-            if (selectedScope == null || selectedScope.isEmpty() || selectedScope.equals("_default")) {
+            if (selectedScope == null || selectedScope.isEmpty()) {
                 scopeCombo.setSelectedItem("_default");
                 collectionCombo.setSelectedItem("_default");
                 return;
             }
+
+            // Added call to removeAllItems() to clear old collection items
+            collectionCombo.removeAllItems();
 
             String[] collectionItems = scopeItems.stream()
                     .filter(scope -> scope.name().equals(selectedScope))
@@ -866,7 +887,6 @@ public class ImportDialog extends DialogWrapper {
                     .distinct()
                     .toArray(String[]::new);
 
-            collectionCombo.removeAllItems();
             for (String collectionItem : collectionItems) {
                 collectionCombo.addItem(collectionItem);
             }
@@ -1017,78 +1037,38 @@ public class ImportDialog extends DialogWrapper {
             }
 
         } else if (currentPage == 4) {
-            int numDocsInDataset = 0;
-            try {
-                numDocsInDataset = FileUtils.countJsonDocs(detectedCouchbaseJsonFormat, datasetField.getText());
-            } catch (Exception e) {
-                Log.error("An error occurred while counting the number of documents in the dataset: " + e.getMessage());
-            }
-
-            int skipFirstValue = 0;
-            boolean isSkipFirstValid = true;
             if (skipFirstCheck.isSelected()) {
                 String skipFirstText = skipFirstField.getText();
 
                 boolean isNonNegativeInteger = skipFirstText.matches("\\d+");
 
                 if (isNonNegativeInteger) {
-                    skipFirstValue = Integer.parseInt(skipFirstText);
-                    boolean isWithinBounds = skipFirstValue <= numDocsInDataset;
-                    highlightField(skipFirstField, isWithinBounds);
-                    if (!isWithinBounds) {
-                        isValid = false;
-                        isSkipFirstValid = false;
-                        Log.error("Validation failed: Skip first value exceeds number of documents in the dataset");
-                        errorMessages.add("Skip first value exceeds number of documents in the dataset.");
-                    }
+                    highlightField(skipFirstField, true);
                 } else {
                     highlightField(skipFirstField, false);
                     isValid = false;
-                    isSkipFirstValid = false;
                     Log.error("Validation failed: Skip first field does not contain a valid non-negative integer");
                     errorMessages.add("Skip first field does not contain a valid non-negative integer.");
                 }
+            } else {
+                highlightField(skipFirstField, true);
             }
 
-            int importUptoValue = 0;
-            boolean isImportUptoValid = true;
             if (importUptoCheck.isSelected()) {
                 String importUptoText = importUptoField.getText();
 
                 boolean isNonNegativeInteger = importUptoText.matches("\\d+");
 
                 if (isNonNegativeInteger) {
-                    importUptoValue = Integer.parseInt(importUptoText);
-                    boolean isWithinBounds = importUptoValue <= numDocsInDataset;
-                    highlightField(importUptoField, isWithinBounds);
-                    if (!isWithinBounds) {
-                        isValid = false;
-                        isImportUptoValid = false;
-                        Log.error("Validation failed: Import up to value exceeds number of documents in the dataset");
-                        errorMessages.add("Import up to value exceeds number of documents in the dataset.");
-                    }
+                    highlightField(importUptoField, true);
                 } else {
                     highlightField(importUptoField, false);
                     isValid = false;
-                    isImportUptoValid = false;
                     Log.error("Validation failed: Import up to field does not contain a valid non-negative integer");
                     errorMessages.add("Import up to field does not contain a valid non-negative integer.");
                 }
-            }
-
-            if (skipFirstCheck.isSelected() && importUptoCheck.isSelected()) {
-                boolean isWithinBounds = (skipFirstValue + importUptoValue) <= numDocsInDataset;
-                if (isSkipFirstValid && isImportUptoValid) {
-                    highlightField(skipFirstField, isWithinBounds);
-                    highlightField(importUptoField, isWithinBounds);
-                }
-                if (!isWithinBounds) {
-                    isValid = false;
-                    Log.error(
-                            "Validation failed: The sum of skip first and import up to values exceeds the number of documents in the dataset");
-                    errorMessages.add(
-                            "The sum of skip first and import up to values exceeds the number of documents in the dataset.");
-                }
+            } else {
+                highlightField(importUptoField, true);
             }
 
             if (ignoreFieldsCheck.isSelected()) {
@@ -1100,6 +1080,8 @@ public class ImportDialog extends DialogWrapper {
                     Log.error("Validation failed: Ignore fields field is empty");
                     errorMessages.add("Ignore fields field is empty.");
                 }
+            } else {
+                highlightField(ignoreFieldsField, true);
             }
         }
 
@@ -1108,6 +1090,7 @@ public class ImportDialog extends DialogWrapper {
         universalErrorLabel.setVisible(!errorMessages.isEmpty());
 
         nextButton.setEnabled(isValid);
+
     }
 
     private void highlightField(JComponent field, boolean isValid) {
@@ -1263,19 +1246,23 @@ public class ImportDialog extends DialogWrapper {
         keyPreviewArea.setText("");
 
         try {
-
             if (useFieldValueRadio.isSelected()) {
                 Log.debug("Use field value radio selected: ");
                 String fieldName = fieldNameField.getText();
 
-                String fileContent = Files.readString(Paths.get(datasetField.getText()));
-                JsonArray jsonArray = JsonArray.fromJson(fileContent);
+                JsonFactory jsonFactory = new JsonFactory();
+                JsonParser jsonParser = jsonFactory.createParser(new File(datasetField.getText()));
 
                 StringBuilder previewContent = new StringBuilder();
-                for (int i = 0; i < jsonArray.size(); i++) {
-                    JsonObject jsonObject = jsonArray.getObject(i);
-                    if (jsonObject.containsKey(fieldName)) {
-                        previewContent.append(jsonObject.getString(fieldName)).append("\n");
+                while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+                    if (jsonParser.getCurrentToken() == JsonToken.START_OBJECT) {
+                        while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                            String currentFieldName = jsonParser.getCurrentName();
+                            if (fieldName.equals(currentFieldName)) {
+                                jsonParser.nextToken();
+                                previewContent.append(jsonParser.getText()).append("\n");
+                            }
+                        }
                     }
                 }
 
@@ -1295,31 +1282,40 @@ public class ImportDialog extends DialogWrapper {
                     fieldNames.add(matcher.group(1));
                 }
 
-                String fileContent = Files.readString(Paths.get(datasetField.getText()));
-                JsonArray jsonArray = JsonArray.fromJson(fileContent);
+                JsonFactory jsonFactory = new JsonFactory();
+                JsonParser jsonParser = jsonFactory.createParser(new File(datasetField.getText()));
 
                 StringBuilder previewContent = new StringBuilder();
                 int monoIncrValue = 1;
-                for (int i = 0; i < jsonArray.size(); i++) {
-                    JsonObject jsonObject = jsonArray.getObject(i);
-
-                    String key = expression;
-                    for (String fieldName : fieldNames) {
-                        if (jsonObject.containsKey(fieldName)) {
-                            key = key.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
+                while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+                    if (jsonParser.getCurrentToken() == JsonToken.START_OBJECT) {
+                        Map<String, String> fieldValues = new HashMap<>();
+                        while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                            String currentFieldName = jsonParser.getCurrentName();
+                            if (fieldNames.contains(currentFieldName)) {
+                                jsonParser.nextToken();
+                                fieldValues.put(currentFieldName, jsonParser.getText());
+                            }
                         }
-                    }
 
-                    if (key.contains("#UUID#")) {
-                        key = key.replace("#UUID#", UUID.randomUUID().toString());
-                    }
+                        String key = expression;
+                        for (String fieldName : fieldNames) {
+                            if (fieldValues.containsKey(fieldName)) {
+                                key = key.replace("%" + fieldName + "%", fieldValues.get(fieldName));
+                            }
+                        }
 
-                    if (key.contains("#MONO_INCR#")) {
-                        key = key.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
-                        monoIncrValue++;
-                    }
+                        if (key.contains("#UUID#")) {
+                            key = key.replace("#UUID#", UUID.randomUUID().toString());
+                        }
 
-                    previewContent.append(key).append("\n");
+                        if (key.contains("#MONO_INCR#")) {
+                            key = key.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                            monoIncrValue++;
+                        }
+
+                        previewContent.append(key).append("\n");
+                    }
                 }
 
                 keyPreviewArea.setText(previewContent.toString());
