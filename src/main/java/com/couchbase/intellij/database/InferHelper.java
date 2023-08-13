@@ -7,7 +7,7 @@ import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
-import com.intellij.openapi.diagnostic.Logger;
+import com.couchbase.intellij.workbench.Log;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.lang.reflect.Field;
@@ -16,17 +16,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class InferHelper {
-    public static final Logger log = Logger.getInstance(InferHelper.class);
 
     public static JsonObject inferSchema(String collectionName, String scopeName, String bucketName) {
         try {
             SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
             String path = String.format("%s.%s.%s", bucketName, scopeName, collectionName).toLowerCase();
             if (savedCluster.isInferCacheValid(path)) {
-                log.info("Loaded " + path + " cached infer results");
+                Log.debug("Loaded " + path + " cached infer results");
                 return savedCluster.getInferCacheValue(path);
             }
-            log.warn("Inferring " + path + " from cluster...");
             String query = "INFER `" + bucketName + "`.`" + scopeName + "`.`" + collectionName + "` WITH {\"sample_size\": 2000}";
             QueryResult result = ActiveCluster.getInstance().get().query(query);
 
@@ -53,7 +51,7 @@ public class InferHelper {
                 }
             }
         } catch (Exception e) {
-            log.debug("Could not infer the schema of the collection", e);
+            Log.debug("Could not infer the schema of the collection", e);
             return null;
         }
     }
@@ -62,7 +60,7 @@ public class InferHelper {
         String path = String.format("%s.%s.%s", bucket, scope, collection).toLowerCase();
         SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
         if (savedCluster != null) {
-            log.info("Invalidated infer cache for " + path);
+            Log.debug("Invalidated infer cache for " + path);
             ActiveCluster.getInstance().getSavedCluster().getInferValuesUpdateTimes().put(path, 0L);
         } else {
             throw new RuntimeException("No active cluster");
@@ -73,7 +71,7 @@ public class InferHelper {
         String path = String.format("%s.%s.%s", bucket, scope, collection).toLowerCase();
         SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
         if (savedCluster != null) {
-            if (System.currentTimeMillis() - savedCluster.getInferValuesUpdateTimes().get(path) >= period) {
+            if (savedCluster.getInferValuesUpdateTimes().get(path) ==null || System.currentTimeMillis() - savedCluster.getInferValuesUpdateTimes().get(path) >= period) {
                 invalidateCache(bucket, scope, collection);
             }
         } else {
@@ -100,7 +98,7 @@ public class InferHelper {
                     String additionalTooltip = samples.toList().stream().map(Object::toString).collect(Collectors.joining(","));
                     sf.setTooltip(sf.getTooltip() + ", samples: " + additionalTooltip);
                 } else {
-                    System.err.println("Infer reached an unexpected state");
+                    Log.debug("Infer reached an unexpected state");
                 }
             }
         }

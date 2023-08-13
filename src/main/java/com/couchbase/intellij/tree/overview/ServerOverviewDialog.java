@@ -30,7 +30,9 @@ public class ServerOverviewDialog extends DialogWrapper {
 
     public ServerOverviewDialog(boolean canBeParent) {
         super(canBeParent);
-        getPeer().getWindow().setMinimumSize(new Dimension(840, 800));
+        getPeer().getWindow().setMinimumSize(new Dimension(860, 800));
+        getPeer().getWindow().setMaximumSize(new Dimension(860, 800));
+        setResizable(false);
         init();
     }
 
@@ -229,11 +231,11 @@ public class ServerOverviewDialog extends DialogWrapper {
         panel.add(getSeparator("System Stats"));
         String[] systemKeys = {"CPU Utilization Rate", "Swap Total", "Total Memory", "Memory Limit", "CPU Stole Rate", "Swap Used", "Free Memory", "Cores Available"};
         String[] systemValues = {String.format("%.3f", node.getSystemStats().getCpu_utilization_rate()),
-                String.format("%.3f", node.getSystemStats().getSwap_total()),
+                fmtByte( node.getSystemStats().getSwap_total()),
                 fmtByte(node.getSystemStats().getMem_total()),
                 fmtByte(node.getSystemStats().getMem_limit()),
                 String.format("%.3f", node.getSystemStats().getCpu_stolen_rate()),
-                String.format("%.3f", node.getSystemStats().getSwap_used()),
+                fmtByte( node.getSystemStats().getSwap_used()),
                 fmtByte(node.getSystemStats().getMem_free()),
                 String.valueOf(node.getSystemStats().getCpu_cores_available())
 

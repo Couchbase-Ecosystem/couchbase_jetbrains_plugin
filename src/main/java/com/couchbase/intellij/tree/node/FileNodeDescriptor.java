@@ -1,6 +1,8 @@
 package com.couchbase.intellij.tree.node;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.json.JsonFileType;
+import com.intellij.openapi.fileTypes.UserBinaryFileType;
 import com.intellij.openapi.vfs.VirtualFile;
 
 public class FileNodeDescriptor extends NodeDescriptor {
@@ -11,12 +13,15 @@ public class FileNodeDescriptor extends NodeDescriptor {
     private String collection;
     private String id;
 
-    public FileNodeDescriptor(String name, String bucket, String scope, String collection, String id, VirtualFile virtualFile) {
-        super(name, JsonFileType.INSTANCE.getIcon());
+    private FileType type;
+
+    public FileNodeDescriptor(String name, String bucket, String scope, String collection, String id, FileType type, VirtualFile virtualFile) {
+        super(name, type==FileType.BINARY? AllIcons.FileTypes.Any_type :JsonFileType.INSTANCE.getIcon());
         this.virtualFile = virtualFile;
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;
+        this.type = type;
         this.id = id;
     }
 
@@ -42,5 +47,18 @@ public class FileNodeDescriptor extends NodeDescriptor {
 
     public String getId() {
         return id;
+    }
+
+    public FileType getType() {
+        return type;
+    }
+
+    public void setType(FileType type) {
+        this.type = type;
+    }
+
+    public static enum FileType {
+        JSON,
+        BINARY
     }
 }

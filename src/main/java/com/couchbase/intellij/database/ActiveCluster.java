@@ -1,11 +1,16 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.core.cnc.Event;
+import com.couchbase.client.core.cnc.EventBus;
+import com.couchbase.client.core.cnc.events.endpoint.EndpointDisconnectedEvent;
+import com.couchbase.client.core.cnc.events.endpoint.UnexpectedEndpointDisconnectedEvent;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
+import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.persistence.SavedCluster;
-import com.intellij.openapi.diagnostic.Logger;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -20,11 +25,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ActiveCluster implements CouchbaseClusterEntity {
-
-    private static final Logger log = Logger.getInstance(ActiveCluster.class);
 
     private static ActiveCluster activeCluster = new ActiveCluster();
     private Cluster cluster;
@@ -64,7 +68,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return this.savedCluster.getId();
     }
 
-    public void connect(SavedCluster savedCluster) {
+    public void connect(SavedCluster savedCluster, Runnable disconnectListener) {
         if (this.cluster != null) {
             disconnect();
         }
@@ -73,11 +77,25 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
         try {
             String password = DataLoader.getClusterPassword(savedCluster);
+            ClusterEnvironment env = ClusterEnvironment.builder().build();
+
             cluster = Cluster.connect(savedCluster.getUrl(),
-                    ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
-                        // env.applyProfile("wan-development");
-                    }));
+                    ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env));
             cluster.waitUntilReady(Duration.ofSeconds(5));
+            EventBus eventBus = env.eventBus();
+            eventBus.subscribe(event -> {
+                if (event instanceof UnexpectedEndpointDisconnectedEvent) {
+                    Log.info("Disconnected from cluster " + savedCluster.getId());
+                    try {
+                        disconnectListener.run();
+                    } catch (Exception e) {
+                        Log.error(e);
+                    }
+
+                    eventBus.stop(Duration.ZERO);
+                    disconnect();
+                }
+            });
             this.cluster = cluster;
             this.savedCluster = savedCluster;
             this.password = password;
@@ -94,12 +112,17 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     public void disconnect() {
-        cluster.disconnect();
         this.savedCluster = null;
         this.cluster = null;
         this.password = null;
         this.color = null;
         this.buckets = null;
+
+        try {
+            cluster.disconnect();
+        } catch (Exception e) {
+            Log.debug("Failed to disconnect from the server", e);
+        }
     }
 
     public String getUsername() {
@@ -219,7 +242,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     @Override
     public void updateSchema() {
-        log.info("Updating cluster schema");
+        Log.debug("Updating cluster schema");
         Set<CouchbaseBucket> newbuckets = new HashSet<>();
         if (buckets == null) {
             buckets = newbuckets;
@@ -231,7 +254,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         });
         buckets = newbuckets;
         lastSchemaUpdate = System.currentTimeMillis();
-        log.info("updated cluster schema");
+        Log.debug("updated cluster schema");
     }
 
     @Override
