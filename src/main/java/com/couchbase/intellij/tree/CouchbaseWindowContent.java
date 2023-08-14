@@ -35,12 +35,14 @@ public class CouchbaseWindowContent extends JPanel {
     private static DefaultTreeModel treeModel;
     private static JPanel toolBarPanel;
 
+    private static Tree tree;
+
 
     public CouchbaseWindowContent(Project project) {
         CouchbaseWindowContent.project = project;
         setLayout(new BorderLayout());
         treeModel = getTreeModel(project);
-        Tree tree = new Tree(treeModel);
+        tree = new Tree(treeModel);
 
         tree.setRootVisible(false);
         tree.setCellRenderer(new NodeDescriptorRenderer());
@@ -224,5 +226,9 @@ public class CouchbaseWindowContent extends JPanel {
             add(text);
             add(counter);
         }
+    }
+
+    public static Tree getTree() {
+        return tree;
     }
 }

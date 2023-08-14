@@ -13,11 +13,14 @@ import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
+import com.intellij.util.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 import utils.CBConfigUtil;
 
+import javax.swing.*;
 import java.awt.*;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -49,6 +52,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private long lastSchemaUpdate = 0;
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
+    private Runnable disconnectListener;
+
     private ActiveCluster() {
     }
 
@@ -76,7 +81,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return this.savedCluster.getId();
     }
 
-    public void connect(SavedCluster savedCluster, Runnable disconnectListener) throws Exception {
+    public void connect(SavedCluster savedCluster, Consumer<Exception> connectListener, Runnable disconnectListener) throws Exception {
         if (this.cluster != null) {
             disconnect();
         }
@@ -88,30 +93,25 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
             cluster = Cluster.connect(savedCluster.getUrl(),
                     ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
-                        //env.applyProfile("wan-development");
+                        // env.applyProfile("wan-development");
                     }));
             cluster.waitUntilReady(Duration.ofSeconds(5));
-
+            ClusterEnvironment env = cluster.environment();
+            this.cluster = cluster;
+            this.savedCluster = savedCluster;
+            this.password = password;
+            this.disconnectListener = disconnectListener;
 
             EventBus eventBus = cluster.environment().eventBus();
             eventBus.subscribe(event -> {
                 if (event instanceof UnexpectedEndpointDisconnectedEvent) {
                     Log.info("Disconnected from cluster " + savedCluster.getId());
-                    try {
-                        disconnectListener.run();
-                    } catch (Exception e) {
-                        Log.error(e);
-                    }
 
                     eventBus.stop(Duration.ZERO);
                     disconnect();
                     ActiveCluster.getInstance().get().environment().shutdown();
                 }
             });
-
-            this.cluster = cluster;
-            this.savedCluster = savedCluster;
-            this.password = password;
             if (savedCluster.getColor() != null) {
                 this.color = Color.decode(savedCluster.getColor());
             }
@@ -136,27 +136,36 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 }
             });
 
-            scheduleSchemaUpdate();
+            scheduleSchemaUpdate(connectListener);
         } catch (Exception e) {
             if (cluster != null) {
-                cluster.disconnect();
+                disconnect();
             }
             throw e;
         }
     }
 
     public void disconnect() {
+        if (cluster != null) {
+            try {
+                cluster.disconnect();
+            } catch (Exception e) {
+                Log.debug("Failed to disconnect from the server", e);
+            }
+        }
+        if (disconnectListener != null) {
+            try {
+                disconnectListener.run();
+            } catch (Exception e) {
+                Log.error(e);
+            }
+        }
         this.savedCluster = null;
         this.cluster = null;
         this.password = null;
         this.color = null;
         this.buckets = null;
-
-        try {
-            cluster.disconnect();
-        } catch (Exception e) {
-            Log.debug("Failed to disconnect from the server", e);
-        }
+        this.disconnectListener = null;
     }
 
     public String getUsername() {
@@ -214,7 +223,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     public boolean isReadOnlyMode() {
-        return this.savedCluster.isReadOnly() != null && this.savedCluster.isReadOnly();
+        return this.savedCluster != null && this.savedCluster.isReadOnly() != null && this.savedCluster.isReadOnly();
     }
 
     public void setReadOnlyMode(boolean mode) {
@@ -249,12 +258,12 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         if (buckets == null) {
             updateSchema();
         } else {
-            scheduleSchemaUpdate();
+            scheduleSchemaUpdate(null);
         }
         return buckets;
     }
 
-    private void scheduleSchemaUpdate() {
+    private void scheduleSchemaUpdate(Consumer<Exception> onComplete) {
 
         if (!hasQueryService()) {
             return;
@@ -264,7 +273,19 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             new Task.ConditionalModal(null, "Reading Couchbase cluster schema", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
-                    doUpdateSchema();
+                    try {
+                        doUpdateSchema();
+                        if (onComplete != null) {
+                            onComplete.consume(null);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        if (onComplete != null) {
+                            onComplete.consume(e);
+                        }
+                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not read cluster schema.", "Couchbase Connection Error"));
+                        disconnect();
+                    }
                 }
             }.queue();
         }

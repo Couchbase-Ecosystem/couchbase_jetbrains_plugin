@@ -49,6 +49,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
     private static final String elapsedToolTip = "Elapsed is the time taken by the server to process the request";
     private static final String executionTooltip = "Execution is the time taken by the server to execute the query";
+    private static final String mutationsToolTip = "Count of documents mutated";
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
     public static QueryResultToolWindowFactory instance;
@@ -62,6 +63,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
 
+    private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
+    private final String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, mutationsToolTip, docsTooltip, docsSizeTooltip};
     private Project project;
 
     public QueryResultToolWindowFactory() {
@@ -93,8 +96,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         queryStatsList = new ArrayList<>();
         queryLabelsList = new ArrayList<>();
-        String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, docsTooltip, docsSizeTooltip};
-        String[] headers = {"RTT", "ELAPSED", "EXECUTION", "DOCS", "SIZE"};
 
         for (int i = 0; i < headers.length; i++) {
 
@@ -294,8 +295,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, String explain) {
-        if (results != null) {
+    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, String explain) {
+        if (results != null && error.getErrors().isEmpty()) {
 
             List<Map<String, Object>> convertedResults = new ArrayList<>();
             for (JsonObject jsonObject : results) {
@@ -313,18 +314,18 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
             htmlPanel.loadHTML(content);
 
-            if (isMutation) {
-                queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
-                queryLabelsList.get(4).setText("");
-            } else {
-                queryLabelsList.get(3).setText(getQueryStatHeader("DOCS"));
-                queryLabelsList.get(4).setText(getQueryStatHeader("SIZE"));
-            }
-
             queryStatsPanel.revalidate();
 
             for (int i = 0; i < queryStatsList.size(); i++) {
-                queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
+                String v = queryValues.get(i);
+                if (v == null || v.trim().isEmpty() || "-".equals(v) || "0".equals(v)) {
+                    queryLabelsList.get(i).setVisible(false);
+                    queryStatsList.get(i).setVisible(false);
+                } else {
+                    queryLabelsList.get(i).setVisible(true);
+                    queryStatsList.get(i).setVisible(true);
+                    queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
+                }
             }
 
             model.updateData(convertedResults);

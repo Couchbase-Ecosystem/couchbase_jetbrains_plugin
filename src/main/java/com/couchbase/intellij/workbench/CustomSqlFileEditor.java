@@ -1,14 +1,16 @@
 package com.couchbase.intellij.workbench;
 
 
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
+import com.couchbase.intellij.tree.CouchbaseWindowContent;
+import com.couchbase.intellij.tree.TreeActionHandler;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -22,9 +24,13 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ui.JBUI;
+import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +41,9 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
-import java.util.*;
 import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
@@ -54,6 +61,34 @@ public class CustomSqlFileEditor implements FileEditor {
     private String selectedScopeContext;
     private String cachedPreviousSelectedConnection;
     private JPanel topPanel;
+    private final AnAction runScrpipt = new AnAction("Execute Script", "Execute all statements in the editor",
+            IconLoader.getIcon("/assets/icons/play_script.svg", CustomSqlFileEditor.class)) {
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            if (!isSameConnection()) {
+                return;
+            }
+            PsiFile psi = PsiManager.getInstance(project).findFile(getFile());
+            PsiErrorElement err = PsiTreeUtil.findChildOfType(psi, PsiErrorElement.class);
+            if (err != null) {
+                Messages.showMessageDialog("There syntax errors in the script.", "Couchbase Plugin Error", Messages.getErrorIcon());
+                return;
+            }
+            List<String> statements = ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
+                    .map(PsiElement::getText)
+                    .collect(Collectors.toList())
+            );
+
+            if (QueryExecutor.executeScript(statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project)) {
+                int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
+                currentHistoryIndex = historySize - 1;
+                SwingUtilities.invokeLater(() -> {
+                    historyLabel.setText("history (" + historySize + "/" + historySize + ")");
+                    historyLabel.revalidate();
+                });
+            }
+        }
+    };
 
     private ComboBox<String> conCombo;
 
@@ -118,6 +153,9 @@ public class CustomSqlFileEditor implements FileEditor {
                 }
             }
         });
+
+
+        executeGroup.add(runScrpipt);
 
         executeGroup.addSeparator();
 
@@ -306,49 +344,6 @@ public class CustomSqlFileEditor implements FileEditor {
             conCombo.addItem(entry.getValue().getId());
         }
         contextPanel.add(conCombo);
-        conCombo.addActionListener(e -> {
-            String selectedClusterId = (String) conCombo.getSelectedItem();
-
-            if (selectedClusterId == null) {
-                return;
-            }
-
-            option1Group.removeAll();
-            AnAction clearContextAction = new AnAction("Clear Context") {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
-                    contextLabel.revalidate();
-                    setSelectedContext(Collections.EMPTY_LIST);
-                }
-            };
-
-            option1Group.add(clearContextAction);
-            option1Group.addSeparator("Buckets");
-
-            List<String> buckets = new ArrayList<>(ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet());
-            for (String bucket : buckets) {
-
-                DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket, true);
-                bucketsGroup.addSeparator("Scopes");
-
-                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes();
-                for (ScopeSpec spec : scopes) {
-                    AnAction scopeAction = new AnAction(spec.name()) {
-                        @Override
-                        public void actionPerformed(@NotNull AnActionEvent e) {
-                            contextLabel.setText(bucket + " > " + spec.name());
-                            contextLabel.revalidate();
-                            setSelectedContext(Arrays.asList(bucket, spec.name()));
-                        }
-                    };
-
-                    bucketsGroup.add(scopeAction);
-                }
-
-                option1Group.add(bucketsGroup);
-            }
-        });
 
         conCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -357,28 +352,28 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (item == null) {
                     return;
                 }
-                if (ActiveCluster.getInstance().get() == null || !item.equals(ActiveCluster.getInstance().getId())) {
+                String activeClusterId = ActiveCluster.getInstance().getId();
+                if (activeClusterId != null && !item.equals(ActiveCluster.getInstance().getId())) {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected.", "Workbench Error"));
 
                     SwingUtilities.invokeLater(() -> conCombo.setSelectedItem(cachedPreviousSelectedConnection));
                 } else {
-                    SwingUtilities.invokeLater(() -> {
-                        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
-                        contextLabel.revalidate();
-
-                        if (ActiveCluster.getInstance().getColor() != null) {
-                            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
-                            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
-                            Border compound = BorderFactory.createCompoundBorder(margin, line);
-                            topPanel.setBorder(compound);
-                            topPanel.revalidate();
-                        } else {
-                            topPanel.setBorder(JBUI.Borders.empty());
-                            topPanel.revalidate();
-                        }
-                    });
-                    setSelectedContext(Collections.EMPTY_LIST);
-                    cachedPreviousSelectedConnection = e.getItem().toString();
+                    if (activeClusterId == null) {
+                        SavedCluster sc = ClustersStorage.getInstance().getValue().getMap().get(item);
+                        TreeActionHandler.connectToCluster(project, sc, CouchbaseWindowContent.getTree(), null, err -> {
+                            SwingUtilities.invokeLater(() -> {
+                                if (err == null) {
+                                    onConnectionSelected(option1Group, contextLabel);
+                                } else {
+                                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                                    contextLabel.revalidate();
+                                    setSelectedContext(Collections.EMPTY_LIST);
+                                }
+                            });
+                        });
+                    } else {
+                        SwingUtilities.invokeLater(() -> onConnectionSelected(option1Group, contextLabel));
+                    }
                 }
             }
         });
@@ -406,6 +401,66 @@ public class CustomSqlFileEditor implements FileEditor {
         contextPanel.add(myPanel);
 
         return contextPanel;
+    }
+
+    private void onConnectionSelected(DefaultActionGroup option1Group, JLabel contextLabel) {
+        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+        contextLabel.revalidate();
+
+        if (ActiveCluster.getInstance().getColor() != null) {
+            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+            Border compound = BorderFactory.createCompoundBorder(margin, line);
+            topPanel.setBorder(compound);
+            topPanel.revalidate();
+        } else {
+            topPanel.setBorder(JBUI.Borders.empty());
+            topPanel.revalidate();
+        }
+
+        String selectedClusterId = (String) conCombo.getSelectedItem();
+        cachedPreviousSelectedConnection = selectedClusterId;
+
+        if (selectedClusterId == null) {
+            return;
+        }
+
+        option1Group.removeAll();
+        AnAction clearContextAction = new AnAction("Clear Context") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                contextLabel.revalidate();
+                setSelectedContext(Collections.EMPTY_LIST);
+            }
+        };
+
+        option1Group.add(clearContextAction);
+        option1Group.addSeparator("Buckets");
+
+        ActiveCluster.getInstance().getChildren().stream()
+                .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
+                .forEach(bucket -> {
+                    DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket.getName(), true);
+                    bucketsGroup.addSeparator("Scopes");
+
+                    bucket.getChildren().stream()
+                            .sorted(Comparator.comparing(s -> s.getName().toLowerCase()))
+                            .forEach(scope -> {
+
+                                AnAction scopeAction = new AnAction(scope.getName()) {
+                                    @Override
+                                    public void actionPerformed(@NotNull AnActionEvent e) {
+                                        contextLabel.setText(bucket.getName() + " > " + scope.getName());
+                                        contextLabel.revalidate();
+                                        setSelectedContext(Arrays.asList(bucket.getName(), scope.getName()));
+                                    }
+                                };
+
+                                bucketsGroup.add(scopeAction);
+                            });
+                    option1Group.add(bucketsGroup);
+                });
     }
 
     @Override

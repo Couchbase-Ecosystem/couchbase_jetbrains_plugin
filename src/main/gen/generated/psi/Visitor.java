@@ -531,11 +531,23 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitJsonField(@NotNull JsonField o) {
+    visitPsiElement(o);
+  }
+
   public void visitJsonHint(@NotNull JsonHint o) {
     visitPsiElement(o);
   }
 
   public void visitJsonHintObject(@NotNull JsonHintObject o) {
+    visitPsiElement(o);
+  }
+
+  public void visitJsonObject(@NotNull JsonObject o) {
+    visitPsiElement(o);
+  }
+
+  public void visitJsonValue(@NotNull JsonValue o) {
     visitPsiElement(o);
   }
 

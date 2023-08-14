@@ -41,6 +41,8 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
     public static final TextAttributesKey BAD_CHARACTER =
             createTextAttributesKey("SQLPP_BAD_CHARACTER", HighlighterColors.BAD_CHARACTER);
 
+    public static final TextAttributesKey SYNTAX_ERROR =
+            createTextAttributesKey("SQLPP_SYNTAX_ERROR", HighlighterColors.BAD_CHARACTER);
 
     private static final TextAttributesKey[] BAD_CHAR_KEYS = new TextAttributesKey[]{BAD_CHARACTER};
     private static final TextAttributesKey[] SEPARATOR_KEYS = new TextAttributesKey[]{SEPARATOR};
@@ -55,7 +57,7 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
 
     private static final TextAttributesKey[] STRING_KEYS = new TextAttributesKey[]{STRING};
     private static final TextAttributesKey[] EMPTY_KEYS = new TextAttributesKey[0];
-
+    private static final TextAttributesKey[] SYNTAX_ERRORS = new TextAttributesKey[]{SYNTAX_ERROR};
     @NotNull
     @Override
     public Lexer getHighlightingLexer() {
@@ -99,6 +101,7 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
         if (tokenType.equals(TokenType.BAD_CHARACTER)) {
             return BAD_CHAR_KEYS;
         }
+
         return EMPTY_KEYS;
     }
 
