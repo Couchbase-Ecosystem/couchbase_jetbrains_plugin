@@ -99,7 +99,7 @@ public class OpenDocumentDialog extends DialogWrapper {
         gc.weightx = 0.6;
         formPanel.add(textField, gc);
 
-        if (createDocument) {
+        if (createDocument && ActiveCluster.getInstance().hasQueryService()) {
             gc.gridy = 1;
             gc.gridx = 1;
             gc.weightx = 1;

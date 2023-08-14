@@ -3,6 +3,7 @@ package com.couchbase.intellij.workbench;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
@@ -16,11 +17,15 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.AnimatedIcon;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -138,7 +143,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         topPanel.add(toolbar.getComponent(), BorderLayout.EAST);
 
 
-        Document document = EditorFactory.getInstance().createDocument("{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
+        VirtualFile virtualFile = new LightVirtualFile("query_result", FileTypeManager.getInstance().getFileTypeByExtension("json"),
+                "{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
+        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
         editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, true);
         EditorSettings editorSettings = editor.getSettings();
         editorSettings.setLineNumbersShown(true);
@@ -176,10 +183,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         tabs.select(queryResultTab, true);
 
 
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(content);
+
+        ActiveCluster.getInstance().registerNewConnectionListener(() -> {
+
+            SwingUtilities.invokeLater(() -> {
+                if (!ActiveCluster.getInstance().hasQueryService()) {
+                    queryResultTab.setEnabled(false);
+                    queryResultTab.revalidate();
+                } else {
+                    queryResultTab.setEnabled(true);
+                    queryResultTab.revalidate();
+                }
+            });
+        });
     }
 
     public JPanel getConsolePanel() {

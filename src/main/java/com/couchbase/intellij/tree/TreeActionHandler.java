@@ -87,20 +87,11 @@ public class TreeActionHandler {
                 }
                 CompletableFuture.runAsync(() -> {
                     try {
-                        ServerOverview overview = CouchbaseRestAPI.getOverview();
-                        ActiveCluster.getInstance().setServices(overview.getNodes().stream()
-                                .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
-
-                        ActiveCluster.getInstance().setVersion(overview.getNodes().get(0).getVersion()
-                                .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
 
                         if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
                             SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
                         }
 
-                        if (!CBConfigUtil.hasQueryService(ActiveCluster.getInstance().getServices())) {
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>Your cluster doesn't have the Query Service. Some features might not work properly.</html>", "Couchbase Plugin Error"));
-                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                         Log.error("Could not call the RestAPI to get an overview of the service.", e);

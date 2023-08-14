@@ -16,6 +16,7 @@ import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
 import com.couchbase.intellij.tree.overview.ServerOverviewDialog;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.fileChooser.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -338,7 +339,17 @@ public class TreeRightClickListener {
         String collection = col.getCollection();
         String docId = col.getId();
         viewMetaData.addActionListener(e12 -> {
-            String metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
+
+            String metadata = null;
+            if(ActiveCluster.getInstance().hasQueryService()) {
+                metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
+            } else {
+                try {
+                    metadata = CouchbaseRestAPI.getMetaDocument(bucket, scope, collection, docId);
+                } catch (Exception ex) {
+                    Log.debug("Could not get the metadata of the document via the API", ex);
+                }
+            }
             if (metadata != null) {
                 VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json", FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
                 DocumentFormatter.formatFile(project, virtualFile);
@@ -381,7 +392,7 @@ public class TreeRightClickListener {
         JBPopupMenu popup = new JBPopupMenu();
         JBMenuItem viewIdxStats = new JBMenuItem("View Stats");
         viewIdxStats.addActionListener(l -> {
-            IndexOverviewDialog dialog = new IndexOverviewDialog(idx.getBucket(), idx.getScope(), idx.getCollection(), idx.getText().substring(0, idx.getText().lastIndexOf('.')));
+            IndexOverviewDialog dialog = new IndexOverviewDialog(project, idx.getBucket(), idx.getScope(), idx.getCollection(), idx.getText().substring(0, idx.getText().lastIndexOf('.')));
             dialog.show();
         });
         popup.add(viewIdxStats);
@@ -407,32 +418,35 @@ public class TreeRightClickListener {
             });
             popup.add(createDocument);
         }
-        popup.addSeparator();
 
-        String filter = "Add Document Filter";
-        boolean hasDeleteFilter = false;
-        if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
-            filter = "Edit Document Filter";
-            hasDeleteFilter = true;
-        }
-        JBMenuItem menuItem = new JBMenuItem(filter);
-        popup.add(menuItem);
-        menuItem.addActionListener(e12 -> {
-            DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
-            dialog.show();
-        });
 
-        if (hasDeleteFilter) {
-            JBMenuItem clearDocFilter = new JBMenuItem("Clear Document Filter");
-            popup.add(clearDocFilter);
-            clearDocFilter.addActionListener(e12 -> {
-                QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(), col.getBucket(), col.getScope(), col.getText(), null);
-
-                col.setQueryFilter(null);
-                TreePath treePath = new TreePath(clickedNode.getPath());
-                tree.collapsePath(treePath);
-                tree.expandPath(treePath);
+        if (ActiveCluster.getInstance().hasQueryService()) {
+            popup.addSeparator();
+            String filter = "Add Document Filter";
+            boolean hasDeleteFilter = false;
+            if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
+                filter = "Edit Document Filter";
+                hasDeleteFilter = true;
+            }
+            JBMenuItem menuItem = new JBMenuItem(filter);
+            popup.add(menuItem);
+            menuItem.addActionListener(e12 -> {
+                DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
+                dialog.show();
             });
+
+            if (hasDeleteFilter) {
+                JBMenuItem clearDocFilter = new JBMenuItem("Clear Document Filter");
+                popup.add(clearDocFilter);
+                clearDocFilter.addActionListener(e12 -> {
+                    QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(), col.getBucket(), col.getScope(), col.getText(), null);
+
+                    col.setQueryFilter(null);
+                    TreePath treePath = new TreePath(clickedNode.getPath());
+                    tree.collapsePath(treePath);
+                    tree.expandPath(treePath);
+                });
+            }
         }
 
         popup.addSeparator();

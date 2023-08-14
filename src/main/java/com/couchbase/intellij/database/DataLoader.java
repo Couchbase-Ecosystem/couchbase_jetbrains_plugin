@@ -4,8 +4,8 @@ import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
 import com.couchbase.client.core.error.TimeoutException;
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.ClusterOptions;
+import com.couchbase.client.java.*;
+import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.GetResult;
@@ -22,6 +22,7 @@ import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.google.gson.Gson;
@@ -47,6 +48,8 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import utils.IndexUtils;
 import utils.OSUtil;
 
@@ -154,6 +157,8 @@ public class DataLoader {
                 try {
                     parentNode.removeAllChildren();
                     ScopeNodeDescriptor scopeDesc = (ScopeNodeDescriptor) userObject;
+                    Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(scopeDesc.getBucket(), scopeDesc.getText());
+
                     List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).collect(Collectors.toList());
                     scopeDesc.setCounter(formatCount(collections.size()));
                     if (!collections.isEmpty()) {
@@ -161,8 +166,9 @@ public class DataLoader {
 
                             String filter = QueryFiltersStorage.getInstance().getValue().getQueryFilter(ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), spec.name());
 
-                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), filter));
-
+                            CollectionNodeDescriptor colNodeDesc = new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), filter);
+                            colNodeDesc.setCounter(formatCount(counts.get(scopeDesc.getBucket() + "." + scopeDesc.getText() + "." + spec.name())));
+                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(colNodeDesc);
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                             parentNode.add(childNode);
                         }
@@ -188,51 +194,77 @@ public class DataLoader {
         if (userObject instanceof CollectionNodeDescriptor) {
             CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) parentNode.getUserObject();
             try {
-                if (newOffset == 0) {
-                    parentNode.removeAllChildren();
-                    DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
-                    schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                    parentNode.add(schemaNode);
-                    colNode.setCounter("...");
-                    countCollectionAsync(colNode);
+                //When KV
+                if (!ActiveCluster.getInstance().hasQueryService()) {
+                    if (newOffset == 0) {
+                        parentNode.removeAllChildren();
+                    } else {
+                        parentNode.remove(parentNode.getChildCount() - 1);
+                    }
 
-                    DefaultMutableTreeNode indexes = new DefaultMutableTreeNode(new IndexesNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText()));
-                    indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                    parentNode.add(indexes);
-                } else {
-                    parentNode.remove(parentNode.getChildCount() - 1);
-                }
+                    List<String> docIds = CouchbaseRestAPI.listKVDocuments(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset, 10);
 
-
-                String filter = colNode.getQueryFilter();
-                String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias " + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
-
-                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
-                InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
-
-                if (!results.isEmpty()) {
-                    for (JsonObject obj : results) {
-                        String docId = obj.getString("cbFileNameId");
-                        String type = obj.getString("cbMetaType");
-                        String fileName = docId + ".json";
-                        FileNodeDescriptor.FileType fileType = "base64".equals(type)?FileNodeDescriptor.FileType.BINARY:FileNodeDescriptor.FileType.JSON;
-                        if(fileType == FileNodeDescriptor.FileType.BINARY) {
-                            fileName = docId;
+                    if(!docIds.isEmpty()) {
+                        for(String id: docIds) {
+                           FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id,
+                                    FileNodeDescriptor.FileType.UNKNOWN, null);
+                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                            parentNode.add(jsonFileNode);
                         }
-                        FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId,
-                                fileType,  null);
-                        DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
-                        parentNode.add(jsonFileNode);
+                        if (docIds.size() == 10) {
+                            DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                            parentNode.add(loadMoreNode);
+                        }
+
+                    } else if (newOffset == 0) {
+                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
 
-                    if (results.size() == 10) {
-                        DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
-                        parentNode.add(loadMoreNode);
+                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                } else {
+                    if (newOffset == 0) {
+                        parentNode.removeAllChildren();
+                        DefaultMutableTreeNode schemaNode = new DefaultMutableTreeNode(new SchemaNodeDescriptor());
+                        schemaNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                        parentNode.add(schemaNode);
+
+                        DefaultMutableTreeNode indexes = new DefaultMutableTreeNode(new IndexesNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText()));
+                        indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                        parentNode.add(indexes);
+                    } else {
+                        parentNode.remove(parentNode.getChildCount() - 1);
                     }
-                } else if (newOffset == 0) {
-                    parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
+
+                    String filter = colNode.getQueryFilter();
+                    String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias " + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
+
+                    final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
+                    InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
+
+                    if (!results.isEmpty()) {
+                        for (JsonObject obj : results) {
+                            String docId = obj.getString("cbFileNameId");
+                            String type = obj.getString("cbMetaType");
+                            String fileName = docId + ".json";
+                            FileNodeDescriptor.FileType fileType = "base64".equals(type) ? FileNodeDescriptor.FileType.BINARY : FileNodeDescriptor.FileType.JSON;
+                            if (fileType == FileNodeDescriptor.FileType.BINARY) {
+                                fileName = docId;
+                            }
+                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId,
+                                    fileType, null);
+                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                            parentNode.add(jsonFileNode);
+                        }
+
+                        if (results.size() == 10) {
+                            DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                            parentNode.add(loadMoreNode);
+                        }
+                    } else if (newOffset == 0) {
+                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
+                    }
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 }
-                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
             } catch (PlanningFailureException | IndexFailureException ex) {
                 parentNode.removeAllChildren();
                 MissingIndexNodeDescriptor idx = new MissingIndexNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
@@ -241,7 +273,6 @@ public class DataLoader {
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
-                throw e;
             } finally {
                 tree.setPaintBusy(false);
             }
@@ -464,7 +495,7 @@ public class DataLoader {
         Cluster cluster = null;
         try {
             cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), ClusterOptions.clusterOptions(username, password).environment(env -> {
-                // env.applyProfile("wan-development");
+                //env.applyProfile("wan-development");
             }));
             cluster.waitUntilReady(Duration.ofSeconds(5));
 
@@ -573,7 +604,12 @@ public class DataLoader {
     }
 
     public static List<QueryIndex> listIndexes(String bucket, String scope, String collection) {
-        return ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().getAllIndexes();
+        if(ActiveCluster.getInstance().hasQueryService()) {
+            return ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().getAllIndexes();
+        } else {
+            return new ArrayList<>();
+        }
+
     }
 
     public static String getDocMetadata(String bucket, String scope, String collection, String docId) {
@@ -611,28 +647,10 @@ public class DataLoader {
         folder.delete();
     }
 
-    private static void countCollectionAsync(CollectionNodeDescriptor colNode) {
-
-        SwingUtilities.invokeLater(() -> {
-            try {
-                String query = "Select count(meta().id) as total from `" + colNode.getText() + "`";
-                final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
-                if (colNode.getQueryFilter() == null || colNode.getQueryFilter().trim().isEmpty()) {
-                    colNode.setCounter(formatCount(results.get(0).getInt("total")));
-                } else {
-                    String queryFilter = "Select count(meta().id) as total from `" + colNode.getText() + "` WHERE " + colNode.getQueryFilter();
-                    final List<JsonObject> filteredResults = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(queryFilter).rowsAsObject();
-                    colNode.setCounter(formatCount(filteredResults.get(0).getInt("total")) + " of " + formatCount(results.get(0).getInt("total")));
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.debug("Failed to count collection" + colNode.getText(), e);
-            }
-        });
-    }
-
-    public static String formatCount(int num) {
+    public static String formatCount(Integer num) {
+        if (num == null) {
+            return "?";
+        }
         if (num < 1000) {
             return String.valueOf(num);
         } else if (num < 1000000) {

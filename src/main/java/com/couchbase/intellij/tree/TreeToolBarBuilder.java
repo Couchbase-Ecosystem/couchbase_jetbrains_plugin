@@ -46,6 +46,12 @@ public class TreeToolBarBuilder {
                     }
                 });
             }
+
+            @Override
+            public void update(AnActionEvent e) {
+                boolean shouldEnable = ActiveCluster.getInstance().hasQueryService();
+                e.getPresentation().setEnabled(shouldEnable);
+            }
         };
 
         newWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_query.svg", CouchbaseWindowContent.class));
@@ -97,6 +103,7 @@ public class TreeToolBarBuilder {
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(addConnectionAction);
         leftActionGroup.addSeparator();
+
         leftActionGroup.add(newWorkbench);
         leftActionGroup.addSeparator();
 
@@ -115,6 +122,13 @@ public class TreeToolBarBuilder {
         ActionToolbar rightActionToolbar = ActionManager.getInstance().createActionToolbar("MoreOptions", rightActionGroup, true);
         rightActionToolbar.setTargetComponent(toolBarPanel);
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
+
+        ActiveCluster.getInstance().registerNewConnectionListener(() -> {
+            SwingUtilities.invokeLater(() -> {
+                leftActionToolbar.updateActionsImmediately();
+                toolBarPanel.revalidate();
+            });
+        });
 
         return toolBarPanel;
     }

@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree.overview;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.IndexStats;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
@@ -22,8 +23,8 @@ public class IndexOverviewDialog extends DialogWrapper {
     private final String collection;
     private final String indexName;
 
-    public IndexOverviewDialog(String bucket, String scope, String collection, String indexName) {
-        super(null);
+    public IndexOverviewDialog(Project project, String bucket, String scope, String collection, String indexName) {
+        super(project);
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;

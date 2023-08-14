@@ -14,7 +14,9 @@ public class HtmlPanel extends JPanel {
         super(new BorderLayout());
         setBackground(Color.decode("#3c3f41"));
         JBCefClient jbCefClient = JBCefApp.getInstance().createClient();
-        jbCefBrowser = new JBCefBrowser(jbCefClient, null);
+        jbCefBrowser = JBCefBrowser.createBuilder().setClient(jbCefClient)
+            .setUrl(null)
+            .build();
         add(jbCefBrowser.getComponent(), BorderLayout.CENTER);
     }
 
