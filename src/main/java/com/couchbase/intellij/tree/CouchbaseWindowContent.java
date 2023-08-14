@@ -155,21 +155,6 @@ public class CouchbaseWindowContent extends JPanel {
         return new DefaultTreeModel(root);
     }
 
-    public Icon combine(ImageIcon icon1, ImageIcon icon2) {
-        // Create a new image that's the sum of both icon widths and the height of the taller one
-        int w = icon1.getIconWidth() + icon2.getIconWidth();
-        int h = Math.max(icon1.getIconHeight(), icon2.getIconHeight());
-        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-
-        // Paint both icons onto this image
-        Graphics2D g = image.createGraphics();
-        g.drawImage(icon1.getImage(), 0, 0, null);
-        g.drawImage(icon2.getImage(), icon1.getIconWidth(), 0, null);
-        g.dispose();
-
-        return new ImageIcon(image);
-    }
-
     static class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {

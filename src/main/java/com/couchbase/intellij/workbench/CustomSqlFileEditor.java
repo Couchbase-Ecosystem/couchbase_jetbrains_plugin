@@ -155,7 +155,7 @@ public class CustomSqlFileEditor implements FileEditor {
         executeGroup.add(new AnAction("Favorite List", "List of favorite queries", favoriteList) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                FavoriteQueryDialog dialog = new FavoriteQueryDialog(queryEditor.getDocument());
+                FavoriteQueryDialog dialog = new FavoriteQueryDialog(project, queryEditor.getDocument());
                 dialog.show();
             }
         });
@@ -235,7 +235,7 @@ public class CustomSqlFileEditor implements FileEditor {
         favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-empty.svg", CustomSqlFileEditor.class)) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                NewFavoriteCatalog dialog = new NewFavoriteCatalog(queryEditor.getDocument(), this, favoriteActionGroup, favToolbar);
+                NewFavoriteCatalog dialog = new NewFavoriteCatalog(project, queryEditor.getDocument(), this, favoriteActionGroup, favToolbar);
                 dialog.show();
             }
         });

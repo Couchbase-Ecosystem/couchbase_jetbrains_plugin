@@ -11,7 +11,7 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         CouchbaseWindowContent couchbaseWindowContent = new CouchbaseWindowContent(project);
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(couchbaseWindowContent, "Explorer", false);
         toolWindow.getContentManager().addContent(content);
     }

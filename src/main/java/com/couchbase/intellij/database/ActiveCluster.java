@@ -1,15 +1,14 @@
 package com.couchbase.intellij.database;
 
-import com.couchbase.client.core.cnc.Event;
 import com.couchbase.client.core.cnc.EventBus;
-import com.couchbase.client.core.cnc.events.endpoint.EndpointDisconnectedEvent;
 import com.couchbase.client.core.cnc.events.endpoint.UnexpectedEndpointDisconnectedEvent;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
-import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
+import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -17,6 +16,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.ui.ColorUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
+import utils.CBConfigUtil;
 
 import java.awt.*;
 import java.time.Duration;
@@ -24,8 +24,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ActiveCluster implements CouchbaseClusterEntity {
@@ -37,6 +39,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     private List<String> services;
 
+    private List<Runnable> newConnectionListener = new ArrayList<>();
+
     private String version;
 
     private Color color;
@@ -46,6 +50,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
     private ActiveCluster() {
+    }
+
+    public void registerNewConnectionListener(Runnable runnable) {
+        this.newConnectionListener.add(runnable);
     }
 
     public static ActiveCluster getInstance() {
@@ -68,7 +76,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return this.savedCluster.getId();
     }
 
-    public void connect(SavedCluster savedCluster, Runnable disconnectListener) {
+    public void connect(SavedCluster savedCluster, Runnable disconnectListener) throws Exception {
         if (this.cluster != null) {
             disconnect();
         }
@@ -77,12 +85,15 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
         try {
             String password = DataLoader.getClusterPassword(savedCluster);
-            ClusterEnvironment env = ClusterEnvironment.builder().build();
 
             cluster = Cluster.connect(savedCluster.getUrl(),
-                    ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env));
+                    ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
+                        //env.applyProfile("wan-development");
+                    }));
             cluster.waitUntilReady(Duration.ofSeconds(5));
-            EventBus eventBus = env.eventBus();
+
+
+            EventBus eventBus = cluster.environment().eventBus();
             eventBus.subscribe(event -> {
                 if (event instanceof UnexpectedEndpointDisconnectedEvent) {
                     Log.info("Disconnected from cluster " + savedCluster.getId());
@@ -94,14 +105,37 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
                     eventBus.stop(Duration.ZERO);
                     disconnect();
+                    ActiveCluster.getInstance().get().environment().shutdown();
                 }
             });
+
             this.cluster = cluster;
             this.savedCluster = savedCluster;
             this.password = password;
             if (savedCluster.getColor() != null) {
                 this.color = Color.decode(savedCluster.getColor());
             }
+
+            ServerOverview overview = CouchbaseRestAPI.getOverview();
+            setServices(overview.getNodes().stream()
+                    .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
+
+            setVersion(overview.getNodes().get(0).getVersion()
+                    .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
+
+            //Notify Listeners that we connected to a new cluster.
+            //NOTE: Only singletons can register here, otherwise we will get a memory leak
+            CompletableFuture.runAsync(() -> {
+                for(Runnable run: newConnectionListener) {
+                    try {
+                        run.run();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Log.debug("Failed to notify connection event.", e);
+                    }
+                }
+            });
+
             scheduleSchemaUpdate();
         } catch (Exception e) {
             if (cluster != null) {
@@ -221,6 +255,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     private void scheduleSchemaUpdate() {
+
+        if (!hasQueryService()) {
+            return;
+        }
         if (!schemaUpdating.get() && System.currentTimeMillis() - lastSchemaUpdate > 60000) {
             schemaUpdating.set(true);
             new Task.ConditionalModal(null, "Reading Couchbase cluster schema", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
@@ -242,6 +280,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     @Override
     public void updateSchema() {
+
+        if (!hasQueryService()) {
+            return;
+        }
         Log.debug("Updating cluster schema");
         Set<CouchbaseBucket> newbuckets = new HashSet<>();
         if (buckets == null) {
@@ -280,5 +322,9 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     @Override
     public Cluster getCluster() {
         return cluster;
+    }
+
+    public boolean hasQueryService() {
+        return CBConfigUtil.hasQueryService(services);
     }
 }
