@@ -12,6 +12,7 @@ import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
@@ -36,7 +37,7 @@ public class QueryExecutor {
             ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
             toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
         }
-        toolWindow.show();
+        SwingUtilities.invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
 
         if (resultWindow == null) {
             resultWindow = QueryResultToolWindowFactory.instance;
@@ -122,7 +123,7 @@ public class QueryExecutor {
         metricsList.add(String.valueOf(mutationCount.get()));
         metricsList.add(String.valueOf(resultCount.get()));
         metricsList.add(getSizeText(resultSize.get()));
-        List<String> timings = null;
+        List<String> timings;
         if (type == QueryType.EXPLAIN) {
             timings = result.stream()
                     .map(o -> o.getArray("_sequence_result"))
@@ -138,6 +139,8 @@ public class QueryExecutor {
                     .filter(meta -> meta.profile().isPresent())
                     .map(meta -> meta.profile().get().get("executionTimings").toString())
                     .collect(Collectors.toList());
+        } else {
+            timings = null;
         }
         getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
 
