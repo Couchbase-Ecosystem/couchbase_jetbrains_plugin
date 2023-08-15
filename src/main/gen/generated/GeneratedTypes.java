@@ -141,6 +141,7 @@ public interface GeneratedTypes {
   IElementType IN_EXPR = new SqlppElementType("IN_EXPR");
   IElementType IS_EXPR = new SqlppElementType("IS_EXPR");
   IElementType JOIN_CLAUSE = new SqlppElementType("JOIN_CLAUSE");
+  IElementType JSON_ARRAY = new SqlppElementType("JSON_ARRAY");
   IElementType JSON_FIELD = new SqlppElementType("JSON_FIELD");
   IElementType JSON_HINT = new SqlppElementType("JSON_HINT");
   IElementType JSON_HINT_OBJECT = new SqlppElementType("JSON_HINT_OBJECT");
@@ -882,6 +883,9 @@ public interface GeneratedTypes {
       }
       else if (type == JOIN_CLAUSE) {
         return new JoinClauseImpl(node);
+      }
+      else if (type == JSON_ARRAY) {
+        return new JsonArrayImpl(node);
       }
       else if (type == JSON_FIELD) {
         return new JsonFieldImpl(node);

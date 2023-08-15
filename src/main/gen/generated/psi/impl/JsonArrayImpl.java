@@ -11,14 +11,14 @@ import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class JsonValueImpl extends SqlppPSIWrapper implements JsonValue {
+public class JsonArrayImpl extends SqlppPSIWrapper implements JsonArray {
 
-  public JsonValueImpl(@NotNull ASTNode node) {
+  public JsonArrayImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitJsonValue(this);
+    visitor.visitJsonArray(this);
   }
 
   @Override
@@ -28,15 +28,9 @@ public class JsonValueImpl extends SqlppPSIWrapper implements JsonValue {
   }
 
   @Override
-  @Nullable
-  public JsonArray getJsonArray() {
-    return findChildByClass(JsonArray.class);
-  }
-
-  @Override
-  @Nullable
-  public JsonObject getJsonObject() {
-    return findChildByClass(JsonObject.class);
+  @NotNull
+  public List<Expr> getExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
   }
 
 }

@@ -5,12 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface JsonValue extends PsiElement {
+public interface JsonArray extends PsiElement {
 
-  @Nullable
-  JsonArray getJsonArray();
-
-  @Nullable
-  JsonObject getJsonObject();
+  @NotNull
+  List<Expr> getExprList();
 
 }

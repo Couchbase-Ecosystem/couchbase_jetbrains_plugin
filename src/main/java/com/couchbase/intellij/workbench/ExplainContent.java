@@ -3,12 +3,14 @@ package com.couchbase.intellij.workbench;
 import com.couchbase.intellij.tools.CBFolders;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class ExplainContent {
 
     private static String content;
 
-    public static String getContent(String explainResult) {
+    public static String getContent(Collection<String> explainResult) {
 
         if (content == null) {
             String explainPath = CBFolders.getInstance().getExplainPath() + File.separator;
@@ -48,9 +50,8 @@ public class ExplainContent {
                     "  </head>\n" +
                     "\n" +
                     "   <body style=\" background: #3c3f41\">\n" +
-                    "    <script type=\"module\">\n" +
-                    "      window.main(mockedJson, document.getElementById(\"explain-plan\"));\n" +
-                    "    </script>\n" +
+                    "    <pre id='debug' style='display: none;'>\n" +
+                    "    </pre>\n" +
                     "\n" +
                     "    <div\n" +
                     "      id=\"explain-plan\"\n" +
@@ -61,8 +62,24 @@ public class ExplainContent {
                     "        margin: 10px auto;\n" +
                     "      \"\n" +
                     "    ></div>\n" +
+                    "    <script type=\"module\">\n" +
+                    "      const debug = document.getElementById('debug');\n" +
+                    "      debug.innerText += mockedJson;\n" +
+                    "      try { \n" +
+                    "        const explainTemplate = document.getElementById(\"explain-plan\");\n" +
+                    "        explainTemplate.remove();\n" +
+                    "        for (var i = 0; i < mockedJson.length; i++) {\n" +
+                    "          debug.innerText += 'explain #' + i + \"\\n\"\n" +
+                    "          const explainTarget = explainTemplate.cloneNode(true);\n" +
+                    "          document.body.appendChild(explainTarget);\n" +
+                    "          window.main(mockedJson[i], explainTarget);\n" +
+                    "        }\n" +
+                    "      } catch (e) {\n" +
+                    "        debug.innerText += \"\\n\\nERROR: \" + e; \n" +
+                    "      }\n" +
+                    "    </script>\n" +
                     "  </body>";
         }
-        return content.replace("CB_EXPLAIN_RESULT", explainResult);
+        return content.replace("CB_EXPLAIN_RESULT", explainResult.stream().collect(Collectors.joining(", ", "[", "]")));
     }
 }

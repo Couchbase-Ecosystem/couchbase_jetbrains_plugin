@@ -4324,7 +4324,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // LBRACKET (expr (COMMA expr)*)? RBRACKET
-  static boolean json_array(PsiBuilder b, int l) {
+  public static boolean json_array(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "json_array")) return false;
     if (!nextTokenIs(b, LBRACKET)) return false;
     boolean r;
@@ -4332,7 +4332,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, LBRACKET);
     r = r && json_array_1(b, l + 1);
     r = r && consumeToken(b, RBRACKET);
-    exit_section_(b, m, null, r);
+    exit_section_(b, m, JSON_ARRAY, r);
     return r;
   }
 

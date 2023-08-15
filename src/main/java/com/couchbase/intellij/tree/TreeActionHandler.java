@@ -29,10 +29,10 @@ import java.util.stream.Collectors;
 public class TreeActionHandler {
 
     public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel) {
-        connectToCluster(project, savedCluster, tree, toolBarPanel, null);
+        connectToCluster(project, savedCluster, tree, toolBarPanel, null, null);
     }
 
-    public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener) {
+    public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener, Runnable disconnectListener) {
         tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
@@ -72,6 +72,7 @@ public class TreeActionHandler {
                         if (connectionListener != null) {
                             connectionListener.consume(err);
                         }
+                        disconnectFromCluster(finalNewActiveNode, (ConnectionNodeDescriptor) finalNewActiveNode.getUserObject(), tree);
                         return;
                     }
 
@@ -129,7 +130,13 @@ public class TreeActionHandler {
                     }
                     tree.setPaintBusy(false);
                 }, () -> {
-                    disconnectFromCluster(targetNode, (ConnectionNodeDescriptor) targetNode.getUserObject(), tree);
+                    try {
+                        if (disconnectListener != null) {
+                            disconnectListener.run();
+                        }
+                    } finally {
+                        disconnectFromCluster(targetNode, (ConnectionNodeDescriptor) targetNode.getUserObject(), tree);
+                    }
                 });
 
             } catch (Exception e) {

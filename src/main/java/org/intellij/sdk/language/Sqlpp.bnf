@@ -816,7 +816,7 @@ user ::= identifier-ref
 
 json-value ::= json-object | json-array
 
-private json-array ::= LBRACKET (expr (COMMA expr)*)? RBRACKET
+json-array ::= LBRACKET (expr (COMMA expr)*)? RBRACKET
 
 json-object ::= LBRACE (json-field (COMMA json-field)*)? RBRACE
 

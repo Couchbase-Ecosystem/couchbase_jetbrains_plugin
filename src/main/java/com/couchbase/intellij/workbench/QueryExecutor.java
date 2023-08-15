@@ -20,12 +20,10 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class QueryExecutor {
 
@@ -46,7 +44,7 @@ public class QueryExecutor {
         return resultWindow;
     }
 
-    public static boolean executeScript(List<String> statements, String bucket, String scope, int historyIndex, Project project) {
+    public static boolean executeScript(QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
         Cluster cluster = ActiveCluster.getInstance().getCluster();
         if (statements == null || statements.isEmpty()) {
             return false;
@@ -58,6 +56,7 @@ public class QueryExecutor {
         getOutputWindow(project).setStatusAsLoading();
 
         List<JsonObject> result = new ArrayList<>();
+        List<QueryMetaData> metas = new ArrayList<>();
         Long start = System.currentTimeMillis();
         AtomicLong mutationCount = new AtomicLong();
         AtomicInteger resultCount = new AtomicInteger();
@@ -67,6 +66,10 @@ public class QueryExecutor {
             cluster.transactions().run(tx -> {
                 for (int i = 0; i < statements.size(); i++) {
                     String query = statements.get(i);
+
+                    if (type != QueryType.NORMAL) {
+                        query = String.format("%s %s", type.toString(), query);
+                    }
 
                     JsonObject queryResult = JsonObject.create();
                     result.add(queryResult);
@@ -82,6 +85,7 @@ public class QueryExecutor {
                         }
 
                         QueryMetaData meta = r.metaData();
+                        metas.add(meta);
                         if (meta.status() == QueryStatus.SUCCESS) {
                             queryResult.put("_sequence_query_status", "success");
                             JsonArray rows = JsonArray.from(r.rowsAsObject());
@@ -118,7 +122,24 @@ public class QueryExecutor {
         metricsList.add(String.valueOf(mutationCount.get()));
         metricsList.add(String.valueOf(resultCount.get()));
         metricsList.add(getSizeText(resultSize.get()));
-        getOutputWindow(project).updateQueryStats(metricsList, result, error, "");
+        List<String> timings = null;
+        if (type == QueryType.EXPLAIN) {
+            timings = result.stream()
+                    .map(o -> o.getArray("_sequence_result"))
+                    .filter(Objects::nonNull)
+                    .map(a -> a.getObject(0))
+                    .filter(Objects::nonNull)
+                    .map(o -> o.get("plan"))
+                    .filter(Objects::nonNull)
+                    .map(o -> o.toString())
+                    .collect(Collectors.toList());
+        } else if (type == QueryType.ADVISE) {
+            timings = metas.stream()
+                    .filter(meta -> meta.profile().isPresent())
+                    .map(meta -> meta.profile().get().get("executionTimings").toString())
+                    .collect(Collectors.toList());
+        }
+        getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
 
         return error.getErrors().isEmpty();
     }
@@ -215,7 +236,7 @@ public class QueryExecutor {
                     timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
                 }
 
-                getOutputWindow(project).updateQueryStats(metricsList, resultList, null, timings);
+                getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings));
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
                 getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),

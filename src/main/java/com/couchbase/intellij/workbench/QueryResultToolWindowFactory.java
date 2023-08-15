@@ -295,54 +295,58 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, String explain) {
-        if (results != null && error.getErrors().isEmpty()) {
+    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain) {
+        SwingUtilities.invokeLater(() -> {
+            if (results != null && error == null || error.getErrors().isEmpty()) {
 
-            List<Map<String, Object>> convertedResults = new ArrayList<>();
-            for (JsonObject jsonObject : results) {
-                convertedResults.add(jsonObjectToMap(jsonObject));
-            }
-
-            queryStatsPanel.setVisible(true);
-            cachedResults = convertedResults;
-
-            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> {
-                editor.getDocument().setText(gson.toJson(convertedResults));
-            });
-
-            String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
-            htmlPanel.loadHTML(content);
-
-            queryStatsPanel.revalidate();
-
-            for (int i = 0; i < queryStatsList.size(); i++) {
-                String v = queryValues.get(i);
-                if (v == null || v.trim().isEmpty() || "-".equals(v) || "0".equals(v)) {
-                    queryLabelsList.get(i).setVisible(false);
-                    queryStatsList.get(i).setVisible(false);
-                } else {
-                    queryLabelsList.get(i).setVisible(true);
-                    queryStatsList.get(i).setVisible(true);
-                    queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
+                List<Map<String, Object>> convertedResults = new ArrayList<>();
+                for (JsonObject jsonObject : results) {
+                    convertedResults.add(jsonObjectToMap(jsonObject));
                 }
+
+                queryStatsPanel.setVisible(true);
+                cachedResults = convertedResults;
+
+                statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    editor.getDocument().setText(gson.toJson(convertedResults));
+                });
+
+                String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+                htmlPanel.loadHTML(content);
+
+                queryStatsPanel.revalidate();
+
+                for (int i = 0; i < queryStatsList.size(); i++) {
+                    String v = queryValues.get(i);
+                    if (v == null || v.trim().isEmpty() || "-".equals(v) || "0".equals(v)) {
+                        queryLabelsList.get(i).setVisible(false);
+                        queryStatsList.get(i).setVisible(false);
+                    } else {
+                        queryLabelsList.get(i).setVisible(true);
+                        queryStatsList.get(i).setVisible(true);
+                        queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
+                    }
+                }
+
+                model.updateData(convertedResults);
+
+            } else {
+                cachedResults = null;
+                statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
+                ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
             }
-
-            model.updateData(convertedResults);
-
-        } else {
-            cachedResults = null;
-            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
-        }
+        });
     }
 
     public void setStatusAsLoading() {
-        for (JLabel label : queryStatsList) {
-            label.setText("-");
-        }
-        statusIcon.setIcon(new AnimatedIcon.Default());
+        SwingUtilities.invokeLater(() -> {
+            for (JLabel label : queryStatsList) {
+                label.setText("-");
+            }
+            statusIcon.setIcon(new AnimatedIcon.Default());
 
-        ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
+        });
     }
 }
