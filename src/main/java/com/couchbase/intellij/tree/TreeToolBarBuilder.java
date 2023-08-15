@@ -20,6 +20,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public class TreeToolBarBuilder {
 
@@ -91,6 +94,19 @@ public class TreeToolBarBuilder {
                     CardDialog dialog = new CardDialog(project);
                     dialog.show();
                 });
+
+                JBMenuItem item2 = new JBMenuItem("Suggest Features / Report Bugs >>");
+                item2.addActionListener(e1 -> {
+
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        try {
+                            Desktop.getDesktop().browse(new URI("https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues"));
+                        } catch (IOException | URISyntaxException ex) {
+                            Log.error("Could not open the project's home: https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues");
+                        }
+                    }
+                });
+                menu.add(item2);
 
 
                 Component component = e.getInputEvent().getComponent();

@@ -1,9 +1,6 @@
 package com.couchbase.intellij.database;
 
-import com.couchbase.client.core.error.DocumentNotFoundException;
-import com.couchbase.client.core.error.IndexFailureException;
-import com.couchbase.client.core.error.PlanningFailureException;
-import com.couchbase.client.core.error.TimeoutException;
+import com.couchbase.client.core.error.*;
 import com.couchbase.client.java.*;
 import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.json.JsonArray;
@@ -298,11 +295,18 @@ public class DataLoader {
 
         String docContent = "{}";
         String cas = null;
+        boolean isDifferentFormat = false;
 
         try {
             GetResult result = ActiveCluster.getInstance().get().bucket(node.getBucket()).scope(node.getScope()).collection(node.getCollection()).get(node.getId());
-            docContent = result.contentAsObject().toString();
             cas = String.valueOf(result.cas());
+
+            try {
+                docContent = result.contentAsObject().toString();
+            } catch (DecodingFailureException e) {
+                docContent = new String(result.contentAsBytes());
+                isDifferentFormat = true;
+            }
 
         } catch (DocumentNotFoundException dnf) {
             //document was not found because the user wants to create a new one.
@@ -339,13 +343,14 @@ public class DataLoader {
             return;
         }
 
+        final boolean isBinary = isDifferentFormat;
         final String content = docContent;
         final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
 
                 PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(), node.getBucket(), node.getScope(), node.getCollection());
-                String fileName = node.getId() + ".json";
+                String fileName = (isBinary?("(read-only)"):"")+node.getId() + (isBinary?"":".json");
 
                 PsiFile psiFile = psiDirectory.findFile(fileName);
                 if (psiFile == null) {
@@ -355,9 +360,14 @@ public class DataLoader {
                 // Get the Document associated with the PsiFile
                 Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
                 if (document != null) {
-                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                    JsonElement jsonElement = JsonParser.parseString(content);
-                    document.setText(gson.toJson(jsonElement));
+
+                    if(isBinary) {
+                        document.setText(content);
+                    } else {
+                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                        JsonElement jsonElement = JsonParser.parseString(content);
+                        document.setText(gson.toJson(jsonElement));
+                    }
                 }
 
 
@@ -370,6 +380,9 @@ public class DataLoader {
                 virtualFile.putUserData(VirtualFileKeys.COLLECTION, node.getCollection());
                 virtualFile.putUserData(VirtualFileKeys.ID, node.getId());
                 virtualFile.putUserData(VirtualFileKeys.CAS, String.valueOf(docCass));
+                if(isBinary) {
+                   virtualFile.putUserData(READ_ONLY, String.valueOf(isBinary));
+                }
 
                 node.setVirtualFile(virtualFile);
             });
