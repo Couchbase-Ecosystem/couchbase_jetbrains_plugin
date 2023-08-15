@@ -113,7 +113,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                                                 "Lost connecion"
                                         );
                                     } catch (Exception e) {
-                                        // noop, idea be crazy sometimes                                }
+                                        // noop, idea be crazy sometimes
                                     }
                                 });
                                 eventBus.stop(Duration.ZERO);
