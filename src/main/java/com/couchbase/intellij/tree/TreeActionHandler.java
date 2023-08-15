@@ -59,11 +59,11 @@ public class TreeActionHandler {
                 newActiveNode.removeAllChildren();
             }
 
-            final DefaultMutableTreeNode disconnectNode = newActiveNode;
+            final DefaultMutableTreeNode targetNode = newActiveNode;
 
             try {
                 ActiveCluster.getInstance().connect(savedCluster, () -> {
-                    disconnectFromCluster(disconnectNode, (ConnectionNodeDescriptor) disconnectNode.getUserObject(), tree);
+                    disconnectFromCluster(targetNode, (ConnectionNodeDescriptor) targetNode.getUserObject(), tree);
                 });
 
                 if (toolBarPanel != null) {
@@ -108,7 +108,10 @@ public class TreeActionHandler {
                 e.printStackTrace();
                 SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                         " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
+                ((ConnectionNodeDescriptor) newActiveNode.getUserObject()).setActive(false);
                 return;
+            } finally {
+                tree.setPaintBusy(false);
             }
 
             newActiveNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
@@ -117,7 +120,6 @@ public class TreeActionHandler {
             ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(selectedNode);
             ((DefaultTreeModel) tree.getModel()).reload();
 
-            tree.setPaintBusy(false);
         });
     }
 

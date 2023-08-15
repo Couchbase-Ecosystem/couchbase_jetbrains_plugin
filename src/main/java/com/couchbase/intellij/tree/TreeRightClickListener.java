@@ -127,10 +127,11 @@ public class TreeRightClickListener {
                 tools.add(cbexport);
             }
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
-                JBMenuItem cbimport = new JBMenuItem("Data Import");
-                tools.add(cbimport);
-            }
+            //TODO: Desabled temporarily until the feature is completed
+//            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
+//                JBMenuItem cbimport = new JBMenuItem("Data Import");
+//                tools.add(cbimport);
+//            }
 
             JMenu settings = new JMenu("Settings");
             JMenu colors = new JMenu("Connection Colors");
