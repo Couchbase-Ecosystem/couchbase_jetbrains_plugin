@@ -13,20 +13,20 @@ import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
+import com.intellij.util.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 import utils.CBConfigUtil;
 
+import javax.swing.*;
 import java.awt.*;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,6 +48,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private Set<CouchbaseBucket> buckets;
     private long lastSchemaUpdate = 0;
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
+
+    private Runnable disconnectListener;
 
     private ActiveCluster() {
     }
@@ -76,87 +78,112 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return this.savedCluster.getId();
     }
 
-    public void connect(SavedCluster savedCluster, Runnable disconnectListener) throws Exception {
+    public void connect(SavedCluster savedCluster, Consumer<Exception> connectListener, Runnable disconnectListener) throws Exception {
         if (this.cluster != null) {
             disconnect();
         }
 
-        Cluster cluster = null;
 
-        try {
-            String password = DataLoader.getClusterPassword(savedCluster);
+        new Task.ConditionalModal(null, "Connecting to Couchbase cluster '" + savedCluster.getId() + "'", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    String password = DataLoader.getClusterPassword(savedCluster);
 
-            cluster = Cluster.connect(savedCluster.getUrl(),
-                    ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
-                        //env.applyProfile("wan-development");
-                    }));
-            cluster.waitUntilReady(Duration.ofSeconds(5));
+                    Cluster cluster = Cluster.connect(savedCluster.getUrl(),
+                            ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
+                                // env.applyProfile("wan-development");
+                            }));
 
+                    cluster.waitUntilReady(Duration.ofSeconds(10));
+                    ActiveCluster.this.cluster = cluster;
+                    ActiveCluster.this.savedCluster = savedCluster;
+                    ActiveCluster.this.password = password;
+                    ActiveCluster.this.disconnectListener = disconnectListener;
 
-            EventBus eventBus = cluster.environment().eventBus();
-            eventBus.subscribe(event -> {
-                if (event instanceof UnexpectedEndpointDisconnectedEvent) {
-                    Log.info("Disconnected from cluster " + savedCluster.getId());
-                    try {
-                        disconnectListener.run();
-                    } catch (Exception e) {
-                        Log.error(e);
+                    EventBus eventBus = cluster.environment().eventBus();
+                    eventBus.subscribe(event -> {
+                        if (event instanceof UnexpectedEndpointDisconnectedEvent) {
+                            if (cluster != null) {
+                                Log.info("Disconnected from cluster " + savedCluster.getId());
+                                SwingUtilities.invokeLater(() -> {
+                                    try {
+                                        Messages.showErrorDialog(
+                                                String.format("Lost connection to cluster '%s'", savedCluster.getId()),
+                                                "Lost connecion"
+                                        );
+                                    } catch (Exception e) {
+                                        // noop, idea be crazy sometimes
+                                    }
+                                });
+                                eventBus.stop(Duration.ZERO);
+                                disconnect();
+                                ActiveCluster.getInstance().get().environment().shutdown();
+                            }
+                        }
+                    });
+                    if (savedCluster.getColor() != null) {
+                        ActiveCluster.this.color = Color.decode(savedCluster.getColor());
                     }
 
-                    eventBus.stop(Duration.ZERO);
-                    disconnect();
-                    ActiveCluster.getInstance().get().environment().shutdown();
-                }
-            });
+                    ServerOverview overview = CouchbaseRestAPI.getOverview();
+                    setServices(overview.getNodes().stream()
+                            .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
 
-            this.cluster = cluster;
-            this.savedCluster = savedCluster;
-            this.password = password;
-            if (savedCluster.getColor() != null) {
-                this.color = Color.decode(savedCluster.getColor());
-            }
+                    setVersion(overview.getNodes().get(0).getVersion()
+                            .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
 
-            ServerOverview overview = CouchbaseRestAPI.getOverview();
-            setServices(overview.getNodes().stream()
-                    .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
+                    //Notify Listeners that we connected to a new cluster.
+                    //NOTE: Only singletons can register here, otherwise we will get a memory leak
+                    CompletableFuture.runAsync(() -> {
+                        for(Runnable run: newConnectionListener) {
+                            try {
+                                run.run();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Log.debug("Failed to notify connection event.", e);
+                            }
+                        }
+                    });
 
-            setVersion(overview.getNodes().get(0).getVersion()
-                    .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
-
-            //Notify Listeners that we connected to a new cluster.
-            //NOTE: Only singletons can register here, otherwise we will get a memory leak
-            CompletableFuture.runAsync(() -> {
-                for(Runnable run: newConnectionListener) {
-                    try {
-                        run.run();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Log.debug("Failed to notify connection event.", e);
+                    scheduleSchemaUpdate(connectListener);
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
+                            String.format("Error while connecting to cluster '%s': \n %s", savedCluster.getId(), e.getMessage()),
+                            "Failed to connect to cluster"
+                    ));
+                    if (connectListener != null) {
+                        connectListener.consume(e);
+                    }
+                    if (cluster != null) {
+                        disconnect();
                     }
                 }
-            });
-
-            scheduleSchemaUpdate();
-        } catch (Exception e) {
-            if (cluster != null) {
-                cluster.disconnect();
             }
-            throw e;
-        }
+        }.queue();
     }
 
     public void disconnect() {
+        if (cluster != null) {
+            try {
+                cluster.disconnect();
+            } catch (Exception e) {
+                Log.debug("Failed to disconnect from the server", e);
+            }
+        }
+        if (disconnectListener != null) {
+            try {
+                disconnectListener.run();
+            } catch (Exception e) {
+                Log.error(e);
+            }
+        }
         this.savedCluster = null;
         this.cluster = null;
         this.password = null;
         this.color = null;
         this.buckets = null;
-
-        try {
-            cluster.disconnect();
-        } catch (Exception e) {
-            Log.debug("Failed to disconnect from the server", e);
-        }
+        this.disconnectListener = null;
     }
 
     public String getUsername() {
@@ -214,7 +241,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     public boolean isReadOnlyMode() {
-        return this.savedCluster.isReadOnly() != null && this.savedCluster.isReadOnly();
+        return this.savedCluster != null && this.savedCluster.isReadOnly() != null && this.savedCluster.isReadOnly();
     }
 
     public void setReadOnlyMode(boolean mode) {
@@ -246,15 +273,18 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     @Override
     public Set<CouchbaseBucket> getChildren() {
+        if (cluster == null) {
+            return Collections.EMPTY_SET;
+        }
         if (buckets == null) {
             updateSchema();
         } else {
-            scheduleSchemaUpdate();
+            scheduleSchemaUpdate(null);
         }
         return buckets;
     }
 
-    private void scheduleSchemaUpdate() {
+    private void scheduleSchemaUpdate(Consumer<Exception> onComplete) {
 
         if (!hasQueryService()) {
             return;
@@ -264,7 +294,19 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             new Task.ConditionalModal(null, "Reading Couchbase cluster schema", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
-                    doUpdateSchema();
+                    try {
+                        doUpdateSchema();
+                        if (onComplete != null) {
+                            onComplete.consume(null);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        if (onComplete != null) {
+                            onComplete.consume(e);
+                        }
+                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not read cluster schema.", "Couchbase Connection Error"));
+                        disconnect();
+                    }
                 }
             }.queue();
         }

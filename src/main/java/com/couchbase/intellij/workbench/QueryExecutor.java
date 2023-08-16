@@ -2,17 +2,17 @@ package com.couchbase.intellij.workbench;
 
 import com.couchbase.client.core.api.query.CoreQueryResult;
 import com.couchbase.client.core.error.CouchbaseException;
+import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.query.QueryMetrics;
-import com.couchbase.client.java.query.QueryOptions;
-import com.couchbase.client.java.query.QueryProfile;
-import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.java.query.*;
+import com.couchbase.client.java.transactions.TransactionQueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
@@ -21,10 +21,10 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class QueryExecutor {
 
@@ -37,7 +37,7 @@ public class QueryExecutor {
             ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
             toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
         }
-        toolWindow.show();
+        SwingUtilities.invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
 
         if (resultWindow == null) {
             resultWindow = QueryResultToolWindowFactory.instance;
@@ -45,6 +45,107 @@ public class QueryExecutor {
         return resultWindow;
     }
 
+    public static boolean executeScript(QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
+        Cluster cluster = ActiveCluster.getInstance().getCluster();
+        if (statements == null || statements.isEmpty()) {
+            return false;
+        }
+        if (ActiveCluster.getInstance().get() == null) {
+            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
+            return false;
+        }
+        getOutputWindow(project).setStatusAsLoading();
+
+        List<JsonObject> result = new ArrayList<>();
+        List<QueryMetaData> metas = new ArrayList<>();
+        Long start = System.currentTimeMillis();
+        AtomicLong mutationCount = new AtomicLong();
+        AtomicInteger resultCount = new AtomicInteger();
+        AtomicLong resultSize = new AtomicLong();
+        CouchbaseQueryResultError error = new CouchbaseQueryResultError();
+        try {
+            cluster.transactions().run(tx -> {
+                for (int i = 0; i < statements.size(); i++) {
+                    String query = statements.get(i);
+
+                    if (type != QueryType.NORMAL) {
+                        query = String.format("%s %s", type.toString(), query);
+                    }
+
+                    JsonObject queryResult = JsonObject.create();
+                    result.add(queryResult);
+                    queryResult.put("_sequence_num", i);
+                    queryResult.put("_sequence_query", query);
+
+                    try {
+                        TransactionQueryResult r;
+                        if (bucket == null) {
+                            r = tx.query(query);
+                        } else {
+                            r = tx.query(cluster.bucket(bucket).scope(scope), query);
+                        }
+
+                        QueryMetaData meta = r.metaData();
+                        metas.add(meta);
+                        if (meta.status() == QueryStatus.SUCCESS) {
+                            queryResult.put("_sequence_query_status", "success");
+                            JsonArray rows = JsonArray.from(r.rowsAsObject());
+                            if (rows.size() > 0) {
+                                queryResult.put("_sequence_result", rows);
+                                resultCount.addAndGet(rows.size());
+                                meta.metrics().ifPresent(queryMetrics -> {
+                                    resultSize.addAndGet(queryMetrics.resultSize());
+                                    mutationCount.addAndGet(queryMetrics.mutationCount());
+                                });
+                            } else {
+                                meta.metrics().ifPresent(queryMetrics -> {
+                                    mutationCount.addAndGet(queryMetrics.mutationCount());
+                                });
+                            }
+                        } else {
+                            queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
+                        }
+                    } catch (Throwable e) {
+                        queryResult.put("_sequence_query_status", "error");
+                        queryResult.put("_sequence_query_error", e.getMessage());
+                        throw e;
+                    }
+                }
+            });
+        } catch (Exception e) {
+            error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
+        }
+
+        List<String> metricsList = new ArrayList<>();
+        metricsList.add(System.currentTimeMillis() - start + " MS");
+        metricsList.add("-");
+        metricsList.add("-");
+        metricsList.add(String.valueOf(mutationCount.get()));
+        metricsList.add(String.valueOf(resultCount.get()));
+        metricsList.add(getSizeText(resultSize.get()));
+        List<String> timings;
+        if (type == QueryType.EXPLAIN) {
+            timings = result.stream()
+                    .map(o -> o.getArray("_sequence_result"))
+                    .filter(Objects::nonNull)
+                    .map(a -> a.getObject(0))
+                    .filter(Objects::nonNull)
+                    .map(o -> o.get("plan"))
+                    .filter(Objects::nonNull)
+                    .map(o -> o.toString())
+                    .collect(Collectors.toList());
+        } else if (type == QueryType.ADVISE) {
+            timings = metas.stream()
+                    .filter(meta -> meta.profile().isPresent())
+                    .map(meta -> meta.profile().get().get("executionTimings").toString())
+                    .collect(Collectors.toList());
+        } else {
+            timings = null;
+        }
+        getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
+
+        return error.getErrors().isEmpty();
+    }
 
     public static boolean executeQuery(QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
 
@@ -68,7 +169,7 @@ public class QueryExecutor {
                 CouchbaseQueryResultError error = new CouchbaseQueryResultError();
                 error.setErrors(List.of(err));
 
-                getOutputWindow(project).updateQueryStats(false, Arrays.asList("0 MS", "-", "-", "-", "-"),
+                getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-", "-"),
                         null, error, null);
                 return false;
             }
@@ -92,21 +193,15 @@ public class QueryExecutor {
 
                 Optional<QueryMetrics> metrics = result.metaData().metrics();
                 List<String> metricsList = new ArrayList<>();
-                boolean isMutation = false;
                 if (metrics.isPresent()) {
                     metricsList.add(end - start + " MS");
                     metricsList.add(metrics.get().elapsedTime().toMillis() + " MS");
                     metricsList.add(metrics.get().executionTime().toMillis() + " MS");
-                    if (metrics.get().mutationCount() > 0) {
-                        metricsList.add(String.valueOf(metrics.get().mutationCount()));
-                        metricsList.add("");
-                        isMutation = true;
-                    } else {
-                        metricsList.add(String.valueOf(metrics.get().resultCount()));
-                        metricsList.add(getSizeText(metrics.get().resultSize()));
-                    }
-
+                    metricsList.add(String.valueOf(metrics.get().mutationCount()));
+                    metricsList.add(String.valueOf(metrics.get().resultCount()));
+                    metricsList.add(getSizeText(metrics.get().resultSize()));
                 } else {
+                    metricsList.add("-");
                     metricsList.add("-");
                     metricsList.add("-");
                     metricsList.add("-");
@@ -144,10 +239,10 @@ public class QueryExecutor {
                     timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
                 }
 
-                getOutputWindow(project).updateQueryStats(isMutation, metricsList, resultList, null, timings);
+                getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings));
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
-                getOutputWindow(project).updateQueryStats(false, Arrays.asList((end - start) + " MS", "-", "-", "-", "-"),
+                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
                         null, CouchbaseQueryErrorUtil.parseQueryError(e), null);
             } catch (Exception e) {
                 Log.error(e);

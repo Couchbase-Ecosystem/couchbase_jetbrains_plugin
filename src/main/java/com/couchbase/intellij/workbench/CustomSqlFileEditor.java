@@ -1,14 +1,16 @@
 package com.couchbase.intellij.workbench;
 
 
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
+import com.couchbase.intellij.tree.CouchbaseWindowContent;
+import com.couchbase.intellij.tree.TreeActionHandler;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -16,15 +18,22 @@ import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.fileEditor.*;
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil;
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider;
+import com.intellij.openapi.progress.PerformInBackgroundOption;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ui.JBUI;
+import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +44,9 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
-import java.util.*;
 import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
@@ -107,43 +117,57 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (!isSameConnection()) {
                     return;
                 }
-                String editorText = getQuery();
-                if (QueryExecutor.executeQuery(NORMAL, editorText, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project)) {
-                    int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                    currentHistoryIndex = historySize - 1;
-                    SwingUtilities.invokeLater(() -> {
-                        historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                        historyLabel.revalidate();
-                    });
-                }
+                List<String> statements = getStatements();
+                new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+
+                        boolean success = false;
+                        if (statements.size() == 0) {
+                            return;
+                        } else if (statements.size() == 1) {
+                            success = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                        } else {
+                            success = QueryExecutor.executeScript(NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                        }
+
+                        if (success) {
+                            int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
+                            currentHistoryIndex = historySize - 1;
+                            SwingUtilities.invokeLater(() -> {
+                                historyLabel.setText("history (" + historySize + "/" + historySize + ")");
+                                historyLabel.revalidate();
+                            });
+                        }
+                    }
+                }.queue();
             }
         });
 
         executeGroup.addSeparator();
 
         Icon adviseIcon = IconLoader.getIcon("/assets/icons/advise.svg", CustomSqlFileEditor.class);
-        executeGroup.add(new AnAction("Advise", "Get index recommendations about your query", adviseIcon) {
+        executeGroup.add(new AnAction("Advise", "Get index recommendations about focused query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (!isSameConnection()) {
                     return;
                 }
-                String editorText = getQuery();
+                String statement = getFocusedStatement();
 
-                QueryExecutor.executeQuery(ADVISE, editorText, selectedBucketContext, selectedScopeContext, -1, project);
+                QueryExecutor.executeQuery(ADVISE, statement, selectedBucketContext, selectedScopeContext, -1, project);
             }
         });
 
         Icon explainIcon = IconLoader.getIcon("/assets/icons/explain.svg", CustomSqlFileEditor.class);
-        executeGroup.add(new AnAction("Explain", "Explains the query phases", explainIcon) {
+        executeGroup.add(new AnAction("Explain", "Explains query phases for focused statement", explainIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (!isSameConnection()) {
                     return;
                 }
-                String editorText = getQuery();
-
-                QueryExecutor.executeQuery(EXPLAIN, editorText, selectedBucketContext, selectedScopeContext, -1, project);
+                String statement = getFocusedStatement();
+                QueryExecutor.executeQuery(EXPLAIN, statement, selectedBucketContext, selectedScopeContext, -1, project);
             }
         });
 
@@ -264,15 +288,47 @@ public class CustomSqlFileEditor implements FileEditor {
         panel.add(topPanel, BorderLayout.NORTH);
     }
 
-    @Nullable
-    private String getQuery() {
-        String editorText = queryEditor.getDocument().getText();
+    private String getFocusedStatement() {
         SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
 
         if (selectionModel.hasSelection()) {
-            editorText = selectionModel.getSelectedText();
+            return selectionModel.getSelectedText();
         }
-        return editorText;
+
+
+        PsiFile psi = PsiManager.getInstance(project).findFile(getFile());
+        PsiErrorElement err = PsiTreeUtil.findChildOfType(psi, PsiErrorElement.class);
+        if (err != null) {
+            Messages.showMessageDialog("There are syntax errors in the script.", "Couchbase Plugin Error", Messages.getErrorIcon());
+            return null;
+        }
+        return ReadAction.compute(() -> {
+            PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
+            if (focused != null) {
+                return PsiTreeUtil.getTopmostParentOfType(focused, Statement.class).getText();
+            }
+            return null;
+        });
+    }
+
+    private List<String> getStatements() {
+        SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
+
+        if (selectionModel.hasSelection()) {
+            return Collections.singletonList(selectionModel.getSelectedText());
+        }
+
+
+        PsiFile psi = PsiManager.getInstance(project).findFile(getFile());
+        PsiErrorElement err = PsiTreeUtil.findChildOfType(psi, PsiErrorElement.class);
+        if (err != null) {
+            Messages.showMessageDialog("There are syntax errors in the script.", "Couchbase Plugin Error", Messages.getErrorIcon());
+            return Collections.EMPTY_LIST;
+        }
+        return ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
+                .map(PsiElement::getText)
+                .collect(Collectors.toList())
+        );
     }
 
     private JPanel getQueryContextPanel() {
@@ -306,49 +362,6 @@ public class CustomSqlFileEditor implements FileEditor {
             conCombo.addItem(entry.getValue().getId());
         }
         contextPanel.add(conCombo);
-        conCombo.addActionListener(e -> {
-            String selectedClusterId = (String) conCombo.getSelectedItem();
-
-            if (selectedClusterId == null) {
-                return;
-            }
-
-            option1Group.removeAll();
-            AnAction clearContextAction = new AnAction("Clear Context") {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
-                    contextLabel.revalidate();
-                    setSelectedContext(Collections.EMPTY_LIST);
-                }
-            };
-
-            option1Group.add(clearContextAction);
-            option1Group.addSeparator("Buckets");
-
-            List<String> buckets = new ArrayList<>(ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet());
-            for (String bucket : buckets) {
-
-                DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket, true);
-                bucketsGroup.addSeparator("Scopes");
-
-                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucket).collections().getAllScopes();
-                for (ScopeSpec spec : scopes) {
-                    AnAction scopeAction = new AnAction(spec.name()) {
-                        @Override
-                        public void actionPerformed(@NotNull AnActionEvent e) {
-                            contextLabel.setText(bucket + " > " + spec.name());
-                            contextLabel.revalidate();
-                            setSelectedContext(Arrays.asList(bucket, spec.name()));
-                        }
-                    };
-
-                    bucketsGroup.add(scopeAction);
-                }
-
-                option1Group.add(bucketsGroup);
-            }
-        });
 
         conCombo.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -357,28 +370,20 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (item == null) {
                     return;
                 }
-                if (ActiveCluster.getInstance().get() == null || !item.equals(ActiveCluster.getInstance().getId())) {
+                String activeClusterId = ActiveCluster.getInstance().getId();
+                if (activeClusterId != null && !item.equals(ActiveCluster.getInstance().getId())) {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("You can't select a cluster that you are not connected.", "Workbench Error"));
 
                     SwingUtilities.invokeLater(() -> conCombo.setSelectedItem(cachedPreviousSelectedConnection));
                 } else {
-                    SwingUtilities.invokeLater(() -> {
-                        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
-                        contextLabel.revalidate();
-
-                        if (ActiveCluster.getInstance().getColor() != null) {
-                            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
-                            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
-                            Border compound = BorderFactory.createCompoundBorder(margin, line);
-                            topPanel.setBorder(compound);
-                            topPanel.revalidate();
-                        } else {
-                            topPanel.setBorder(JBUI.Borders.empty());
-                            topPanel.revalidate();
-                        }
-                    });
-                    setSelectedContext(Collections.EMPTY_LIST);
-                    cachedPreviousSelectedConnection = e.getItem().toString();
+                    if (activeClusterId == null) {
+                        SavedCluster sc = ClustersStorage.getInstance().getValue().getMap().get(item);
+                        TreeActionHandler.connectToCluster(project, sc, CouchbaseWindowContent.getTree(), null, err -> {
+                            SwingUtilities.invokeLater(() -> onConnectionSelected(option1Group, contextLabel));
+                        }, null);
+                    } else {
+                        SwingUtilities.invokeLater(() -> onConnectionSelected(option1Group, contextLabel));
+                    }
                 }
             }
         });
@@ -406,6 +411,66 @@ public class CustomSqlFileEditor implements FileEditor {
         contextPanel.add(myPanel);
 
         return contextPanel;
+    }
+
+    private void onConnectionSelected(DefaultActionGroup option1Group, JLabel contextLabel) {
+        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+        contextLabel.revalidate();
+
+        if (ActiveCluster.getInstance().getColor() != null) {
+            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+            Border compound = BorderFactory.createCompoundBorder(margin, line);
+            topPanel.setBorder(compound);
+            topPanel.revalidate();
+        } else {
+            topPanel.setBorder(JBUI.Borders.empty());
+            topPanel.revalidate();
+        }
+
+        String selectedClusterId = (String) conCombo.getSelectedItem();
+        cachedPreviousSelectedConnection = selectedClusterId;
+
+        if (selectedClusterId == null) {
+            return;
+        }
+
+        option1Group.removeAll();
+        AnAction clearContextAction = new AnAction("Clear Context") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                contextLabel.revalidate();
+                setSelectedContext(Collections.EMPTY_LIST);
+            }
+        };
+
+        option1Group.add(clearContextAction);
+        option1Group.addSeparator("Buckets");
+
+        ActiveCluster.getInstance().getChildren().stream()
+                .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
+                .forEach(bucket -> {
+                    DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket.getName(), true);
+                    bucketsGroup.addSeparator("Scopes");
+
+                    bucket.getChildren().stream()
+                            .sorted(Comparator.comparing(s -> s.getName().toLowerCase()))
+                            .forEach(scope -> {
+
+                                AnAction scopeAction = new AnAction(scope.getName()) {
+                                    @Override
+                                    public void actionPerformed(@NotNull AnActionEvent e) {
+                                        contextLabel.setText(bucket.getName() + " > " + scope.getName());
+                                        contextLabel.revalidate();
+                                        setSelectedContext(Arrays.asList(bucket.getName(), scope.getName()));
+                                    }
+                                };
+
+                                bucketsGroup.add(scopeAction);
+                            });
+                    option1Group.add(bucketsGroup);
+                });
     }
 
     @Override

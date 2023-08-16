@@ -99,17 +99,18 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                 this
         );
 
-        // match identifiers after SET keyword
+        // match identifiers after specific keywords
         with.extend(
                 CompletionType.BASIC,
                 PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new PatternCondition<PsiElement>("after SET") {
+                        .with(new PatternCondition<PsiElement>("after keywords") {
                             @Override
                             public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
                                 while (element.getPrevSibling() instanceof PsiWhiteSpace) {
                                     element = element.getPrevSibling();
                                 }
-                                return PlatformPatterns.psiElement(GeneratedTypes.SET).accepts(element.getPrevSibling());
+                                return PlatformPatterns.psiElement(GeneratedTypes.SET).accepts(element.getPrevSibling())
+                                        || PlatformPatterns.psiElement(GeneratedTypes.INTO).accepts(element.getPrevSibling());
                             }
                         }),
                 this

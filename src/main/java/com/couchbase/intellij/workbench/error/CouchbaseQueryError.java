@@ -5,6 +5,16 @@ public class CouchbaseQueryError {
     private String message;
     private boolean retry;
 
+    public CouchbaseQueryError() {
+
+    }
+
+    public CouchbaseQueryError(int code, String message, boolean retry) {
+        this.code = code;
+        this.message = message;
+        this.retry = retry;
+    }
+
     public int getCode() {
         return code;
     }

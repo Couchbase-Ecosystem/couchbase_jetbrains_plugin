@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.Consumer;
 import com.intellij.util.ui.JBUI;
 import utils.CBConfigUtil;
 
@@ -28,6 +29,10 @@ import java.util.stream.Collectors;
 public class TreeActionHandler {
 
     public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel) {
+        connectToCluster(project, savedCluster, tree, toolBarPanel, null, null);
+    }
+
+    public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener, Runnable disconnectListener) {
         tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
@@ -47,8 +52,6 @@ public class TreeActionHandler {
                         newActiveNode = childNode;
                     }
                 }
-
-
             }
 
             if (newActiveNode == null) {
@@ -62,52 +65,88 @@ public class TreeActionHandler {
             final DefaultMutableTreeNode targetNode = newActiveNode;
 
             try {
-                ActiveCluster.getInstance().connect(savedCluster, () -> {
-                    disconnectFromCluster(targetNode, (ConnectionNodeDescriptor) targetNode.getUserObject(), tree);
-                });
-
-                if (toolBarPanel != null) {
-
-                    if (ActiveCluster.getInstance().getColor() != null) {
-                        SwingUtilities.invokeLater(() -> {
-                            if (ActiveCluster.getInstance().getColor() != null) {
-                                Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
-                                Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
-                                Border compound = BorderFactory.createCompoundBorder(margin, line);
-                                toolBarPanel.setBorder(compound);
-                                toolBarPanel.revalidate();
-                            }
-                        });
-                    } else {
-                        SwingUtilities.invokeLater(() -> {
-                            toolBarPanel.setBorder(JBUI.Borders.empty());
-                            toolBarPanel.revalidate();
-                        });
-                    }
-                }
-                CompletableFuture.runAsync(() -> {
-                    try {
-
-                        if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
+                DefaultMutableTreeNode finalNewActiveNode = newActiveNode;
+                ActiveCluster.getInstance().connect(savedCluster, err -> {
+                    if (err != null) {
+                        tree.setPaintBusy(false);
+                        if (connectionListener != null) {
+                            connectionListener.consume(err);
                         }
+                        disconnectFromCluster(finalNewActiveNode, (ConnectionNodeDescriptor) finalNewActiveNode.getUserObject(), tree);
+                        return;
+                    }
 
+                    if (toolBarPanel != null) {
+
+                        if (ActiveCluster.getInstance().getColor() != null) {
+                            SwingUtilities.invokeLater(() -> {
+                                if (ActiveCluster.getInstance().getColor() != null) {
+                                    Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
+                                    Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                                    Border compound = BorderFactory.createCompoundBorder(margin, line);
+                                    toolBarPanel.setBorder(compound);
+                                    toolBarPanel.revalidate();
+                                }
+                            });
+                        } else {
+                            SwingUtilities.invokeLater(() -> {
+                                toolBarPanel.setBorder(JBUI.Borders.empty());
+                                toolBarPanel.revalidate();
+                            });
+                        }
+                    }
+                    CompletableFuture.runAsync(() -> {
+                        try {
+
+
+                            if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
+                                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
+                            }
+
+                            if (!CBConfigUtil.hasQueryService(ActiveCluster.getInstance().getServices())) {
+                                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>Your cluster doesn't have the Query Service. Some features might not work properly.</html>", "Couchbase Plugin Error"));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Log.error("Could not call the RestAPI to get an overview of the service.", e);
+                        }
+                    });
+
+                    try {
+                        GitIgnore.updateGitIgnore(project);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        Log.error("Could not call the RestAPI to get an overview of the service.", e);
+                        Log.error("Could not append cbcache/ folder to .gitignore", e);
+                    }
+
+                    finalNewActiveNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                    selectedNode.add(finalNewActiveNode);
+
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(selectedNode);
+                    ((DefaultTreeModel) tree.getModel()).reload();
+
+                    if (connectionListener != null) {
+                        connectionListener.consume(null);
+                    }
+                    tree.setPaintBusy(false);
+                }, () -> {
+                    try {
+                        if (disconnectListener != null) {
+                            disconnectListener.run();
+                        }
+                    } finally {
+                        disconnectFromCluster(targetNode, (ConnectionNodeDescriptor) targetNode.getUserObject(), tree);
                     }
                 });
 
-                try {
-                    GitIgnore.updateGitIgnore(project);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.error("Could not append cbcache/ folder to .gitignore", e);
-                }
             } catch (Exception e) {
+                tree.setPaintBusy(false);
                 e.printStackTrace();
                 SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                         " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
+                if (connectionListener != null) {
+                    connectionListener.consume(e);
+                }
                 ((ConnectionNodeDescriptor) newActiveNode.getUserObject()).setActive(false);
                 return;
             } finally {

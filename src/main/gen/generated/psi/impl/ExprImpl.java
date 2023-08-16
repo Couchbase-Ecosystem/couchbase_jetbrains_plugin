@@ -71,6 +71,12 @@ public class ExprImpl extends SqlppPSIWrapper implements Expr {
 
   @Override
   @Nullable
+  public JsonValue getJsonValue() {
+    return findChildByClass(JsonValue.class);
+  }
+
+  @Override
+  @Nullable
   public Literal getLiteral() {
     return findChildByClass(Literal.class);
   }
