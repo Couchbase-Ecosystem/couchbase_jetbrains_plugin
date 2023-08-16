@@ -25,7 +25,6 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -110,19 +109,27 @@ public class CouchbaseWindowContent extends JPanel {
                             }
                         } else if (userObject instanceof MissingIndexNodeDescriptor) {
 
-                            if (ActiveCluster.getInstance().isReadOnlyMode()) {
-                                Messages.showErrorDialog("You can't create indexes when your connection is on read-only mode", "Couchbase Plugin Error");
-                            } else {
-                                MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
-                                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to create a primary index on <strong>" + node.getBucket() + "." + node.getScope() + "." + node.getCollection() + "</strong>?<br><br>" + "<small>We don't recommend primary indexes in production environments.</small><br>" + "<small>This operation might take a while.</small></html>", "Create New Index", Messages.getQuestionIcon());
-                                if (result == Messages.YES) {
-                                    DataLoader.createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection());
-                                    tree.collapsePath(clickedPath.getParentPath());
-                                }
-                            }
+                            MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
+                            createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection(), clickedPath);
+
+                        } else if (userObject instanceof MissingIndexFootNoteNodeDescriptor) {
+                            MissingIndexFootNoteNodeDescriptor node = (MissingIndexFootNoteNodeDescriptor) userObject;
+                            createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection(), clickedPath);
                         }
                     }
 
+                }
+            }
+
+            private void createPrimaryIndex(String bucket, String scope, String collection,  TreePath clickedPath) {
+                if (ActiveCluster.getInstance().isReadOnlyMode()) {
+                    Messages.showErrorDialog("You can't create indexes when your connection is on read-only mode", "Couchbase Plugin Error");
+                } else {
+                    int result = Messages.showYesNoDialog("<html>Are you sure that you would like to create a primary index on <strong>" + bucket + "." + scope + "." + collection + "</strong>?<br><br>" + "<small>We don't recommend primary indexes in production environments.</small><br>" + "<small>This operation might take a while.</small></html>", "Create New Index", Messages.getQuestionIcon());
+                    if (result == Messages.YES) {
+                        DataLoader.createPrimaryIndex(bucket, scope, collection);
+                        tree.collapsePath(clickedPath.getParentPath());
+                    }
                 }
             }
         });

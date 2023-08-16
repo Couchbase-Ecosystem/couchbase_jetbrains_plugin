@@ -194,30 +194,13 @@ public class DataLoader {
                 //When KV
                 if (!ActiveCluster.getInstance().hasQueryService()) {
                     if (newOffset == 0) {
+                        //removed loading node
                         parentNode.removeAllChildren();
                     } else {
+                        //removes "Load More" node
                         parentNode.remove(parentNode.getChildCount() - 1);
                     }
-
-                    List<String> docIds = CouchbaseRestAPI.listKVDocuments(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset, 10);
-
-                    if(!docIds.isEmpty()) {
-                        for(String id: docIds) {
-                           FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id,
-                                    FileNodeDescriptor.FileType.UNKNOWN, null);
-                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
-                            parentNode.add(jsonFileNode);
-                        }
-                        if (docIds.size() == 10) {
-                            DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
-                            parentNode.add(loadMoreNode);
-                        }
-
-                    } else if (newOffset == 0) {
-                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
-                    }
-
-                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    loadKVDocuments(parentNode, tree, newOffset, colNode);
                 } else {
                     if (newOffset == 0) {
                         parentNode.removeAllChildren();
@@ -229,6 +212,7 @@ public class DataLoader {
                         indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(indexes);
                     } else {
+                        //removes "Load More" node
                         parentNode.remove(parentNode.getChildCount() - 1);
                     }
 
@@ -263,10 +247,24 @@ public class DataLoader {
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 }
             } catch (PlanningFailureException | IndexFailureException ex) {
-                parentNode.removeAllChildren();
-                MissingIndexNodeDescriptor idx = new MissingIndexNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
-                parentNode.add(new DefaultMutableTreeNode(idx));
-                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                //This catch handles when the user has no indexes in the collection
+                if (newOffset == 0) {
+                    parentNode.removeAllChildren();
+                    MissingIndexNodeDescriptor idx = new MissingIndexNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
+                    MissingIndexFootNoteNodeDescriptor footIdx = new MissingIndexFootNoteNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
+                    parentNode.add(new DefaultMutableTreeNode(idx));
+                    parentNode.add(new DefaultMutableTreeNode(footIdx));
+                } else {
+                    //removes "Load More" node
+                    parentNode.remove(parentNode.getChildCount() - 1);
+                }
+
+                try {
+                    loadKVDocuments(parentNode, tree, newOffset, colNode);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Log.debug("Could not load documents from KV", e);
+                }
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
@@ -276,6 +274,28 @@ public class DataLoader {
         } else {
             throw new IllegalStateException("The expected parent was CollectionNodeDescriptor but got something else");
         }
+    }
+
+    private static void loadKVDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset, CollectionNodeDescriptor colNode) throws Exception {
+        List<String> docIds = CouchbaseRestAPI.listKVDocuments(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset, 10);
+
+        if (!docIds.isEmpty()) {
+            for (String id : docIds) {
+                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id,
+                        FileNodeDescriptor.FileType.UNKNOWN, null);
+                DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                parentNode.add(jsonFileNode);
+            }
+            if (docIds.size() == 10) {
+                DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                parentNode.add(loadMoreNode);
+            }
+
+        } else if (newOffset == 0) {
+            parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
+        }
+
+        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
     }
 
 
@@ -350,7 +370,7 @@ public class DataLoader {
             ApplicationManager.getApplication().runWriteAction(() -> {
 
                 PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(), node.getBucket(), node.getScope(), node.getCollection());
-                String fileName = (isBinary?("(read-only)"):"")+node.getId() + (isBinary?"":".json");
+                String fileName = (isBinary ? ("(read-only)") : "") + node.getId() + (isBinary ? "" : ".json");
 
                 PsiFile psiFile = psiDirectory.findFile(fileName);
                 if (psiFile == null) {
@@ -361,7 +381,7 @@ public class DataLoader {
                 Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
                 if (document != null) {
 
-                    if(isBinary) {
+                    if (isBinary) {
                         document.setText(content);
                     } else {
                         Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -380,8 +400,8 @@ public class DataLoader {
                 virtualFile.putUserData(VirtualFileKeys.COLLECTION, node.getCollection());
                 virtualFile.putUserData(VirtualFileKeys.ID, node.getId());
                 virtualFile.putUserData(VirtualFileKeys.CAS, String.valueOf(docCass));
-                if(isBinary) {
-                   virtualFile.putUserData(READ_ONLY, String.valueOf(isBinary));
+                if (isBinary) {
+                    virtualFile.putUserData(READ_ONLY, String.valueOf(isBinary));
                 }
 
                 node.setVirtualFile(virtualFile);
@@ -617,7 +637,7 @@ public class DataLoader {
     }
 
     public static List<QueryIndex> listIndexes(String bucket, String scope, String collection) {
-        if(ActiveCluster.getInstance().hasQueryService()) {
+        if (ActiveCluster.getInstance().hasQueryService()) {
             return ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().getAllIndexes();
         } else {
             return new ArrayList<>();
