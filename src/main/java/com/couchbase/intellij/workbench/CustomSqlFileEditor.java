@@ -561,24 +561,13 @@ public class CustomSqlFileEditor implements FileEditor {
         return true;
     }
 
-    public List<String> getSelectedContext() {
-        List<String> result = new ArrayList<>();
-        if (selectedBucketContext != null) {
-            result.add(selectedBucketContext);
-            if (selectedScopeContext != null) {
-                result.add(selectedScopeContext);
-            }
-        }
-        return result;
-    }
-
     /**
      * Does not update the UI
      * Used in testing only
      * * @param context
      */
     public void setSelectedContext(List<String> context) {
-        if (context.size() > 0) {
+        if (!context.isEmpty()) {
             this.selectedBucketContext = context.get(0);
             if (context.size() > 1) {
                 this.selectedScopeContext = context.get(1);
