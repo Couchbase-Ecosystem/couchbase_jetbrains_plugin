@@ -2,20 +2,16 @@ package utils;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.intellij.workbench.Log;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -51,33 +47,6 @@ public class FileUtils {
         String lastLine = sb.reverse().toString();
         file.close();
         return lastLine;
-    }
-
-    public static String readLine(String filePath, int lineNumber) throws IOException {
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            for (int i = 0; i < lineNumber - 1; i++) {
-                br.readLine();
-            }
-            return br.readLine();
-        }
-    }
-
-    public static String readElementFromJsonArrayFile(String filePath) throws IOException {
-        try {
-
-            String content = Files.readString(Paths.get(filePath));
-            ObjectMapper mapper = new ObjectMapper();
-            TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {
-            };
-            List<Map<String, Object>> jsonArray = mapper.readValue(content, typeRef);
-            Map<String, Object> firstElement = jsonArray.get(0);
-
-            return mapper.writeValueAsString(firstElement);
-
-        } catch (Exception e) {
-            Log.error(e);
-            return null;
-        }
     }
 
     public static String sampleElementFromJsonArrayFile(String filePath) throws IOException {
@@ -139,54 +108,18 @@ public class FileUtils {
         return isValidField;
     }
 
-    public static String validateAndDetectCouchbaseJsonFormat(String filePath) throws IOException {
+    public static String detectDatasetFormat(String filePath) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
             String firstLine = reader.readLine();
             if (firstLine != null && firstLine.trim().startsWith("[")) {
                 // File starts with a '[' character, so it's probably in list format
-                String content = firstLine + "\n" + reader.lines().collect(Collectors.joining("\n"));
-                if (isValidJson(content)) {
-                    return "list";
-                }
-            } else if (firstLine != null && isValidJson(firstLine)) {
+                return "list";
+            } else if (firstLine != null && firstLine.trim().startsWith("{")) {
                 // First line is a valid JSON object, so the file is probably in lines format
-                while ((firstLine = reader.readLine()) != null) {
-                    if (!isValidJson(firstLine)) {
-                        return null;
-                    }
-                }
                 return "lines";
             }
         }
         return null;
-    }
-
-    private static boolean isValidJson(String json) {
-        try {
-            final ObjectMapper mapper = new ObjectMapper();
-            mapper.readTree(json);
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    public static int countJsonDocs(String format, String filePath) throws IOException {
-        int count = 0;
-        if (format.equals("lines")) {
-            // Count the number of lines in the file
-            try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
-                while (reader.readLine() != null) {
-                    count++;
-                }
-            }
-        } else if (format.equals("list")) {
-            // Parse the JSON array and count the number of elements
-            String content = Files.readString(Paths.get(filePath));
-            JsonArray jsonArray = JsonArray.fromJson(content);
-            count = jsonArray.size();
-        }
-        return count;
     }
 
     public static void createFolder(String folderPath) throws Exception {
@@ -216,7 +149,9 @@ public class FileUtils {
 
         String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical + "' -Force"};
+            unzipCommand = new String[] { "powershell.exe", "-nologo", "-noprofile", "-command",
+                    "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical
+                            + "' -Force" };
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
             unzipCommand = new String[] { "unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical };
         } else {
