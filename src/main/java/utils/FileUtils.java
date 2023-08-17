@@ -1,22 +1,18 @@
 package utils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
+import com.couchbase.intellij.workbench.Log;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.couchbase.intellij.workbench.Log;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class FileUtils {
 
@@ -49,11 +45,11 @@ public class FileUtils {
         return lastLine;
     }
 
-    public static String sampleElementFromJsonArrayFile(String filePath) throws IOException {
+    public static String sampleElementFromJsonArrayFile(String filePath) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonParser parser = mapper.createParser(Paths.get(filePath).toFile());
-            TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {
+            TypeReference<Map<String, Object>> typeRef = new TypeReference<>() {
             };
             String result = null;
 
@@ -74,27 +70,26 @@ public class FileUtils {
         }
     }
 
-    public static boolean checkFieldsInJson(String fieldText, String dataset, String detectedCouchbaseJsonFormat) {
+    public static boolean checkFieldsInJson(String fieldText, String dataset) {
         Pattern pattern = Pattern.compile("%(.*?)%");
         Matcher matcher = pattern.matcher(fieldText);
         while (matcher.find()) {
             String match = matcher.group(1);
-            if (!FileUtils.checkFieldInJson(dataset, detectedCouchbaseJsonFormat, match)) {
+            if (!FileUtils.checkFieldInJson(dataset, match)) {
                 return false;
             }
         }
         return true;
     }
 
-    public static boolean checkFieldInJson(String filePath, String detectedCouchbaseJsonFormat, String fieldText) {
+    public static boolean checkFieldInJson(String filePath, String fieldText) {
         boolean isValidField = true;
         try {
             String sampleElement = FileUtils.sampleElementFromJsonArrayFile(filePath);
             if (sampleElement != null) {
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> jsonObject = mapper.readValue(sampleElement,
-                        new TypeReference<Map<String, Object>>() {
-                        });
+                Map<String, Object> jsonObject = mapper.readValue(sampleElement, new TypeReference<>() {
+                });
                 if (!jsonObject.containsKey(fieldText)) {
                     isValidField = false;
                 }
@@ -149,11 +144,9 @@ public class FileUtils {
 
         String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = new String[] { "powershell.exe", "-nologo", "-noprofile", "-command",
-                    "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical
-                            + "' -Force" };
+            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical + "' -Force"};
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
-            unzipCommand = new String[] { "unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical };
+            unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical};
         } else {
             throw new UnsupportedOperationException("Unsupported operating system: " + osName);
         }
