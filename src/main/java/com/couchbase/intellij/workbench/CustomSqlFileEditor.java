@@ -123,7 +123,7 @@ public class CustomSqlFileEditor implements FileEditor {
                     public void run(@NotNull ProgressIndicator indicator) {
 
                         boolean success = false;
-                        if (statements.size() == 0) {
+                        if (statements.isEmpty()) {
                             return;
                         } else if (statements.size() == 1) {
                             success = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
@@ -361,6 +361,8 @@ public class CustomSqlFileEditor implements FileEditor {
         for (Map.Entry<String, SavedCluster> entry : clusters.entrySet()) {
             conCombo.addItem(entry.getValue().getId());
         }
+        //IMPORTANT: no field should be selected by default
+        conCombo.setSelectedItem(null);
         contextPanel.add(conCombo);
 
         conCombo.addItemListener(e -> {
@@ -558,13 +560,14 @@ public class CustomSqlFileEditor implements FileEditor {
         }
         return true;
     }
+
     /**
      * Does not update the UI
      * Used in testing only
      * * @param context
      */
     public void setSelectedContext(List<String> context) {
-        if (context.size() > 0) {
+        if (!context.isEmpty()) {
             this.selectedBucketContext = context.get(0);
             if (context.size() > 1) {
                 this.selectedScopeContext = context.get(1);
@@ -580,7 +583,6 @@ public class CustomSqlFileEditor implements FileEditor {
             ((SqlppFile) psiFile).setClusterContext(context);
         }
     }
-
 
     static class EditorWrapper {
         private final Editor viewer;
@@ -606,16 +608,5 @@ public class CustomSqlFileEditor implements FileEditor {
         public void release() {
             EditorFactory.getInstance().releaseEditor(Objects.requireNonNullElseGet(viewer, textEditor::getEditor));
         }
-    }
-
-    public List<String> getSelectedContext() {
-        List<String> result = new ArrayList<>();
-        if (selectedBucketContext != null) {
-            result.add(selectedBucketContext);
-            if (selectedScopeContext != null) {
-                result.add(selectedScopeContext);
-            }
-        }
-        return result;
     }
 }
