@@ -2,9 +2,9 @@ package org.intellij.sdk.language.completion;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
@@ -17,7 +17,6 @@ import generated.psi.IdentifierRef;
 import generated.psi.impl.ExprImpl;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
-import org.jsoup.helper.StringUtil;
 
 import java.util.*;
 import java.util.function.BiPredicate;
@@ -25,7 +24,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Identifiers extends CompletionProvider<CompletionParameters> {
-    private static final Logger log = Logger.getInstance(Identifiers.class);
 
     public Identifiers(CompletionContributor with) {
         // match any identifier inside an expression
@@ -101,17 +99,18 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                 this
         );
 
-        // match identifiers after SET keyword
+        // match identifiers after specific keywords
         with.extend(
                 CompletionType.BASIC,
                 PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new PatternCondition<PsiElement>("after SET") {
+                        .with(new PatternCondition<PsiElement>("after keywords") {
                             @Override
                             public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
                                 while (element.getPrevSibling() instanceof PsiWhiteSpace) {
                                     element = element.getPrevSibling();
                                 }
-                                return PlatformPatterns.psiElement(GeneratedTypes.SET).accepts(element.getPrevSibling());
+                                return PlatformPatterns.psiElement(GeneratedTypes.SET).accepts(element.getPrevSibling())
+                                        || PlatformPatterns.psiElement(GeneratedTypes.INTO).accepts(element.getPrevSibling());
                             }
                         }),
                 this
@@ -159,36 +158,35 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         List<List<String>> statementContexts = Utils.getStatementContexts(element);
         List<String> completePath = Utils.getPath(element);
         boolean openContext = Utils.isOpenContext(element);
-        log.info("Open context: " + openContext);
+        Log.debug("Open context: " + openContext);
 
         if (!completePath.isEmpty()) {
-            log.info("Path completion: " + StringUtil.join(completePath, "."));
             if (!appendAliases(element, cluster, completePath, result) &&
                     0 == Utils.findEntities(cluster, openContext, editorContext, statementContexts, completePath)
-                            .peek(e -> log.debug("potential path target: " + e.path()))
+                            .peek(e -> Log.debug("potential path target: " + e.path()))
                             .filter(entity -> completeForPath(entity, Collections.EMPTY_LIST, result))
                             .count()) {
-                log.info("failed path completion");
+                Log.debug("failed path completion");
                 completePath = Collections.EMPTY_LIST;
             }
         }
 
         if (completePath.isEmpty()) {
-            log.info("Empty path completion");
+            Log.debug("Empty path completion");
             appendAliases(element, cluster, Collections.EMPTY_LIST, result);
             if (editorContext.isEmpty() && openContext) {
-                log.info("Empty statement context completion");
+                Log.debug("Empty statement context completion");
                 appendRecursively(0, cluster, result, emptyPathPasser);
             }
 
             if (!statementContexts.isEmpty()) {
-                log.info("STATEMENT context completion");
+                Log.debug("STATEMENT context completion");
                 Utils.findEntities(cluster, openContext, editorContext, statementContexts, Collections.EMPTY_LIST)
                         .forEach(entity -> completeForPath((CouchbaseClusterEntity) entity, Collections.EMPTY_LIST, result));
             }
 
             if (!editorContext.isEmpty() && Utils.isOpenContext(element)) {
-                log.info("EDITOR context completion");
+                Log.debug("EDITOR context completion");
                 completeForPath(cluster, editorContext, result);
             }
         }
@@ -230,7 +228,7 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                         .map(CouchbaseClusterEntity::getName)
                         .filter(Objects::nonNull)
                         .map(LookupElementBuilder::create)
-                        .peek(e -> log.debug(String.format("Complete option: %s", e.getLookupString())))
+                        .peek(e -> Log.debug(String.format("Complete option: %s", e.getLookupString())))
                         .peek(result::addElement)
                         .count();
                 return true;

@@ -125,6 +125,9 @@ public class DDLExportDialog extends DialogWrapper {
         c.gridx = 1;
         includeIndexes = new JBCheckBox();
         formPanel.add(includeIndexes, c);
+        if (!ActiveCluster.getInstance().hasQueryService()) {
+            includeIndexes.setEnabled(false);
+        }
 
         c.gridy = 3;
         c.weightx = 0.3;

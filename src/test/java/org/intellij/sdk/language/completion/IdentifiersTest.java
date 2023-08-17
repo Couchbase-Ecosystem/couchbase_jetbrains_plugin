@@ -27,6 +27,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
             if (complete == null) {
                 assertNull(items);
             } else {
+                assertNotNull(items);
                 assertTrue(items.length > 0);
                 assertTrue(Arrays.stream(items).anyMatch(i -> complete.equals(i.getLookupString())));
             }
@@ -294,5 +295,10 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     public void testNotStatementContext() {
         assertNotCompletes("select * from collection-entity where ", "other-parent-field");
         assertNotCompletes("select * from other-collection-entity where ", "parent-field");
+    }
+
+    @Test
+    public void testInsertInto() {
+        assertCompletes("insert into ");
     }
 }

@@ -165,6 +165,10 @@ public class CBImport {
     }
 
     private static boolean shouldImportIndexes(ExportedMetadata meta) {
+
+        if(!ActiveCluster.getInstance().hasQueryService()) {
+            return false;
+        }
         boolean idx = false;
         if (!meta.getIndexes().isEmpty()) {
             int result = Messages.showYesNoDialog("<html>This dataset contain indexes. Would you like to also create them?" + "<br><small>If the indexes already exist in your environment, they won't be recreated.</small></html>", "Simple Import", Messages.getQuestionIcon());

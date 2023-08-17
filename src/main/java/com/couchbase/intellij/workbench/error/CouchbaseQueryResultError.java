@@ -1,5 +1,6 @@
 package com.couchbase.intellij.workbench.error;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CouchbaseQueryResultError {
@@ -14,7 +15,7 @@ public class CouchbaseQueryResultError {
     private String requestType;
     private int retried;
     private List<String> retryReasons;
-    private List<CouchbaseQueryError> errors;
+    private List<CouchbaseQueryError> errors = new ArrayList<>();
     private CouchbaseQueryServiceError service;
     private long timeoutMs;
     private CouchbaseQueryTimingsServiceError timings;

@@ -81,7 +81,7 @@ public final class SidePanel extends JPanel {
                 return new SidePanelSeparator();
             }
 
-            private JComponent getItemComponent() {
+            public JComponent getItemComponent() {
                 return myComponent;
             }
 

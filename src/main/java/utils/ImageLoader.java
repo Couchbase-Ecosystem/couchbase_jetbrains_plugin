@@ -1,5 +1,7 @@
 package utils;
 
+import com.couchbase.intellij.workbench.Log;
+
 import javax.swing.*;
 import java.net.URL;
 
@@ -9,7 +11,7 @@ public class ImageLoader {
         if (imgURL != null) {
             return new ImageIcon(imgURL);
         } else {
-            System.err.println("Couldn't find file: " + path);
+            Log.debug("Couldn't find file: " + path);
             return null;
         }
     }

@@ -2292,6 +2292,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // (
   //             (
   //                 path |
+  //                 json-value |
   //                 literal |
   //                 identifier-ref |
   //                 nested-expr |
@@ -2318,6 +2319,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
 
   // (
   //                 path |
+  //                 json-value |
   //                 literal |
   //                 identifier-ref |
   //                 nested-expr |
@@ -2341,6 +2343,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   // path |
+  //                 json-value |
   //                 literal |
   //                 identifier-ref |
   //                 nested-expr |
@@ -2350,6 +2353,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "expr_0_0")) return false;
     boolean r;
     r = path(b, l + 1);
+    if (!r) r = json_value(b, l + 1);
     if (!r) r = literal(b, l + 1);
     if (!r) r = identifier_ref(b, l + 1);
     if (!r) r = nested_expr(b, l + 1);
@@ -4319,6 +4323,74 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // LBRACKET (expr (COMMA expr)*)? RBRACKET
+  public static boolean json_array(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_array")) return false;
+    if (!nextTokenIs(b, LBRACKET)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LBRACKET);
+    r = r && json_array_1(b, l + 1);
+    r = r && consumeToken(b, RBRACKET);
+    exit_section_(b, m, JSON_ARRAY, r);
+    return r;
+  }
+
+  // (expr (COMMA expr)*)?
+  private static boolean json_array_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_array_1")) return false;
+    json_array_1_0(b, l + 1);
+    return true;
+  }
+
+  // expr (COMMA expr)*
+  private static boolean json_array_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_array_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = expr(b, l + 1);
+    r = r && json_array_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (COMMA expr)*
+  private static boolean json_array_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_array_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!json_array_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "json_array_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // COMMA expr
+  private static boolean json_array_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_array_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, COMMA);
+    r = r && expr(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // str COLON expr
+  public static boolean json_field(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_field")) return false;
+    if (!nextTokenIs(b, "<json field>", DQUOTE, QUOTE)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, JSON_FIELD, "<json field>");
+    r = str(b, l + 1);
+    r = r && consumeToken(b, COLON);
+    r = r && expr(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
   // ordered-hint-json
   //              | gsi-hint-json
   //              | fts-hint-json
@@ -4371,6 +4443,73 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, COMMA);
     r = r && json_hint(b, l + 1);
     exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // LBRACE (json-field (COMMA json-field)*)? RBRACE
+  public static boolean json_object(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_object")) return false;
+    if (!nextTokenIs(b, LBRACE)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LBRACE);
+    r = r && json_object_1(b, l + 1);
+    r = r && consumeToken(b, RBRACE);
+    exit_section_(b, m, JSON_OBJECT, r);
+    return r;
+  }
+
+  // (json-field (COMMA json-field)*)?
+  private static boolean json_object_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_object_1")) return false;
+    json_object_1_0(b, l + 1);
+    return true;
+  }
+
+  // json-field (COMMA json-field)*
+  private static boolean json_object_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_object_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = json_field(b, l + 1);
+    r = r && json_object_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (COMMA json-field)*
+  private static boolean json_object_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_object_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!json_object_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "json_object_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // COMMA json-field
+  private static boolean json_object_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_object_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, COMMA);
+    r = r && json_field(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // json-object | json-array
+  public static boolean json_value(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "json_value")) return false;
+    if (!nextTokenIs(b, "<json value>", LBRACE, LBRACKET)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, JSON_VALUE, "<json value>");
+    r = json_object(b, l + 1);
+    if (!r) r = json_array(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 

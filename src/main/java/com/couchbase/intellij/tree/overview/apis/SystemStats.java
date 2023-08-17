@@ -6,8 +6,8 @@ public class SystemStats {
 
     private Double cpu_utilization_rate;
     private Double cpu_stolen_rate;
-    private Double swap_total;
-    private Double swap_used;
+    private Long swap_total;
+    private Long swap_used;
     private Long mem_total;
     private Long mem_free;
     private Long mem_limit;
@@ -30,19 +30,19 @@ public class SystemStats {
         this.cpu_stolen_rate = cpu_stolen_rate;
     }
 
-    public Double getSwap_total() {
+    public Long getSwap_total() {
         return swap_total;
     }
 
-    public void setSwap_total(Double swap_total) {
+    public void setSwap_total(Long swap_total) {
         this.swap_total = swap_total;
     }
 
-    public Double getSwap_used() {
+    public Long getSwap_used() {
         return swap_used;
     }
 
-    public void setSwap_used(Double swap_used) {
+    public void setSwap_used(Long swap_used) {
         this.swap_used = swap_used;
     }
 

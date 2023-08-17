@@ -124,7 +124,7 @@ public class PillowFightRunner {
 
         public StopButtonDialog(Process proc, PillowFightDialog pillowFightDialog) {
             super();
-            setTitle("Stop Pillow Fight");
+            setTitle("Pillow Fight");
             opsPerSecLabel = new JTextArea("OPS/SEC:           ");
             opsPerSecLabel.setEditable(false);
             opsPerSecLabel.setBorder(JBUI.Borders.empty(0, 100));

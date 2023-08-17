@@ -20,6 +20,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public class TreeToolBarBuilder {
 
@@ -45,6 +48,12 @@ public class TreeToolBarBuilder {
                         ex.printStackTrace();
                     }
                 });
+            }
+
+            @Override
+            public void update(AnActionEvent e) {
+                boolean shouldEnable = ActiveCluster.getInstance().hasQueryService();
+                e.getPresentation().setEnabled(shouldEnable);
             }
         };
 
@@ -86,6 +95,19 @@ public class TreeToolBarBuilder {
                     dialog.show();
                 });
 
+                JBMenuItem item2 = new JBMenuItem("Suggest Features / Report Bugs >>");
+                item2.addActionListener(e1 -> {
+
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        try {
+                            Desktop.getDesktop().browse(new URI("https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues"));
+                        } catch (IOException | URISyntaxException ex) {
+                            Log.error("Could not open the project's home: https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues");
+                        }
+                    }
+                });
+                menu.add(item2);
+
 
                 Component component = e.getInputEvent().getComponent();
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
@@ -97,6 +119,7 @@ public class TreeToolBarBuilder {
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(addConnectionAction);
         leftActionGroup.addSeparator();
+
         leftActionGroup.add(newWorkbench);
         leftActionGroup.addSeparator();
 
@@ -115,6 +138,13 @@ public class TreeToolBarBuilder {
         ActionToolbar rightActionToolbar = ActionManager.getInstance().createActionToolbar("MoreOptions", rightActionGroup, true);
         rightActionToolbar.setTargetComponent(toolBarPanel);
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
+
+        ActiveCluster.getInstance().registerNewConnectionListener(() -> {
+            SwingUtilities.invokeLater(() -> {
+                leftActionToolbar.updateActionsImmediately();
+                toolBarPanel.revalidate();
+            });
+        });
 
         return toolBarPanel;
     }

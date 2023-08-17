@@ -3,6 +3,7 @@ package com.couchbase.intellij.workbench;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
@@ -16,11 +17,15 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.AnimatedIcon;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -44,6 +49,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
     private static final String elapsedToolTip = "Elapsed is the time taken by the server to process the request";
     private static final String executionTooltip = "Execution is the time taken by the server to execute the query";
+    private static final String mutationsToolTip = "Count of documents mutated";
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
     public static QueryResultToolWindowFactory instance;
@@ -57,6 +63,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
 
+    private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
+    private final String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, mutationsToolTip, docsTooltip, docsSizeTooltip};
     private Project project;
 
     public QueryResultToolWindowFactory() {
@@ -88,8 +96,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         queryStatsList = new ArrayList<>();
         queryLabelsList = new ArrayList<>();
-        String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, docsTooltip, docsSizeTooltip};
-        String[] headers = {"RTT", "ELAPSED", "EXECUTION", "DOCS", "SIZE"};
 
         for (int i = 0; i < headers.length; i++) {
 
@@ -138,7 +144,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         topPanel.add(toolbar.getComponent(), BorderLayout.EAST);
 
 
-        Document document = EditorFactory.getInstance().createDocument("{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
+        VirtualFile virtualFile = new LightVirtualFile("query_result", FileTypeManager.getInstance().getFileTypeByExtension("json"),
+                "{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
+        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
         editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, true);
         EditorSettings editorSettings = editor.getSettings();
         editorSettings.setLineNumbersShown(true);
@@ -176,10 +184,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         tabs.select(queryResultTab, true);
 
 
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(content);
+
+        ActiveCluster.getInstance().registerNewConnectionListener(() -> {
+
+            SwingUtilities.invokeLater(() -> {
+                if (!ActiveCluster.getInstance().hasQueryService()) {
+                    queryResultTab.setEnabled(false);
+                    queryResultTab.revalidate();
+                } else {
+                    queryResultTab.setEnabled(true);
+                    queryResultTab.revalidate();
+                }
+            });
+        });
     }
 
     public JPanel getConsolePanel() {
@@ -274,54 +295,58 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(boolean isMutation, List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, String explain) {
-        if (results != null) {
+    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain) {
+        SwingUtilities.invokeLater(() -> {
+            if (results != null && error == null || error.getErrors().isEmpty()) {
 
-            List<Map<String, Object>> convertedResults = new ArrayList<>();
-            for (JsonObject jsonObject : results) {
-                convertedResults.add(jsonObjectToMap(jsonObject));
-            }
+                List<Map<String, Object>> convertedResults = new ArrayList<>();
+                for (JsonObject jsonObject : results) {
+                    convertedResults.add(jsonObjectToMap(jsonObject));
+                }
 
-            queryStatsPanel.setVisible(true);
-            cachedResults = convertedResults;
+                queryStatsPanel.setVisible(true);
+                cachedResults = convertedResults;
 
-            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> {
-                editor.getDocument().setText(gson.toJson(convertedResults));
-            });
+                statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    editor.getDocument().setText(gson.toJson(convertedResults));
+                });
 
-            String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
-            htmlPanel.loadHTML(content);
+                String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+                htmlPanel.loadHTML(content);
 
-            if (isMutation) {
-                queryLabelsList.get(3).setText(getQueryStatHeader("MUTATIONS"));
-                queryLabelsList.get(4).setText("");
+                queryStatsPanel.revalidate();
+
+                for (int i = 0; i < queryStatsList.size(); i++) {
+                    String v = queryValues.get(i);
+                    if (v == null || v.trim().isEmpty() || "-".equals(v) || "0".equals(v)) {
+                        queryLabelsList.get(i).setVisible(false);
+                        queryStatsList.get(i).setVisible(false);
+                    } else {
+                        queryLabelsList.get(i).setVisible(true);
+                        queryStatsList.get(i).setVisible(true);
+                        queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
+                    }
+                }
+
+                model.updateData(convertedResults);
+
             } else {
-                queryLabelsList.get(3).setText(getQueryStatHeader("DOCS"));
-                queryLabelsList.get(4).setText(getQueryStatHeader("SIZE"));
+                cachedResults = null;
+                statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
+                ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
             }
-
-            queryStatsPanel.revalidate();
-
-            for (int i = 0; i < queryStatsList.size(); i++) {
-                queryStatsList.get(i).setText(getQueryStatResult(queryValues.get(i)));
-            }
-
-            model.updateData(convertedResults);
-
-        } else {
-            cachedResults = null;
-            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
-        }
+        });
     }
 
     public void setStatusAsLoading() {
-        for (JLabel label : queryStatsList) {
-            label.setText("-");
-        }
-        statusIcon.setIcon(new AnimatedIcon.Default());
+        SwingUtilities.invokeLater(() -> {
+            for (JLabel label : queryStatsList) {
+                label.setText("-");
+            }
+            statusIcon.setIcon(new AnimatedIcon.Default());
 
-        ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
+        });
     }
 }
