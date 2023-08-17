@@ -9,6 +9,7 @@ import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.InferHelper;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -42,11 +43,8 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         //filtering files from our plugin
         if (file != null && file.getUserData(VirtualFileKeys.CLUSTER) != null && !ActiveCluster.getInstance().isReadOnlyMode()) {
             if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
-                Messages.showMessageDialog(
-                        "The file that you are trying to save belongs to a connection that is no longer active",
-                        "Couchbase Plugin Error"
-                        , Messages.getErrorIcon());
-                return false;
+                Log.info("The file "+file.getUserData(VirtualFileKeys.ID)+" was not saved, as it belongs to a connection that is no longer active.");
+                return true;
             } else {
                 Collection collection = ActiveCluster.getInstance().get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
                         .scope(file.getUserData(VirtualFileKeys.SCOPE))

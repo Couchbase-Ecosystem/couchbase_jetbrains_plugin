@@ -546,6 +546,7 @@ option-property ::= QUOTED_OPTION COLON ( QUOTED_BUILD | QUOTED_PROBE | NULL )
 expr ::= (
             (
                 path |
+                json-value |
                 literal |
                 identifier-ref |
                 nested-expr |
@@ -812,3 +813,11 @@ revoke-statement ::= REVOKE role ( COMMA role )* ( ON keyspace-ref ( COMMA keysp
 
 role ::= identifier-ref
 user ::= identifier-ref
+
+json-value ::= json-object | json-array
+
+json-array ::= LBRACKET (expr (COMMA expr)*)? RBRACKET
+
+json-object ::= LBRACE (json-field (COMMA json-field)*)? RBRACE
+
+json-field ::= str COLON expr

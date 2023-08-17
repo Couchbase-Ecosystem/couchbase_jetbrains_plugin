@@ -4,6 +4,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -24,7 +25,6 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -34,12 +34,14 @@ public class CouchbaseWindowContent extends JPanel {
     private static DefaultTreeModel treeModel;
     private static JPanel toolBarPanel;
 
+    private static Tree tree;
+
 
     public CouchbaseWindowContent(Project project) {
         CouchbaseWindowContent.project = project;
         setLayout(new BorderLayout());
         treeModel = getTreeModel(project);
-        Tree tree = new Tree(treeModel);
+        tree = new Tree(treeModel);
 
         tree.setRootVisible(false);
         tree.setCellRenderer(new NodeDescriptorRenderer());
@@ -79,7 +81,10 @@ public class CouchbaseWindowContent extends JPanel {
                     if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
-
+                            if(descriptor.getType() == FileNodeDescriptor.FileType.BINARY) {
+                                Messages.showInfoMessage("Couchbase Plugin", "You can't open binary files via the plugin");
+                                return;
+                            }
                             //always force to load the file from server on read only mode.
                             if (ActiveCluster.getInstance().isReadOnlyMode()) {
                                 descriptor.setVirtualFile(null);
@@ -91,9 +96,8 @@ public class CouchbaseWindowContent extends JPanel {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                                 fileEditorManager.openFile(virtualFile, true);
 
-
                             } else {
-                                System.err.println("virtual file is null");
+                                Log.debug("virtual file is null");
                             }
                         } else if (userObject instanceof IndexNodeDescriptor) {
                             IndexNodeDescriptor descriptor = (IndexNodeDescriptor) userObject;
@@ -102,25 +106,32 @@ public class CouchbaseWindowContent extends JPanel {
                                 OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
                                 FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
 
-
                             } else {
-                                System.err.println("virtual file is null");
+                                Log.debug("virtual file is null");
                             }
                         } else if (userObject instanceof MissingIndexNodeDescriptor) {
 
-                            if (ActiveCluster.getInstance().isReadOnlyMode()) {
-                                Messages.showErrorDialog("You can't create indexes when your connection is on read-only mode", "Couchbase Plugin Error");
-                            } else {
-                                MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
-                                int result = Messages.showYesNoDialog("<html>Are you sure that you would like to create a primary index on <strong>" + node.getBucket() + "." + node.getScope() + "." + node.getCollection() + "</strong>?<br><br>" + "<small>We don't recommend primary indexes in production environments.</small><br>" + "<small>This operation might take a while.</small></html>", "Create New Index", Messages.getQuestionIcon());
-                                if (result == Messages.YES) {
-                                    DataLoader.createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection());
-                                    tree.collapsePath(clickedPath.getParentPath());
-                                }
-                            }
+                            MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;
+                            createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection(), clickedPath);
+
+                        } else if (userObject instanceof MissingIndexFootNoteNodeDescriptor) {
+                            MissingIndexFootNoteNodeDescriptor node = (MissingIndexFootNoteNodeDescriptor) userObject;
+                            createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection(), clickedPath);
                         }
                     }
 
+                }
+            }
+
+            private void createPrimaryIndex(String bucket, String scope, String collection,  TreePath clickedPath) {
+                if (ActiveCluster.getInstance().isReadOnlyMode()) {
+                    Messages.showErrorDialog("You can't create indexes when your connection is on read-only mode", "Couchbase Plugin Error");
+                } else {
+                    int result = Messages.showYesNoDialog("<html>Are you sure that you would like to create a primary index on <strong>" + bucket + "." + scope + "." + collection + "</strong>?<br><br>" + "<small>We don't recommend primary indexes in production environments.</small><br>" + "<small>This operation might take a while.</small></html>", "Create New Index", Messages.getQuestionIcon());
+                    if (result == Messages.YES) {
+                        DataLoader.createPrimaryIndex(bucket, scope, collection);
+                        tree.collapsePath(clickedPath.getParentPath());
+                    }
                 }
             }
         });
@@ -151,21 +162,6 @@ public class CouchbaseWindowContent extends JPanel {
             root.add(adminLocal);
         }
         return new DefaultTreeModel(root);
-    }
-
-    public Icon combine(ImageIcon icon1, ImageIcon icon2) {
-        // Create a new image that's the sum of both icon widths and the height of the taller one
-        int w = icon1.getIconWidth() + icon2.getIconWidth();
-        int h = Math.max(icon1.getIconHeight(), icon2.getIconHeight());
-        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-
-        // Paint both icons onto this image
-        Graphics2D g = image.createGraphics();
-        g.drawImage(icon1.getImage(), 0, 0, null);
-        g.drawImage(icon2.getImage(), icon1.getIconWidth(), 0, null);
-        g.dispose();
-
-        return new ImageIcon(image);
     }
 
     static class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
@@ -237,5 +233,9 @@ public class CouchbaseWindowContent extends JPanel {
             add(text);
             add(counter);
         }
+    }
+
+    public static Tree getTree() {
+        return tree;
     }
 }

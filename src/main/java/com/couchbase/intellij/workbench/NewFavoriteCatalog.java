@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.ui.JBUI;
@@ -27,8 +28,11 @@ public class NewFavoriteCatalog extends DialogWrapper {
     private JTextField textField;
     private JLabel errorLabel;
 
-    protected NewFavoriteCatalog(Document document, AnAction anAction, DefaultActionGroup favoriteActionGroup, ActionToolbar favToolbar) {
-        super(null);
+    private Project project;
+
+    protected NewFavoriteCatalog(Project project, Document document, AnAction anAction, DefaultActionGroup favoriteActionGroup, ActionToolbar favToolbar) {
+        super(project);
+        this.project = project;
         this.document = document;
         this.anAction = anAction;
         this.favoriteActionGroup = favoriteActionGroup;
@@ -104,7 +108,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
                     AnAction newAction = new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-empty.svg", NewFavoriteCatalog.class)) {
                         @Override
                         public void actionPerformed(@NotNull AnActionEvent e) {
-                            NewFavoriteCatalog dialog = new NewFavoriteCatalog(document, this, favoriteActionGroup, favToolbar);
+                            NewFavoriteCatalog dialog = new NewFavoriteCatalog(project, document, this, favoriteActionGroup, favToolbar);
                             dialog.show();
                         }
                     };

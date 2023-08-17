@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
@@ -28,8 +29,8 @@ public class FavoriteQueryDialog extends DialogWrapper {
     private final EditorEx editor;
     private final Document document;
 
-    protected FavoriteQueryDialog(Document document) {
-        super(null);
+    protected FavoriteQueryDialog(Project project, Document document) {
+        super(project);
         setTitle("Favorite Queries List");
         this.document = document;
 

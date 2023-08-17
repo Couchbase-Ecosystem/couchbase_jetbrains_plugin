@@ -259,6 +259,10 @@ public class CBImport {
     }
 
     private static boolean shouldImportIndexes(ExportedMetadata meta) {
+
+        if(!ActiveCluster.getInstance().hasQueryService()) {
+            return false;
+        }
         boolean idx = false;
         if (!meta.getIndexes().isEmpty()) {
             int result = Messages.showYesNoDialog(

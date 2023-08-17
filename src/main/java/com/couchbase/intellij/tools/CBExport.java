@@ -99,7 +99,7 @@ public class CBExport {
                 .collect(Collectors.toList());
 
         boolean idx = false;
-        if (hasIndexes(bucket, scope, collections)) {
+        if (ActiveCluster.getInstance().hasQueryService() && hasIndexes(bucket, scope, collections)) {
             int result = Messages.showYesNoDialog("<html>Would you like to also export the indexes of the scope <strong>" + scope + "</strong>?</html>",
                     "Simple Export", Messages.getQuestionIcon());
 

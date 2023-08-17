@@ -5,7 +5,7 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.InferHelper;
-import com.intellij.openapi.diagnostic.Logger;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class CouchbaseCollection implements CouchbaseClusterEntity {
-    private static final Logger log = Logger.getInstance(CouchbaseCollection.class);
     private CollectionSpec spec;
     private CouchbaseScope parent;
     private Set<CouchbaseDocumentFlavor> children;
@@ -56,11 +55,11 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
                     try {
                         JsonObject schema = InferHelper.inferSchema(getName(), getParent().getName(), getParent().getParent().getName());
                         getSavedCluster().setInferCacheValue(path, schema);
-                        log.info("Stored infer for " + path);
+                        Log.debug("Stored infer for " + path);
                         if (schema != null) {
                             loadSchema(schema);
                         } else {
-                            System.err.println("Could not infer the schema for " + getName());
+                            Log.debug("Could not infer the schema for " + getName());
                         }
                     } finally {
                         updating.set(false);
@@ -83,7 +82,7 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
                     .peek(CouchbaseDocumentFlavor::updateSchema)
                     .collect(Collectors.toSet());
         } else {
-            log.debug("nada data for schemata " + path);
+            Log.debug("nada data for schemata " + path);
         }
     }
 

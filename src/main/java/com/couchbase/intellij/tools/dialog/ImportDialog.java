@@ -9,12 +9,11 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +37,8 @@ import javax.swing.event.DocumentEvent;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
@@ -46,9 +47,6 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tree.NewEntityCreationDialog;
 import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.workbench.Log;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaTextBorder;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
@@ -1289,35 +1287,23 @@ public class ImportDialog extends DialogWrapper {
         keyPreviewArea.setText("");
 
         try {
+            String datasetPath = datasetField.getText();
+            String fileContent = Files.readString(Paths.get(datasetPath));
+            JsonArray jsonArray = JsonArray.fromJson(fileContent);
+
+            StringBuilder previewContent = new StringBuilder();
+            int monoIncrValue = 1;
+
             if (useFieldValueRadio.isSelected()) {
-                Log.debug("Use field value radio selected: ");
                 String fieldName = fieldNameField.getText();
-
-                JsonFactory jsonFactory = new JsonFactory();
-                JsonParser jsonParser = jsonFactory.createParser(new File(datasetField.getText()));
-
-                StringBuilder previewContent = new StringBuilder();
-                while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
-                    if (jsonParser.getCurrentToken() == JsonToken.START_OBJECT) {
-                        while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
-                            String currentFieldName = jsonParser.getCurrentName();
-                            if (fieldName.equals(currentFieldName)) {
-                                jsonParser.nextToken();
-                                previewContent.append(jsonParser.getText()).append("\n");
-                            }
-                        }
+                for (int i = 0; i < Math.min(jsonArray.size(), 5); i++) {
+                    JsonObject jsonObject = jsonArray.getObject(i);
+                    if (jsonObject.containsKey(fieldName)) {
+                        previewContent.append(jsonObject.getString(fieldName)).append("\n");
                     }
                 }
-
-                keyPreviewArea.setText(previewContent.toString());
-
-                updateIgnoreFieldsTextField();
-
             } else if (customExpressionRadio.isSelected()) {
-                Log.debug("Custom expression radio selected: ");
-
                 String expression = customExpressionField.getText();
-
                 Pattern pattern = Pattern.compile("%(\\w+)%");
                 Matcher matcher = pattern.matcher(expression);
                 List<String> fieldNames = new ArrayList<>();
@@ -1325,46 +1311,26 @@ public class ImportDialog extends DialogWrapper {
                     fieldNames.add(matcher.group(1));
                 }
 
-                JsonFactory jsonFactory = new JsonFactory();
-                JsonParser jsonParser = jsonFactory.createParser(new File(datasetField.getText()));
+                for (int i = 0; i < Math.min(jsonArray.size(), 5); i++) {
+                    JsonObject jsonObject = jsonArray.getObject(i);
 
-                StringBuilder previewContent = new StringBuilder();
-                int monoIncrValue = 1;
-                while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
-                    if (jsonParser.getCurrentToken() == JsonToken.START_OBJECT) {
-                        Map<String, String> fieldValues = new HashMap<>();
-                        while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
-                            String currentFieldName = jsonParser.getCurrentName();
-                            if (fieldNames.contains(currentFieldName)) {
-                                jsonParser.nextToken();
-                                fieldValues.put(currentFieldName, jsonParser.getText());
-                            }
+                    String key = expression;
+                    for (String fieldName : fieldNames) {
+                        if (jsonObject.containsKey(fieldName)) {
+                            key = key.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
                         }
-
-                        String key = expression;
-                        for (String fieldName : fieldNames) {
-                            if (fieldValues.containsKey(fieldName)) {
-                                key = key.replace("%" + fieldName + "%", fieldValues.get(fieldName));
-                            }
-                        }
-
-                        if (key.contains("#UUID#")) {
-                            key = key.replace("#UUID#", UUID.randomUUID().toString());
-                        }
-
-                        if (key.contains("#MONO_INCR#")) {
-                            key = key.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
-                            monoIncrValue++;
-                        }
-
-                        previewContent.append(key).append("\n");
                     }
+
+                    key = key.replace("#UUID#", UUID.randomUUID().toString());
+                    key = key.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                    monoIncrValue++;
+
+                    previewContent.append(key).append("\n");
                 }
-
-                keyPreviewArea.setText(previewContent.toString());
-
             }
 
+            keyPreviewArea.setText(previewContent.toString());
+            updateIgnoreFieldsTextField();
         } catch (Exception e) {
             Log.error("Exception occurred", e);
             e.printStackTrace();

@@ -141,8 +141,12 @@ public interface GeneratedTypes {
   IElementType IN_EXPR = new SqlppElementType("IN_EXPR");
   IElementType IS_EXPR = new SqlppElementType("IS_EXPR");
   IElementType JOIN_CLAUSE = new SqlppElementType("JOIN_CLAUSE");
+  IElementType JSON_ARRAY = new SqlppElementType("JSON_ARRAY");
+  IElementType JSON_FIELD = new SqlppElementType("JSON_FIELD");
   IElementType JSON_HINT = new SqlppElementType("JSON_HINT");
   IElementType JSON_HINT_OBJECT = new SqlppElementType("JSON_HINT_OBJECT");
+  IElementType JSON_OBJECT = new SqlppElementType("JSON_OBJECT");
+  IElementType JSON_VALUE = new SqlppElementType("JSON_VALUE");
   IElementType KEYSPACE_ARRAY = new SqlppElementType("KEYSPACE_ARRAY");
   IElementType KEYSPACE_FULL = new SqlppElementType("KEYSPACE_FULL");
   IElementType KEYSPACE_OBJECT = new SqlppElementType("KEYSPACE_OBJECT");
@@ -880,11 +884,23 @@ public interface GeneratedTypes {
       else if (type == JOIN_CLAUSE) {
         return new JoinClauseImpl(node);
       }
+      else if (type == JSON_ARRAY) {
+        return new JsonArrayImpl(node);
+      }
+      else if (type == JSON_FIELD) {
+        return new JsonFieldImpl(node);
+      }
       else if (type == JSON_HINT) {
         return new JsonHintImpl(node);
       }
       else if (type == JSON_HINT_OBJECT) {
         return new JsonHintObjectImpl(node);
+      }
+      else if (type == JSON_OBJECT) {
+        return new JsonObjectImpl(node);
+      }
+      else if (type == JSON_VALUE) {
+        return new JsonValueImpl(node);
       }
       else if (type == KEYSPACE_ARRAY) {
         return new KeyspaceArrayImpl(node);

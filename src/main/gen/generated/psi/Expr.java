@@ -29,6 +29,9 @@ public interface Expr extends PsiElement {
   IdentifierRef getIdentifierRef();
 
   @Nullable
+  JsonValue getJsonValue();
+
+  @Nullable
   Literal getLiteral();
 
   @NotNull
