@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,11 +32,13 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 
+import com.intellij.ui.components.*;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.json.JsonObject;
@@ -57,10 +60,6 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
-import com.intellij.ui.components.JBCheckBox;
-import com.intellij.ui.components.JBLabel;
-import com.intellij.ui.components.JBRadioButton;
-import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 
 import utils.FileUtils;
@@ -509,9 +508,12 @@ public class ImportDialog extends DialogWrapper {
         keyPreviewArea.setWrapStyleWord(true);
 
         keyPreviewArea.setMinimumSize(new Dimension(150, 100));
-        keyPreviewArea.setPreferredSize(new Dimension(150, 100));
+        keyPreviewArea.setPreferredSize(new Dimension(150, 200));
+        keyPreviewArea.setMaximumSize(new Dimension(150, 300));
 
-        keyPreviewPanel.add(keyPreviewArea, BorderLayout.CENTER);
+        JBScrollPane keyPreviewAreaScrollPane = new JBScrollPane(keyPreviewArea);
+        keyPreviewAreaScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        keyPreviewPanel.add(keyPreviewAreaScrollPane, BorderLayout.CENTER);
 
         contentPanel.add(keyPreviewPanel);
 
@@ -726,7 +728,6 @@ public class ImportDialog extends DialogWrapper {
     }
 
     protected void addListeners() {
-
         // Page 1: Dataset
         datasetField.addBrowseFolderListener("Select the Dataset", "", null,
                 new FileChooserDescriptor(true, false, false, false, false, false) {
@@ -941,16 +942,20 @@ public class ImportDialog extends DialogWrapper {
 
             collectionCombo.removeAllItems();
 
-            String[] collectionItems = scopeItems.stream()
-                    .filter(scope -> scope.name().equals(selectedScope))
-                    .flatMap(scope -> scope.collections().stream())
-                    .map(CollectionSpec::name)
-                    .distinct()
-                    .toArray(String[]::new);
+            Consumer<String> refreshCollectionCombo = (scope) -> {
+                String[] collectionItems = scopeItems.stream()
+                        .filter(s -> s.name().equals(scope))
+                        .flatMap(s -> s.collections().stream())
+                        .map(CollectionSpec::name)
+                        .distinct()
+                        .toArray(String[]::new);
 
-            for (String collectionItem : collectionItems) {
-                collectionCombo.addItem(collectionItem);
-            }
+                for (String collectionItem : collectionItems) {
+                    collectionCombo.addItem(collectionItem);
+                }
+            };
+
+            refreshCollectionCombo.accept(selectedScope);
 
             if (collectionCombo.getItemCount() > 0) {
                 collectionCombo.setSelectedIndex(0);
@@ -980,16 +985,7 @@ public class ImportDialog extends DialogWrapper {
                     }
                 } else {
                     scopeCombo.setSelectedItem("_default");
-                    collectionItems = scopeItems.stream()
-                            .filter(scope -> scope.name().equals("_default"))
-                            .flatMap(scope -> scope.collections().stream())
-                            .map(CollectionSpec::name)
-                            .distinct()
-                            .toArray(String[]::new);
-
-                    for (String collectionItem : collectionItems) {
-                        collectionCombo.addItem(collectionItem);
-                    }
+                    refreshCollectionCombo.accept("_default");
                     collectionCombo.setSelectedIndex(0);
                     targetCollectionField = Objects.requireNonNull(collectionCombo.getSelectedItem()).toString();
                 }
@@ -1327,7 +1323,7 @@ public class ImportDialog extends DialogWrapper {
                         nextLine = nextLine.replace("[", "");
                     }
 
-                    if (nextLine == null || counter > 2000 || cachedJsonDocs.size() >= 10) {
+                    if (nextLine == null || counter > 2000 || cachedJsonDocs.size() >= 6) {
                         break;
                     } else {
                         counter++;
