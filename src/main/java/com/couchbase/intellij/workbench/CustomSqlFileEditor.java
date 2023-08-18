@@ -606,7 +606,12 @@ public class CustomSqlFileEditor implements FileEditor {
         }
 
         public void release() {
-            EditorFactory.getInstance().releaseEditor(Objects.requireNonNullElseGet(viewer, textEditor::getEditor));
+            if (viewer != null) {
+                EditorFactory.getInstance().releaseEditor(viewer);
+            }
+            if (textEditor != null && textEditor.getEditor() != null) {
+                EditorFactory.getInstance().releaseEditor(textEditor.getEditor());
+            }
         }
     }
 }

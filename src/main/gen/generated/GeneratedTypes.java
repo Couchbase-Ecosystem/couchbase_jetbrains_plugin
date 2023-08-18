@@ -108,6 +108,7 @@ public interface GeneratedTypes {
   IElementType HAVING_CLAUSE = new SqlppElementType("HAVING_CLAUSE");
   IElementType HINTS = new SqlppElementType("HINTS");
   IElementType HINT_COMMENT = new SqlppElementType("HINT_COMMENT");
+  IElementType IDENTIFIER_OR_STAR = new SqlppElementType("IDENTIFIER_OR_STAR");
   IElementType IDENTIFIER_REF = new SqlppElementType("IDENTIFIER_REF");
   IElementType INCLUDE_MISSING = new SqlppElementType("INCLUDE_MISSING");
   IElementType INDEXES_CLAUSE = new SqlppElementType("INDEXES_CLAUSE");
@@ -314,7 +315,7 @@ public interface GeneratedTypes {
   IElementType CASE = new SqlppTokenType("CASE");
   IElementType COLLECTION = new SqlppTokenType("COLLECTION");
   IElementType COLON = new SqlppTokenType("COLON");
-  IElementType COMMA = new SqlppTokenType("COMMA");
+  IElementType COMMA = new SqlppTokenType("comma");
   IElementType COMMENT_CLOSE = new SqlppTokenType("COMMENT_CLOSE");
   IElementType COMMIT = new SqlppTokenType("COMMIT");
   IElementType COMMITTED = new SqlppTokenType("COMMITTED");
@@ -784,6 +785,9 @@ public interface GeneratedTypes {
       }
       else if (type == HINT_COMMENT) {
         return new HintCommentImpl(node);
+      }
+      else if (type == IDENTIFIER_OR_STAR) {
+        return new IdentifierOrStarImpl(node);
       }
       else if (type == IDENTIFIER_REF) {
         return new IdentifierRefImpl(node);

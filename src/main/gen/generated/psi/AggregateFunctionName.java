@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface AggregateFunctionName extends PsiElement {
 
-  @NotNull
+  @Nullable
   IdentifierRef getIdentifierRef();
 
 }
