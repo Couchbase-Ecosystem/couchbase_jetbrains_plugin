@@ -29,8 +29,8 @@ public class ParamsImpl extends SqlppPSIWrapper implements Params {
 
   @Override
   @NotNull
-  public List<IdentifierRef> getIdentifierRefList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, IdentifierRef.class);
+  public List<IdentifierOrStar> getIdentifierOrStarList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, IdentifierOrStar.class);
   }
 
 }

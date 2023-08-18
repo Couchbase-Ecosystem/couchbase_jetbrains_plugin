@@ -28,9 +28,9 @@ public class AggregateFunctionNameImpl extends SqlppPSIWrapper implements Aggreg
   }
 
   @Override
-  @NotNull
+  @Nullable
   public IdentifierRef getIdentifierRef() {
-    return findNotNullChildByClass(IdentifierRef.class);
+    return findChildByClass(IdentifierRef.class);
   }
 
 }

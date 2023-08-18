@@ -11,14 +11,14 @@ import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class WindowFunctionNameImpl extends SqlppPSIWrapper implements WindowFunctionName {
+public class IdentifierOrStarImpl extends SqlppPSIWrapper implements IdentifierOrStar {
 
-  public WindowFunctionNameImpl(@NotNull ASTNode node) {
+  public IdentifierOrStarImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitWindowFunctionName(this);
+    visitor.visitIdentifierOrStar(this);
   }
 
   @Override

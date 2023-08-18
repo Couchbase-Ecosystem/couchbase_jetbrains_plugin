@@ -72,7 +72,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                        ( path DOT )? ASTERISK ) RPAREN filter-clause? over-clause?
   public static boolean aggregate_function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "aggregate_function")) return false;
-    if (!nextTokenIs(b, "<aggregate function>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, AGGREGATE_FUNCTION, "<aggregate function>");
     r = aggregate_function_name(b, l + 1);
@@ -159,13 +158,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // identifier-ref
+  // FUNCS | identifier-ref
   public static boolean aggregate_function_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "aggregate_function_name")) return false;
-    if (!nextTokenIs(b, "<aggregate function name>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, AGGREGATE_FUNCTION_NAME, "<aggregate function name>");
-    r = identifier_ref(b, l + 1);
+    r = consumeToken(b, FUNCS);
+    if (!r) r = identifier_ref(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -947,7 +946,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FUNCS LPAREN ( expr ( COMMA expr )* )? RPAREN
+  // FUNCS LPAREN ( expr ( comma expr )* )? RPAREN
   public static boolean builtin_function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function")) return false;
     if (!nextTokenIs(b, FUNCS)) return false;
@@ -960,14 +959,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( expr ( COMMA expr )* )?
+  // ( expr ( comma expr )* )?
   private static boolean builtin_function_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2")) return false;
     builtin_function_2_0(b, l + 1);
     return true;
   }
 
-  // expr ( COMMA expr )*
+  // expr ( comma expr )*
   private static boolean builtin_function_2_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2_0")) return false;
     boolean r;
@@ -978,7 +977,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( COMMA expr )*
+  // ( comma expr )*
   private static boolean builtin_function_2_0_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2_0_1")) return false;
     while (true) {
@@ -989,7 +988,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // COMMA expr
+  // comma expr
   private static boolean builtin_function_2_0_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2_0_1_0")) return false;
     boolean r;
@@ -3337,6 +3336,18 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, HINTS, "<hints>");
     r = simple_hint_sequence(b, l + 1);
     if (!r) r = json_hint_object(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // identifier-ref | ASTERISK
+  public static boolean identifier_or_star(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "identifier_or_star")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, IDENTIFIER_OR_STAR, "<identifier or star>");
+    r = identifier_ref(b, l + 1);
+    if (!r) r = consumeToken(b, ASTERISK);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -6045,7 +6056,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // identifier-ref ( COMMA identifier-ref )* | ELLIPSIS
+  // identifier-or-star ( COMMA identifier-or-star )* | ELLIPSIS
   public static boolean params(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "params")) return false;
     boolean r;
@@ -6056,18 +6067,18 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // identifier-ref ( COMMA identifier-ref )*
+  // identifier-or-star ( COMMA identifier-or-star )*
   private static boolean params_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "params_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = identifier_ref(b, l + 1);
+    r = identifier_or_star(b, l + 1);
     r = r && params_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // ( COMMA identifier-ref )*
+  // ( COMMA identifier-or-star )*
   private static boolean params_0_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "params_0_1")) return false;
     while (true) {
@@ -6078,13 +6089,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // COMMA identifier-ref
+  // COMMA identifier-or-star
   private static boolean params_0_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "params_0_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COMMA);
-    r = r && identifier_ref(b, l + 1);
+    r = r && identifier_or_star(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -8970,7 +8981,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                     window-function-options? over-clause
   public static boolean window_function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "window_function")) return false;
-    if (!nextTokenIs(b, "<window function>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, WINDOW_FUNCTION, "<window function>");
     r = window_function_name(b, l + 1);
@@ -9049,13 +9059,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // identifier-ref
+  // FUNCS | identifier-ref
   public static boolean window_function_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "window_function_name")) return false;
-    if (!nextTokenIs(b, "<window function name>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, WINDOW_FUNCTION_NAME, "<window function name>");
-    r = identifier_ref(b, l + 1);
+    r = consumeToken(b, FUNCS);
+    if (!r) r = identifier_ref(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
