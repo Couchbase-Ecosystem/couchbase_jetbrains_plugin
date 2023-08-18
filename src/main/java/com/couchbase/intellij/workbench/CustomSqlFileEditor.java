@@ -299,8 +299,7 @@ public class CustomSqlFileEditor implements FileEditor {
         PsiFile psi = PsiManager.getInstance(project).findFile(getFile());
         PsiErrorElement err = PsiTreeUtil.findChildOfType(psi, PsiErrorElement.class);
         if (err != null) {
-            Messages.showMessageDialog("There are syntax errors in the script.", "Couchbase Plugin Error", Messages.getErrorIcon());
-            return null;
+            return queryEditor.getDocument().getText();
         }
         return ReadAction.compute(() -> {
             PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
@@ -322,8 +321,7 @@ public class CustomSqlFileEditor implements FileEditor {
         PsiFile psi = PsiManager.getInstance(project).findFile(getFile());
         PsiErrorElement err = PsiTreeUtil.findChildOfType(psi, PsiErrorElement.class);
         if (err != null) {
-            Messages.showMessageDialog("There are syntax errors in the script.", "Couchbase Plugin Error", Messages.getErrorIcon());
-            return Collections.EMPTY_LIST;
+            return List.of(queryEditor.getDocument().getText());
         }
         return ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
                 .map(PsiElement::getText)
