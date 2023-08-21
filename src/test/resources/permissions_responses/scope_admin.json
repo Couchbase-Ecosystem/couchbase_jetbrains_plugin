@@ -1,0 +1,35 @@
+{
+  "roles": [
+    {
+      "role": "bucket_admin",
+      "bucket_name": "travel-sample"
+    },
+    {
+      "role": "data_reader",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "airport"
+    },
+    {
+      "role": "data_reader",
+      "bucket_name": "travel-sample",
+      "scope_name": "tenant_agent_00",
+      "collection_name": "users"
+    },
+    {
+      "role": "data_writer",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "airport"
+    },
+    {
+      "role": "scope_admin",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    }
+  ],
+  "id": "ram",
+  "domain": "local",
+  "name": "",
+  "password_change_date": "2023-08-07T10:34:55.000Z"
+}

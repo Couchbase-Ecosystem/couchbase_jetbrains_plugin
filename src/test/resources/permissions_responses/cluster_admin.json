@@ -1,0 +1,11 @@
+{
+  "roles": [
+    {
+      "role": "cluster_admin"
+    }
+  ],
+  "id": "ram",
+  "domain": "local",
+  "name": "",
+  "password_change_date": "2023-08-07T10:34:55.000Z"
+}

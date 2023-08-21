@@ -1,0 +1,103 @@
+{
+  "roles": [
+    {
+      "role": "analytics_select",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "data_dcp_reader",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "data_monitoring",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "data_reader",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "data_writer",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "eventing_manage_functions",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    },
+    {
+      "role": "fts_searcher",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "query_delete",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "query_execute_external_functions",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    },
+    {
+      "role": "query_execute_functions",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    },
+    {
+      "role": "query_insert",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "query_manage_external_functions",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    },
+    {
+      "role": "query_manage_functions",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    },
+    {
+      "role": "query_manage_index",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "query_select",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "query_update",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory",
+      "collection_name": "*"
+    },
+    {
+      "role": "scope_admin",
+      "bucket_name": "travel-sample",
+      "scope_name": "inventory"
+    }
+  ],
+  "id": "Test-plugin4",
+  "domain": "local",
+  "password_change_date": "2023-08-02T06:34:51.000Z"
+}

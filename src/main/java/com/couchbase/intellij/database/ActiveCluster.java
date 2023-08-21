@@ -45,6 +45,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     private Color color;
 
+    private Permissions permissions;
+
     private Set<CouchbaseBucket> buckets;
     private long lastSchemaUpdate = 0;
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
@@ -76,6 +78,13 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             return null;
         }
         return this.savedCluster.getId();
+    }
+
+    public PermissionChecker getPermissions() throws Exception {
+        if (permissions == null) {
+            permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
+        }
+        return new PermissionChecker(permissions);
     }
 
     public void connect(SavedCluster savedCluster, Consumer<Exception> connectListener, Runnable disconnectListener) throws Exception {
@@ -184,6 +193,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.color = null;
         this.buckets = null;
         this.disconnectListener = null;
+        this.permissions = null;
     }
 
     public String getUsername() {
