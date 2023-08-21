@@ -1399,6 +1399,7 @@ public class ImportDialog extends DialogWrapper {
         ignoreFieldsText = ignoreFieldsText.replaceAll("^,+|,+$", "");
 
         ignoreFieldsField.setText(ignoreFieldsText);
+        ignoreFieldsCheck.setEnabled(!ignoreFieldsText.isEmpty());
     }
 
     protected List<String> extractWordsWithPercentSymbols(String text) {
@@ -1526,13 +1527,13 @@ public class ImportDialog extends DialogWrapper {
                 String collectionExp, String dynamicExp) {
             if (targetLocationGroupSelection == defaultScopeAndCollectionRadio.getModel()) {
                 commandList.add("--scope-collection-exp");
-                commandList.add(checkForDelimiters(defaultExp, '#'));
+                commandList.add(defaultExp);
             } else if (targetLocationGroupSelection == collectionRadio.getModel()) {
                 commandList.add("--scope-collection-exp");
-                commandList.add(checkForDelimiters(collectionExp, '#'));
+                commandList.add(collectionExp);
             } else if (targetLocationGroupSelection == dynamicScopeAndCollectionRadio.getModel()) {
                 commandList.add("--scope-collection-exp");
-                commandList.add(checkForDelimiters(dynamicExp, '#'));
+                commandList.add(dynamicExp);
             }
             return this;
         }
@@ -1541,13 +1542,13 @@ public class ImportDialog extends DialogWrapper {
                 String fieldValueKey, String customExpressionKey) {
             if (keyGroupSelection == generateUUIDRadio.getModel()) {
                 commandList.add("--generate-key");
-                commandList.add(checkForDelimiters(uuidKey, '#'));
+                commandList.add(uuidKey);
             } else if (keyGroupSelection == useFieldValueRadio.getModel()) {
                 commandList.add("--generate-key");
-                commandList.add(checkForDelimiters(fieldValueKey, '#'));
+                commandList.add(fieldValueKey);
             } else if (keyGroupSelection == customExpressionRadio.getModel()) {
                 commandList.add("--generate-key");
-                commandList.add(checkForDelimiters(customExpressionKey, '#'));
+                commandList.add(customExpressionKey);
             }
             return this;
         }
@@ -1579,7 +1580,7 @@ public class ImportDialog extends DialogWrapper {
         public CBImportCommandBuilder setIgnoreFields(String fields) {
             if (fields != null && !fields.isEmpty()) {
                 commandList.add("--ignore-fields");
-                commandList.add(checkForDelimiters("'" + fields + "'", '#'));
+                commandList.add(fields);
             }
             return this;
         }
@@ -1660,16 +1661,8 @@ public class ImportDialog extends DialogWrapper {
             CBImport.complexBucketImport(bucket, filePath, project, fileFormat, commandList);
             super.doOKAction();
         } catch (Exception ex) {
-            Log.error("Exception Occurred " + ex);
+            Log.error("Exception occurred in CBImport command builder: \n", ex);
+
         }
     }
-
-    public static String checkForDelimiters(String input, char c) {
-        if (input.indexOf(c) != -1) {
-            return "'" + input + "'";
-        } else {
-            return input;
-        }
-    }
-
 }
