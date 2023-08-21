@@ -19,6 +19,8 @@ import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.tree.overview.apis.BucketQuota;
+import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
@@ -37,13 +39,13 @@ public class NewEntityCreationDialog extends DialogWrapper {
             Project project,
             EntityType entityType,
 
-            // 3 varargs for bucket, scope, collection
             String... names) {
         super(project);
         this.entityType = entityType;
 
+        // 3 vargs for bucket,scope, collection
         if (entityType == EntityType.BUCKET) {
-            // Do nothing
+            // do nothing
         } else if (entityType == EntityType.SCOPE) {
             bucketName = names[0];
         } else if (entityType == EntityType.COLLECTION) {
@@ -65,16 +67,13 @@ public class NewEntityCreationDialog extends DialogWrapper {
         gbc.insets = JBUI.insets(5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Label: "Give a name to your entity"
         JLabel nameLabel = new JLabel("Name of the " + entityType.toString().toLowerCase());
         panel.add(nameLabel, gbc);
 
-        // Text Field
         gbc.gridy = 1;
         textField = new JTextField(40);
         panel.add(textField, gbc);
 
-        // Label: "This name already exists"
         gbc.gridy = 2;
         errorLabel = new JLabel("");
         errorLabel.setForeground(Color.decode("#FF4444"));
@@ -91,7 +90,6 @@ public class NewEntityCreationDialog extends DialogWrapper {
             return;
         }
 
-        // Only certain characters are allowed
         String allowedCharacters = "[a-zA-Z0-9_.\\-%]+";
         if (!textField.getText().matches(allowedCharacters)) {
             errorLabel.setText("Invalid characters in " + entityType.toString().toLowerCase()
@@ -99,7 +97,16 @@ public class NewEntityCreationDialog extends DialogWrapper {
             return;
         }
 
-        // Check if the name already exists
+        ServerOverview serverOverview = new ServerOverview();
+        long totalHddQuota = serverOverview.getStorageTotals().getHdd().getQuotaTotal();
+        long usedHddQuota = serverOverview.getStorageTotals().getHdd().getUsed();
+        long availableHddQuota = totalHddQuota - usedHddQuota;
+
+        if (availableHddQuota <= 0) {
+            errorLabel.setText("Error: HDD usage exceeds quota by " + (usedHddQuota - totalHddQuota)
+                    + " units. Adjust HDD quota or memory usage.");
+            return;
+        }
         if (entityType == EntityType.BUCKET) {
             bucketName = textField.getText();
             Map<String, BucketSettings> bucketSettingsMap = ActiveCluster.getInstance().get().buckets().getAllBuckets();
@@ -108,13 +115,26 @@ public class NewEntityCreationDialog extends DialogWrapper {
                 errorLabel.setText("Bucket with name " + bucketName + " already exists");
                 return;
             }
+
+            long totalRamQuota = serverOverview.getStorageTotals().getRam().getQuotaTotal();
+            long usedRamQuota = serverOverview.getStorageTotals().getRam().getQuotaUsed();
+            long availableRamQuota = totalRamQuota - usedRamQuota;
+
+            BucketQuota bucketQuota = new BucketQuota();
+            long bucketRamQuota = bucketQuota.getRam();
+
+            if (bucketRamQuota > availableRamQuota) {
+                errorLabel.setText(
+                        "Error: The RAM quota for the bucket exceeds the available RAM quota for your cluster.");
+                return;
+            }
+
         } else if (entityType == EntityType.SCOPE) {
             scopeName = textField.getText();
             List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
                     .getAllScopes();
             for (ScopeSpec scope : scopes) {
                 if (scope.name().equals(scopeName)) {
-                    // If it does, show error message
                     errorLabel.setText("Scope with name " + scopeName + " already exists");
                     return;
                 }
@@ -129,7 +149,6 @@ public class NewEntityCreationDialog extends DialogWrapper {
 
             for (CollectionSpec collection : collections) {
                 if (collection.name().equals(collectionName)) {
-                    // If it does, show error message
                     errorLabel.setText("Collection with name " + collectionName + " already exists");
                     return;
                 }
