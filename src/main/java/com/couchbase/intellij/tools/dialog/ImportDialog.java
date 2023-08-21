@@ -1026,47 +1026,60 @@ public class ImportDialog extends DialogWrapper {
                 }
             } else if (currentPage == 2) {
 
-                if (dynamicScopeAndCollectionRadio.isSelected()) {
+                if (defaultScopeAndCollectionRadio.isSelected()) {
+                    // do nothing
+                } else if (collectionRadio.isSelected()) {
+                    if (scopeCombo.getSelectedItem() == null) {
+                        isValid = false;
+                        Log.debug("Validation failed: Scope combo box not selected");
+                        errorMessages.add("Scope combo box not selected.");
+                    }
+                    if (collectionCombo.getSelectedItem() == null) {
+                        isValid = false;
+                        Log.debug("Validation failed: Collection combo box not selected");
+                        errorMessages.add("Collection combo box not selected.");
+                    }
+                } else if (dynamicScopeAndCollectionRadio.isSelected()) {
                     String dynamicScopeText = dynamicScopeField.getText();
                     String dynamicCollectionText = dynamicCollectionField.getText();
-                    boolean isValidDynamicScope = !dynamicScopeText.isEmpty();
-                    boolean isValidDynamicCollection = !dynamicCollectionText.isEmpty();
-                    highlightField(dynamicScopeField, isValidDynamicScope);
-                    highlightField(dynamicCollectionField, isValidDynamicCollection);
-                    if (!isValidDynamicScope || !isValidDynamicCollection) {
+                    boolean isDynamicScopeEmpty = !dynamicScopeText.isEmpty();
+                    boolean isDynamicCollectionEmpty = !dynamicCollectionText.isEmpty();
+                    highlightField(dynamicScopeField, isDynamicScopeEmpty);
+                    highlightField(dynamicCollectionField, isDynamicCollectionEmpty);
+                    if (!isDynamicScopeEmpty || !isDynamicCollectionEmpty) {
                         isValid = false;
                         Log.debug("Validation failed: Dynamic scope and/or collection fields are empty");
                         errorMessages.add("Dynamic scope and/or collection fields are empty.");
                     }
-                }
 
-                String scopeFieldText = dynamicScopeField.getText();
-                boolean isValidScope = FileUtils.checkFieldsInJson(scopeFieldText,
-                        datasetField.getText());
+                    String scopeFieldText = dynamicScopeField.getText();
+                    boolean isValidDynamicScope = FileUtils.checkFieldsInJson(scopeFieldText,
+                            datasetField.getText());
 
-                highlightField(dynamicScopeField, isValidScope);
+                    highlightField(dynamicScopeField, isValidDynamicScope);
 
-                String collectionFieldText = dynamicCollectionField.getText();
-                boolean isValidCollection = FileUtils.checkFieldsInJson(collectionFieldText,
-                        datasetField.getText());
-                highlightField(dynamicCollectionField, isValidCollection);
+                    String collectionFieldText = dynamicCollectionField.getText();
+                    boolean isValidDynamicCollection = FileUtils.checkFieldsInJson(collectionFieldText,
+                            datasetField.getText());
+                    highlightField(dynamicCollectionField, isValidDynamicCollection);
 
-                if (!isValidScope || !isValidCollection) {
-                    isValid = false;
-                    Log.debug("Validation failed: Scope and/or Collection fields are not valid");
-                    errorMessages.add("Scope and/or Collection fields are not valid.");
-                }
+                    if (!isValidDynamicScope || !isValidDynamicCollection) {
+                        isValid = false;
+                        Log.debug("Validation failed: Scope and/or Collection fields are not valid");
+                        errorMessages.add("Scope and/or Collection fields are not valid.");
+                    }
 
-                if (!defaultScopeAndCollectionRadio.isSelected() && !collectionRadio.isSelected()
-                        && !dynamicScopeAndCollectionRadio.isSelected()) {
+                    String regex = "^(_|-|\\%|[0-9a-zA-Z])+$";
+                    if (!dynamicScopeText.matches(regex) || !dynamicCollectionText.matches(regex)) {
+                        isValid = false;
+                        Log.debug("Validation failed: Scope and/or Collection fields do not match the regex");
+                        errorMessages.add("Scope and/or Collection fields do not match the regex.");
+                    }
+
+                } else {
                     isValid = false;
                     Log.debug("Validation failed: No target location radio box selected");
                     errorMessages.add("No target location radio box selected.");
-                } else if (collectionRadio.isSelected()
-                        && (scopeCombo.getSelectedItem() == null || collectionCombo.getSelectedItem() == null)) {
-                    isValid = false;
-                    Log.debug("Validation failed: Scope and/or collection combo box not selected");
-                    errorMessages.add("Scope and/or collection combo box not selected.");
                 }
 
             } else if (currentPage == 3) {
