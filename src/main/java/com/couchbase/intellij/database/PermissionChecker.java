@@ -58,7 +58,7 @@ public class PermissionChecker {
             if ("data_writer".equals(role.getRole()) &&
                     (role.getBucketName().equals("*") || bucket.equals(role.getBucketName())) &&
                     (role.getScopeName().equals("*") || scope.equals(role.getScopeName())) &&
-                    (role.getCollectionName().equals("*")) || collection.equals(role.getCollectionName())) {
+                    (role.getCollectionName().equals("*") || collection.equals(role.getCollectionName()))) {
                 return true;
             }
         }

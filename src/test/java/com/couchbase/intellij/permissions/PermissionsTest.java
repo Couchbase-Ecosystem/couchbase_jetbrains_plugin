@@ -6,7 +6,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+
 public class PermissionsTest {
+
     @Test
     public void testIsClusterAdmin() throws Exception {
         String response = getCode("cluster_admin.json");
@@ -41,6 +43,42 @@ public class PermissionsTest {
         PermissionChecker permissionChecker = new PermissionChecker(permissions);
 
         Assertions.assertTrue(permissionChecker.canWrite("travel-sample", "inventory", "*"));
+    }
+
+    @Test
+    public void testIsClusterAdmin_False() throws Exception {
+        String response = getCode("cluster_admin_false.json");
+        Permissions permissions = parsePermissions(response);
+        PermissionChecker permissionChecker = new PermissionChecker(permissions);
+
+        Assertions.assertFalse(permissionChecker.isClusterAdmin());
+    }
+
+    @Test
+    public void testCanManageBucket_False() throws Exception {
+        String response = getCode("bucket_admin_false.json");
+        Permissions permissions = parsePermissions(response);
+        PermissionChecker permissionChecker = new PermissionChecker(permissions);
+
+        Assertions.assertFalse(permissionChecker.canManageBucket("travel-sample"));
+    }
+
+    @Test
+    public void testCanManageScopes_False() throws Exception {
+        String response = getCode("scope_admin_false.json");
+        Permissions permissions = parsePermissions(response);
+        PermissionChecker permissionChecker = new PermissionChecker(permissions);
+
+        Assertions.assertFalse(permissionChecker.canManageScopes("travel-sample", "inventory"));
+    }
+
+    @Test
+    public void testCanWrite_False() throws Exception {
+        String response = getCode("data_writer_false.json");
+        Permissions permissions = parsePermissions(response);
+        PermissionChecker permissionChecker = new PermissionChecker(permissions);
+
+        Assertions.assertFalse(permissionChecker.canWrite("travel-sample", "inventory", "*"));
     }
 
     private String getCode(String fileName) throws Exception {

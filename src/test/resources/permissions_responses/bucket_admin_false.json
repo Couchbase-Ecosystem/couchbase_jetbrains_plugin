@@ -1,0 +1,12 @@
+{
+  "roles": [
+    {
+      "role": "bucket_admin-not",
+      "bucket_name": "travel-sample"
+    }
+  ],
+  "id": "ram",
+  "domain": "local",
+  "name": "",
+  "password_change_date": "2023-08-07T10:34:55.000Z"
+}
