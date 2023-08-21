@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
@@ -35,6 +36,7 @@ import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.ColorPicker;
 import com.intellij.ui.ColorPickerListener;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
@@ -62,7 +64,8 @@ public class TreeRightClickListener {
         tree.setSelectionRow(row);
 
         if (userObject instanceof ConnectionNodeDescriptor) {
-            handleConnectionRightClick(project, toolbarPanel, e, clickedNode, (ConnectionNodeDescriptor) userObject, tree);
+            handleConnectionRightClick(project, toolbarPanel, e, clickedNode, (ConnectionNodeDescriptor) userObject,
+                    tree);
         } else if (userObject instanceof BucketNodeDescriptor) {
             handleBucketRightClick(project, e, clickedNode, tree);
         } else if (userObject instanceof ScopeNodeDescriptor) {
@@ -76,7 +79,8 @@ public class TreeRightClickListener {
         }
     }
 
-    private static void handleConnectionRightClick(Project project, JPanel toolBarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
+    private static void handleConnectionRightClick(Project project, JPanel toolBarPanel, MouseEvent e,
+                                                   DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         if (userObject.isActive()) {
@@ -111,9 +115,29 @@ public class TreeRightClickListener {
             };
             actionGroup.add(menuItem);
 
+            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+                // Add "Create New Bucket" option
+                AnAction createNewBucketItem = new AnAction("Create New Bucket") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
+                                EntityType.BUCKET);
+                        entityCreationDialog.show();
+
+                        if (entityCreationDialog.isOK()) {
+                            String bucketName = entityCreationDialog.getEntityName();
+                            ActiveCluster.getInstance().get().buckets().createBucket(BucketSettings.create(bucketName));
+                            DataLoader.listBuckets(clickedNode, tree);
+                        }
+                    }
+                };
+                actionGroup.add(createNewBucketItem);
+            }
+
             DefaultActionGroup tools = new DefaultActionGroup("Tools", true);
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).isAvailable()) {
+            if (!ActiveCluster.getInstance().isReadOnlyMode()
+                    && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).isAvailable()) {
                 AnAction pillowFight = new AnAction("Pillow Fight") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -158,7 +182,7 @@ public class TreeRightClickListener {
             AnAction colorAction = new AnAction("Set Connection Color") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    Color initialColor = Color.RED;
+                    Color initialColor = JBColor.RED;
                     ColorPickerListener colorPickerListener = new ColorPickerListener() {
                         @Override
                         public void colorChanged(Color newColor) {
@@ -178,7 +202,8 @@ public class TreeRightClickListener {
                         }
                     };
 
-                    ColorPicker.showDialog(tree, "Choose a Color for This Connection", initialColor, true, List.of(colorPickerListener), true);
+                    ColorPicker.showDialog(tree, "Choose a Color for This Connection", initialColor, true,
+                            List.of(colorPickerListener), true);
                 }
             };
             colors.add(colorAction);
@@ -189,7 +214,9 @@ public class TreeRightClickListener {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         ActiveCluster.getInstance().setReadOnlyMode(true);
-                        SwingUtilities.invokeLater(() -> Messages.showWarningDialog("<html>The <strong>Read Only Mode</strong> is a simple guardrail in the plugin to avoid unwanted changes in sensible environments. Please note that this is a <strong>best effort</strong> approach. For true read-only approach, connect to the cluster using read-only credentials.</html>", "Couchbase Plugin Warning"));
+                        SwingUtilities.invokeLater(() -> Messages.showWarningDialog(
+                                "<html>The <strong>Read Only Mode</strong> is a simple guardrail in the plugin to avoid unwanted changes in sensible environments. Please note that this is a <strong>best effort</strong> approach. For true read-only approach, connect to the cluster using read-only credentials.</html>",
+                                "Couchbase Plugin Warning"));
 
                     }
                 };
@@ -261,7 +288,8 @@ public class TreeRightClickListener {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE, bucketName);
+                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
+                            EntityType.SCOPE, bucketName);
                     entityCreationDialog.show();
 
                     if (entityCreationDialog.isOK()) {
@@ -272,6 +300,29 @@ public class TreeRightClickListener {
                 }
             };
             actionGroup.add(addNewScopeItem);
+
+            // Add "Delete Bucket" option
+            AnAction deleteBucketItem = new AnAction("Delete Bucket") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+
+                    // Show confirmation dialog before deleting bucket
+                    int result = Messages.showYesNoDialog(
+                            "Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket",
+                            Messages.getQuestionIcon());
+                    if (result != Messages.YES) {
+                        return;
+                    }
+
+                    ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
+                    // Refresh buckets
+                    TreePath treePath = new TreePath(clickedNode.getPath());
+                    tree.collapsePath(treePath);
+                    tree.expandPath(treePath);
+                }
+            };
+            actionGroup.add(deleteBucketItem);
         }
 
         showPopup(e, tree, actionGroup);
@@ -300,12 +351,14 @@ public class TreeRightClickListener {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
 
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION, bucketName, scopeName);
+                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project,
+                            EntityType.COLLECTION, bucketName, scopeName);
                     entityCreationDialog.show();
 
                     if (entityCreationDialog.isOK()) {
                         String collectionName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get().bucket(bucketName).collections().createCollection(CollectionSpec.create(collectionName, scopeName));
+                        ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                                .createCollection(CollectionSpec.create(collectionName, scopeName));
                         DataLoader.listCollections(clickedNode, tree);
                     }
                 }
@@ -321,7 +374,9 @@ public class TreeRightClickListener {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         // Show confirmation dialog before deleting scope
-                        int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
+                        int result = Messages.showYesNoDialog(
+                                "Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope",
+                                Messages.getQuestionIcon());
                         if (result != Messages.YES) {
                             return;
                         }
@@ -352,7 +407,8 @@ public class TreeRightClickListener {
                     if (file != null) {
                         CBImport.simpleScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
                     } else {
-                        Messages.showErrorDialog("Simple Import requires a .json file. Please try again.", "Simple Import Error");
+                        Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
+                                "Simple Import Error");
                     }
                 }
             };
@@ -362,8 +418,10 @@ public class TreeRightClickListener {
         AnAction simpleExport = new AnAction("Simple Export") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export", "Choose where you want to save the file:");
-                VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project).save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+                FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export",
+                        "Choose where you want to save the file:");
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project)
+                        .save(("cb_export-" + scope.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
                 if (wrapper != null) {
                     File file = wrapper.getFile();
                     CBExport.simpleScopeExport(scope.getBucket(), scope.getText(), file.getAbsolutePath());
@@ -400,7 +458,8 @@ public class TreeRightClickListener {
                     }
                 }
                 if (metadata != null) {
-                    VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json", FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                    VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json",
+                            FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
                     DocumentFormatter.formatFile(project, virtualFile);
                     FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                     fileEditorManager.openFile(virtualFile, true);
@@ -415,13 +474,15 @@ public class TreeRightClickListener {
             AnAction deleteDoc = new AnAction("Delete Document") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>" + col.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
+                    int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>"
+                            + col.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
                     if (result != Messages.YES) {
                         return;
                     }
 
                     try {
-                        ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).remove(col.getId());
+                        ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection)
+                                .remove(col.getId());
 
                         if(col.getVirtualFile() != null ) {
                             try {
@@ -441,7 +502,8 @@ public class TreeRightClickListener {
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
-                        Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error");
+                        Messages.showErrorDialog("Could not delete the document. Please check the logs for more.",
+                                "Couchbase Plugin Error");
                     }
 
                 }
@@ -460,7 +522,8 @@ public class TreeRightClickListener {
         AnAction viewIdxStatsAction = new AnAction("View Stats") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                IndexOverviewDialog dialog = new IndexOverviewDialog(project, idx.getBucket(), idx.getScope(), idx.getCollection(), idx.getText().substring(0, idx.getText().lastIndexOf('.')));
+                IndexOverviewDialog dialog = new IndexOverviewDialog(project, idx.getBucket(), idx.getScope(),
+                        idx.getCollection(), idx.getText().substring(0, idx.getText().lastIndexOf('.')));
                 dialog.show();
             }
         };
@@ -490,7 +553,8 @@ public class TreeRightClickListener {
         AnAction openDocument = new AnAction("Open Document") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                OpenDocumentDialog dialog = new OpenDocumentDialog(false, project, tree, col.getBucket(), col.getScope(), col.getText());
+                OpenDocumentDialog dialog = new OpenDocumentDialog(false, project, tree, col.getBucket(),
+                        col.getScope(), col.getText());
                 dialog.show();
             }
         };
@@ -500,7 +564,8 @@ public class TreeRightClickListener {
             AnAction createDocument = new AnAction("Create Document") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    OpenDocumentDialog dialog = new OpenDocumentDialog(true, project, tree, col.getBucket(), col.getScope(), col.getText());
+                    OpenDocumentDialog dialog = new OpenDocumentDialog(true, project, tree, col.getBucket(),
+                            col.getScope(), col.getText());
                     dialog.show();
                 }
             };
@@ -519,7 +584,8 @@ public class TreeRightClickListener {
             AnAction menuItem = new AnAction(filter) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
+                    DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(),
+                            col.getScope(), col.getText());
                     dialog.show();
                 }
             };
@@ -529,7 +595,9 @@ public class TreeRightClickListener {
                 AnAction clearDocFilter = new AnAction("Clear Document Filter") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(), col.getBucket(), col.getScope(), col.getText(), null);
+                        QueryFiltersStorage.getInstance().getValue().saveQueryFilter(
+                                ActiveCluster.getInstance().getId(), col.getBucket(), col.getScope(), col.getText(),
+                                null);
 
                         col.setQueryFilter(null);
                         TreePath treePath = new TreePath(clickedNode.getPath());
@@ -545,7 +613,8 @@ public class TreeRightClickListener {
         AnAction refreshDocuments = new AnAction("Refresh Documents") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                InferHelper.invalidateInferCacheIfOlder(col.getBucket(), col.getScope(), col.getText(), TimeUnit.MINUTES.toMillis(1));
+                InferHelper.invalidateInferCacheIfOlder(col.getBucket(), col.getScope(), col.getText(),
+                        TimeUnit.MINUTES.toMillis(1));
                 DataLoader.listDocuments(clickedNode, tree, 0);
             }
         };
@@ -553,18 +622,22 @@ public class TreeRightClickListener {
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
 
-            if (!"_default".equals(col.getScope()) || (!"_default".equals(col.getText()) && "_default".equals(col.getScope()))) {
+            if (!"_default".equals(col.getScope())
+                    || (!"_default".equals(col.getText()) && "_default".equals(col.getScope()))) {
                 // Add "Delete Collection" option
                 actionGroup.addSeparator();
                 AnAction deleteCollectionItem = new AnAction("Delete Collection") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());
+                        int result = Messages.showYesNoDialog(
+                                "Are you sure you want to delete the collection " + col.getText() + "?",
+                                "Delete Collection", Messages.getQuestionIcon());
                         if (result != Messages.YES) {
                             return;
                         }
 
-                        ActiveCluster.getInstance().get().bucket(col.getBucket()).collections().dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
+                        ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
+                                .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
                         // Refresh collections
                         DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                         TreePath treePath = new TreePath(colsTreeNode.getPath());
@@ -584,12 +657,15 @@ public class TreeRightClickListener {
                 AnAction simpleImport = new AnAction("Simple Import") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+                        FileChooserDescriptor descriptor = FileChooserDescriptorFactory
+                                .createSingleFileDescriptor("json");
                         VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
                         if (file != null) {
-                            CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(), file.getPath(), null);
+                            CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(),
+                                    file.getPath(), null);
                         } else {
-                            Messages.showErrorDialog("Simple Import requires a .json file. Please try again.", "Simple Import Error");
+                            Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
+                                    "Simple Import Error");
                         }
                     }
                 };
@@ -599,11 +675,15 @@ public class TreeRightClickListener {
             AnAction simpleExport = new AnAction("Simple Export") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export", "Choose where you want to save the file:");
-                    VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project).save(("cb_export-" + col.getScope() + "_" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+                    FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",
+                            "Choose where you want to save the file:");
+                    VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project)
+                            .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-"
+                                    + TimeUtils.getCurrentDateTime() + ".json"));
                     if (wrapper != null) {
                         File file = wrapper.getFile();
-                        CBExport.simpleCollectionExport(col.getBucket(), col.getScope(), col.getText(), file.getAbsolutePath(), null);
+                        CBExport.simpleCollectionExport(col.getBucket(), col.getScope(), col.getText(),
+                                file.getAbsolutePath(), null);
                     }
                 }
             };

@@ -3,7 +3,9 @@ package com.couchbase.intellij.tree;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.swing.JComponent;
@@ -13,6 +15,7 @@ import javax.swing.JTextField;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
@@ -72,7 +75,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
 
         // Text Field
         gbc.gridy = 1;
-        textField = new JTextField(20);
+        textField = new JTextField(40);
         panel.add(textField, gbc);
 
         // Label: "This name already exists"
@@ -92,17 +95,23 @@ public class NewEntityCreationDialog extends DialogWrapper {
             return;
         }
 
-        // Special characters are not allowed
-        if (!textField.getText().matches("[a-zA-Z0-9_]+")) {
-            errorLabel
-                    .setText("Special characters are not allowed in " + entityType.toString().toLowerCase()
-                            + " creation");
+        // Only certain characters are allowed
+        String allowedCharacters = "[a-zA-Z0-9_.\\-%]+";
+        if (!textField.getText().matches(allowedCharacters)) {
+            errorLabel.setText("Invalid characters in " + entityType.toString().toLowerCase()
+                    + ". Use: A-Z, a-z, 0-9, _, ., -, %");
             return;
         }
 
         // Check if the name already exists
         if (entityType == EntityType.BUCKET) {
-            // TODO: Check if bucket name already exists
+            bucketName = textField.getText();
+            Map<String, BucketSettings> bucketSettingsMap = ActiveCluster.getInstance().get().buckets().getAllBuckets();
+            List<String> bucketNames = new ArrayList<>(bucketSettingsMap.keySet());
+            if (bucketNames.contains(bucketName)) {
+                errorLabel.setText("Bucket with name " + bucketName + " already exists");
+                return;
+            }
         } else if (entityType == EntityType.SCOPE) {
             scopeName = textField.getText();
             List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
