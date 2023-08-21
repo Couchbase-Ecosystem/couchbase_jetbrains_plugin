@@ -14,8 +14,6 @@ import com.intellij.openapi.ui.Messages;
 import org.jetbrains.annotations.NotNull;
 import utils.FileUtils;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,23 +46,14 @@ public class CBImport {
                         ApplicationManager.getApplication().invokeLater(
                                 () -> Messages.showInfoMessage("Data imported successfully", "Import Complete"));
                     } else {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                        StringBuilder errorMessage = new StringBuilder();
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            errorMessage.append(line).append("\n");
-                        }
-                        reader.close();
 
-                        Log.error("An error occurred while trying to import the data: " + errorMessage
-                                + "with exit code " + exitCode);
+                        Log.error("An error occurred while trying to import the data: with exit code " + exitCode);
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(
-                                "An error occurred while trying to import the data:\n" + errorMessage
-                                        + "\nwith exit code " + exitCode,
+                                "An error occurred while trying to import the data with exit code " + exitCode,
                                 "Import Error"));
                     }
                 } catch (Exception e) {
-                    Log.error("Exception occurred", e);
+                    Log.error("Exception occurred in complex bucket import: \n", e);
                     ApplicationManager.getApplication().invokeLater(() -> Messages
                             .showErrorDialog("An error occurred while trying to import the data", "Import Error"));
                 }
@@ -73,7 +62,7 @@ public class CBImport {
     }
 
     public static void simpleCollectionImport(String bucket, String scope, String collection, String filePath,
-            Project project) {
+                                              Project project) {
 
         try {
             String lastLine = FileUtils.readLastLine(filePath);
@@ -188,8 +177,8 @@ public class CBImport {
             if (!datasetCols.isEmpty()) {
 
                 int result = Messages.showYesNoDialog("<html>This dataset contains " + datasetCols.size()
-                        + " collection(s) "
-                        + "that don't exist in the scope that you are importing into. Would you like to also create them?</html>",
+                                + " collection(s) "
+                                + "that don't exist in the scope that you are importing into. Would you like to also create them?</html>",
                         "Simple Import", Messages.getQuestionIcon());
 
                 if (result == Messages.YES) {
@@ -260,7 +249,7 @@ public class CBImport {
 
     private static boolean shouldImportIndexes(ExportedMetadata meta) {
 
-        if(!ActiveCluster.getInstance().hasQueryService()) {
+        if (!ActiveCluster.getInstance().hasQueryService()) {
             return false;
         }
         boolean idx = false;
@@ -288,7 +277,7 @@ public class CBImport {
     }
 
     private static void createIndexes(ExportedMetadata meta, String bucket, String scope, String originalCol,
-            String newCol) {
+                                      String newCol) {
 
         String indexes = meta.getIndexes().get(originalCol);
 
