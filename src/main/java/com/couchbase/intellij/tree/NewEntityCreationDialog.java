@@ -33,7 +33,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
     private JLabel errorLabel;
     private JLabel hddQuotaLabel;
     private JLabel ramQuotaLabel;
-    private EntityType entityType;
+    private final EntityType entityType;
 
     private String bucketName;
     private String scopeName;
@@ -47,7 +47,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
         super(project);
         this.entityType = entityType;
 
-        // 3 vargs for bucket,scope, collection
+        // 3 varargs for bucket,scope, collection
         if (entityType == EntityType.BUCKET) {
             // do nothing
         } else if (entityType == EntityType.SCOPE) {
