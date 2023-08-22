@@ -13,6 +13,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import com.couchbase.intellij.workbench.Log;
 import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.client.java.manager.bucket.BucketSettings;
@@ -20,6 +21,7 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.overview.apis.BucketQuota;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -29,6 +31,8 @@ public class NewEntityCreationDialog extends DialogWrapper {
 
     private JTextField textField;
     private JLabel errorLabel;
+    private JLabel hddQuotaLabel;
+    private JLabel ramQuotaLabel;
     private EntityType entityType;
 
     private String bucketName;
