@@ -35,7 +35,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
     private JLabel errorLabel;
     private JLabel hddQuotaLabel;
     private JLabel ramQuotaLabel;
-    private EntityType entityType;
+    private final EntityType entityType;
 
     private String bucketName;
     private String scopeName;
@@ -55,7 +55,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
         super(project);
         this.entityType = entityType;
 
-        // 3 vargs for bucket,scope, collection
+        // 3 varargs for bucket,scope, collection
         if (entityType == EntityType.BUCKET) {
             // do nothing
         } else if (entityType == EntityType.SCOPE) {
@@ -150,7 +150,11 @@ public class NewEntityCreationDialog extends DialogWrapper {
                     ramQuotaCheckPerformed = true;
 
                     BucketQuota bucketQuota = new BucketQuota();
-                    long bucketRamQuota = bucketQuota.getRam();
+                    Long bucketRamQuotaLong = bucketQuota.getRam();
+                    long bucketRamQuota = 0L;
+                    if (bucketRamQuotaLong != null) {
+                        bucketRamQuota = bucketRamQuotaLong;
+                    }
 
                     if ((bucketRamQuota > availableRamQuota)) {
                         errorLabel.setText(
@@ -193,6 +197,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
                 }
 
             }
+
             super.doOKAction();
         } catch (Exception ex) {
             Log.error("Exception occurred during creation of " + entityType, ex);
