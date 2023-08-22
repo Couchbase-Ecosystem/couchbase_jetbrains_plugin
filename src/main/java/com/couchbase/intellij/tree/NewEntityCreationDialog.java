@@ -13,6 +13,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import com.couchbase.intellij.workbench.Log;
 import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.client.java.manager.bucket.BucketSettings;
@@ -20,24 +21,31 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.overview.apis.BucketQuota;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
-enum EntityType {
-    BUCKET, SCOPE, COLLECTION
-}
+import static utils.TemplateUtil.fmtByte;
 
 public class NewEntityCreationDialog extends DialogWrapper {
 
     private JTextField textField;
     private JLabel errorLabel;
+    private JLabel hddQuotaLabel;
+    private JLabel ramQuotaLabel;
     private EntityType entityType;
 
     private String bucketName;
     private String scopeName;
     private String collectionName;
+
+    private boolean hddQuotaCheckPerformed = false;
+    private boolean ramQuotaCheckPerformed = false;
+
+    // ServerOverview serverOverview = new ServerOverview();
+    private ServerOverview serverOverview;
 
     protected NewEntityCreationDialog(
             Project project,
@@ -83,86 +91,119 @@ public class NewEntityCreationDialog extends DialogWrapper {
         errorLabel.setForeground(Color.decode("#FF4444"));
         panel.add(errorLabel, gbc);
 
+        gbc.gridy = 3;
+        hddQuotaLabel = new JLabel("");
+        hddQuotaLabel.setForeground(Color.decode("#FFA500"));
+        panel.add(hddQuotaLabel, gbc);
+
+        gbc.gridy = 4;
+        ramQuotaLabel = new JLabel("");
+        ramQuotaLabel.setForeground(Color.decode("#FFA500"));
+        panel.add(ramQuotaLabel, gbc);
+
         return panel;
     }
 
     @Override
     protected void doOKAction() {
+        try {
 
-        if (textField.getText().isEmpty()) {
-            errorLabel.setText("Please enter a name for the " + entityType.toString().toLowerCase());
-            return;
-        }
-
-        String allowedCharacters = "[a-zA-Z0-9_.\\-%]+";
-        if (!textField.getText().matches(allowedCharacters)) {
-            errorLabel.setText("Invalid characters in " + entityType.toString().toLowerCase()
-                    + ". Use: A-Z, a-z, 0-9, _, ., -, %");
-            return;
-        }
-
-        ServerOverview serverOverview = new ServerOverview();
-        long totalHddQuota = serverOverview.getStorageTotals().getHdd().getQuotaTotal();
-        long usedHddQuota = serverOverview.getStorageTotals().getHdd().getUsed();
-        long availableHddQuota = totalHddQuota - usedHddQuota;
-
-        if (availableHddQuota <= 0) {
-            errorLabel.setText("Error: HDD usage exceeds quota by " + (usedHddQuota - totalHddQuota)
-                    + " units. Adjust HDD quota or memory usage.");
-            return;
-        }
-        if (entityType == EntityType.BUCKET) {
-            bucketName = textField.getText();
-            Map<String, BucketSettings> bucketSettingsMap = ActiveCluster.getInstance().get().buckets().getAllBuckets();
-            List<String> bucketNames = new ArrayList<>(bucketSettingsMap.keySet());
-            if (bucketNames.contains(bucketName)) {
-                errorLabel.setText("Bucket with name " + bucketName + " already exists");
+            if (textField.getText().isEmpty()) {
+                errorLabel.setText("Please enter a name for the " + entityType.toString().toLowerCase());
                 return;
             }
 
-            long totalRamQuota = serverOverview.getStorageTotals().getRam().getQuotaTotal();
-            long usedRamQuota = serverOverview.getStorageTotals().getRam().getQuotaUsed();
-            long availableRamQuota = totalRamQuota - usedRamQuota;
-
-            BucketQuota bucketQuota = new BucketQuota();
-            long bucketRamQuota = bucketQuota.getRam();
-
-            if (bucketRamQuota > availableRamQuota) {
-                errorLabel.setText(
-                        "Error: The RAM quota for the bucket exceeds the available RAM quota for your cluster.");
+            String allowedCharacters = "[a-zA-Z0-9_.\\-%]+";
+            if (!textField.getText().matches(allowedCharacters)) {
+                errorLabel.setText("Invalid characters in " + entityType.toString().toLowerCase()
+                        + ". Use: A-Z, a-z, 0-9, _, ., -, %");
                 return;
             }
 
-        } else if (entityType == EntityType.SCOPE) {
-            scopeName = textField.getText();
-            List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                    .getAllScopes();
-            for (ScopeSpec scope : scopes) {
-                if (scope.name().equals(scopeName)) {
-                    errorLabel.setText("Scope with name " + scopeName + " already exists");
-                    return;
-                }
-            }
-        } else if (entityType == EntityType.COLLECTION) {
-            collectionName = textField.getText();
-            List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName)
-                    .collections().getAllScopes().stream()
-                    .filter(scope -> scope.name().equals(scopeName))
-                    .flatMap(scope -> scope.collections().stream())
-                    .collect(Collectors.toList());
+            if (!hddQuotaCheckPerformed) {
 
-            for (CollectionSpec collection : collections) {
-                if (collection.name().equals(collectionName)) {
-                    errorLabel.setText("Collection with name " + collectionName + " already exists");
+                serverOverview = CouchbaseRestAPI.getOverview();
+
+                long totalHddQuota = serverOverview.getStorageTotals().getHdd().getQuotaTotal();
+                long usedHddQuota = serverOverview.getStorageTotals().getHdd().getUsed();
+                long availableHddQuota = totalHddQuota - usedHddQuota;
+
+                hddQuotaLabel.setText("HDD Quota: " + fmtByte(availableHddQuota) + " units available");
+                hddQuotaCheckPerformed = true;
+
+                if (availableHddQuota <= 0) {
+
+                    errorLabel.setText("Error: HDD usage exceeds quota by " + fmtByte(-availableHddQuota)
+                            + " units. Adjust HDD quota or memory usage.");
                     return;
                 }
             }
 
+            if (entityType == EntityType.BUCKET) {
+                if (!ramQuotaCheckPerformed) {
+
+                    long totalRamQuota = serverOverview.getStorageTotals().getRam().getQuotaTotal();
+                    long usedRamQuota = serverOverview.getStorageTotals().getRam().getQuotaUsed();
+                    long availableRamQuota = totalRamQuota - usedRamQuota;
+
+                    ramQuotaLabel.setText("RAM Quota: " + fmtByte(availableRamQuota) + " units available");
+                    ramQuotaCheckPerformed = true;
+
+                    BucketQuota bucketQuota = new BucketQuota();
+                    long bucketRamQuota = bucketQuota.getRam();
+
+                    if ((bucketRamQuota > availableRamQuota)) {
+                        errorLabel.setText(
+                                "Error: The RAM quota for the bucket exceeds the available RAM by "
+                                        + fmtByte(-availableRamQuota) + " quota for your cluster.");
+                        return;
+                    }
+                }
+                bucketName = textField.getText();
+                Map<String, BucketSettings> bucketSettingsMap = ActiveCluster.getInstance().get().buckets()
+                        .getAllBuckets();
+                List<String> bucketNames = new ArrayList<>(bucketSettingsMap.keySet());
+                if (bucketNames.contains(bucketName)) {
+                    errorLabel.setText("Bucket with name " + bucketName + " already exists");
+                    return;
+                }
+            } else if (entityType == EntityType.SCOPE) {
+                scopeName = textField.getText();
+                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                        .getAllScopes();
+                for (ScopeSpec scope : scopes) {
+                    if (scope.name().equals(scopeName)) {
+                        errorLabel.setText("Scope with name " + scopeName + " already exists");
+                        return;
+                    }
+                }
+            } else if (entityType == EntityType.COLLECTION) {
+                collectionName = textField.getText();
+                List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName)
+                        .collections().getAllScopes().stream()
+                        .filter(scope -> scope.name().equals(scopeName))
+                        .flatMap(scope -> scope.collections().stream())
+                        .collect(Collectors.toList());
+
+                for (CollectionSpec collection : collections) {
+                    if (collection.name().equals(collectionName)) {
+                        errorLabel.setText("Collection with name " + collectionName + " already exists");
+                        return;
+                    }
+                }
+
+            }
+            super.doOKAction();
+        } catch (Exception ex) {
+            Log.error("Exception occurred during creation of " + entityType, ex);
         }
-        super.doOKAction();
     }
 
     public String getEntityName() {
         return textField.getText();
+    }
+
+    public enum EntityType {
+        BUCKET, SCOPE, COLLECTION
     }
 }
