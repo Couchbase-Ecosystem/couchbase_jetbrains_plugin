@@ -78,7 +78,6 @@ public class NewBucketCreationDialog extends DialogWrapper {
         Cluster cluster = ActiveCluster.getInstance().getCluster();
         if (cluster == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
-            this.doCancelAction();
         }
 
         BucketSettings bs = BucketSettings.create(bucketName.getText());
@@ -106,6 +105,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
             cluster.buckets().createBucket(bs);
         } catch (Exception e) {
             Messages.showErrorDialog(e.getMessage(), "Failed to create bucket");
+            return;
         }
 
         super.doOKAction();
@@ -113,9 +113,18 @@ public class NewBucketCreationDialog extends DialogWrapper {
 
     @Override
     protected @Nullable ValidationInfo doValidate() {
+        Cluster cluster = ActiveCluster.getInstance().getCluster();
+        if (cluster == null) {
+            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
+        }
         if (bucketName.getText().trim().isEmpty()) {
             return new ValidationInfo("bucket name cannot be empty", bucketName);
         }
+
+        if (cluster.buckets().getAllBuckets().containsKey(bucketName.getText())) {
+            return new ValidationInfo("bucket with this name already exists", bucketName);
+        }
+
         try {
             Integer quota = Integer.valueOf(memQuota.getValue().toString());
             if (quota < 100) {
