@@ -1,6 +1,9 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.client.core.msg.kv.DurabilityLevel;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.manager.bucket.*;
+import com.couchbase.client.protostellar.admin.bucket.v1.EvictionMode;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
@@ -8,9 +11,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.OptionGroup;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import com.jgoodies.forms.factories.Borders;
@@ -21,6 +24,10 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 
 public class NewBucketCreationDialog extends DialogWrapper {
     private JTextField bucketName;
@@ -33,10 +40,10 @@ public class NewBucketCreationDialog extends DialogWrapper {
     private JCheckBox replicateViewIndexes;
     private JCheckBox enableTTL;
     private JTextField bucketTTL;
-    private OptionGroup compressionMode;
-    private OptionGroup conflictResolutionType;
-    private OptionGroup ejectionMethod;
-    private OptionGroup bucketPriority;
+    private ButtonGroup compressionMode;
+    private ButtonGroup conflictResolutionType;
+    private ButtonGroup ejectionMethod;
+    private ButtonGroup bucketPriority;
     private ComboBox<String> minimumDurabilityLevel;
     private JCheckBox autoCompactionOverride;
     private JCheckBox compactionEnableOnPercentFragmentation;
@@ -68,7 +75,56 @@ public class NewBucketCreationDialog extends DialogWrapper {
 
     @Override
     protected void doOKAction() {
+        Cluster cluster = ActiveCluster.getInstance().getCluster();
+        if (cluster == null) {
+            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
+            this.doCancelAction();
+        }
+
+        BucketSettings bs = BucketSettings.create(bucketName.getText());
+        bs.bucketType(BucketType.valueOf(bucketTypes.getSelection().getActionCommand()));
+        bs.storageBackend(StorageBackend.of(storageBackends.getSelection().getActionCommand()));
+        bs.ramQuotaMB(Long.valueOf(memQuota.getValue().toString()));
+        if (enableReplicas.isSelected()) {
+            bs.numReplicas((Integer) replicaNum.getSelectedItem());
+            if (replicateViewIndexes.isSelected()) {
+                bs.replicaIndexes(true);
+            }
+        }
+        if (enableTTL.isSelected()) {
+            bs.maxExpiry(Duration.of(Long.valueOf(bucketTTL.getText()), ChronoUnit.SECONDS));
+        }
+        bs.compressionMode(CompressionMode.valueOf(compressionMode.getSelection().getActionCommand()));
+        bs.conflictResolutionType(ConflictResolutionType.valueOf(conflictResolutionType.getSelection().getActionCommand()));
+        if (ejectionMethod.getSelection() != null) {
+            bs.evictionPolicy(EvictionPolicyType.valueOf(ejectionMethod.getSelection().getActionCommand()));
+        }
+        bs.minimumDurabilityLevel(DurabilityLevel.values()[minimumDurabilityLevel.getSelectedIndex()]);
+        bs.flushEnabled(enableFlush.isSelected());
+
+        try {
+            cluster.buckets().createBucket(bs);
+        } catch (Exception e) {
+            Messages.showErrorDialog(e.getMessage(), "Failed to create bucket");
+        }
+
         super.doOKAction();
+    }
+
+    @Override
+    protected @Nullable ValidationInfo doValidate() {
+        if (bucketName.getText().trim().isEmpty()) {
+            return new ValidationInfo("bucket name cannot be empty", bucketName);
+        }
+        try {
+            Integer quota = Integer.valueOf(memQuota.getValue().toString());
+            if (quota < 100) {
+                return new ValidationInfo("Invalid memory quota", memQuota);
+            }
+        } catch (Exception e) {
+            return new ValidationInfo("Invalid memory quota", memQuota);
+        }
+        return super.doValidate();
     }
 
     protected NewBucketCreationDialog(@Nullable Project project) {
@@ -171,16 +227,19 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.anchor = GridBagConstraints.WEST;
         bucketTypes = new ButtonGroup();
         JRadioButton bucketTypeCouchbase = new JRadioButton("Couchbase");
+        bucketTypeCouchbase.setActionCommand(BucketType.COUCHBASE.toString());
         bucketTypeCouchbase.setSelected(true);
         bucketTypes.add(bucketTypeCouchbase);
         bucketTypePanel.add(bucketTypeCouchbase, subGbc);
 
         JRadioButton bucketTypesMemcached = new JRadioButton("Memcached");
+        bucketTypesMemcached.setActionCommand(BucketType.MEMCACHED.toString());
         bucketTypes.add(bucketTypesMemcached);
         subGbc.gridx++;
         bucketTypePanel.add(bucketTypesMemcached, subGbc);
 
         JRadioButton bucketTypesEphemeral = new JRadioButton("Ephemeral");
+        bucketTypesEphemeral.setActionCommand(BucketType.EPHEMERAL.toString());
         bucketTypes.add(bucketTypesEphemeral);
         subGbc.gridx++;
         bucketTypePanel.add(bucketTypesEphemeral, subGbc);
@@ -197,6 +256,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.gridy++;
         mainFrame.add(storageBackendsPanel, gbc);
         JRadioButton storageBackendCouchStore = new JRadioButton("CouchStore");
+        storageBackendCouchStore.setActionCommand(StorageBackend.COUCHSTORE.alias());
         storageBackendCouchStore.setSelected(true);
         storageBackends.add(storageBackendCouchStore);
         subGbc.gridy = 0;
@@ -204,6 +264,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         storageBackendsPanel.add(storageBackendCouchStore, subGbc);
 
         JRadioButton storageBackendMagma = new JRadioButton("Magma");
+        storageBackendMagma.setActionCommand(StorageBackend.MAGMA.alias());
         storageBackends.add(storageBackendMagma);
         subGbc.gridx++;
         storageBackendsPanel.add(storageBackendMagma, subGbc);
@@ -379,6 +440,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         advancedOptionsPanel.add(replicaNumLabel, gbc);
 
         JPanel replicasErrorPanel = new JPanel(new GridBagLayout());
+        replicasErrorPanel.setVisible(nodeCount <= 1);
         gbc.gridx = 1;
         gbc.gridy++;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -397,6 +459,14 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.anchor = GridBagConstraints.WEST;
         subGbc.insets = JBUI.emptyInsets();
         replicasErrorPanel.add(replicasErrorLabel, subGbc);
+
+        replicaNum.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                int num = (int) replicaNum.getSelectedItem();
+                replicasErrorPanel.setVisible(num >= nodeCount);
+            }
+        });
 
         replicateViewIndexes = new JCheckBox("Replicate view indexes");
         gbc.fill = GridBagConstraints.NONE;
@@ -442,13 +512,14 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.gridy++;
         advancedOptionsPanel.add(compressionModeSectionLabel);
 
-        compressionMode = new OptionGroup();
+        compressionMode = new ButtonGroup();
         JPanel compressionModesPanel = new JPanel(new GridBagLayout());
         gbc.gridy++;
         gbc.insets = internalInsets;
         advancedOptionsPanel.add(compressionModesPanel, gbc);
 
         JRadioButton compressionModeOff = new JRadioButton("Off");
+        compressionModeOff.setActionCommand(CompressionMode.OFF.toString());
         compressionMode.add(compressionModeOff);
         subGbc.gridx = 0;
         subGbc.gridy = 0;
@@ -456,12 +527,14 @@ public class NewBucketCreationDialog extends DialogWrapper {
         compressionModesPanel.add(compressionModeOff, subGbc);
 
         JRadioButton compressionModePassive = new JRadioButton("Passive");
+        compressionModePassive.setActionCommand(CompressionMode.PASSIVE.toString());
         compressionModePassive.setSelected(true);
         compressionMode.add(compressionModePassive);
         subGbc.gridx++;
         compressionModesPanel.add(compressionModePassive, subGbc);
 
         JRadioButton compressionModeActive = new JRadioButton("Active");
+        compressionModeActive.setActionCommand(CompressionMode.ACTIVE.toString());
         compressionMode.add(compressionModeActive);
         subGbc.gridx++;
         compressionModesPanel.add(compressionModeActive, subGbc);
@@ -477,15 +550,17 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.insets = internalInsets;
         advancedOptionsPanel.add(confictResolutionPanel, gbc);
 
-        conflictResolutionType = new OptionGroup();
+        conflictResolutionType = new ButtonGroup();
         JRadioButton conflictResolutionSequenceNo = new JRadioButton("Sequence number");
         conflictResolutionSequenceNo.setSelected(true);
+        conflictResolutionSequenceNo.setActionCommand(ConflictResolutionType.SEQUENCE_NUMBER.toString());
         conflictResolutionType.add(conflictResolutionSequenceNo);
         subGbc.gridx = 0;
         subGbc.gridy = 0;
         confictResolutionPanel.add(conflictResolutionSequenceNo, subGbc);
 
         JRadioButton conflictResolutionTimestamp = new JRadioButton("Timestamp");
+        conflictResolutionTimestamp.setActionCommand(ConflictResolutionType.TIMESTAMP.toString());
         conflictResolutionType.add(conflictResolutionTimestamp);
         subGbc.gridx++;
         confictResolutionPanel.add(conflictResolutionTimestamp, subGbc);
@@ -501,18 +576,21 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.gridy++;
         advancedOptionsPanel.add(ejectionMethodPanel, gbc);
 
-        ejectionMethod = new OptionGroup();
+        ejectionMethod = new ButtonGroup();
         JRadioButton ejectionMethodValue = new JRadioButton("Value-only");
+        ejectionMethodValue.setActionCommand(EvictionMode.EVICTION_MODE_VALUE_ONLY.toString());
         ejectionMethod.add(ejectionMethodValue);
         subGbc.gridx = 0;
         subGbc.gridy = 0;
         ejectionMethodPanel.add(ejectionMethodValue, subGbc);
 
         JRadioButton ejectionMethodFull = new JRadioButton("Full");
+        ejectionMethodFull.setActionCommand(EvictionMode.EVICTION_MODE_FULL.toString());
         ejectionMethod.add(ejectionMethodFull);
         subGbc.gridx++;
         ejectionMethodPanel.add(ejectionMethodFull, subGbc);
 
+        /* not supported
         JLabel bucketPrioritySectionLabel = new JLabel("Bucket Priority");
         bucketPrioritySectionLabel.setFont(sectionLabelFont);
         gbc.insets = sectionInsets;
@@ -524,7 +602,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.insets = internalInsets;
         advancedOptionsPanel.add(bucketPriorityPanel, gbc);
 
-        bucketPriority = new OptionGroup();
+        bucketPriority = new ButtonGroup();
         JRadioButton bucketPriorityDefault = new JRadioButton("Default");
         bucketPriority.add(bucketPriorityDefault);
         subGbc.gridx = 0;
@@ -535,6 +613,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         bucketPriority.add(bucketPriorityHigh);
         subGbc.gridx++;
         bucketPriorityPanel.add(bucketPriorityHigh, subGbc);
+        */
 
         JLabel minimumDurabilitySectionLabel = new JLabel("Minimum Durability Level");
         minimumDurabilitySectionLabel.setFont(sectionLabelFont);
@@ -549,6 +628,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.gridy++;
         advancedOptionsPanel.add(minimumDurabilityLevel, gbc);
 
+        /* not supported
         JLabel autoCompactionSectionLabel = new JLabel("Auto-Compaction");
         autoCompactionSectionLabel.setFont(sectionLabelFont);
         gbc.insets = sectionInsets;
@@ -802,6 +882,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         metadataPurgeUnit.setFont(tipFont);
         metadataPurgeUnit.setForeground(JBColor.GRAY);
         metadataPurgePanel.add(metadataPurgeUnit);
+        */
 
         JLabel flushSection = new JLabel("Flush");
         flushSection.setFont(sectionLabelFont);
