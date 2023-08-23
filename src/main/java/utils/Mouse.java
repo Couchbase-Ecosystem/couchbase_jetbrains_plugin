@@ -1,10 +1,14 @@
-package com.couchbase.intellij.tree;
+package utils;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.function.Consumer;
 
 public class Mouse implements MouseListener {
+
+    private Mouse() {
+
+    }
 
     public static MouseListener click(Consumer<MouseEvent> action) {
         return new Mouse() {

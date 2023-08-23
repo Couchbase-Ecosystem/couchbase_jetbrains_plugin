@@ -1,8 +1,13 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.client.java.Cluster;
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
+import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.OptionGroup;
@@ -10,6 +15,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import com.jgoodies.forms.factories.Borders;
 import org.jetbrains.annotations.Nullable;
+import utils.Mouse;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -52,6 +58,19 @@ public class NewBucketCreationDialog extends DialogWrapper {
     private JCheckBox enableFlush;
     private JLabel bucketNameError;
 
+    private int totalMemQuota = 0;
+    private int usedMemQuota = 0;
+    private int nodeCount;
+    private JLabel freeMemLabel;
+    private JLabel thisBucketMemLabel;
+    private JPanel freeMemBar;
+    private JPanel thisBucketMemBar;
+
+    @Override
+    protected void doOKAction() {
+        super.doOKAction();
+    }
+
     protected NewBucketCreationDialog(@Nullable Project project) {
         super(project);
 
@@ -59,8 +78,33 @@ public class NewBucketCreationDialog extends DialogWrapper {
         setTitle("Create new bucket");
     }
 
+    private void readClusterInformation() {
+        Cluster cluster = ActiveCluster.getInstance().getCluster();
+        if (cluster == null) {
+            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
+            this.doCancelAction();
+        }
+
+        try {
+            ServerOverview info = CouchbaseRestAPI.getOverview();
+            nodeCount = info.getNodes().size();
+            totalMemQuota = Math.toIntExact(info.getMemoryQuota());
+            usedMemQuota = info.getBucketNames().stream().mapToInt(b -> {
+                try {
+                    return Math.toIntExact(CouchbaseRestAPI.getBucketOverview(b.getBucketName())
+                            .getQuota().getRam() / 1024 / 1024);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }).sum();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     protected @Nullable JComponent createCenterPanel() {
+        readClusterInformation();
         JPanel mainFrame = new JPanel(new GridBagLayout());
         JScrollPane scrollPane = new JBScrollPane(mainFrame);
         scrollPane.setBorder(Borders.EMPTY_BORDER);
@@ -194,8 +238,8 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.insets = internalInsets;
         mainFrame.add(memQuotaPanel, gbc);
 
-        SpinnerModel spinnerModel = new SpinnerNumberModel();
-        memQuota = new JSpinner(spinnerModel);
+        memQuota = new JSpinner(new SpinnerNumberModel(100, 1, totalMemQuota - usedMemQuota, 100));
+        memQuota.setValue(100);
         JSpinner.DefaultEditor editor = (JSpinner.DefaultEditor) memQuota.getEditor();
         editor.getTextField().setColumns(10);
         subGbc.gridx = 0;
@@ -207,7 +251,8 @@ public class NewBucketCreationDialog extends DialogWrapper {
         memQuotaLabel.setForeground(JBColor.GRAY);
         memQuotaPanel.add(memQuotaLabel, subGbc);
 
-        JPanel memStatus = new JPanel(new GridBagLayout());
+        GridBagLayout memStatusLayout = new GridBagLayout();
+        JPanel memStatus = new JPanel(memStatusLayout);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridy++;
         gbc.insets = JBUI.insets(5, 10);
@@ -219,20 +264,20 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.gridx = 0;
         subGbc.gridy = 0;
         subGbc.fill = GridBagConstraints.HORIZONTAL;
-        subGbc.weightx = 10;
+        subGbc.weightx = (double) (usedMemQuota) / totalMemQuota;
         memStatus.add(usedMemBar, subGbc);
 
-        JPanel thisBucketMemBar = new JPanel();
+        thisBucketMemBar = new JPanel();
         Color thisBucketMemColor = new JBColor(new Color(179, 207, 239), new Color(179, 207, 239));
         thisBucketMemBar.setBackground(thisBucketMemColor);
-        subGbc.weightx = 20;
+        subGbc.weightx = (double) 100 / totalMemQuota;
         subGbc.gridx++;
         memStatus.add(thisBucketMemBar, subGbc);
 
-        JPanel freeMemBar = new JPanel();
+        freeMemBar = new JPanel();
         Color freeMemColor = new JBColor(new Color(239, 235, 224), new Color(239, 235, 224));
         freeMemBar.setBackground(freeMemColor);
-        subGbc.weightx = 70;
+        subGbc.weightx = (double) (totalMemQuota - usedMemQuota - 100) / totalMemQuota;
         subGbc.gridx++;
         memStatus.add(freeMemBar, subGbc);
 
@@ -247,15 +292,17 @@ public class NewBucketCreationDialog extends DialogWrapper {
         JPanel usedMemLegend = new JPanel();
         usedMemLegend.setBackground(usedMemColor);
         memLegendPanel.add(usedMemLegend, subGbc);
-        JLabel usedMemLabel = new JLabel("other buckets (200Mib)");
+        JLabel usedMemLabel = new JLabel(String.format("other buckets (%dMib)", usedMemQuota));
         subGbc.gridx++;
+        subGbc.fill = GridBagConstraints.HORIZONTAL;
+        subGbc.weightx = 1;
         memLegendPanel.add(usedMemLabel, subGbc);
 
         JPanel thisBucketMemLegend = new JPanel();
         thisBucketMemLegend.setBackground(thisBucketMemColor);
         subGbc.gridx++;
         memLegendPanel.add(thisBucketMemLegend, subGbc);
-        JLabel thisBucketMemLabel = new JLabel("this bucket (200Mib)");
+        thisBucketMemLabel = new JLabel(String.format("this bucket (%dMib)", 100));
         subGbc.gridx++;
         memLegendPanel.add(thisBucketMemLabel, subGbc);
 
@@ -263,9 +310,26 @@ public class NewBucketCreationDialog extends DialogWrapper {
         freeMemLegend.setBackground(freeMemColor);
         subGbc.gridx++;
         memLegendPanel.add(freeMemLegend, subGbc);
-        JLabel freeMemLabel = new JLabel("available (200Mib)");
+        freeMemLabel = new JLabel(String.format("available (%dMib)", totalMemQuota));
         subGbc.gridx++;
         memLegendPanel.add(freeMemLabel, subGbc);
+        subGbc.fill = GridBagConstraints.NONE;
+
+        memQuota.addChangeListener(changeEvent -> {
+            GridBagConstraints tbc = memStatusLayout.getConstraints(thisBucketMemBar);
+            int quota = Integer.valueOf(memQuota.getValue().toString());
+            tbc.weightx = (double) quota / totalMemQuota;
+            memStatusLayout.setConstraints(thisBucketMemBar, tbc);
+            tbc = memStatusLayout.getConstraints(freeMemBar);
+            tbc.weightx = (double) (totalMemQuota - usedMemQuota - quota) / totalMemQuota;
+            memStatusLayout.setConstraints(freeMemBar, tbc);
+            thisBucketMemLabel.setText(String.format("this bucket (%dMib)", quota));
+            memStatus.invalidate();
+            usedMemBar.invalidate();
+            thisBucketMemBar.invalidate();
+            freeMemBar.invalidate();
+            this.pack();
+        });
 
         final Icon closedIcon = IconLoader.getIcon("/assets/icons/triangle-right.svg", getClass().getClassLoader());
         final Icon openedIcon = IconLoader.getIcon("/assets/icons/triangle-down.svg", getClass().getClassLoader());
@@ -535,7 +599,6 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subSubGbc.gridwidth = GridBagConstraints.REMAINDER;
         subSubGbc.anchor = GridBagConstraints.WEST;
         compactionOptionsPanel.add(databaseFragmentationTip, subSubGbc);
-
 
         compactionEnableOnPercentFragmentation = new JCheckBox();
         subSubGbc.insets = internalInsets;
