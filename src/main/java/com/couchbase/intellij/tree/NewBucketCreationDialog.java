@@ -362,7 +362,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         JPanel usedMemLegend = new JPanel();
         usedMemLegend.setBackground(usedMemColor);
         memLegendPanel.add(usedMemLegend, subGbc);
-        JLabel usedMemLabel = new JLabel(String.format("other buckets (%dMib)", usedMemQuota));
+        JLabel usedMemLabel = new JLabel(String.format("other buckets (%dMiB)", usedMemQuota));
         subGbc.gridx++;
         subGbc.fill = GridBagConstraints.HORIZONTAL;
         subGbc.weightx = 1;
@@ -372,7 +372,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         thisBucketMemLegend.setBackground(thisBucketMemColor);
         subGbc.gridx++;
         memLegendPanel.add(thisBucketMemLegend, subGbc);
-        thisBucketMemLabel = new JLabel(String.format("this bucket (%dMib)", 100));
+        thisBucketMemLabel = new JLabel(String.format("this bucket (%dMiB)", 100));
         subGbc.gridx++;
         memLegendPanel.add(thisBucketMemLabel, subGbc);
 
@@ -380,7 +380,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         freeMemLegend.setBackground(freeMemColor);
         subGbc.gridx++;
         memLegendPanel.add(freeMemLegend, subGbc);
-        freeMemLabel = new JLabel(String.format("available (%dMib)", totalMemQuota));
+        freeMemLabel = new JLabel(String.format("available (%dMiB)", totalMemQuota));
         subGbc.gridx++;
         memLegendPanel.add(freeMemLabel, subGbc);
         subGbc.fill = GridBagConstraints.NONE;
@@ -393,7 +393,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
             tbc = memStatusLayout.getConstraints(freeMemBar);
             tbc.weightx = (double) (totalMemQuota - usedMemQuota - quota) / totalMemQuota;
             memStatusLayout.setConstraints(freeMemBar, tbc);
-            thisBucketMemLabel.setText(String.format("this bucket (%dMib)", quota));
+            thisBucketMemLabel.setText(String.format("this bucket (%dMiB)", quota));
             memStatus.invalidate();
             usedMemBar.invalidate();
             thisBucketMemBar.invalidate();
