@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
@@ -118,15 +117,7 @@ public class TreeRightClickListener {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         try {
-                            NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.BUCKET);
-                            entityCreationDialog.show();
-
-                            if (entityCreationDialog.isOK()) {
-                                String bucketName = entityCreationDialog.getEntityName();
-                                ActiveCluster.getInstance().get().buckets().createBucket(BucketSettings.create(bucketName));
-                                DataLoader.listBuckets(clickedNode, tree);
-                            }
-
+                            new NewBucketCreationDialog(project).show();
                         } catch (Exception ex) {
                             Log.error("Bucket Creation failed ", ex);
                         }
