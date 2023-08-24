@@ -225,8 +225,7 @@ public class ImportDialog extends DialogWrapper {
     protected JPanel createDatasetPanel() {
         datasetPanel = new JPanel(new BorderLayout());
 
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new GridBagLayout());
+        JPanel contentPanel = new JPanel(new GridBagLayout());
         GridBagConstraints d = new GridBagConstraints();
         d.fill = GridBagConstraints.HORIZONTAL;
         d.gridy = 0;
@@ -234,7 +233,8 @@ public class ImportDialog extends DialogWrapper {
         d.gridx = 0;
         d.insets = JBUI.insets(5);
 
-        JPanel listHeadingPanel = TemplateUtil.getLabelWithHelp("Lists",
+        JPanel listHeadingPanel = TemplateUtil.getLabelWithHelp(
+                "Lists",
                 "<html>[<br>" +
                         "{<br>" +
                         "\"key\": \"mykey1\",<br>" +
@@ -245,17 +245,23 @@ public class ImportDialog extends DialogWrapper {
                         "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
                         "]</html>");
         JLabel listDefinitionLabel = new JLabel(
-                "<html>The list format specifies a file which contains a JSON list where<br>each element in the list is a JSON document. The file may only contain a<br>single list, but the list may be specified over multiple lines. This format<br>is specified by setting the --format option to \"list\". Below is an example<br>of a file in list format.</html>");
+                "<html>The list format specifies a file which contains a JSON list where<br>" +
+                        "each element in the list is a JSON document. The file may only contain a<br>" +
+                        "single list, but the list may be specified over multiple lines. This format<br>" +
+                        "is specified by setting the --format option to \"list\". Below is an example<br>" +
+                        "of a file in list format.</html>");
 
-        JPanel linesHeadingPanel = TemplateUtil.getLabelWithHelp("Lines",
+        JPanel linesHeadingPanel = TemplateUtil.getLabelWithHelp(
+                "Lines",
                 "<html>{\"key\": \"mykey1\", \"value\": \"myvalue1\"}<br>" +
                         "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
                         "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
                         "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
                         "</html>");
-
         JLabel linesDefinitionLabel = new JLabel(
-                "<html>The lines format specifies a file that contains one JSON document on<br>every line in the file. This format is specified by setting the --format<br>option to \"lines\". Below is an example of a file in lines format.</html>");
+                "<html>The lines format specifies a file that contains one JSON document on<br>" +
+                        "every line in the file. This format is specified by setting the --format<br>" +
+                        "option to \"lines\". Below is an example of a file in lines format.</html>");
 
         contentPanel.add(listHeadingPanel, d);
         d.gridy++;
@@ -275,7 +281,9 @@ public class ImportDialog extends DialogWrapper {
         c.gridy = 0;
         c.weightx = 0.3;
         c.gridx = 0;
-        datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp("Select the Dataset:",
+
+        datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp(
+                "Select the Dataset:",
                 "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
         datasetFormPanel.add(datasetLabelHelpPanel, c);
         c.weightx = 0.7;
@@ -286,6 +294,7 @@ public class ImportDialog extends DialogWrapper {
 
         d.gridy++;
         contentPanel.add(datasetFormPanel, d);
+
         datasetPanel.add(contentPanel, BorderLayout.NORTH);
 
         return datasetPanel;
@@ -1075,15 +1084,15 @@ public class ImportDialog extends DialogWrapper {
                     if (fileFormat.equals("json")) {
                         // Validation for JSON file format
                         String scopeFieldText = dynamicScopeField.getText();
-                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(), null,
-                                scopeFieldText,
-                                fileFormat);
+                        boolean isValidDynamicScope = FileUtils.checkFields(
+                                datasetField.getText(), scopeFieldText, fileFormat);
 
                         highlightField(dynamicScopeField, isValidDynamicScope);
 
                         String collectionFieldText = dynamicCollectionField.getText();
-                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(), null,
-                                collectionFieldText, fileFormat);
+                        boolean isValidDynamicCollection = FileUtils.checkFields(
+                                datasetField.getText(), collectionFieldText, fileFormat);
+
                         highlightField(dynamicCollectionField, isValidDynamicCollection);
 
                         if (!isValidDynamicScope || !isValidDynamicCollection) {
@@ -1094,14 +1103,14 @@ public class ImportDialog extends DialogWrapper {
                     } else if (fileFormat.equals("csv")) {
                         // Validation for CSV file format
                         String scopeFieldText = dynamicScopeField.getText();
-                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(), ",",
+                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(),
                                 scopeFieldText,
                                 fileFormat);
 
                         highlightField(dynamicScopeField, isValidDynamicScope);
 
                         String collectionFieldText = dynamicCollectionField.getText();
-                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(), ",",
+                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(),
                                 collectionFieldText, fileFormat);
                         highlightField(dynamicCollectionField, isValidDynamicCollection);
 
@@ -1432,24 +1441,24 @@ public class ImportDialog extends DialogWrapper {
                     }
                 }
             } else if (datasetPath.endsWith(".csv")) {
-                String[] headers = FileUtils.sampleElementFromCsvFile(datasetPath, ",", 1);
+                String[] headers = FileUtils.sampleElementFromCsvFile(datasetPath, 1);
 
-                for (int index = 2; index < 2 + previewSize; index++) {
-                    String[] data = FileUtils.sampleElementFromCsvFile(datasetPath, ",", index);
-                    for (int csvIndex = 0; csvIndex < Objects.requireNonNull(headers).length; csvIndex++) {
-                        if (!cachedCsvDocs.containsKey(headers[csvIndex])) {
-                            cachedCsvDocs.put(headers[csvIndex], new String[previewSize]);
+                for (int lineNumber = 2; lineNumber < 2 + previewSize; lineNumber++) {
+                    String[] data = FileUtils.sampleElementFromCsvFile(datasetPath, lineNumber);
+                    for (int headersIndex = 0; headersIndex < Objects.requireNonNull(headers).length; headersIndex++) {
+                        if (!cachedCsvDocs.containsKey(headers[headersIndex])) {
+                            cachedCsvDocs.put(headers[headersIndex], new String[previewSize]);
                         }
-                        cachedCsvDocs.get(headers[csvIndex])[index - 2] = Objects.requireNonNull(data)[csvIndex];
+                        cachedCsvDocs.get(headers[headersIndex])[lineNumber - 2] = Objects
+                                .requireNonNull(data)[headersIndex];
                     }
                 }
 
-                // Print the cached CSV docs
                 for (Map.Entry<String, String[]> entry : cachedCsvDocs.entrySet()) {
                     String header = entry.getKey();
                     String[] data = entry.getValue();
 
-                    System.out.println(header + " -> " + String.join(",", data));
+                    Log.debug(header + " -> " + String.join(",", data));
                 }
             }
 
@@ -1533,12 +1542,12 @@ public class ImportDialog extends DialogWrapper {
             sampleElementContentSplit = Objects
                     .requireNonNull(FileUtils.sampleElementFromJsonArrayFile(datasetFieldText)).split(",");
         } else if ("csv".equalsIgnoreCase(fileFormat)) {
-            sampleElementContentSplit = FileUtils.sampleElementFromCsvFile(datasetFieldText, ",", 1);
+            sampleElementContentSplit = FileUtils.sampleElementFromCsvFile(datasetFieldText, 1);
         } else {
             throw new IllegalArgumentException("Unsupported file format: " + fileFormat);
         }
 
-        Log.debug("Sample Element Split is " + Arrays.stream(sampleElementContentSplit));
+        Log.debug("Sample Element Split is " + Arrays.stream(Objects.requireNonNull(sampleElementContentSplit)));
 
         return sampleElementContentSplit;
     }
@@ -1736,7 +1745,6 @@ public class ImportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
         try {
-            // Get values from fields
             String bucket = Objects.requireNonNull(bucketCombo.getSelectedItem()).toString();
             String filePath = datasetField.getText();
             ButtonModel targetLocationGroupSelection = targetLocationGroup.getSelection();
@@ -1754,12 +1762,10 @@ public class ImportDialog extends DialogWrapper {
             int threadsSpinnerValue = (int) threadsSpinner.getValue();
             boolean verboseCheckSelected = verboseCheck.isSelected();
 
-            // Get values from ActiveCluster
             String clusterURL = ActiveCluster.getInstance().getClusterURL();
             String username = ActiveCluster.getInstance().getUsername();
             String password = ActiveCluster.getInstance().getPassword();
 
-            // Create command list using CBImportCommandBuilder
             CBImportCommandBuilder builder = new CBImportCommandBuilder(fileFormat, clusterURL, username, password)
                     .setBucket(bucket)
                     .setDataset(filePath)
@@ -1782,7 +1788,6 @@ public class ImportDialog extends DialogWrapper {
 
             List<String> commandList = builder.constructCommand();
 
-            // Run the import command
             CBImport.complexBucketImport(bucket, filePath, project, fileFormat, commandList);
             super.doOKAction();
         } catch (Exception ex) {

@@ -2,6 +2,7 @@ package utils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
@@ -13,13 +14,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import com.couchbase.intellij.workbench.Log;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
 
 public class FileUtils {
 
@@ -52,15 +55,32 @@ public class FileUtils {
         return lastLine;
     }
 
-    public static String[] sampleElementFromCsvFile(String filePath, String delimiter, int lineNumber) {
+    public static String[] sampleElementFromCsvFile(String filePath, int lineNumber) {
         try {
             Path path = Paths.get(filePath);
-            Stream<String> lines = Files.lines(path);
-            String line = lines.skip(lineNumber - 1).findFirst().get();
-            lines.close();
-            return line.split(delimiter);
-        } catch (Exception e) {
-            Log.error(e);
+            FileReader fileReader = new FileReader(path.toFile());
+            CSVReader csvReader = new CSVReader(fileReader);
+
+            int currentLine = 0;
+            String[] line;
+            try {
+                while ((line = csvReader.readNext()) != null) {
+                    currentLine++;
+                    if (currentLine == lineNumber) {
+                        csvReader.close();
+                        return line;
+                    }
+                }
+            } catch (CsvValidationException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            csvReader.close();
+            return null; // Line number not found
+
+        } catch (IOException e) {
+            e.printStackTrace(); // Handle the exception appropriately
             return null;
         }
     }
@@ -90,7 +110,7 @@ public class FileUtils {
         }
     }
 
-    public static boolean checkFields(String filePath, String delimiter, String fieldText, String fileFormat) {
+    public static boolean checkFields(String filePath, String fieldText, String fileFormat) {
         Pattern pattern = Pattern.compile("%(.*?)%");
         Matcher matcher = pattern.matcher(fieldText);
         while (matcher.find()) {
@@ -109,7 +129,7 @@ public class FileUtils {
                         return false;
                     }
                 } else if (fileFormat.equals("csv")) {
-                    String[] headers = sampleElementFromCsvFile(filePath, delimiter, 1);
+                    String[] headers = sampleElementFromCsvFile(filePath, 1);
                     boolean fieldExists = Arrays.asList(Objects.requireNonNull(headers)).contains(match);
                     if (!fieldExists) {
                         return false;
@@ -164,9 +184,11 @@ public class FileUtils {
 
         String[] unzipCommand;
         if (osName.contains("win")) {
-            unzipCommand = new String[]{"powershell.exe", "-nologo", "-noprofile", "-command", "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical + "' -Force"};
+            unzipCommand = new String[] { "powershell.exe", "-nologo", "-noprofile", "-command",
+                    "Expand-Archive -Path '" + zipFilePathCanonical + "' -DestinationPath '" + destDirCanonical
+                            + "' -Force" };
         } else if (osName.contains("nix") || osName.contains("mac") || osName.contains("nux")) {
-            unzipCommand = new String[]{"unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical};
+            unzipCommand = new String[] { "unzip", "-o", "-q", zipFilePathCanonical, "-d", destDirCanonical };
         } else {
             throw new UnsupportedOperationException("Unsupported operating system: " + osName);
         }
