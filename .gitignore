@@ -13,6 +13,7 @@ build/
 *.iws
 *.iml
 *.ipr
+aws.xml
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
