@@ -13,12 +13,15 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,10 +38,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 
-import com.intellij.ui.components.*;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.json.JsonObject;
@@ -60,6 +63,11 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
+import com.intellij.ui.components.JBCheckBox;
+import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBRadioButton;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 
 import utils.FileUtils;
@@ -163,8 +171,8 @@ public class ImportDialog extends DialogWrapper {
 
     protected int currentPage = 1;
 
-    protected final String[] possibleScopeFields = { "cbms", "scope", "cbs" };
-    protected final String[] possibleCollectionFields = { "cbmc", "collection", "cbc" };
+    protected final String[] possibleScopeFields = { "cbms", "scope", "cbs", "type" };
+    protected final String[] possibleCollectionFields = { "cbmc", "collection", "cbc", "subtype" };
     protected final String[] possibleKeyFields = { "cbmk", "cbmid", "key", "cbk" };
 
     protected String targetScopeField;
@@ -172,8 +180,10 @@ public class ImportDialog extends DialogWrapper {
     protected String fileFormat;
     protected String detectedCouchbaseJsonFormat;
 
+    protected final int previewSize = 6;
     protected List<ScopeSpec> scopeItems;
     protected ArrayList<String> cachedJsonDocs = new ArrayList<>();
+    protected Map<String, String[]> cachedCsvDocs = new HashMap<>();
 
     public ImportDialog(Project project) {
         super(true);
@@ -745,12 +755,20 @@ public class ImportDialog extends DialogWrapper {
             protected void textChanged(@NotNull DocumentEvent e) {
                 Log.debug("Dataset field changed: " + datasetField.getText());
                 String filePath = datasetField.getText();
+
                 if (filePath.endsWith(".json")) {
                     fileFormat = "json";
                 } else if (filePath.endsWith(".csv")) {
                     fileFormat = "csv";
+                } else {
+                    Log.error("Unsupported file type");
+                    return;
                 }
+
                 validateAndEnableNextButton();
+                updateScopeAndCollectionFields();
+                cachedJsonDocs.clear();
+                cachedCsvDocs.clear();
             }
         });
 
@@ -1010,12 +1028,16 @@ public class ImportDialog extends DialogWrapper {
                     errorMessages.add("Please select a valid file.");
                 } else {
                     try {
-                        detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
-                        if (detectedCouchbaseJsonFormat == null) {
-                            highlightField(datasetField, false);
-                            isValid = false;
-                            Log.debug("Validation failed: Dataset file is not in a valid Couchbase JSON format");
-                            errorMessages.add("Dataset file is not in a valid Couchbase JSON format.");
+                        if (fileFormat.equals("json")) {
+                            detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
+                            if (detectedCouchbaseJsonFormat == null) {
+                                highlightField(datasetField, false);
+                                isValid = false;
+                                Log.debug("Validation failed: Dataset file is not in a valid Couchbase JSON format");
+                                errorMessages.add("Dataset file is not in a valid Couchbase JSON format.");
+                            }
+                        } else if (fileFormat.equals("csv")) {
+                            highlightField(datasetField, true);
                         }
                     } catch (Exception ex) {
                         highlightField(datasetField, false);
@@ -1050,21 +1072,44 @@ public class ImportDialog extends DialogWrapper {
                         errorMessages.add("Dynamic scope and/or collection fields are empty.");
                     }
 
-                    String scopeFieldText = dynamicScopeField.getText();
-                    boolean isValidDynamicScope = FileUtils.checkFieldsInJson(scopeFieldText,
-                            datasetField.getText());
+                    if (fileFormat.equals("json")) {
+                        // Validation for JSON file format
+                        String scopeFieldText = dynamicScopeField.getText();
+                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(), null,
+                                scopeFieldText,
+                                fileFormat);
 
-                    highlightField(dynamicScopeField, isValidDynamicScope);
+                        highlightField(dynamicScopeField, isValidDynamicScope);
 
-                    String collectionFieldText = dynamicCollectionField.getText();
-                    boolean isValidDynamicCollection = FileUtils.checkFieldsInJson(collectionFieldText,
-                            datasetField.getText());
-                    highlightField(dynamicCollectionField, isValidDynamicCollection);
+                        String collectionFieldText = dynamicCollectionField.getText();
+                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(), null,
+                                collectionFieldText, fileFormat);
+                        highlightField(dynamicCollectionField, isValidDynamicCollection);
 
-                    if (!isValidDynamicScope || !isValidDynamicCollection) {
-                        isValid = false;
-                        Log.debug("Validation failed: Scope and/or Collection fields are not valid");
-                        errorMessages.add("Scope and/or Collection fields are not valid.");
+                        if (!isValidDynamicScope || !isValidDynamicCollection) {
+                            isValid = false;
+                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
+                            errorMessages.add("Scope and/or Collection fields are not valid.");
+                        }
+                    } else if (fileFormat.equals("csv")) {
+                        // Validation for CSV file format
+                        String scopeFieldText = dynamicScopeField.getText();
+                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(), ",",
+                                scopeFieldText,
+                                fileFormat);
+
+                        highlightField(dynamicScopeField, isValidDynamicScope);
+
+                        String collectionFieldText = dynamicCollectionField.getText();
+                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(), ",",
+                                collectionFieldText, fileFormat);
+                        highlightField(dynamicCollectionField, isValidDynamicCollection);
+
+                        if (!isValidDynamicScope || !isValidDynamicCollection) {
+                            isValid = false;
+                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
+                            errorMessages.add("Scope and/or Collection fields are not valid.");
+                        }
                     }
 
                     String regex = "^(_|-|%|[0-9a-zA-Z])+$";
@@ -1073,7 +1118,6 @@ public class ImportDialog extends DialogWrapper {
                         Log.debug("Validation failed: Scope and/or Collection fields do not match the regex");
                         errorMessages.add("Scope and/or Collection fields do not match the regex.");
                     }
-
                 } else if (!defaultScopeAndCollectionRadio.isSelected()
                         && !collectionRadio.isSelected()
                         && !dynamicScopeAndCollectionRadio.isSelected()) {
@@ -1212,21 +1256,18 @@ public class ImportDialog extends DialogWrapper {
                 Log.debug("Dynamic scope and collection Radio selected");
                 String[] sampleElementContentSplit = getSampleElementContentSplit(datasetField.getText());
 
-                for (String field : possibleScopeFields) {
-                    if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> element.contains(field))) {
-                        dynamicScopeField.setText("%" + field + "%");
-                        break;
-                    }
-                }
-                for (String field : possibleCollectionFields) {
-                    if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> element.contains(field))) {
-                        dynamicCollectionField.setText("%" + field + "%");
-                        break;
-                    }
-                }
+                BiConsumer<String[], JTextField> setFirstMatch = (fields, textField) -> {
+                    Optional<String> firstMatch = Arrays.stream(fields)
+                            .filter(field -> Arrays.stream(sampleElementContentSplit)
+                                    .anyMatch(element -> element.contains(field)))
+                            .findFirst();
+                    firstMatch.ifPresent(field -> textField.setText("%" + field + "%"));
+                };
+
+                setFirstMatch.accept(possibleScopeFields, dynamicScopeField);
+                setFirstMatch.accept(possibleCollectionFields, dynamicCollectionField);
 
                 updateIgnoreFieldsTextField();
-
             }
         } catch (Exception ex) {
             Log.error("Exception occurred: ", ex);
@@ -1271,8 +1312,9 @@ public class ImportDialog extends DialogWrapper {
 
     protected void updateKeyPreview() {
         keyPreviewArea.setText("");
-        if (cachedJsonDocs.isEmpty()) {
-            cachedJsonDocs = readJsonFile();
+        if ((fileFormat.equals("json") && cachedJsonDocs.isEmpty())
+                || (fileFormat.equals("csv") && cachedCsvDocs.isEmpty())) {
+            readJsonOrCsvFile();
         }
 
         StringBuilder previewContent = new StringBuilder();
@@ -1280,83 +1322,141 @@ public class ImportDialog extends DialogWrapper {
 
         if (useFieldValueRadio.isSelected()) {
             String fieldName = fieldNameField.getText();
-            for (int i = 0; i < Math.min(cachedJsonDocs.size(), 6); i++) {
-                JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
-                if (jsonObject.containsKey(fieldName)) {
-                    previewContent.append(jsonObject.getString(fieldName)).append("\n");
+            if (fileFormat.equals("json")) {
+                for (int i = 0; i < Math.min(cachedJsonDocs.size(), previewSize); i++) {
+                    JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
+                    if (jsonObject.containsKey(fieldName)) {
+                        previewContent.append(jsonObject.getString(fieldName)).append("\n");
+                    }
+                }
+            } else if (fileFormat.equals("csv")) {
+                for (int i = 0; i < Math.min(cachedCsvDocs.size(), previewSize); i++) {
+                    if (cachedCsvDocs.get(fieldName) != null) {
+                        previewContent.append(cachedCsvDocs.get(fieldName)[i]).append("\n");
+                    }
                 }
             }
         } else if (customExpressionRadio.isSelected()) {
-            String expression = customExpressionField.getText();
-            Pattern pattern = Pattern.compile("%(\\w+)%");
-            Matcher matcher = pattern.matcher(expression);
-            List<String> fieldNames = new ArrayList<>();
-            while (matcher.find()) {
-                fieldNames.add(matcher.group(1));
-            }
 
-            for (int i = 0; i < Math.min(cachedJsonDocs.size(), 6); i++) {
-                JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
-
-                String key = expression;
-                for (String fieldName : fieldNames) {
-                    if (jsonObject.containsKey(fieldName)) {
-                        key = key.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
+            if (fileFormat.equals("json")) {
+                String expression = customExpressionField.getText();
+                Pattern pattern = Pattern.compile("%(\\w+)%");
+                Matcher matcher = pattern.matcher(expression);
+                List<String> fieldNamesList = new ArrayList<>();
+                while (matcher.find()) {
+                    fieldNamesList.add(matcher.group(1));
+                }
+                for (int i = 0; i < Math.min(cachedJsonDocs.size(), previewSize); i++) {
+                    JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
+                    String keyBuilder = expression;
+                    for (String fieldName : fieldNamesList) {
+                        if (jsonObject.containsKey(fieldName)) {
+                            keyBuilder = keyBuilder.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
+                        }
                     }
+
+                    keyBuilder = keyBuilder.replace("#UUID#", UUID.randomUUID().toString());
+                    keyBuilder = keyBuilder.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                    monoIncrValue++;
+
+                    previewContent.append(keyBuilder).append("\n");
+                }
+            } else if (fileFormat.equals("csv")) {
+                String expression = customExpressionField.getText();
+                Pattern pattern = Pattern.compile("%(\\w+)%");
+                Matcher matcher = pattern.matcher(expression);
+                List<String> fieldNamesList = new ArrayList<>();
+                while (matcher.find()) {
+                    fieldNamesList.add(matcher.group(1));
                 }
 
-                key = key.replace("#UUID#", UUID.randomUUID().toString());
-                key = key.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
-                monoIncrValue++;
+                for (int i = 0; i < Math.min(cachedCsvDocs.size(), previewSize); i++) {
+                    String keyBuilder = expression;
+                    for (String fieldName : fieldNamesList) {
+                        if (cachedCsvDocs.get(fieldName) != null) {
+                            keyBuilder = keyBuilder.replace("%" + fieldName + "%", cachedCsvDocs.get(fieldName)[i]);
+                        }
+                    }
 
-                previewContent.append(key).append("\n");
+                    keyBuilder = keyBuilder.replace("#UUID#", UUID.randomUUID().toString());
+                    keyBuilder = keyBuilder.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                    monoIncrValue++;
+
+                    previewContent.append(keyBuilder).append("\n");
+                }
+
             }
         }
 
         keyPreviewArea.setText(previewContent.toString());
+
         updateIgnoreFieldsTextField();
+
     }
 
-    protected ArrayList<String> readJsonFile() {
-        ArrayList<String> cachedJsonDocs = new ArrayList<>();
+    protected void readJsonOrCsvFile() {
+        cachedJsonDocs = new ArrayList<>();
+        cachedCsvDocs = new HashMap<>();
 
         try {
             String datasetPath = datasetField.getText();
-            try (BufferedReader br = new BufferedReader(new FileReader(datasetPath))) {
-                int counter = 0;
-                String documentFound = "";
+            if (datasetPath.endsWith(".json")) {
+                try (BufferedReader br = new BufferedReader(new FileReader(datasetPath))) {
+                    int counter = 0;
+                    String documentFound = "";
 
-                while (true) {
-                    String nextLine = br.readLine();
+                    while (true) {
+                        String nextLine = br.readLine();
 
-                    if (counter == 0) {
-                        if (!nextLine.trim().startsWith("[")) {
-                            System.out.println("Not a json array");
-                            break;
+                        if (counter == 0) {
+                            if (!nextLine.trim().startsWith("[")) {
+                                System.out.println("Not a json array");
+                                break;
+                            }
+
+                            nextLine = nextLine.replace("[", "");
                         }
 
-                        nextLine = nextLine.replace("[", "");
-                    }
+                        if (nextLine == null || counter > 2000 || cachedJsonDocs.size() >= previewSize) {
+                            break;
+                        } else {
+                            counter++;
 
-                    if (nextLine == null || counter > 2000 || cachedJsonDocs.size() >= 6) {
-                        break;
-                    } else {
-                        counter++;
-
-                        documentFound += nextLine.trim();
-                        if (isValidBrackets(documentFound)) {
-                            documentFound = cleanString(documentFound);
-                            cachedJsonDocs.add(documentFound);
-                            documentFound = "";
+                            documentFound += nextLine.trim();
+                            if (isValidBrackets(documentFound)) {
+                                documentFound = cleanString(documentFound);
+                                cachedJsonDocs.add(documentFound);
+                                documentFound = "";
+                            }
                         }
                     }
                 }
+            } else if (datasetPath.endsWith(".csv")) {
+                String[] headers = FileUtils.sampleElementFromCsvFile(datasetPath, ",", 1);
+
+                for (int index = 2; index < 2 + previewSize; index++) {
+                    String[] data = FileUtils.sampleElementFromCsvFile(datasetPath, ",", index);
+                    for (int csvIndex = 0; csvIndex < Objects.requireNonNull(headers).length; csvIndex++) {
+                        if (!cachedCsvDocs.containsKey(headers[csvIndex])) {
+                            cachedCsvDocs.put(headers[csvIndex], new String[previewSize]);
+                        }
+                        cachedCsvDocs.get(headers[csvIndex])[index - 2] = Objects.requireNonNull(data)[csvIndex];
+                    }
+                }
+
+                // Print the cached CSV docs
+                for (Map.Entry<String, String[]> entry : cachedCsvDocs.entrySet()) {
+                    String header = entry.getKey();
+                    String[] data = entry.getValue();
+
+                    System.out.println(header + " -> " + String.join(",", data));
+                }
             }
+
         } catch (Exception ex) {
             Log.error("Exception occurred", ex);
         }
 
-        return cachedJsonDocs;
     }
 
     protected String cleanString(String input) {
@@ -1427,10 +1527,20 @@ public class ImportDialog extends DialogWrapper {
     }
 
     protected String[] getSampleElementContentSplit(String datasetFieldText) {
-        String sampleElementContent = FileUtils.sampleElementFromJsonArrayFile(datasetFieldText);
-        System.out.println("Sample element content in updating key form fields " + sampleElementContent);
-        assert sampleElementContent != null;
-        return sampleElementContent.split(",");
+        String[] sampleElementContentSplit;
+
+        if ("json".equalsIgnoreCase(fileFormat)) {
+            sampleElementContentSplit = Objects
+                    .requireNonNull(FileUtils.sampleElementFromJsonArrayFile(datasetFieldText)).split(",");
+        } else if ("csv".equalsIgnoreCase(fileFormat)) {
+            sampleElementContentSplit = FileUtils.sampleElementFromCsvFile(datasetFieldText, ",", 1);
+        } else {
+            throw new IllegalArgumentException("Unsupported file format: " + fileFormat);
+        }
+
+        Log.debug("Sample Element Split is " + Arrays.stream(sampleElementContentSplit));
+
+        return sampleElementContentSplit;
     }
 
     @Override

@@ -1,18 +1,25 @@
 package utils;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 import com.couchbase.intellij.workbench.Log;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class FileUtils {
 
@@ -45,6 +52,19 @@ public class FileUtils {
         return lastLine;
     }
 
+    public static String[] sampleElementFromCsvFile(String filePath, String delimiter, int lineNumber) {
+        try {
+            Path path = Paths.get(filePath);
+            Stream<String> lines = Files.lines(path);
+            String line = lines.skip(lineNumber - 1).findFirst().get();
+            lines.close();
+            return line.split(delimiter);
+        } catch (Exception e) {
+            Log.error(e);
+            return null;
+        }
+    }
+
     public static String sampleElementFromJsonArrayFile(String filePath) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -70,37 +90,37 @@ public class FileUtils {
         }
     }
 
-    public static boolean checkFieldsInJson(String fieldText, String dataset) {
+    public static boolean checkFields(String filePath, String delimiter, String fieldText, String fileFormat) {
         Pattern pattern = Pattern.compile("%(.*?)%");
         Matcher matcher = pattern.matcher(fieldText);
         while (matcher.find()) {
             String match = matcher.group(1);
-            if (!FileUtils.checkFieldInJson(dataset, match)) {
+            try {
+                if (fileFormat.equals("json")) {
+                    String sampleElement = sampleElementFromJsonArrayFile(filePath);
+                    if (sampleElement != null) {
+                        ObjectMapper mapper = new ObjectMapper();
+                        Map<String, Object> jsonObject = mapper.readValue(sampleElement, new TypeReference<>() {
+                        });
+                        if (!jsonObject.containsKey(match)) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else if (fileFormat.equals("csv")) {
+                    String[] headers = sampleElementFromCsvFile(filePath, delimiter, 1);
+                    boolean fieldExists = Arrays.asList(Objects.requireNonNull(headers)).contains(match);
+                    if (!fieldExists) {
+                        return false;
+                    }
+                }
+            } catch (Exception e) {
+                Log.error(e);
                 return false;
             }
         }
         return true;
-    }
-
-    public static boolean checkFieldInJson(String filePath, String fieldText) {
-        boolean isValidField = true;
-        try {
-            String sampleElement = FileUtils.sampleElementFromJsonArrayFile(filePath);
-            if (sampleElement != null) {
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> jsonObject = mapper.readValue(sampleElement, new TypeReference<>() {
-                });
-                if (!jsonObject.containsKey(fieldText)) {
-                    isValidField = false;
-                }
-            } else {
-                isValidField = false;
-            }
-        } catch (Exception e) {
-            Log.error("An error occurred while validating the field: " + e.getMessage());
-            isValidField = false;
-        }
-        return isValidField;
     }
 
     public static String detectDatasetFormat(String filePath) throws IOException {
