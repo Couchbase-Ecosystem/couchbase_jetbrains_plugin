@@ -14,6 +14,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -79,12 +80,12 @@ public class ImportDialog extends DialogWrapper {
 
     protected TextFieldWithBrowseButton datasetField;
 
-    protected ComboBox<String> bucketCombo;
-    protected ComboBox<String> scopeCombo;
-    protected ComboBox<String> collectionCombo;
+    protected ComboBox<String> targetBucketCombo;
+    protected ComboBox<String> targetScopeCombo;
+    protected ComboBox<String> targetCollectionCombo;
 
     protected JBRadioButton defaultScopeAndCollectionRadio;
-    protected JBRadioButton collectionRadio;
+    protected JBRadioButton targetCollectionRadio;
     protected JBRadioButton dynamicScopeAndCollectionRadio;
 
     protected JBTextField dynamicScopeField;
@@ -94,7 +95,7 @@ public class ImportDialog extends DialogWrapper {
     protected JBRadioButton useFieldValueRadio;
     protected JBRadioButton customExpressionRadio;
 
-    protected JBTextField fieldNameField;
+    protected JBTextField useFieldNameField;
     protected JBTextField customExpressionField;
 
     protected JBTextField skipFirstField;
@@ -173,7 +174,7 @@ public class ImportDialog extends DialogWrapper {
 
     protected final String[] possibleScopeFields = { "cbms", "scope", "cbs", "type" };
     protected final String[] possibleCollectionFields = { "cbmc", "collection", "cbc", "subtype" };
-    protected final String[] possibleKeyFields = { "cbmk", "cbmid", "key", "cbk" };
+    protected final String[] possibleKeyFields = { "id", "cbmk", "cbmid", "key", "cbk" };
 
     protected String targetScopeField;
     protected String targetCollectionField;
@@ -181,7 +182,7 @@ public class ImportDialog extends DialogWrapper {
     protected String detectedCouchbaseJsonFormat;
 
     protected final int previewSize = 6;
-    protected List<ScopeSpec> scopeItems;
+    protected List<ScopeSpec> targetScopeItems;
     protected ArrayList<String> cachedJsonDocs = new ArrayList<>();
     protected Map<String, String[]> cachedCsvDocs = new HashMap<>();
 
@@ -326,8 +327,8 @@ public class ImportDialog extends DialogWrapper {
         Set<String> bucketSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
         String[] buckets = bucketSet.toArray(new String[0]);
 
-        bucketCombo = new ComboBox<>(buckets);
-        targetFormPanel.add(bucketCombo, c);
+        targetBucketCombo = new ComboBox<>(buckets);
+        targetFormPanel.add(targetBucketCombo, c);
 
         c.gridy = 1;
         c.weightx = 0.3;
@@ -339,12 +340,12 @@ public class ImportDialog extends DialogWrapper {
         c.gridx = 1;
 
         defaultScopeAndCollectionRadio = new JBRadioButton("Default scope and collection");
-        collectionRadio = new JBRadioButton("Collection");
+        targetCollectionRadio = new JBRadioButton("Target collection");
         dynamicScopeAndCollectionRadio = new JBRadioButton("Dynamic scope and collection");
 
         targetLocationGroup = new ButtonGroup();
         targetLocationGroup.add(defaultScopeAndCollectionRadio);
-        targetLocationGroup.add(collectionRadio);
+        targetLocationGroup.add(targetCollectionRadio);
         targetLocationGroup.add(dynamicScopeAndCollectionRadio);
 
         defaultScopeAndCollectionRadio.setSelected(true);
@@ -352,7 +353,7 @@ public class ImportDialog extends DialogWrapper {
         radioPanel = new JPanel();
         radioPanel.setLayout(new BoxLayout(radioPanel, BoxLayout.Y_AXIS));
         radioPanel.add(defaultScopeAndCollectionRadio);
-        radioPanel.add(collectionRadio);
+        radioPanel.add(targetCollectionRadio);
         radioPanel.add(dynamicScopeAndCollectionRadio);
 
         targetFormPanel.add(radioPanel, c);
@@ -367,10 +368,10 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        scopeItems = new ArrayList<>();
-        scopeCombo = new ComboBox<>();
+        targetScopeItems = new ArrayList<>();
+        targetScopeCombo = new ComboBox<>();
 
-        targetFormPanel.add(scopeCombo, c);
+        targetFormPanel.add(targetScopeCombo, c);
 
         c.gridy = 3;
         c.weightx = 0.3;
@@ -382,9 +383,9 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        collectionCombo = new ComboBox<>();
+        targetCollectionCombo = new ComboBox<>();
 
-        targetFormPanel.add(collectionCombo, c);
+        targetFormPanel.add(targetCollectionCombo, c);
 
         c.gridy = 4;
         c.weightx = 0.3;
@@ -417,15 +418,15 @@ public class ImportDialog extends DialogWrapper {
         scopeFieldLabelHelpPanel.setVisible(false);
         collectionFieldLabelHelpPanel.setVisible(false);
 
-        scopeCombo.setVisible(false);
-        collectionCombo.setVisible(false);
+        targetScopeCombo.setVisible(false);
+        targetCollectionCombo.setVisible(false);
         dynamicScopeField.setVisible(false);
         dynamicCollectionField.setVisible(false);
 
         contentPanel.add(targetFormPanel);
         targetPanel.add(contentPanel, BorderLayout.NORTH);
 
-        handleBucketComboBoxChange();
+        handleTargetBucketComboBoxChange();
         return targetPanel;
     }
 
@@ -486,8 +487,8 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        fieldNameField = new JBTextField();
-        keyFormPanel.add(fieldNameField, c);
+        useFieldNameField = new JBTextField();
+        keyFormPanel.add(useFieldNameField, c);
 
         c.gridy = 3;
         c.weightx = 0.05;
@@ -539,7 +540,7 @@ public class ImportDialog extends DialogWrapper {
         fieldNameLabelHelpPanel.setVisible(false);
         customExpressionLabelHelpPanel.setVisible(false);
 
-        fieldNameField.setVisible(false);
+        useFieldNameField.setVisible(false);
         customExpressionField.setVisible(false);
 
         keyPreviewPanel.setVisible(false);
@@ -677,13 +678,13 @@ public class ImportDialog extends DialogWrapper {
         summary.append("<br><br>");
 
         summary.append("<b>Bucket:</b> ");
-        summary.append(bucketCombo.getSelectedItem());
+        summary.append(targetBucketCombo.getSelectedItem());
         summary.append("<br><br>");
 
         summary.append("<b>Scope and Collection:</b> ");
         if (defaultScopeAndCollectionRadio.isSelected()) {
             summary.append("Default Scope and Collection");
-        } else if (collectionRadio.isSelected()) {
+        } else if (targetCollectionRadio.isSelected()) {
             summary.append("Collection - Scope: ");
             summary.append(targetScopeField);
             summary.append(", Collection: ");
@@ -701,7 +702,7 @@ public class ImportDialog extends DialogWrapper {
             summary.append("Generate random UUID for each document");
         } else if (useFieldValueRadio.isSelected()) {
             summary.append("Use the value of a field as the key - Field Name: ");
-            summary.append(fieldNameField.getText());
+            summary.append(useFieldNameField.getText());
         } else if (customExpressionRadio.isSelected()) {
             summary.append("Generate key based on custom expression - Expression: ");
             summary.append(customExpressionField.getText());
@@ -775,7 +776,7 @@ public class ImportDialog extends DialogWrapper {
                 }
 
                 validateAndEnableNextButton();
-                updateScopeAndCollectionFields();
+                updateTargetOrDyanmicOptions();
                 cachedJsonDocs.clear();
                 cachedCsvDocs.clear();
             }
@@ -783,11 +784,11 @@ public class ImportDialog extends DialogWrapper {
 
         // Page 2: Target Location
         ActionListener radioListener = e -> {
-            updateScopeAndCollectionFields();
+            updateTargetOrDyanmicOptions();
             validateAndEnableNextButton();
         };
         defaultScopeAndCollectionRadio.addActionListener(radioListener);
-        collectionRadio.addActionListener(radioListener);
+        targetCollectionRadio.addActionListener(radioListener);
         dynamicScopeAndCollectionRadio.addActionListener(radioListener);
 
         DocumentAdapter documentAdapter = new DocumentAdapter() {
@@ -799,44 +800,30 @@ public class ImportDialog extends DialogWrapper {
         dynamicScopeField.getDocument().addDocumentListener(documentAdapter);
         dynamicCollectionField.getDocument().addDocumentListener(documentAdapter);
 
-        bucketCombo.addActionListener(e -> handleBucketComboBoxChange());
-        scopeCombo.addActionListener(e -> handleScopeComboBoxChange());
+        targetBucketCombo.addActionListener(e -> handleTargetBucketComboBoxChange());
+        targetScopeCombo.addActionListener(e -> handleTargetScopeComboBoxChange());
 
         ActionListener comboListener = e -> validateAndEnableNextButton();
-        bucketCombo.addActionListener(comboListener);
-        scopeCombo.addActionListener(comboListener);
-        collectionCombo.addActionListener(comboListener);
+        targetBucketCombo.addActionListener(comboListener);
+        targetScopeCombo.addActionListener(comboListener);
+        targetCollectionCombo.addActionListener(comboListener);
 
-        scopeCombo.addActionListener(e -> {
+        targetScopeCombo.addActionListener(e -> {
             Log.debug("Scope combo box changed: "
-                    + Optional.ofNullable(scopeCombo.getSelectedItem()).map(Object::toString)
+                    + Optional.ofNullable(targetScopeCombo.getSelectedItem()).map(Object::toString)
                             .orElse(null));
-            targetScopeField = Optional.ofNullable(scopeCombo.getSelectedItem())
+            targetScopeField = Optional.ofNullable(targetScopeCombo.getSelectedItem())
                     .map(Object::toString)
                     .orElse("_default");
         });
-        collectionCombo.addActionListener(e -> {
+        targetCollectionCombo.addActionListener(e -> {
             Log.debug("Collection combo box changed: "
-                    + Optional.ofNullable(collectionCombo.getSelectedItem())
+                    + Optional.ofNullable(targetCollectionCombo.getSelectedItem())
                             .map(Object::toString).orElse(null));
             targetCollectionField = Optional
-                    .ofNullable(collectionCombo.getSelectedItem())
+                    .ofNullable(targetCollectionCombo.getSelectedItem())
                     .map(Object::toString)
                     .orElse("_default");
-        });
-
-        dynamicScopeField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                updateIgnoreFieldsTextField();
-            }
-        });
-
-        dynamicCollectionField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                updateIgnoreFieldsTextField();
-            }
         });
 
         // Page 3: Document Key
@@ -847,16 +834,15 @@ public class ImportDialog extends DialogWrapper {
         generateUUIDRadio.addActionListener(keyRadioListener);
         useFieldValueRadio.addActionListener(e -> {
             updateKeyFormFields();
-            updateIgnoreFieldsTextField();
             validateAndEnableNextButton();
         });
         customExpressionRadio.addActionListener(keyRadioListener);
 
-        fieldNameField.getDocument().addDocumentListener(new DocumentAdapter() {
+        useFieldNameField.getDocument().addDocumentListener(new DocumentAdapter() {
 
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
-                Log.debug("Field name field changed: " + fieldNameField.getText());
+                Log.debug("Field name field changed: " + useFieldNameField.getText());
                 updateKeyPreview();
                 validateAndEnableNextButton();
             }
@@ -883,12 +869,7 @@ public class ImportDialog extends DialogWrapper {
         importUptoCheck.addActionListener(checkListener);
         importUptoField.getDocument().addDocumentListener(documentAdapter);
 
-        ignoreFieldsCheck.addActionListener(e -> {
-            enableFields();
-            updateIgnoreFieldsTextField();
-            validateAndEnableNextButton();
-        });
-
+        ignoreFieldsCheck.addActionListener(checkListener);
         ignoreFieldsField.getDocument().addDocumentListener(documentAdapter);
 
     }
@@ -899,28 +880,28 @@ public class ImportDialog extends DialogWrapper {
         ignoreFieldsField.setEnabled(ignoreFieldsCheck.isSelected());
     }
 
-    protected void handleBucketComboBoxChange() {
+    protected void handleTargetBucketComboBoxChange() {
         try {
-            String selectedBucket = Optional.ofNullable(bucketCombo.getSelectedItem())
+            String selectedBucket = Optional.ofNullable(targetBucketCombo.getSelectedItem())
                     .map(Object::toString)
                     .orElse(null);
             Log.debug("Bucket combo box changed: " + selectedBucket);
 
-            scopeItems.clear();
-            scopeItems.addAll(ActiveCluster.getInstance().get().bucket(selectedBucket)
+            targetScopeItems.clear();
+            targetScopeItems.addAll(ActiveCluster.getInstance().get().bucket(selectedBucket)
                     .collections().getAllScopes());
 
-            Set<String> scopeSet = scopeItems.stream()
+            Set<String> scopeSet = targetScopeItems.stream()
                     .map(ScopeSpec::name)
                     .collect(Collectors.toSet());
-            scopeCombo.removeAllItems();
+            targetScopeCombo.removeAllItems();
             for (String scopeItem : scopeSet) {
-                scopeCombo.addItem(scopeItem);
+                targetScopeCombo.addItem(scopeItem);
             }
 
-            if (scopeCombo.getItemCount() > 0) {
-                scopeCombo.setSelectedIndex(0);
-                targetScopeField = Objects.requireNonNull(scopeCombo.getSelectedItem()).toString();
+            if (targetScopeCombo.getItemCount() > 0) {
+                targetScopeCombo.setSelectedIndex(0);
+                targetScopeField = Objects.requireNonNull(targetScopeCombo.getSelectedItem()).toString();
             } else {
                 int result = Messages.showYesNoDialog(project,
                         "The selected bucket " + selectedBucket
@@ -939,38 +920,38 @@ public class ImportDialog extends DialogWrapper {
                         ActiveCluster.getInstance().get().bucket(selectedBucket).collections()
                                 .createScope(scopeName);
 
-                        scopeCombo.addItem(scopeName);
-                        scopeCombo.setSelectedItem(scopeName);
+                        targetScopeCombo.addItem(scopeName);
+                        targetScopeCombo.setSelectedItem(scopeName);
                     }
                 } else {
-                    scopeCombo.setSelectedItem("_default");
-                    collectionCombo.setSelectedItem("_default");
+                    targetScopeCombo.setSelectedItem("_default");
+                    targetCollectionCombo.setSelectedItem("_default");
                 }
             }
 
-            handleScopeComboBoxChange();
+            handleTargetScopeComboBoxChange();
         } catch (Exception ex) {
             Log.error("Exception occurred" + ex);
         }
     }
 
-    protected void handleScopeComboBoxChange() {
+    protected void handleTargetScopeComboBoxChange() {
         try {
-            String selectedScope = Optional.ofNullable(scopeCombo.getSelectedItem())
+            String selectedScope = Optional.ofNullable(targetScopeCombo.getSelectedItem())
                     .map(Object::toString)
                     .orElse(null);
             Log.debug("Scope combo box changed: " + selectedScope);
 
             if (selectedScope == null || selectedScope.isEmpty()) {
-                scopeCombo.setSelectedItem("_default");
-                collectionCombo.setSelectedItem("_default");
+                targetScopeCombo.setSelectedItem("_default");
+                targetCollectionCombo.setSelectedItem("_default");
                 return;
             }
 
-            collectionCombo.removeAllItems();
+            targetCollectionCombo.removeAllItems();
 
             Consumer<String> refreshCollectionCombo = (scope) -> {
-                String[] collectionItems = scopeItems.stream()
+                String[] collectionItems = targetScopeItems.stream()
                         .filter(s -> s.name().equals(scope))
                         .flatMap(s -> s.collections().stream())
                         .map(CollectionSpec::name)
@@ -978,15 +959,15 @@ public class ImportDialog extends DialogWrapper {
                         .toArray(String[]::new);
 
                 for (String collectionItem : collectionItems) {
-                    collectionCombo.addItem(collectionItem);
+                    targetCollectionCombo.addItem(collectionItem);
                 }
             };
 
             refreshCollectionCombo.accept(selectedScope);
 
-            if (collectionCombo.getItemCount() > 0) {
-                collectionCombo.setSelectedIndex(0);
-                targetCollectionField = Objects.requireNonNull(collectionCombo.getSelectedItem()).toString();
+            if (targetCollectionCombo.getItemCount() > 0) {
+                targetCollectionCombo.setSelectedIndex(0);
+                targetCollectionField = Objects.requireNonNull(targetCollectionCombo.getSelectedItem()).toString();
             } else {
                 int result = Messages.showYesNoDialog(project,
                         "The selected scope " + selectedScope
@@ -997,24 +978,24 @@ public class ImportDialog extends DialogWrapper {
                     NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
                             project,
                             EntityType.COLLECTION,
-                            Objects.requireNonNull(bucketCombo.getSelectedItem()).toString(),
+                            Objects.requireNonNull(targetBucketCombo.getSelectedItem()).toString(),
                             selectedScope);
                     entityCreationDialog.show();
 
                     if (entityCreationDialog.isOK()) {
                         String collectionName = entityCreationDialog.getEntityName();
                         ActiveCluster.getInstance().get()
-                                .bucket(bucketCombo.getSelectedItem().toString()).collections()
+                                .bucket(targetBucketCombo.getSelectedItem().toString()).collections()
                                 .createCollection(CollectionSpec.create(collectionName, selectedScope));
 
-                        collectionCombo.addItem(collectionName);
-                        collectionCombo.setSelectedItem(collectionName);
+                        targetCollectionCombo.addItem(collectionName);
+                        targetCollectionCombo.setSelectedItem(collectionName);
                     }
                 } else {
-                    scopeCombo.setSelectedItem("_default");
+                    targetScopeCombo.setSelectedItem("_default");
                     refreshCollectionCombo.accept("_default");
-                    collectionCombo.setSelectedIndex(0);
-                    targetCollectionField = Objects.requireNonNull(collectionCombo.getSelectedItem()).toString();
+                    targetCollectionCombo.setSelectedIndex(0);
+                    targetCollectionField = Objects.requireNonNull(targetCollectionCombo.getSelectedItem()).toString();
                 }
             }
         } catch (Exception ex) {
@@ -1022,227 +1003,14 @@ public class ImportDialog extends DialogWrapper {
         }
     }
 
-    protected void validateAndEnableNextButton() {
-        try {
-            boolean isValid = true;
-            List<String> errorMessages = new ArrayList<>();
-            if (currentPage == 1) {
-                String datasetText = datasetField.getText();
-                boolean isValidDataset = !(datasetText.isEmpty()
-                        || !(datasetText.endsWith(".json") || datasetText.endsWith(".csv")));
-                highlightField(datasetField, isValidDataset);
-                if (!isValidDataset) {
-                    isValid = false;
-                    Log.debug("Validation failed: Dataset field is empty or does not have a valid file extension");
-                    errorMessages.add("Please select a valid file.");
-                } else {
-                    try {
-                        if (fileFormat.equals("json")) {
-                            detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
-                            if (detectedCouchbaseJsonFormat == null) {
-                                highlightField(datasetField, false);
-                                isValid = false;
-                                Log.debug("Validation failed: Dataset file is not in a valid Couchbase JSON format");
-                                errorMessages.add("Dataset file is not in a valid Couchbase JSON format.");
-                            }
-                        } else if (fileFormat.equals("csv")) {
-                            highlightField(datasetField, true);
-                        }
-                    } catch (Exception ex) {
-                        highlightField(datasetField, false);
-                        isValid = false;
-                        Log.debug("An error occurred while validating the dataset file: " + ex);
-                        errorMessages.add("An error occurred while validating the dataset file.");
-                    }
-                }
-            } else if (currentPage == 2) {
+    protected void updateTargetOrDyanmicOptions() {
+        boolean targetCollectionSelected = targetCollectionRadio.isSelected();
 
-                if (collectionRadio.isSelected()) {
-                    if (scopeCombo.getSelectedItem() == null) {
-                        isValid = false;
-                        Log.debug("Validation failed: Scope combo box not selected");
-                        errorMessages.add("Scope combo box not selected.");
-                    }
-                    if (collectionCombo.getSelectedItem() == null) {
-                        isValid = false;
-                        Log.debug("Validation failed: Collection combo box not selected");
-                        errorMessages.add("Collection combo box not selected.");
-                    }
-                } else if (dynamicScopeAndCollectionRadio.isSelected()) {
-                    String dynamicScopeText = dynamicScopeField.getText();
-                    String dynamicCollectionText = dynamicCollectionField.getText();
-                    boolean isDynamicScopeEmpty = !dynamicScopeText.isEmpty();
-                    boolean isDynamicCollectionEmpty = !dynamicCollectionText.isEmpty();
-                    highlightField(dynamicScopeField, isDynamicScopeEmpty);
-                    highlightField(dynamicCollectionField, isDynamicCollectionEmpty);
-                    if (!isDynamicScopeEmpty || !isDynamicCollectionEmpty) {
-                        isValid = false;
-                        Log.debug("Validation failed: Dynamic scope and/or collection fields are empty");
-                        errorMessages.add("Dynamic scope and/or collection fields are empty.");
-                    }
+        scopeLabelHelpPanel.setVisible(targetCollectionSelected);
+        targetScopeCombo.setVisible(targetCollectionSelected);
 
-                    if (fileFormat.equals("json")) {
-                        // Validation for JSON file format
-                        String scopeFieldText = dynamicScopeField.getText();
-                        boolean isValidDynamicScope = FileUtils.checkFields(
-                                datasetField.getText(), scopeFieldText, fileFormat);
-
-                        highlightField(dynamicScopeField, isValidDynamicScope);
-
-                        String collectionFieldText = dynamicCollectionField.getText();
-                        boolean isValidDynamicCollection = FileUtils.checkFields(
-                                datasetField.getText(), collectionFieldText, fileFormat);
-
-                        highlightField(dynamicCollectionField, isValidDynamicCollection);
-
-                        if (!isValidDynamicScope || !isValidDynamicCollection) {
-                            isValid = false;
-                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
-                            errorMessages.add("Scope and/or Collection fields are not valid.");
-                        }
-                    } else if (fileFormat.equals("csv")) {
-                        // Validation for CSV file format
-                        String scopeFieldText = dynamicScopeField.getText();
-                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(),
-                                scopeFieldText,
-                                fileFormat);
-
-                        highlightField(dynamicScopeField, isValidDynamicScope);
-
-                        String collectionFieldText = dynamicCollectionField.getText();
-                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(),
-                                collectionFieldText, fileFormat);
-                        highlightField(dynamicCollectionField, isValidDynamicCollection);
-
-                        if (!isValidDynamicScope || !isValidDynamicCollection) {
-                            isValid = false;
-                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
-                            errorMessages.add("Scope and/or Collection fields are not valid.");
-                        }
-                    }
-
-                    String regex = "^(_|-|%|[0-9a-zA-Z])+$";
-                    if (!dynamicScopeText.matches(regex) || !dynamicCollectionText.matches(regex)) {
-                        isValid = false;
-                        Log.debug("Validation failed: Scope and/or Collection fields do not match the regex");
-                        errorMessages.add("Scope and/or Collection fields do not match the regex.");
-                    }
-                } else if (!defaultScopeAndCollectionRadio.isSelected()
-                        && !collectionRadio.isSelected()
-                        && !dynamicScopeAndCollectionRadio.isSelected()) {
-                    isValid = false;
-                    Log.debug("Validation failed: No target location radio box selected");
-                    errorMessages.add("No target location radio box selected.");
-                }
-
-            } else if (currentPage == 3) {
-                if (useFieldValueRadio.isSelected()) {
-                    String fieldNameText = fieldNameField.getText();
-                    boolean isValidFieldName = !fieldNameText.isEmpty();
-                    highlightField(fieldNameField, isValidFieldName);
-                    if (!isValidFieldName) {
-                        isValid = false;
-                        Log.debug("Validation failed: Field name field is empty");
-                        errorMessages.add("Field name field is empty.");
-                    }
-                } else if (customExpressionRadio.isSelected()) {
-                    String customExpressionText = customExpressionField.getText();
-                    boolean isValidCustomExpression = !customExpressionText.isEmpty();
-                    highlightField(customExpressionField, isValidCustomExpression);
-                    if (!isValidCustomExpression) {
-                        isValid = false;
-                        Log.debug("Validation failed: Custom expression field is empty");
-                        errorMessages.add("Custom expression field is empty.");
-                    } else
-                        customExpressionInfoLabel.setVisible(customExpressionText.contains("#UUID#")
-                                || customExpressionText.contains("#MONO_INCR#"));
-                }
-                if (!generateUUIDRadio.isSelected() && !useFieldValueRadio.isSelected()
-                        && !customExpressionRadio.isSelected()) {
-                    isValid = false;
-                    Log.debug("Validation failed: No key option radio box selected");
-                    errorMessages.add("No key option radio box selected.");
-                }
-
-            } else if (currentPage == 4) {
-                if (skipFirstCheck.isSelected()) {
-                    String skipFirstText = skipFirstField.getText();
-
-                    boolean isNonNegativeInteger = skipFirstText.matches("\\d+");
-
-                    if (isNonNegativeInteger) {
-                        highlightField(skipFirstField, true);
-                    } else {
-                        highlightField(skipFirstField, false);
-                        isValid = false;
-                        Log.debug("Validation failed: Skip first field does not contain a valid non-negative integer");
-                        errorMessages.add("Skip first field does not contain a valid non-negative integer.");
-                    }
-                } else {
-                    highlightField(skipFirstField, true);
-                }
-
-                if (importUptoCheck.isSelected()) {
-                    String importUptoText = importUptoField.getText();
-
-                    boolean isNonNegativeInteger = importUptoText.matches("\\d+");
-
-                    if (isNonNegativeInteger) {
-                        highlightField(importUptoField, true);
-                    } else {
-                        highlightField(importUptoField, false);
-                        isValid = false;
-                        Log.debug(
-                                "Validation failed: Import up to field does not contain a valid non-negative integer");
-                        errorMessages.add("Import up to field does not contain a valid non-negative integer.");
-                    }
-                } else {
-                    highlightField(importUptoField, true);
-                }
-
-                if (ignoreFieldsCheck.isSelected()) {
-                    String ignoreFieldsText = ignoreFieldsField.getText();
-                    boolean isValidIgnoreFields = !ignoreFieldsText.isEmpty();
-                    highlightField(ignoreFieldsField, isValidIgnoreFields);
-                    if (!isValidIgnoreFields) {
-                        isValid = false;
-                        Log.debug("Validation failed: Ignore fields field is empty");
-                        errorMessages.add("Ignore fields field is empty.");
-                    }
-                } else {
-                    highlightField(ignoreFieldsField, true);
-                }
-            }
-
-            String errorMessage = "<html>" + String.join("<br>", errorMessages) + "</html>";
-            universalErrorLabel.setText(errorMessage);
-            universalErrorLabel.setVisible(!errorMessages.isEmpty());
-
-            nextButton.setEnabled(isValid);
-        } catch (
-
-        Exception ex) {
-            Log.error("Exception occurred: ", ex);
-        }
-
-    }
-
-    private void highlightField(JComponent field, boolean isValid) {
-        if (!isValid) {
-            field.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
-        } else {
-            field.setBorder(new DarculaTextBorder());
-        }
-    }
-
-    protected void updateScopeAndCollectionFields() {
-        boolean collectionSelected = collectionRadio.isSelected();
-
-        scopeLabelHelpPanel.setVisible(collectionSelected);
-        scopeCombo.setVisible(collectionSelected);
-
-        collectionLabelHelpPanel.setVisible(collectionSelected);
-        collectionCombo.setVisible(collectionSelected);
+        collectionLabelHelpPanel.setVisible(targetCollectionSelected);
+        targetCollectionCombo.setVisible(targetCollectionSelected);
 
         boolean dynamicSelected = dynamicScopeAndCollectionRadio.isSelected();
 
@@ -1258,7 +1026,7 @@ public class ImportDialog extends DialogWrapper {
 
                 targetScopeField = "_default";
                 targetCollectionField = "_default";
-            } else if (collectionSelected) {
+            } else if (targetCollectionSelected) {
                 Log.debug("collection Radio selected");
 
             } else if (dynamicSelected) {
@@ -1276,7 +1044,6 @@ public class ImportDialog extends DialogWrapper {
                 setFirstMatch.accept(possibleScopeFields, dynamicScopeField);
                 setFirstMatch.accept(possibleCollectionFields, dynamicCollectionField);
 
-                updateIgnoreFieldsTextField();
             }
         } catch (Exception ex) {
             Log.error("Exception occurred: ", ex);
@@ -1287,7 +1054,7 @@ public class ImportDialog extends DialogWrapper {
         boolean useFieldValueSelected = useFieldValueRadio.isSelected();
 
         fieldNameLabelHelpPanel.setVisible(useFieldValueSelected);
-        fieldNameField.setVisible(useFieldValueSelected);
+        useFieldNameField.setVisible(useFieldValueSelected);
 
         boolean customExpressionSelected = customExpressionRadio.isSelected();
 
@@ -1301,18 +1068,20 @@ public class ImportDialog extends DialogWrapper {
 
         try {
             Log.debug("Updating key form fields: ");
+            String[] sampleElementContentSplit = getSampleElementContentSplit(datasetField.getText());
 
-            if (useFieldValueSelected) {
-                String[] sampleElementContentSplit = getSampleElementContentSplit(datasetField.getText());
-
-                for (String field : possibleKeyFields) {
-                    if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> element.contains(field))) {
-                        fieldNameField.setText(field);
+            for (String field : possibleKeyFields) {
+                if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> element.contains(field))) {
+                    if (useFieldValueSelected) {
+                        useFieldNameField.setText(field);
+                        break;
+                    } else if (customExpressionSelected) {
+                        customExpressionField.setText("%" + field + "%");
                         break;
                     }
                 }
-
             }
+
         } catch (Exception ex) {
             Log.error("Exception occurred: ", ex);
         }
@@ -1330,7 +1099,7 @@ public class ImportDialog extends DialogWrapper {
         int monoIncrValue = 1;
 
         if (useFieldValueRadio.isSelected()) {
-            String fieldName = fieldNameField.getText();
+            String fieldName = useFieldNameField.getText();
             if (fileFormat.equals("json")) {
                 for (int i = 0; i < Math.min(cachedJsonDocs.size(), previewSize); i++) {
                     JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
@@ -1398,8 +1167,6 @@ public class ImportDialog extends DialogWrapper {
         }
 
         keyPreviewArea.setText(previewContent.toString());
-
-        updateIgnoreFieldsTextField();
 
     }
 
@@ -1500,10 +1267,11 @@ public class ImportDialog extends DialogWrapper {
 
     protected void updateIgnoreFieldsTextField() {
         String ignoreFieldsText = "";
+        String useFieldNameFieldText = useFieldNameField.getText();
+        List<String> wordsWithPercentSymbols = new ArrayList<>();
 
+        // Fields from Page 2
         if (dynamicScopeAndCollectionRadio.isSelected()) {
-            String fieldNameText = fieldNameField.getText();
-            List<String> wordsWithPercentSymbols = new ArrayList<>();
 
             String scopeText = dynamicScopeField.getText();
             if (!scopeText.isEmpty()) {
@@ -1515,15 +1283,61 @@ public class ImportDialog extends DialogWrapper {
                 wordsWithPercentSymbols.addAll(extractWordsWithPercentSymbols(collectionText));
             }
 
-            ignoreFieldsText = fieldNameText + "," + String.join(",", wordsWithPercentSymbols);
-        } else if (collectionRadio.isSelected()) {
-            ignoreFieldsText = fieldNameField.getText();
+            ignoreFieldsText = String.join(",", wordsWithPercentSymbols);
         }
 
+        // Fields fromv Page 3
+        if (useFieldValueRadio.isSelected()) {
+            if (!useFieldNameFieldText.isEmpty()) {
+                ignoreFieldsText = ignoreFieldsText + "," + useFieldNameFieldText;
+            }
+        } else if (customExpressionRadio.isSelected()) {
+            String customExpressionText = customExpressionField.getText();
+            if (!customExpressionText.isEmpty()) {
+                wordsWithPercentSymbols.addAll(extractWordsWithPercentSymbols(customExpressionText));
+            }
+        }
+
+        if (fileFormat.equals("csv")) {
+            Set<String> headerSetForKeyGeneration = new HashSet<>();
+
+            headerSetForKeyGeneration.addAll(extractWordsWithPercentSymbols(dynamicScopeField.getText()));
+            headerSetForKeyGeneration
+                    .addAll(extractWordsWithPercentSymbols(dynamicCollectionField.getText()));
+
+            if (useFieldValueRadio.isSelected()) {
+                headerSetForKeyGeneration
+                        .add(useFieldNameField.getText());
+            } else if (customExpressionRadio.isSelected()) {
+                headerSetForKeyGeneration
+                        .addAll(extractWordsWithPercentSymbols(customExpressionField.getText()));
+            }
+
+            String[] ignoreFieldsWordsArray = ignoreFieldsText.split(",");
+            List<String> filteredWords = new ArrayList<>();
+
+            for (String word : ignoreFieldsWordsArray) {
+                if (!headerSetForKeyGeneration.contains(word)) {
+                    filteredWords.add(word);
+                }
+            }
+
+            ignoreFieldsText = String.join(",", filteredWords);
+        }
+
+        // Remove Leading and Trailing commas
         ignoreFieldsText = ignoreFieldsText.replaceAll("^,+|,+$", "");
 
-        ignoreFieldsField.setText(ignoreFieldsText);
-        ignoreFieldsCheck.setEnabled(!ignoreFieldsText.isEmpty());
+        // In a comma-separated string, remove duplicate words
+        String[] ignoreFieldsWordsArray = ignoreFieldsText.split(",");
+        Set<String> uniqueWords = new HashSet<>(Arrays.asList(ignoreFieldsWordsArray));
+        ignoreFieldsText = String.join(",", uniqueWords);
+
+        if (!ignoreFieldsText.isEmpty()) {
+            ignoreFieldsCheck.setSelected(true);
+            ignoreFieldsField.setEnabled(true);
+            ignoreFieldsField.setText(ignoreFieldsText);
+        }
     }
 
     protected List<String> extractWordsWithPercentSymbols(String text) {
@@ -1550,6 +1364,250 @@ public class ImportDialog extends DialogWrapper {
         Log.debug("Sample Element Split is " + Arrays.stream(Objects.requireNonNull(sampleElementContentSplit)));
 
         return sampleElementContentSplit;
+    }
+
+    protected void validateAndEnableNextButton() {
+        try {
+            boolean isValid = true;
+            List<String> errorMessages = new ArrayList<>();
+            if (currentPage == 1) {
+                String datasetText = datasetField.getText();
+                boolean isValidDataset = !(datasetText.isEmpty()
+                        || !(datasetText.endsWith(".json") || datasetText.endsWith(".csv")));
+                highlightField(datasetField, isValidDataset);
+                if (!isValidDataset) {
+                    isValid = false;
+                    Log.debug("Validation failed: Dataset field is empty or does not have a valid file extension");
+                    errorMessages.add("Please select a valid file.");
+                } else {
+                    try {
+                        if (fileFormat.equals("json")) {
+                            detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
+                            if (detectedCouchbaseJsonFormat == null) {
+                                highlightField(datasetField, false);
+                                isValid = false;
+                                Log.debug("Validation failed: Dataset file is not in a valid Couchbase JSON format");
+                                errorMessages.add("Dataset file is not in a valid Couchbase JSON format.");
+                            }
+                        } else if (fileFormat.equals("csv")) {
+                            highlightField(datasetField, true);
+                        }
+                    } catch (Exception ex) {
+                        highlightField(datasetField, false);
+                        isValid = false;
+                        Log.debug("An error occurred while validating the dataset file: " + ex);
+                        errorMessages.add("An error occurred while validating the dataset file.");
+                    }
+                }
+            } else if (currentPage == 2) {
+
+                if (targetCollectionRadio.isSelected()) {
+                    if (targetScopeCombo.getSelectedItem() == null) {
+                        isValid = false;
+                        Log.debug("Validation failed: Scope combo box not selected");
+                        errorMessages.add("Scope combo box not selected.");
+                    }
+                    if (targetCollectionCombo.getSelectedItem() == null) {
+                        isValid = false;
+                        Log.debug("Validation failed: Collection combo box not selected");
+                        errorMessages.add("Collection combo box not selected.");
+                    }
+                } else if (dynamicScopeAndCollectionRadio.isSelected()) {
+                    String dynamicScopeText = dynamicScopeField.getText();
+                    String dynamicCollectionText = dynamicCollectionField.getText();
+                    boolean isDynamicScopeEmpty = !dynamicScopeText.isEmpty();
+                    boolean isDynamicCollectionEmpty = !dynamicCollectionText.isEmpty();
+                    highlightField(dynamicScopeField, isDynamicScopeEmpty);
+                    highlightField(dynamicCollectionField, isDynamicCollectionEmpty);
+                    if (!isDynamicScopeEmpty || !isDynamicCollectionEmpty) {
+                        isValid = false;
+                        Log.debug("Validation failed: Dynamic scope and/or collection fields are empty");
+                        errorMessages.add("Dynamic scope and/or collection fields are empty.");
+                    }
+
+                    if (fileFormat.equals("json")) {
+                        String scopeFieldText = dynamicScopeField.getText();
+                        boolean isValidDynamicScope = FileUtils.checkFields(
+                                datasetField.getText(), scopeFieldText, fileFormat);
+
+                        highlightField(dynamicScopeField, isValidDynamicScope);
+
+                        String collectionFieldText = dynamicCollectionField.getText();
+                        boolean isValidDynamicCollection = FileUtils.checkFields(
+                                datasetField.getText(), collectionFieldText, fileFormat);
+
+                        highlightField(dynamicCollectionField, isValidDynamicCollection);
+
+                        if (!isValidDynamicScope || !isValidDynamicCollection) {
+                            isValid = false;
+                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
+                            errorMessages.add("Scope and/or Collection fields are not valid.");
+                        }
+                    } else if (fileFormat.equals("csv")) {
+                        String scopeFieldText = dynamicScopeField.getText();
+                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(),
+                                scopeFieldText,
+                                fileFormat);
+
+                        highlightField(dynamicScopeField, isValidDynamicScope);
+
+                        String collectionFieldText = dynamicCollectionField.getText();
+                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(),
+                                collectionFieldText, fileFormat);
+                        highlightField(dynamicCollectionField, isValidDynamicCollection);
+
+                        if (!isValidDynamicScope || !isValidDynamicCollection) {
+                            isValid = false;
+                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
+                            errorMessages.add("Scope and/or Collection fields are not valid.");
+                        }
+                    }
+
+                    String regex = "^(_|-|%|[0-9a-zA-Z])+$";
+                    if (!dynamicScopeText.matches(regex) || !dynamicCollectionText.matches(regex)) {
+                        isValid = false;
+                        Log.debug("Validation failed: Scope and/or Collection fields do not match the regex");
+                        errorMessages.add("Scope and/or Collection fields do not match the regex.");
+                    }
+                } else if (!defaultScopeAndCollectionRadio.isSelected()
+                        && !targetCollectionRadio.isSelected()
+                        && !dynamicScopeAndCollectionRadio.isSelected()) {
+                    isValid = false;
+                    Log.debug("Validation failed: No target location radio box selected");
+                    errorMessages.add("No target location radio box selected.");
+                }
+
+            } else if (currentPage == 3) {
+                if (useFieldValueRadio.isSelected()) {
+                    String fieldNameText = useFieldNameField.getText();
+                    boolean isValidFieldName = !fieldNameText.isEmpty();
+                    highlightField(useFieldNameField, isValidFieldName);
+                    if (!isValidFieldName) {
+                        isValid = false;
+                        Log.debug("Validation failed: Field name field is empty");
+                        errorMessages.add("Field name field is empty.");
+                    }
+                } else if (customExpressionRadio.isSelected()) {
+                    String customExpressionText = customExpressionField.getText();
+                    boolean isValidCustomExpression = !customExpressionText.isEmpty();
+                    highlightField(customExpressionField, isValidCustomExpression);
+                    if (!isValidCustomExpression) {
+                        isValid = false;
+                        Log.debug("Validation failed: Custom expression field is empty");
+                        errorMessages.add("Custom expression field is empty.");
+                    } else
+                        customExpressionInfoLabel.setVisible(customExpressionText.contains("#UUID#")
+                                || customExpressionText.contains("#MONO_INCR#"));
+                }
+                if (!generateUUIDRadio.isSelected() && !useFieldValueRadio.isSelected()
+                        && !customExpressionRadio.isSelected()) {
+                    isValid = false;
+                    Log.debug("Validation failed: No key option radio box selected");
+                    errorMessages.add("No key option radio box selected.");
+                }
+
+            } else if (currentPage == 4) {
+                if (skipFirstCheck.isSelected()) {
+                    String skipFirstText = skipFirstField.getText();
+
+                    boolean isNonNegativeInteger = skipFirstText.matches("\\d+");
+
+                    if (isNonNegativeInteger) {
+                        highlightField(skipFirstField, true);
+                    } else {
+                        highlightField(skipFirstField, false);
+                        isValid = false;
+                        Log.debug("Validation failed: Skip first field does not contain a valid non-negative integer");
+                        errorMessages.add("Skip first field does not contain a valid non-negative integer.");
+                    }
+                } else {
+                    highlightField(skipFirstField, true);
+                }
+
+                if (importUptoCheck.isSelected()) {
+                    String importUptoText = importUptoField.getText();
+
+                    boolean isNonNegativeInteger = importUptoText.matches("\\d+");
+
+                    if (isNonNegativeInteger) {
+                        highlightField(importUptoField, true);
+                    } else {
+                        highlightField(importUptoField, false);
+                        isValid = false;
+                        Log.debug(
+                                "Validation failed: Import up to field does not contain a valid non-negative integer");
+                        errorMessages.add("Import up to field does not contain a valid non-negative integer.");
+                    }
+                } else {
+                    highlightField(importUptoField, true);
+                }
+
+                if (ignoreFieldsCheck.isSelected()) {
+                    String ignoreFieldsText = ignoreFieldsField.getText();
+                    boolean isValidIgnoreFields = true;
+
+                    // Check for emptiness
+                    if (ignoreFieldsText.isEmpty()) {
+                        isValidIgnoreFields = false;
+                        errorMessages.add("Ignore fields field is empty.");
+                    }
+
+                    if (fileFormat.equals("csv")) {
+                        Set<String> headerSetForKeyGeneration = new HashSet<>();
+
+                        headerSetForKeyGeneration.addAll(extractWordsWithPercentSymbols(dynamicScopeField.getText()));
+                        headerSetForKeyGeneration
+                                .addAll(extractWordsWithPercentSymbols(dynamicCollectionField.getText()));
+
+                        if (useFieldValueRadio.isSelected()) {
+                            headerSetForKeyGeneration
+                                    .add(useFieldNameField.getText());
+                        } else if (customExpressionRadio.isSelected()) {
+                            headerSetForKeyGeneration
+                                    .addAll(extractWordsWithPercentSymbols(customExpressionField.getText()));
+                        }
+
+                        for (String word : ignoreFieldsText.split(",")) {
+                            if (headerSetForKeyGeneration.contains(word)) {
+                                isValidIgnoreFields = false;
+                                errorMessages.add(
+                                        "Ignore fields cannot be headers used in dyanmic scope/collection field or key generation");
+                                break;
+                            }
+                        }
+                    }
+
+                    highlightField(ignoreFieldsField, isValidIgnoreFields);
+
+                    if (!isValidIgnoreFields) {
+                        isValid = false;
+                        Log.debug("Validation failed: Invalid ignore fields");
+                    }
+                } else {
+                    highlightField(ignoreFieldsField, true);
+                }
+
+            }
+
+            String errorMessage = "<html>" + String.join("<br>", errorMessages) + "</html>";
+            universalErrorLabel.setText(errorMessage);
+            universalErrorLabel.setVisible(!errorMessages.isEmpty());
+
+            nextButton.setEnabled(isValid);
+        } catch (
+
+        Exception ex) {
+            Log.error("Exception occurred: ", ex);
+        }
+
+    }
+
+    private void highlightField(JComponent field, boolean isValid) {
+        if (!isValid) {
+            field.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+        } else {
+            field.setBorder(new DarculaTextBorder());
+        }
     }
 
     @Override
@@ -1594,6 +1652,14 @@ public class ImportDialog extends DialogWrapper {
         if (currentPage > 1) {
             currentPage--;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
+            if (currentPage == 3) {
+                updateKeyFormFields();
+            } else if (currentPage == 4) {
+                updateIgnoreFieldsTextField();
+                String ignoreFieldsFieldText = ignoreFieldsField.getText();
+                ignoreFieldsCheck.setSelected(!ignoreFieldsFieldText.isEmpty());
+                ignoreFieldsField.setEnabled(!ignoreFieldsFieldText.isEmpty());
+            }
         }
     }
 
@@ -1601,7 +1667,14 @@ public class ImportDialog extends DialogWrapper {
         if (currentPage < 5) {
             currentPage++;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
-            if (currentPage == 5) {
+            if (currentPage == 3) {
+                updateKeyFormFields();
+            } else if (currentPage == 4) {
+                updateIgnoreFieldsTextField();
+                String ignoreFieldsFieldText = ignoreFieldsField.getText();
+                ignoreFieldsCheck.setSelected(!ignoreFieldsFieldText.isEmpty());
+                ignoreFieldsField.setEnabled(!ignoreFieldsFieldText.isEmpty());
+            } else if (currentPage == 5) {
                 calculateSummary();
             }
         }
@@ -1662,7 +1735,7 @@ public class ImportDialog extends DialogWrapper {
             if (targetLocationGroupSelection == defaultScopeAndCollectionRadio.getModel()) {
                 commandList.add("--scope-collection-exp");
                 commandList.add(defaultExp);
-            } else if (targetLocationGroupSelection == collectionRadio.getModel()) {
+            } else if (targetLocationGroupSelection == targetCollectionRadio.getModel()) {
                 commandList.add("--scope-collection-exp");
                 commandList.add(collectionExp);
             } else if (targetLocationGroupSelection == dynamicScopeAndCollectionRadio.getModel()) {
@@ -1745,13 +1818,13 @@ public class ImportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
         try {
-            String bucket = Objects.requireNonNull(bucketCombo.getSelectedItem()).toString();
+            String bucket = Objects.requireNonNull(targetBucketCombo.getSelectedItem()).toString();
             String filePath = datasetField.getText();
             ButtonModel targetLocationGroupSelection = targetLocationGroup.getSelection();
             ButtonModel keyGroupSelection = keyGroup.getSelection();
             String dynamicScopeFieldText = dynamicScopeField.getText();
             String dynamicCollectionFieldText = dynamicCollectionField.getText();
-            String fieldNameText = fieldNameField.getText();
+            String fieldNameText = useFieldNameField.getText();
             String customExpressionText = customExpressionField.getText();
             boolean skipFirstCheckSelected = skipFirstCheck.isSelected();
             String skipFirstFieldText = skipFirstField.getText();
