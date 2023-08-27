@@ -146,12 +146,17 @@ public class FileUtils {
     public static String detectDatasetFormat(String filePath) throws IOException {
         try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
             String firstLine = reader.readLine();
-            if (firstLine != null && firstLine.trim().startsWith("[")) {
-                // File starts with a '[' character, so it's probably in list format
-                return "list";
-            } else if (firstLine != null && firstLine.trim().startsWith("{")) {
-                // First line is a valid JSON object, so the file is probably in lines format
-                return "lines";
+            if (firstLine != null) {
+                String trimmedLine = firstLine.trim();
+                if (trimmedLine.startsWith("[") && trimmedLine.endsWith("]") && trimmedLine.length() >= 3) {
+                    char secondChar = trimmedLine.charAt(1);
+                    char secondToLastChar = trimmedLine.charAt(trimmedLine.length() - 2);
+                    if (secondChar == '{' && secondToLastChar == '}') {
+                        return "list";
+                    }
+                } else if (trimmedLine.startsWith("{") && trimmedLine.endsWith("}")) {
+                    return "lines";
+                }
             }
         }
         return null;

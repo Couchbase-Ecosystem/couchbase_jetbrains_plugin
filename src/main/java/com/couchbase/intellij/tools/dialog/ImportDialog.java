@@ -770,9 +770,6 @@ public class ImportDialog extends DialogWrapper {
                     fileFormat = "json";
                 } else if (filePath.endsWith(".csv")) {
                     fileFormat = "csv";
-                } else {
-                    Log.error("Unsupported file type");
-                    return;
                 }
 
                 validateAndEnableNextButton();
@@ -1594,9 +1591,7 @@ public class ImportDialog extends DialogWrapper {
             universalErrorLabel.setVisible(!errorMessages.isEmpty());
 
             nextButton.setEnabled(isValid);
-        } catch (
-
-        Exception ex) {
+        } catch (Exception ex) {
             Log.error("Exception occurred: ", ex);
         }
 
