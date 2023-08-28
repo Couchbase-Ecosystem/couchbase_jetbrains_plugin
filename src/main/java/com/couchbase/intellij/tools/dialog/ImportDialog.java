@@ -747,6 +747,53 @@ public class ImportDialog extends DialogWrapper {
         summaryLabel.setText(summary.toString());
     }
 
+    private void resetForm() {
+
+        // Reset target panel
+        targetBucketCombo.setSelectedIndex(0);
+        defaultScopeAndCollectionRadio.setSelected(true);
+        targetScopeCombo.setSelectedItem(null);
+        targetCollectionCombo.setSelectedItem(null);
+        dynamicScopeField.setText("");
+        dynamicCollectionField.setText("");
+        scopeLabelHelpPanel.setVisible(false);
+        collectionLabelHelpPanel.setVisible(false);
+        scopeFieldLabelHelpPanel.setVisible(false);
+        collectionFieldLabelHelpPanel.setVisible(false);
+        targetScopeCombo.setVisible(false);
+        targetCollectionCombo.setVisible(false);
+        dynamicScopeField.setVisible(false);
+        dynamicCollectionField.setVisible(false);
+        handleTargetBucketComboBoxChange();
+
+        // Reset key panel
+        generateUUIDRadio.setSelected(true);
+        useFieldValueRadio.setSelected(false);
+        customExpressionRadio.setSelected(false);
+        fieldNameLabelHelpPanel.setVisible(false);
+        customExpressionLabelHelpPanel.setVisible(false);
+        useFieldNameField.setVisible(false);
+        customExpressionField.setVisible(false);
+        keyPreviewPanel.setVisible(false);
+        keyPreviewTitledSeparator.setVisible(false);
+        customExpressionInfoLabel.setVisible(false);
+        useFieldNameField.setText("");
+        customExpressionField.setText("");
+
+        // Reset advanced panel
+        skipFirstCheck.setSelected(false);
+        skipFirstField.setText("");
+        importUptoCheck.setSelected(false);
+        importUptoField.setText("");
+        ignoreFieldsCheck.setSelected(false);
+        ignoreFieldsField.setText("");
+        threadsSpinner.setValue(4);
+        verboseCheck.setSelected(false);
+
+        // Reset summary panel
+        summaryLabel.setText("");
+    }
+
     protected void addListeners() {
         // Page 1: Dataset
         datasetField.addBrowseFolderListener("Select the Dataset", "", null,
@@ -776,6 +823,7 @@ public class ImportDialog extends DialogWrapper {
                 updateTargetOrDyanmicOptions();
                 cachedJsonDocs.clear();
                 cachedCsvDocs.clear();
+                resetForm();
             }
         });
 
@@ -1101,12 +1149,12 @@ public class ImportDialog extends DialogWrapper {
                 for (int i = 0; i < Math.min(cachedJsonDocs.size(), previewSize); i++) {
                     JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
                     if (jsonObject.containsKey(fieldName)) {
-                        previewContent.append(jsonObject.getString(fieldName)).append("\n");
+                        previewContent.append(jsonObject.get(fieldName).toString()).append("\n");
                     }
                 }
             } else if (fileFormat.equals("csv")) {
-                for (int i = 0; i < Math.min(cachedCsvDocs.size(), previewSize); i++) {
-                    if (cachedCsvDocs.get(fieldName) != null) {
+                if (cachedCsvDocs.get(fieldName) != null) {
+                    for (int i = 0; i < Math.min(cachedCsvDocs.size(), previewSize); i++) {
                         previewContent.append(cachedCsvDocs.get(fieldName)[i]).append("\n");
                     }
                 }
@@ -1126,7 +1174,8 @@ public class ImportDialog extends DialogWrapper {
                     String keyBuilder = expression;
                     for (String fieldName : fieldNamesList) {
                         if (jsonObject.containsKey(fieldName)) {
-                            keyBuilder = keyBuilder.replace("%" + fieldName + "%", jsonObject.getString(fieldName));
+                            keyBuilder = keyBuilder.replace("%" + fieldName + "%",
+                                    String.valueOf(jsonObject.get(fieldName)));
                         }
                     }
 
@@ -1149,7 +1198,8 @@ public class ImportDialog extends DialogWrapper {
                     String keyBuilder = expression;
                     for (String fieldName : fieldNamesList) {
                         if (cachedCsvDocs.get(fieldName) != null) {
-                            keyBuilder = keyBuilder.replace("%" + fieldName + "%", cachedCsvDocs.get(fieldName)[i]);
+                            keyBuilder = keyBuilder.replace("%" + fieldName + "%",
+                                    String.valueOf(cachedCsvDocs.get(fieldName)[i]));
                         }
                     }
 
@@ -1293,6 +1343,7 @@ public class ImportDialog extends DialogWrapper {
             if (!customExpressionText.isEmpty()) {
                 wordsWithPercentSymbols.addAll(extractWordsWithPercentSymbols(customExpressionText));
             }
+            ignoreFieldsText = ignoreFieldsText + "," + String.join(",", wordsWithPercentSymbols);
         }
 
         if (fileFormat.equals("csv")) {
@@ -1647,14 +1698,6 @@ public class ImportDialog extends DialogWrapper {
         if (currentPage > 1) {
             currentPage--;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
-            if (currentPage == 3) {
-                updateKeyFormFields();
-            } else if (currentPage == 4) {
-                updateIgnoreFieldsTextField();
-                String ignoreFieldsFieldText = ignoreFieldsField.getText();
-                ignoreFieldsCheck.setSelected(!ignoreFieldsFieldText.isEmpty());
-                ignoreFieldsField.setEnabled(!ignoreFieldsFieldText.isEmpty());
-            }
         }
     }
 
@@ -1860,7 +1903,6 @@ public class ImportDialog extends DialogWrapper {
             super.doOKAction();
         } catch (Exception ex) {
             Log.error("Exception occurred in CBImport command builder: \n", ex);
-
         }
     }
 }

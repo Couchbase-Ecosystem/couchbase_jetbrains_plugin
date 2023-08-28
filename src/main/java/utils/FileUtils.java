@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,7 +21,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 
@@ -72,7 +72,6 @@ public class FileUtils {
                     }
                 }
             } catch (CsvValidationException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
 
@@ -144,19 +143,44 @@ public class FileUtils {
     }
 
     public static String detectDatasetFormat(String filePath) throws IOException {
-        try (BufferedReader reader = Files.newBufferedReader(Paths.get(filePath))) {
-            String firstLine = reader.readLine();
-            if (firstLine != null) {
-                String trimmedLine = firstLine.trim();
-                if (trimmedLine.startsWith("[") && trimmedLine.endsWith("]") && trimmedLine.length() >= 3) {
-                    char secondChar = trimmedLine.charAt(1);
-                    char secondToLastChar = trimmedLine.charAt(trimmedLine.length() - 2);
-                    if (secondChar == '{' && secondToLastChar == '}') {
-                        return "list";
-                    }
-                } else if (trimmedLine.startsWith("{") && trimmedLine.endsWith("}")) {
-                    return "lines";
-                }
+        BiFunction<RandomAccessFile, Long, Character> getNextNonNewlineOrSpaceChar = (raf, start) -> {
+            try {
+                raf.seek(start);
+                char ch;
+                do {
+                    ch = (char) raf.read();
+                } while (ch == '\n' || ch == '\r' || ch == ' ');
+                return ch;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        BiFunction<RandomAccessFile, Long, Character> getPreviousNonNewlineOrSpaceChar = (raf, start) -> {
+            try {
+                raf.seek(start);
+                char ch;
+                do {
+                    ch = (char) raf.read();
+                    raf.seek(raf.getFilePointer() - 2);
+                } while (ch == '\n' || ch == '\r' || ch == ' ');
+                return ch;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+            long length = raf.length();
+            char firstChar = getNextNonNewlineOrSpaceChar.apply(raf, 0L);
+            char secondChar = getNextNonNewlineOrSpaceChar.apply(raf, raf.getFilePointer());
+            char lastChar = getPreviousNonNewlineOrSpaceChar.apply(raf, length - 1);
+            char secondLastChar = getPreviousNonNewlineOrSpaceChar.apply(raf, raf.getFilePointer() - 1);
+
+            if (firstChar == '[' && secondChar == '{' && secondLastChar == '}' && lastChar == ']') {
+                return "list";
+            } else if (firstChar == '{' && lastChar == '}') {
+                return "lines";
             }
         }
         return null;
