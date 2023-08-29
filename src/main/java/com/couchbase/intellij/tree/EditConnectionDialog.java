@@ -120,8 +120,23 @@ public class EditConnectionDialog extends DialogWrapper {
             }
         });
 
-        // Add your components to databasePanel using GridBagConstraints
-        // ...
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        databasePanel.add(connectionNameLabel, gbc);
+
+        gbc.gridx = 1;
+        databasePanel.add(connectionNameTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        databasePanel.add(hostLabel, gbc);
+
+        gbc.gridx = 1;
+        databasePanel.add(hostTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        databasePanel.add(enableSSLCheckBox, gbc);
 
         return databasePanel;
     }
@@ -141,9 +156,19 @@ public class EditConnectionDialog extends DialogWrapper {
         usernameTextField.setEnabled(false);
         passwordField.setEnabled(false);
 
-        // Add your components to credentialsPanel using GridBagConstraints
-        // ...
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        credentialsPanel.add(usernameLabel, gbc);
 
+        gbc.gridx = 1;
+        credentialsPanel.add(usernameTextField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        credentialsPanel.add(passwordLabel, gbc);
+
+        gbc.gridx = 1;
+        credentialsPanel.add(passwordField, gbc);
         return credentialsPanel;
     }
 
