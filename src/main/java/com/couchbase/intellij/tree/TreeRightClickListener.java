@@ -227,6 +227,15 @@ public class TreeRightClickListener {
                 }
             };
             actionGroup.add(menuItem);
+
+            AnAction editConnection = new AnAction("Edit Connection") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    EditConnectionDialog dialog = new EditConnectionDialog(userObject.getSavedCluster());
+                    dialog.show();
+                }
+            };
+            actionGroup.add(editConnection);
         }
 
         actionGroup.addSeparator();
