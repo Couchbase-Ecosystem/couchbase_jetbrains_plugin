@@ -172,9 +172,9 @@ public class ImportDialog extends DialogWrapper {
 
     protected int currentPage = 1;
 
-    protected final String[] possibleScopeFields = { "cbms", "scope", "cbs", "type" };
-    protected final String[] possibleCollectionFields = { "cbmc", "collection", "cbc", "subtype" };
-    protected final String[] possibleKeyFields = { "id", "cbmk", "cbmid", "key", "cbk" };
+    protected final String[] possibleScopeFields = { "cbms", "scope", "cbs", "type", "category" };
+    protected final String[] possibleCollectionFields = { "cbmc", "collection", "cbc", "subtype", "subcategory" };
+    protected final String[] possibleKeyFields = { "cbmid", "id", "uuid", "name", "cbmk", "key", "cbk" };
 
     protected String targetScopeField;
     protected String targetCollectionField;
@@ -1080,8 +1080,16 @@ public class ImportDialog extends DialogWrapper {
 
                 BiConsumer<String[], JTextField> setFirstMatch = (fields, textField) -> {
                     Optional<String> firstMatch = Arrays.stream(fields)
-                            .filter(field -> Arrays.stream(sampleElementContentSplit)
-                                    .anyMatch(element -> element.contains(field)))
+                            .filter(field -> {
+                                if (fileFormat.equals("json")) {
+                                    return Arrays.stream(sampleElementContentSplit)
+                                            .anyMatch(element -> element.contains('"' + field + '"'));
+                                } else if (fileFormat.equals("csv")) {
+                                    return Arrays.stream(sampleElementContentSplit)
+                                            .anyMatch(element -> element.contains(field));
+                                }
+                                return false;
+                            })
                             .findFirst();
                     firstMatch.ifPresent(field -> textField.setText("%" + field + "%"));
                 };
@@ -1116,7 +1124,14 @@ public class ImportDialog extends DialogWrapper {
             String[] sampleElementContentSplit = getSampleElementContentSplit(datasetField.getText());
 
             for (String field : possibleKeyFields) {
-                if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> element.contains(field))) {
+                if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> {
+                    if (fileFormat.equals("json")) {
+                        return element.contains('"' + field + '"');
+                    } else if (fileFormat.equals("csv")) {
+                        return element.contains(field);
+                    }
+                    return false;
+                })) {
                     if (useFieldValueSelected) {
                         useFieldNameField.setText(field);
                         break;
@@ -1409,7 +1424,7 @@ public class ImportDialog extends DialogWrapper {
             throw new IllegalArgumentException("Unsupported file format: " + fileFormat);
         }
 
-        Log.debug("Sample Element Split is " + Arrays.stream(Objects.requireNonNull(sampleElementContentSplit)));
+        Log.debug("sampleElementContentSplit: " + Arrays.toString(sampleElementContentSplit));
 
         return sampleElementContentSplit;
     }
