@@ -56,38 +56,24 @@ public class FileUtils {
     }
 
     public static String[] sampleElementFromCsvFile(String filePath, int lineNumber) {
-        try {
-            Path path = Paths.get(filePath);
-            FileReader fileReader = new FileReader(path.toFile());
-            CSVReader csvReader = new CSVReader(fileReader);
-
+        try (CSVReader csvReader = new CSVReader(new FileReader(Paths.get(filePath).toFile()))) {
             int currentLine = 0;
             String[] line;
-            try {
-                while ((line = csvReader.readNext()) != null) {
-                    currentLine++;
-                    if (currentLine == lineNumber) {
-                        csvReader.close();
-                        return line;
-                    }
+            while ((line = csvReader.readNext()) != null) {
+                currentLine++;
+                if (currentLine == lineNumber) {
+                    return line;
                 }
-            } catch (CsvValidationException e) {
-                e.printStackTrace();
             }
-
-            csvReader.close();
-            return null; // Line number not found
-
-        } catch (IOException e) {
+            return new String[0]; // Line number not found
+        } catch (IOException | CsvValidationException e) {
             e.printStackTrace(); // Handle the exception appropriately
-            return null;
+            return new String[0];
         }
     }
 
     public static String sampleElementFromJsonArrayFile(String filePath) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonParser parser = mapper.createParser(Paths.get(filePath).toFile());
+        try (JsonParser parser = new ObjectMapper().createParser(Paths.get(filePath).toFile())) {
             TypeReference<Map<String, Object>> typeRef = new TypeReference<>() {
             };
             String result = null;
@@ -95,12 +81,10 @@ public class FileUtils {
             while (parser.nextToken() != null) {
                 if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
                     Map<String, Object> jsonObject = parser.readValueAs(typeRef);
-                    result = mapper.writeValueAsString(jsonObject);
+                    result = new ObjectMapper().writeValueAsString(jsonObject);
                     break;
                 }
             }
-
-            parser.close();
 
             return result;
         } catch (Exception e) {

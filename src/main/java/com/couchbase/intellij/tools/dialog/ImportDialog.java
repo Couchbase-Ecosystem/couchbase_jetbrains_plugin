@@ -11,8 +11,10 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,7 +22,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Stack;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -36,10 +37,10 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 
@@ -181,10 +182,24 @@ public class ImportDialog extends DialogWrapper {
     protected String fileFormat;
     protected String detectedCouchbaseJsonFormat;
 
-    protected final int previewSize = 6;
     protected List<ScopeSpec> targetScopeItems;
     protected ArrayList<String> cachedJsonDocs = new ArrayList<>();
     protected Map<String, String[]> cachedCsvDocs = new HashMap<>();
+
+    protected static final int PREVIEW_SIZE = 6;
+    protected static final String UUID_FLAG = "#UUID#";
+    protected static final String MONO_INCR_FLAG = "#MONO_INCR#";
+    protected static final String WORDS_WITH_PERCENT_SYMBOLS_REGEX = "%(\\w+)%";
+    protected static final String JSON_FILE_EXTENSION = ".json";
+    protected static final String CSV_FILE_EXTENSION = ".csv";
+    protected static final String JSON_FILE_FORMAT = "json";
+    protected static final String CSV_FILE_FORMAT = "csv";
+    protected static final String LINE_BREAK = "<br><br>";
+    protected static final String DEFAULT_TAG = "_default";
+    protected static final String IMPORT = "Import";
+    protected static final String NEXT = "Next";
+    protected static final String BACK = "Back";
+    protected static final String CANCEL = "Cancel";
 
     public ImportDialog(Project project) {
         super(true);
@@ -193,7 +208,7 @@ public class ImportDialog extends DialogWrapper {
         setTitle("Import Data");
         getWindow().setMinimumSize(new Dimension(600, 400));
         setResizable(true);
-        setOKButtonText("Import");
+        setOKButtonText(IMPORT);
     }
 
     @Override
@@ -532,7 +547,7 @@ public class ImportDialog extends DialogWrapper {
         keyPreviewArea.setMaximumSize(new Dimension(150, 300));
 
         JBScrollPane keyPreviewAreaScrollPane = new JBScrollPane(keyPreviewArea);
-        keyPreviewAreaScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        keyPreviewAreaScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         keyPreviewPanel.add(keyPreviewAreaScrollPane, BorderLayout.CENTER);
 
         contentPanel.add(keyPreviewPanel);
@@ -675,11 +690,11 @@ public class ImportDialog extends DialogWrapper {
 
         summary.append("<b>Dataset:</b> ");
         summary.append(datasetField.getText());
-        summary.append("<br><br>");
+        summary.append(LINE_BREAK);
 
         summary.append("<b>Bucket:</b> ");
         summary.append(targetBucketCombo.getSelectedItem());
-        summary.append("<br><br>");
+        summary.append(LINE_BREAK);
 
         summary.append("<b>Scope and Collection:</b> ");
         if (defaultScopeAndCollectionRadio.isSelected()) {
@@ -695,7 +710,7 @@ public class ImportDialog extends DialogWrapper {
             summary.append(", Collection Field: ");
             summary.append(dynamicCollectionField.getText());
         }
-        summary.append("<br><br>");
+        summary.append(LINE_BREAK);
 
         summary.append("<b>Document Key:</b> ");
         if (generateUUIDRadio.isSelected()) {
@@ -707,26 +722,26 @@ public class ImportDialog extends DialogWrapper {
             summary.append("Generate key based on custom expression - Expression: ");
             summary.append(customExpressionField.getText());
         }
-        summary.append("<br><br>");
+        summary.append(LINE_BREAK);
 
         summary.append("<b>Advanced Options:</b><br>");
         if (skipFirstCheck.isSelected()) {
-            if (fileFormat.equals("json")) {
+            if (fileFormat.equals(JSON_FILE_FORMAT)) {
                 summary.append("- Skip the first ");
                 summary.append(skipFirstField.getText());
                 summary.append(" documents<br>");
-            } else if (fileFormat.equals("csv")) {
+            } else if (fileFormat.equals(CSV_FILE_FORMAT)) {
                 summary.append("- Skip the first ");
                 summary.append(skipFirstField.getText());
                 summary.append(" rows<br>");
             }
         }
         if (importUptoCheck.isSelected()) {
-            if (fileFormat.equals("json")) {
+            if (fileFormat.equals(JSON_FILE_FORMAT)) {
                 summary.append("- Import up to ");
                 summary.append(importUptoField.getText());
                 summary.append(" documents<br>");
-            } else if (fileFormat.equals("csv")) {
+            } else if (fileFormat.equals(CSV_FILE_FORMAT)) {
                 summary.append("- Import up to ");
                 summary.append(importUptoField.getText());
                 summary.append(" rows<br>");
@@ -802,7 +817,8 @@ public class ImportDialog extends DialogWrapper {
                     public boolean isFileVisible(VirtualFile file, boolean showHiddenFiles) {
                         if (!file.isDirectory()) {
                             String extension = file.getExtension();
-                            return "json".equalsIgnoreCase(extension) || "csv".equalsIgnoreCase(extension);
+                            return JSON_FILE_FORMAT.equalsIgnoreCase(extension)
+                                    || CSV_FILE_FORMAT.equalsIgnoreCase(extension);
                         }
                         return true;
                     }
@@ -813,10 +829,10 @@ public class ImportDialog extends DialogWrapper {
                 Log.debug("Dataset field changed: " + datasetField.getText());
                 String filePath = datasetField.getText();
 
-                if (filePath.endsWith(".json")) {
-                    fileFormat = "json";
-                } else if (filePath.endsWith(".csv")) {
-                    fileFormat = "csv";
+                if (filePath.endsWith(JSON_FILE_EXTENSION)) {
+                    fileFormat = JSON_FILE_FORMAT;
+                } else if (filePath.endsWith(CSV_FILE_EXTENSION)) {
+                    fileFormat = CSV_FILE_FORMAT;
                 }
 
                 validateAndEnableNextButton();
@@ -859,7 +875,7 @@ public class ImportDialog extends DialogWrapper {
                             .orElse(null));
             targetScopeField = Optional.ofNullable(targetScopeCombo.getSelectedItem())
                     .map(Object::toString)
-                    .orElse("_default");
+                    .orElse(DEFAULT_TAG);
         });
         targetCollectionCombo.addActionListener(e -> {
             Log.debug("Collection combo box changed: "
@@ -868,7 +884,7 @@ public class ImportDialog extends DialogWrapper {
             targetCollectionField = Optional
                     .ofNullable(targetCollectionCombo.getSelectedItem())
                     .map(Object::toString)
-                    .orElse("_default");
+                    .orElse(DEFAULT_TAG);
         });
 
         // Page 3: Document Key
@@ -969,8 +985,8 @@ public class ImportDialog extends DialogWrapper {
                         targetScopeCombo.setSelectedItem(scopeName);
                     }
                 } else {
-                    targetScopeCombo.setSelectedItem("_default");
-                    targetCollectionCombo.setSelectedItem("_default");
+                    targetScopeCombo.setSelectedItem(DEFAULT_TAG);
+                    targetCollectionCombo.setSelectedItem(DEFAULT_TAG);
                 }
             }
 
@@ -988,14 +1004,14 @@ public class ImportDialog extends DialogWrapper {
             Log.debug("Scope combo box changed: " + selectedScope);
 
             if (selectedScope == null || selectedScope.isEmpty()) {
-                targetScopeCombo.setSelectedItem("_default");
-                targetCollectionCombo.setSelectedItem("_default");
+                targetScopeCombo.setSelectedItem(DEFAULT_TAG);
+                targetCollectionCombo.setSelectedItem(DEFAULT_TAG);
                 return;
             }
 
             targetCollectionCombo.removeAllItems();
 
-            Consumer<String> refreshCollectionCombo = (scope) -> {
+            Consumer<String> refreshCollectionCombo = scope -> {
                 String[] collectionItems = targetScopeItems.stream()
                         .filter(s -> s.name().equals(scope))
                         .flatMap(s -> s.collections().stream())
@@ -1037,8 +1053,8 @@ public class ImportDialog extends DialogWrapper {
                         targetCollectionCombo.setSelectedItem(collectionName);
                     }
                 } else {
-                    targetScopeCombo.setSelectedItem("_default");
-                    refreshCollectionCombo.accept("_default");
+                    targetScopeCombo.setSelectedItem(DEFAULT_TAG);
+                    refreshCollectionCombo.accept(DEFAULT_TAG);
                     targetCollectionCombo.setSelectedIndex(0);
                     targetCollectionField = Objects.requireNonNull(targetCollectionCombo.getSelectedItem()).toString();
                 }
@@ -1069,8 +1085,8 @@ public class ImportDialog extends DialogWrapper {
             if (defaultScopeAndCollectionRadio.isSelected()) {
                 Log.debug("Default scope and collection Radio selected");
 
-                targetScopeField = "_default";
-                targetCollectionField = "_default";
+                targetScopeField = DEFAULT_TAG;
+                targetCollectionField = DEFAULT_TAG;
             } else if (targetCollectionSelected) {
                 Log.debug("collection Radio selected");
 
@@ -1081,10 +1097,10 @@ public class ImportDialog extends DialogWrapper {
                 BiConsumer<String[], JTextField> setFirstMatch = (fields, textField) -> {
                     Optional<String> firstMatch = Arrays.stream(fields)
                             .filter(field -> {
-                                if (fileFormat.equals("json")) {
+                                if (fileFormat.equals(JSON_FILE_FORMAT)) {
                                     return Arrays.stream(sampleElementContentSplit)
                                             .anyMatch(element -> element.contains('"' + field + '"'));
-                                } else if (fileFormat.equals("csv")) {
+                                } else if (fileFormat.equals(CSV_FILE_FORMAT)) {
                                     return Arrays.stream(sampleElementContentSplit)
                                             .anyMatch(element -> element.contains(field));
                                 }
@@ -1125,9 +1141,9 @@ public class ImportDialog extends DialogWrapper {
 
             for (String field : possibleKeyFields) {
                 if (Arrays.stream(sampleElementContentSplit).anyMatch(element -> {
-                    if (fileFormat.equals("json")) {
+                    if (fileFormat.equals(JSON_FILE_FORMAT)) {
                         return element.contains('"' + field + '"');
-                    } else if (fileFormat.equals("csv")) {
+                    } else if (fileFormat.equals(CSV_FILE_FORMAT)) {
                         return element.contains(field);
                     }
                     return false;
@@ -1150,8 +1166,8 @@ public class ImportDialog extends DialogWrapper {
 
     protected void updateKeyPreview() {
         keyPreviewArea.setText("");
-        if ((fileFormat.equals("json") && cachedJsonDocs.isEmpty())
-                || (fileFormat.equals("csv") && cachedCsvDocs.isEmpty())) {
+        if ((fileFormat.equals(JSON_FILE_FORMAT) && cachedJsonDocs.isEmpty())
+                || (fileFormat.equals(CSV_FILE_FORMAT) && cachedCsvDocs.isEmpty())) {
             readJsonOrCsvFile();
         }
 
@@ -1160,31 +1176,30 @@ public class ImportDialog extends DialogWrapper {
 
         if (useFieldValueRadio.isSelected()) {
             String fieldName = useFieldNameField.getText();
-            if (fileFormat.equals("json")) {
-                for (int i = 0; i < Math.min(cachedJsonDocs.size(), previewSize); i++) {
+            if (fileFormat.equals(JSON_FILE_FORMAT)) {
+                for (int i = 0; i < Math.min(cachedJsonDocs.size(), PREVIEW_SIZE); i++) {
                     JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
                     if (jsonObject.containsKey(fieldName)) {
                         previewContent.append(jsonObject.get(fieldName).toString()).append("\n");
                     }
                 }
-            } else if (fileFormat.equals("csv")) {
-                if (cachedCsvDocs.get(fieldName) != null) {
-                    for (int i = 0; i < Math.min(cachedCsvDocs.size(), previewSize); i++) {
-                        previewContent.append(cachedCsvDocs.get(fieldName)[i]).append("\n");
-                    }
+            } else if (fileFormat.equals(CSV_FILE_FORMAT) && (cachedCsvDocs.get(fieldName) != null)) {
+                for (int i = 0; i < Math.min(cachedCsvDocs.size(), PREVIEW_SIZE); i++) {
+                    previewContent.append(cachedCsvDocs.get(fieldName)[i]).append("\n");
                 }
+
             }
         } else if (customExpressionRadio.isSelected()) {
 
-            if (fileFormat.equals("json")) {
+            if (fileFormat.equals(JSON_FILE_FORMAT)) {
                 String expression = customExpressionField.getText();
-                Pattern pattern = Pattern.compile("%(\\w+)%");
+                Pattern pattern = Pattern.compile(WORDS_WITH_PERCENT_SYMBOLS_REGEX);
                 Matcher matcher = pattern.matcher(expression);
                 List<String> fieldNamesList = new ArrayList<>();
                 while (matcher.find()) {
                     fieldNamesList.add(matcher.group(1));
                 }
-                for (int i = 0; i < Math.min(cachedJsonDocs.size(), previewSize); i++) {
+                for (int i = 0; i < Math.min(cachedJsonDocs.size(), PREVIEW_SIZE); i++) {
                     JsonObject jsonObject = JsonObject.fromJson(cachedJsonDocs.get(i));
                     String keyBuilder = expression;
                     for (String fieldName : fieldNamesList) {
@@ -1194,22 +1209,22 @@ public class ImportDialog extends DialogWrapper {
                         }
                     }
 
-                    keyBuilder = keyBuilder.replace("#UUID#", UUID.randomUUID().toString());
-                    keyBuilder = keyBuilder.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                    keyBuilder = keyBuilder.replace(UUID_FLAG, UUID.randomUUID().toString());
+                    keyBuilder = keyBuilder.replace(MONO_INCR_FLAG, Integer.toString(monoIncrValue));
                     monoIncrValue++;
 
                     previewContent.append(keyBuilder).append("\n");
                 }
-            } else if (fileFormat.equals("csv")) {
+            } else if (fileFormat.equals(CSV_FILE_FORMAT)) {
                 String expression = customExpressionField.getText();
-                Pattern pattern = Pattern.compile("%(\\w+)%");
+                Pattern pattern = Pattern.compile(WORDS_WITH_PERCENT_SYMBOLS_REGEX);
                 Matcher matcher = pattern.matcher(expression);
                 List<String> fieldNamesList = new ArrayList<>();
                 while (matcher.find()) {
                     fieldNamesList.add(matcher.group(1));
                 }
 
-                for (int i = 0; i < Math.min(cachedCsvDocs.size(), previewSize); i++) {
+                for (int i = 0; i < Math.min(cachedCsvDocs.size(), PREVIEW_SIZE); i++) {
                     String keyBuilder = expression;
                     for (String fieldName : fieldNamesList) {
                         if (cachedCsvDocs.get(fieldName) != null) {
@@ -1218,8 +1233,8 @@ public class ImportDialog extends DialogWrapper {
                         }
                     }
 
-                    keyBuilder = keyBuilder.replace("#UUID#", UUID.randomUUID().toString());
-                    keyBuilder = keyBuilder.replace("#MONO_INCR#", Integer.toString(monoIncrValue));
+                    keyBuilder = keyBuilder.replace(UUID_FLAG, UUID.randomUUID().toString());
+                    keyBuilder = keyBuilder.replace(MONO_INCR_FLAG, Integer.toString(monoIncrValue));
                     monoIncrValue++;
 
                     previewContent.append(keyBuilder).append("\n");
@@ -1238,7 +1253,7 @@ public class ImportDialog extends DialogWrapper {
 
         try {
             String datasetPath = datasetField.getText();
-            if (datasetPath.endsWith(".json")) {
+            if (datasetPath.endsWith(JSON_FILE_EXTENSION)) {
                 try (BufferedReader br = new BufferedReader(new FileReader(datasetPath))) {
                     int counter = 0;
                     String documentFound = "";
@@ -1248,14 +1263,14 @@ public class ImportDialog extends DialogWrapper {
 
                         if (counter == 0) {
                             if (!nextLine.trim().startsWith("[")) {
-                                System.out.println("Not a json array");
+                                Log.debug("Not a json array");
                                 break;
                             }
 
                             nextLine = nextLine.replace("[", "");
                         }
 
-                        if (nextLine == null || counter > 2000 || cachedJsonDocs.size() >= previewSize) {
+                        if (nextLine == null || counter > 2000 || cachedJsonDocs.size() >= PREVIEW_SIZE) {
                             break;
                         } else {
                             counter++;
@@ -1269,14 +1284,14 @@ public class ImportDialog extends DialogWrapper {
                         }
                     }
                 }
-            } else if (datasetPath.endsWith(".csv")) {
+            } else if (datasetPath.endsWith(CSV_FILE_EXTENSION)) {
                 String[] headers = FileUtils.sampleElementFromCsvFile(datasetPath, 1);
 
-                for (int lineNumber = 2; lineNumber < 2 + previewSize; lineNumber++) {
+                for (int lineNumber = 2; lineNumber < 2 + PREVIEW_SIZE; lineNumber++) {
                     String[] data = FileUtils.sampleElementFromCsvFile(datasetPath, lineNumber);
                     for (int headersIndex = 0; headersIndex < Objects.requireNonNull(headers).length; headersIndex++) {
                         if (!cachedCsvDocs.containsKey(headers[headersIndex])) {
-                            cachedCsvDocs.put(headers[headersIndex], new String[previewSize]);
+                            cachedCsvDocs.put(headers[headersIndex], new String[PREVIEW_SIZE]);
                         }
                         cachedCsvDocs.get(headers[headersIndex])[lineNumber - 2] = Objects
                                 .requireNonNull(data)[headersIndex];
@@ -1309,22 +1324,21 @@ public class ImportDialog extends DialogWrapper {
     }
 
     protected boolean isValidBrackets(String s) {
-        Stack<Character> stack = new Stack<>();
+        Deque<Character> deque = new ArrayDeque<>();
 
         if (!s.contains("{") || !s.contains("}")) {
             return false;
         }
+
         for (char c : s.toCharArray()) {
             if (c == '{') {
-                stack.push(c);
-            } else if (c == '}') {
-                if (stack.isEmpty() || stack.pop() != '{') {
-                    return false;
-                }
+                deque.push(c);
+            } else if (c == '}' && (deque.isEmpty() || deque.pop() != '{')) {
+                return false;
             }
         }
 
-        return stack.isEmpty();
+        return deque.isEmpty();
     }
 
     protected void updateIgnoreFieldsTextField() {
@@ -1361,7 +1375,7 @@ public class ImportDialog extends DialogWrapper {
             ignoreFieldsText = ignoreFieldsText + "," + String.join(",", wordsWithPercentSymbols);
         }
 
-        if (fileFormat.equals("csv")) {
+        if (fileFormat.equals(CSV_FILE_FORMAT)) {
             Set<String> headerSetForKeyGeneration = new HashSet<>();
 
             headerSetForKeyGeneration.addAll(extractWordsWithPercentSymbols(dynamicScopeField.getText()));
@@ -1389,7 +1403,7 @@ public class ImportDialog extends DialogWrapper {
         }
 
         // Remove Leading and Trailing commas
-        ignoreFieldsText = ignoreFieldsText.replaceAll("^,+|,+$", "");
+        ignoreFieldsText = ignoreFieldsText.replaceAll("^(,)+|(,)+$", "");
 
         // In a comma-separated string, remove duplicate words
         String[] ignoreFieldsWordsArray = ignoreFieldsText.split(",");
@@ -1405,7 +1419,7 @@ public class ImportDialog extends DialogWrapper {
 
     protected List<String> extractWordsWithPercentSymbols(String text) {
         List<String> wordsWithPercentSymbols = new ArrayList<>();
-        Matcher matcher = Pattern.compile("%(\\w+)%").matcher(text);
+        Matcher matcher = Pattern.compile(WORDS_WITH_PERCENT_SYMBOLS_REGEX).matcher(text);
         while (matcher.find()) {
             wordsWithPercentSymbols.add(matcher.group(1));
         }
@@ -1415,10 +1429,10 @@ public class ImportDialog extends DialogWrapper {
     protected String[] getSampleElementContentSplit(String datasetFieldText) {
         String[] sampleElementContentSplit;
 
-        if ("json".equalsIgnoreCase(fileFormat)) {
+        if (JSON_FILE_FORMAT.equalsIgnoreCase(fileFormat)) {
             sampleElementContentSplit = Objects
                     .requireNonNull(FileUtils.sampleElementFromJsonArrayFile(datasetFieldText)).split(",");
-        } else if ("csv".equalsIgnoreCase(fileFormat)) {
+        } else if (CSV_FILE_FORMAT.equalsIgnoreCase(fileFormat)) {
             sampleElementContentSplit = FileUtils.sampleElementFromCsvFile(datasetFieldText, 1);
         } else {
             throw new IllegalArgumentException("Unsupported file format: " + fileFormat);
@@ -1434,17 +1448,18 @@ public class ImportDialog extends DialogWrapper {
             boolean isValid = true;
             List<String> errorMessages = new ArrayList<>();
             if (currentPage == 1) {
-                String datasetText = datasetField.getText();
-                boolean isValidDataset = !(datasetText.isEmpty()
-                        || !(datasetText.endsWith(".json") || datasetText.endsWith(".csv")));
-                highlightField(datasetField, isValidDataset);
-                if (!isValidDataset) {
-                    isValid = false;
-                    Log.debug("Validation failed: Dataset field is empty or does not have a valid file extension");
-                    errorMessages.add("Please select a valid file.");
-                } else {
-                    try {
-                        if (fileFormat.equals("json")) {
+                try {
+                    String datasetText = datasetField.getText();
+                    boolean isValidDataset = !(datasetText.isEmpty()
+                            || !(datasetText.endsWith(JSON_FILE_EXTENSION)
+                                    || datasetText.endsWith(CSV_FILE_EXTENSION)));
+                    highlightField(datasetField, isValidDataset);
+                    if (!isValidDataset) {
+                        isValid = false;
+                        Log.debug("Validation failed: Dataset field is empty or does not have a valid file extension");
+                        errorMessages.add("Please select a valid file.");
+                    } else {
+                        if (fileFormat.equals(JSON_FILE_FORMAT)) {
                             detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
                             if (detectedCouchbaseJsonFormat == null) {
                                 highlightField(datasetField, false);
@@ -1452,15 +1467,15 @@ public class ImportDialog extends DialogWrapper {
                                 Log.debug("Validation failed: Dataset file is not in a valid Couchbase JSON format");
                                 errorMessages.add("Dataset file is not in a valid Couchbase JSON format.");
                             }
-                        } else if (fileFormat.equals("csv")) {
+                        } else if (fileFormat.equals(CSV_FILE_FORMAT)) {
                             highlightField(datasetField, true);
                         }
-                    } catch (Exception ex) {
-                        highlightField(datasetField, false);
-                        isValid = false;
-                        Log.debug("An error occurred while validating the dataset file: " + ex);
-                        errorMessages.add("An error occurred while validating the dataset file.");
                     }
+                } catch (Exception ex) {
+                    highlightField(datasetField, false);
+                    isValid = false;
+                    Log.debug("An error occurred while validating the dataset file: " + ex);
+                    errorMessages.add("An error occurred while validating the dataset file.");
                 }
             } else if (currentPage == 2) {
 
@@ -1488,7 +1503,7 @@ public class ImportDialog extends DialogWrapper {
                         errorMessages.add("Dynamic scope and/or collection fields are empty.");
                     }
 
-                    if (fileFormat.equals("json")) {
+                    if (fileFormat.equals(JSON_FILE_FORMAT) || fileFormat.equals(CSV_FILE_FORMAT)) {
                         String scopeFieldText = dynamicScopeField.getText();
                         boolean isValidDynamicScope = FileUtils.checkFields(
                                 datasetField.getText(), scopeFieldText, fileFormat);
@@ -1506,27 +1521,9 @@ public class ImportDialog extends DialogWrapper {
                             Log.debug("Validation failed: Scope and/or Collection fields are not valid");
                             errorMessages.add("Scope and/or Collection fields are not valid.");
                         }
-                    } else if (fileFormat.equals("csv")) {
-                        String scopeFieldText = dynamicScopeField.getText();
-                        boolean isValidDynamicScope = FileUtils.checkFields(datasetField.getText(),
-                                scopeFieldText,
-                                fileFormat);
-
-                        highlightField(dynamicScopeField, isValidDynamicScope);
-
-                        String collectionFieldText = dynamicCollectionField.getText();
-                        boolean isValidDynamicCollection = FileUtils.checkFields(datasetField.getText(),
-                                collectionFieldText, fileFormat);
-                        highlightField(dynamicCollectionField, isValidDynamicCollection);
-
-                        if (!isValidDynamicScope || !isValidDynamicCollection) {
-                            isValid = false;
-                            Log.debug("Validation failed: Scope and/or Collection fields are not valid");
-                            errorMessages.add("Scope and/or Collection fields are not valid.");
-                        }
                     }
 
-                    String regex = "^(_|-|%|[0-9a-zA-Z])+$";
+                    String regex = "^[\\w%\\-]+$";
                     if (!dynamicScopeText.matches(regex) || !dynamicCollectionText.matches(regex)) {
                         isValid = false;
                         Log.debug("Validation failed: Scope and/or Collection fields do not match the regex");
@@ -1539,7 +1536,6 @@ public class ImportDialog extends DialogWrapper {
                     Log.debug("Validation failed: No target location radio box selected");
                     errorMessages.add("No target location radio box selected.");
                 }
-
             } else if (currentPage == 3) {
                 if (useFieldValueRadio.isSelected()) {
                     String fieldNameText = useFieldNameField.getText();
@@ -1559,8 +1555,8 @@ public class ImportDialog extends DialogWrapper {
                         Log.debug("Validation failed: Custom expression field is empty");
                         errorMessages.add("Custom expression field is empty.");
                     } else
-                        customExpressionInfoLabel.setVisible(customExpressionText.contains("#UUID#")
-                                || customExpressionText.contains("#MONO_INCR#"));
+                        customExpressionInfoLabel.setVisible(customExpressionText.contains(UUID_FLAG)
+                                || customExpressionText.contains(MONO_INCR_FLAG));
                 }
                 if (!generateUUIDRadio.isSelected() && !useFieldValueRadio.isSelected()
                         && !customExpressionRadio.isSelected()) {
@@ -1615,7 +1611,7 @@ public class ImportDialog extends DialogWrapper {
                         errorMessages.add("Ignore fields field is empty.");
                     }
 
-                    if (fileFormat.equals("csv")) {
+                    if (fileFormat.equals(CSV_FILE_FORMAT)) {
                         Set<String> headerSetForKeyGeneration = new HashSet<>();
 
                         headerSetForKeyGeneration.addAll(extractWordsWithPercentSymbols(dynamicScopeField.getText()));
@@ -1675,23 +1671,23 @@ public class ImportDialog extends DialogWrapper {
     protected JComponent createSouthPanel() {
         panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(CANCEL);
         cancelButton.addActionListener(e -> doCancelAction());
         panel.add(cancelButton);
 
-        backButton = new JButton("Back");
+        backButton = new JButton(BACK);
         backButton.addActionListener(e -> {
             previousPage();
             backButton.setEnabled(currentPage > 1);
             backButton.setVisible(currentPage > 1);
-            nextButton.setText(currentPage == 5 ? "Import" : "Next");
+            nextButton.setText(currentPage == 5 ? IMPORT : NEXT);
             validateAndEnableNextButton();
         });
         backButton.setEnabled(currentPage > 1);
         backButton.setVisible(currentPage > 1);
         panel.add(backButton);
 
-        nextButton = new JButton("Next");
+        nextButton = new JButton(NEXT);
         nextButton.addActionListener(e -> {
             if (currentPage == 5) {
                 doOKAction();
@@ -1699,7 +1695,7 @@ public class ImportDialog extends DialogWrapper {
                 nextPage();
                 backButton.setEnabled(currentPage > 1);
                 backButton.setVisible(currentPage > 1);
-                nextButton.setText(currentPage == 5 ? "Import" : "Next");
+                nextButton.setText(currentPage == 5 ? IMPORT : NEXT);
                 validateAndEnableNextButton();
             }
         });
@@ -1777,7 +1773,7 @@ public class ImportDialog extends DialogWrapper {
         }
 
         public CBImportCommandBuilder setInferTypes(String fileFormat) {
-            if (fileFormat.equals("csv")) {
+            if (fileFormat.equals(CSV_FILE_FORMAT)) {
                 commandList.add("--infer-types");
             }
             return this;
@@ -1785,14 +1781,16 @@ public class ImportDialog extends DialogWrapper {
 
         public CBImportCommandBuilder setScopeCollectionExp(ButtonModel targetLocationGroupSelection, String defaultExp,
                 String collectionExp, String dynamicExp) {
+            String scopeCollectionExpFlag = "--scope-collection-exp";
+
             if (targetLocationGroupSelection == defaultScopeAndCollectionRadio.getModel()) {
-                commandList.add("--scope-collection-exp");
+                commandList.add(scopeCollectionExpFlag);
                 commandList.add(defaultExp);
             } else if (targetLocationGroupSelection == targetCollectionRadio.getModel()) {
-                commandList.add("--scope-collection-exp");
+                commandList.add(scopeCollectionExpFlag);
                 commandList.add(collectionExp);
             } else if (targetLocationGroupSelection == dynamicScopeAndCollectionRadio.getModel()) {
-                commandList.add("--scope-collection-exp");
+                commandList.add(scopeCollectionExpFlag);
                 commandList.add(dynamicExp);
             }
             return this;
@@ -1800,14 +1798,16 @@ public class ImportDialog extends DialogWrapper {
 
         public CBImportCommandBuilder setGenerateKey(ButtonModel keyGroupSelection, String uuidKey,
                 String fieldValueKey, String customExpressionKey) {
+            String generateKeyFlag = "--generate-key";
+
             if (keyGroupSelection == generateUUIDRadio.getModel()) {
-                commandList.add("--generate-key");
+                commandList.add(generateKeyFlag);
                 commandList.add(uuidKey);
             } else if (keyGroupSelection == useFieldValueRadio.getModel()) {
-                commandList.add("--generate-key");
+                commandList.add(generateKeyFlag);
                 commandList.add(fieldValueKey);
             } else if (keyGroupSelection == customExpressionRadio.getModel()) {
-                commandList.add("--generate-key");
+                commandList.add(generateKeyFlag);
                 commandList.add(customExpressionKey);
             }
             return this;
@@ -1815,9 +1815,9 @@ public class ImportDialog extends DialogWrapper {
 
         public CBImportCommandBuilder setSkipDocsOrRows(String skipValue, String flag) {
             if (skipValue != null && !skipValue.isEmpty()) {
-                if (flag.equals("json")) {
+                if (flag.equals(JSON_FILE_FORMAT)) {
                     commandList.add("--skip-docs");
-                } else if (flag.equals("csv")) {
+                } else if (flag.equals(CSV_FILE_FORMAT)) {
                     commandList.add("--skip-rows");
                 }
                 commandList.add(skipValue);
@@ -1827,9 +1827,9 @@ public class ImportDialog extends DialogWrapper {
 
         public CBImportCommandBuilder setLimitDocsOrRows(String limitValue, String flag) {
             if (limitValue != null && !limitValue.isEmpty()) {
-                if (flag.equals("json")) {
+                if (flag.equals(JSON_FILE_FORMAT)) {
                     commandList.add("--limit-docs");
-                } else if (flag.equals("csv")) {
+                } else if (flag.equals(CSV_FILE_FORMAT)) {
                     commandList.add("--limit-rows");
                 }
                 commandList.add(limitValue);
@@ -1895,13 +1895,13 @@ public class ImportDialog extends DialogWrapper {
             CBImportCommandBuilder builder = new CBImportCommandBuilder(fileFormat, clusterURL, username, password)
                     .setBucket(bucket)
                     .setDataset(filePath)
-                    .setFormat(fileFormat.equals("json") ? detectedCouchbaseJsonFormat : null)
-                    .setFieldSeparator(fileFormat.equals("csv") ? "," : null)
+                    .setFormat(fileFormat.equals(JSON_FILE_FORMAT) ? detectedCouchbaseJsonFormat : null)
+                    .setFieldSeparator(fileFormat.equals(CSV_FILE_FORMAT) ? "," : null)
                     .setInferTypes(fileFormat)
                     .setScopeCollectionExp(targetLocationGroupSelection, "_default._default",
                             targetScopeField + "." + targetCollectionField,
                             dynamicScopeFieldText + "." + dynamicCollectionFieldText)
-                    .setGenerateKey(keyGroupSelection, "#UUID#", "%" + fieldNameText + "%", customExpressionText)
+                    .setGenerateKey(keyGroupSelection, UUID_FLAG, "%" + fieldNameText + "%", customExpressionText)
                     .setGeneratorDelimiter("#")
                     .setSkipDocsOrRows(skipFirstCheckSelected ? skipFirstFieldText : null, fileFormat)
                     .setLimitDocsOrRows(importUptoCheckSelected ? importUptoFieldText : null, fileFormat)
