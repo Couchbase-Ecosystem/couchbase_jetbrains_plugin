@@ -67,6 +67,10 @@ public class CustomSqlFileEditor implements FileEditor {
 
     private ComboBox<String> conCombo;
 
+    private boolean isExecutingQuery = false;
+    private AnAction executeAction;
+    private AnAction cancelAction;
+
     CustomSqlFileEditor(Project project, VirtualFile file) {
         this.file = file;
         this.project = project;
@@ -111,38 +115,64 @@ public class CustomSqlFileEditor implements FileEditor {
         DefaultActionGroup executeGroup = new DefaultActionGroup();
 
         Icon executeIcon = IconLoader.getIcon("/assets/icons/play.svg", CustomSqlFileEditor.class);
-        executeGroup.add(new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
+        Icon cancelIcon = IconLoader.getIcon("/assets/icons/cancel.svg", CustomSqlFileEditor.class);
+
+        executeAction = new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (!isSameConnection()) {
                     return;
                 }
-                List<String> statements = getStatements();
-                new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
 
-                        boolean success = false;
-                        if (statements.isEmpty()) {
-                            return;
-                        } else if (statements.size() == 1) {
-                            success = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
-                        } else {
-                            success = QueryExecutor.executeScript(NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
-                        }
+                if (!isExecutingQuery) {
+                    isExecutingQuery = true;
 
-                        if (success) {
-                            int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                            currentHistoryIndex = historySize - 1;
-                            SwingUtilities.invokeLater(() -> {
-                                historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                                historyLabel.revalidate();
-                            });
+                    executeGroup.remove(this);
+                    cancelAction = new AnAction("Cancel", "Cancel query execution", cancelIcon) {
+                        @Override
+                        public void actionPerformed(@NotNull AnActionEvent e) {
+
+                            executeGroup.remove(this);
+                            executeGroup.add(executeAction);
+                            isExecutingQuery = false;
                         }
-                    }
-                }.queue();
+                    };
+                    executeGroup.add(cancelAction);
+                    isExecutingQuery = true;
+
+                    List<String> statements = getStatements();
+                    new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                        @Override
+                        public void run(@NotNull ProgressIndicator indicator) {
+
+                            boolean success = false;
+                            if (statements.size() == 0) {
+                                return;
+                            } else if (statements.size() == 1) {
+                                success = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                            } else {
+                                success = QueryExecutor.executeScript(NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                            }
+
+                            if (success) {
+                                int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
+                                currentHistoryIndex = historySize - 1;
+                                SwingUtilities.invokeLater(() -> {
+                                    historyLabel.setText("history (" + historySize + "/" + historySize + ")");
+                                    historyLabel.revalidate();
+                                });
+                            }
+
+                            executeGroup.remove(cancelAction);
+                            executeGroup.add(executeAction);
+                            isExecutingQuery = false;
+                        }
+                    }.queue();
+                }
             }
-        });
+        };
+
+        executeGroup.add(executeAction);
 
         executeGroup.addSeparator();
 
