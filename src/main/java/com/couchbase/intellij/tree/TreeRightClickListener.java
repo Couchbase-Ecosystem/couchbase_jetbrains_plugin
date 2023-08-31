@@ -12,6 +12,7 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
+import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
@@ -54,7 +55,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
-
 
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
@@ -102,7 +102,6 @@ public class TreeRightClickListener {
             actionGroup.add(refreshBuckets);
             actionGroup.addSeparator();
 
-
             AnAction menuItem = new AnAction("Disconnect") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
@@ -145,12 +144,12 @@ public class TreeRightClickListener {
                 tools.add(cbexport);
             }
 
-            //TODO: Desabled temporarily until the feature is completed
-//            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
-//                JBMenuItem cbimport = new JBMenuItem("Data Import");
-//                tools.add(cbimport);
-//            }
-
+            // TODO: Desabled temporarily until the feature is completed
+            // if (!ActiveCluster.getInstance().isReadOnlyMode() &&
+            // CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
+            // JBMenuItem cbimport = new JBMenuItem("Data Import");
+            // tools.add(cbimport);
+            // }
 
             DefaultActionGroup settings = new DefaultActionGroup("Settings", true);
             DefaultActionGroup colors = new DefaultActionGroup("Connection Colors", true);
@@ -164,7 +163,8 @@ public class TreeRightClickListener {
                         public void colorChanged(Color newColor) {
                             if (newColor != null) {
                                 Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, newColor);
-                                Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
+                                Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right
+                                // margins
                                 Border compound = BorderFactory.createCompoundBorder(margin, line);
                                 toolBarPanel.setBorder(compound);
                                 toolBarPanel.revalidate();
@@ -174,7 +174,7 @@ public class TreeRightClickListener {
 
                         @Override
                         public void closed(@Nullable Color color) {
-                            //do nothing
+                            // do nothing
                         }
                     };
 
@@ -182,7 +182,6 @@ public class TreeRightClickListener {
                 }
             };
             colors.add(colorAction);
-
 
             if (!ActiveCluster.getInstance().isReadOnlyMode()) {
                 AnAction readOnlyMode = new AnAction("Enable Read-Only Mode") {
@@ -241,8 +240,7 @@ public class TreeRightClickListener {
         showPopup(e, tree, actionGroup);
     }
 
-    private static void handleBucketRightClick(Project project, MouseEvent e, DefaultMutableTreeNode
-            clickedNode, Tree tree) {
+    private static void handleBucketRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         AnAction menuItem = new AnAction("Refresh Scopes") {
             @Override
@@ -277,8 +275,7 @@ public class TreeRightClickListener {
         showPopup(e, tree, actionGroup);
     }
 
-    private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode
-            clickedNode, Tree tree) {
+    private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         String bucketName = scope.getBucket();
@@ -313,7 +310,6 @@ public class TreeRightClickListener {
 
             actionGroup.add(addNewCollectionItem);
 
-
             if (!"_default".equals(scope.getText())) {
                 actionGroup.addSeparator();
                 // Add "Delete Scope" option
@@ -335,7 +331,6 @@ public class TreeRightClickListener {
                     }
                 };
                 actionGroup.add(deleteScopeItem);
-
 
             }
         }
@@ -375,9 +370,7 @@ public class TreeRightClickListener {
         showPopup(e, tree, actionGroup);
     }
 
-
-    private static void handleDocumentRightClick(Project project, MouseEvent e, DefaultMutableTreeNode
-            clickedNode, FileNodeDescriptor col, Tree tree) {
+    private static void handleDocumentRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, FileNodeDescriptor col, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         String bucket = col.getBucket();
@@ -423,11 +416,11 @@ public class TreeRightClickListener {
                     try {
                         ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).remove(col.getId());
 
-                        if(col.getVirtualFile() != null ) {
+                        if (col.getVirtualFile() != null) {
                             try {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                                 fileEditorManager.closeFile(col.getVirtualFile());
-                            } catch(Exception ex) {
+                            } catch (Exception ex) {
                                 ex.printStackTrace();
                                 Log.debug("Could not close the file", ex);
                             }
@@ -449,12 +442,10 @@ public class TreeRightClickListener {
             actionGroup.add(deleteDoc);
         }
 
-
         showPopup(e, tree, actionGroup);
     }
 
-    private static void handleIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode
-            clickedNode, IndexNodeDescriptor idx, Tree tree) {
+    private static void handleIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, IndexNodeDescriptor idx, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction viewIdxStatsAction = new AnAction("View Stats") {
@@ -471,20 +462,11 @@ public class TreeRightClickListener {
 
     private static void showPopup(MouseEvent e, Tree tree, DefaultActionGroup actionGroup) {
         DataContext dataContext = DataManager.getInstance().getDataContext(tree);
-        JBPopup popup = JBPopupFactory.getInstance()
-                .createActionGroupPopup(
-                        null,
-                        actionGroup,
-                        dataContext,
-                        JBPopupFactory.ActionSelectionAid.MNEMONICS,
-                        false
-                );
+        JBPopup popup = JBPopupFactory.getInstance().createActionGroupPopup(null, actionGroup, dataContext, JBPopupFactory.ActionSelectionAid.MNEMONICS, false);
         popup.show(new RelativePoint(e));
     }
 
-
-    private static void handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode
-            clickedNode, CollectionNodeDescriptor col, Tree tree) {
+    private static void handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction openDocument = new AnAction("Open Document") {
@@ -506,7 +488,6 @@ public class TreeRightClickListener {
             };
             actionGroup.add(createDocument);
         }
-
 
         if (ActiveCluster.getInstance().hasQueryService()) {
             actionGroup.addSeparator();
@@ -576,7 +557,8 @@ public class TreeRightClickListener {
             }
         }
 
-        //cbexport and cbimport are installed together, so if one is available the other also is
+        // cbexport and cbimport are installed together, so if one is available the
+        // other also is
         if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
             actionGroup.addSeparator();
 

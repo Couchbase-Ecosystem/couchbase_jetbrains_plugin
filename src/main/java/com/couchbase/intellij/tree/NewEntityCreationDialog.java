@@ -20,10 +20,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 
-enum EntityType {
-    BUCKET, SCOPE, COLLECTION
-}
-
 public class NewEntityCreationDialog extends DialogWrapper {
 
     private JTextField textField;
@@ -34,7 +30,7 @@ public class NewEntityCreationDialog extends DialogWrapper {
     private String scopeName;
     private String collectionName;
 
-    protected NewEntityCreationDialog(
+    public NewEntityCreationDialog(
             Project project,
             EntityType entityType,
 
@@ -136,5 +132,9 @@ public class NewEntityCreationDialog extends DialogWrapper {
 
     public String getEntityName() {
         return textField.getText();
+    }
+
+    public enum EntityType {
+        BUCKET, SCOPE, COLLECTION
     }
 }
