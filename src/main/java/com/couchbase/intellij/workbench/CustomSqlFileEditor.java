@@ -127,17 +127,16 @@ public class CustomSqlFileEditor implements FileEditor {
                 if (!isExecutingQuery) {
                     isExecutingQuery = true;
 
-                    executeGroup.remove(this);
                     cancelAction = new AnAction("Cancel", "Cancel query execution", cancelIcon) {
                         @Override
                         public void actionPerformed(@NotNull AnActionEvent e) {
 
-                            executeGroup.remove(this);
-                            executeGroup.add(executeAction);
+                            executeGroup.replaceAction(this, executeAction);
                             isExecutingQuery = false;
                         }
                     };
-                    executeGroup.add(cancelAction);
+
+                    executeGroup.replaceAction(this, cancelAction);
                     isExecutingQuery = true;
 
                     List<String> statements = getStatements();
@@ -163,8 +162,7 @@ public class CustomSqlFileEditor implements FileEditor {
                                 });
                             }
 
-                            executeGroup.remove(cancelAction);
-                            executeGroup.add(executeAction);
+                            executeGroup.replaceAction(cancelAction, executeAction);
                             isExecutingQuery = false;
                         }
                     }.queue();
