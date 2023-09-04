@@ -354,8 +354,8 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        defaultScopeAndCollectionRadio = new JBRadioButton("Default scope and collection");
-        targetCollectionRadio = new JBRadioButton("Target collection");
+        defaultScopeAndCollectionRadio = new JBRadioButton("Into the Default Scope and Collection");
+        targetCollectionRadio = new JBRadioButton("Into a specified Collection");
         dynamicScopeAndCollectionRadio = new JBRadioButton("Dynamic scope and collection");
 
         targetLocationGroup = new ButtonGroup();
@@ -407,7 +407,11 @@ public class ImportDialog extends DialogWrapper {
         c.gridx = 0;
         scopeFieldLabel = new JBLabel("Scope field:");
         scopeFieldLabelHelpPanel = TemplateUtil.getLabelWithHelp(scopeFieldLabel,
-                "<html>Specify the field in the data that contains the scope name.</html>");
+                "<html>Specify the field in the data that contains the scope name.<br>" +
+                        "To use information from the JSON document, specify the column name between % characters. " +
+                        "For example, --scope-collection-exp %scope_field%.%collection_field%. " +
+                        "Fields that contain a % character may be escaped using %%." +
+                        "For more information about the accepted format, see the SCOPE/COLLECTION PARSER section.</html>");
         targetFormPanel.add(scopeFieldLabelHelpPanel, c);
         c.weightx = 0.7;
         c.gridx = 1;
@@ -420,7 +424,11 @@ public class ImportDialog extends DialogWrapper {
         c.gridx = 0;
         collectionFieldLabel = new JBLabel("Collection field:");
         collectionFieldLabelHelpPanel = TemplateUtil.getLabelWithHelp(collectionFieldLabel,
-                "<html>Specify the field in the data that contains the collection name.</html>");
+                "<html>Specify the field in the data that contains the collection name.<br>" +
+                        "To use information from the JSON document, specify the column name between % characters. " +
+                        "For example, --scope-collection-exp %scope_field%.%collection_field%. " +
+                        "Fields that contain a % character may be escaped using %%." +
+                        "For more information about the accepted format, see the SCOPE/COLLECTION PARSER section.</html>");
         targetFormPanel.add(collectionFieldLabelHelpPanel, c);
         c.weightx = 0.7;
         c.gridx = 1;
