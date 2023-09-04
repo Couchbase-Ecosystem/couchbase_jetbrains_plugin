@@ -15,6 +15,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,12 +24,15 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.UUID;
 
 public class TreeToolBarBuilder {
 
     private static int workbenchCounter = 0;
 
-    public static JPanel build(Project project, Tree tree) {
+    private ActionToolbar leftActionToolbar;
+
+    public JPanel build(Project project, Tree tree) {
         JPanel toolBarPanel = new JPanel(new BorderLayout());
 
         AnAction newWorkbench = new AnAction("New Query Workbench") {
@@ -54,6 +58,7 @@ public class TreeToolBarBuilder {
             public void update(AnActionEvent e) {
                 boolean shouldEnable = ActiveCluster.getInstance().hasQueryService();
                 e.getPresentation().setEnabled(shouldEnable);
+                e.getPresentation().setVisible(shouldEnable);
             }
         };
 
@@ -63,7 +68,7 @@ public class TreeToolBarBuilder {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 // Add connection action code here
-                NewConnectionDialog dialog = new NewConnectionDialog(project, tree);
+                NewConnectionDialog dialog = new NewConnectionDialog(project, tree, null, null);
                 dialog.show();
             }
         };
@@ -123,6 +128,7 @@ public class TreeToolBarBuilder {
         leftActionGroup.add(newWorkbench);
         leftActionGroup.addSeparator();
 
+
 // Disabling CBSHELL for now
 //        if (OSUtil.isMacOS()) {
 //            leftActionGroup.add(cbshellAction);
@@ -131,7 +137,7 @@ public class TreeToolBarBuilder {
         DefaultActionGroup rightActionGroup = new DefaultActionGroup();
         rightActionGroup.add(ellipsisAction);
 
-        ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
+        leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
         leftActionToolbar.setTargetComponent(toolBarPanel);
         toolBarPanel.add(leftActionToolbar.getComponent(), BorderLayout.WEST);
 
@@ -147,5 +153,10 @@ public class TreeToolBarBuilder {
         });
 
         return toolBarPanel;
+    }
+
+    public void showGotItTooltip() {
+        GotItTooltip tooltip = new GotItTooltip(UUID.randomUUID().toString(), "Click here to connect to a new Couchbase Cluster", null);
+        tooltip.show(leftActionToolbar.getComponent(), GotItTooltip.BOTTOM_MIDDLE);
     }
 }

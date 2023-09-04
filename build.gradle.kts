@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.0.2"
+version = "1.0.3"
 
 
 sourceSets["main"].java.srcDirs("src/main/gen")
@@ -43,7 +43,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("213")
+        sinceBuild.set("222")
         untilBuild.set("243.*")
     }
 

@@ -2,7 +2,6 @@ package com.couchbase.intellij.listener;
 
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.java.Collection;
-import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.intellij.DocumentFormatter;
@@ -10,6 +9,9 @@ import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.workbench.Log;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -35,6 +37,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         throw new IllegalStateException("Could not find the project that the virtual file belongs to. This might be a bug.");
     }
 
+
     @Override
     public boolean maySaveDocument(@NotNull Document document, boolean isSaveExplicit) {
         VirtualFile file = FileDocumentManager.getInstance().getFile(document);
@@ -43,7 +46,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         //filtering files from our plugin
         if (file != null && file.getUserData(VirtualFileKeys.CLUSTER) != null && !ActiveCluster.getInstance().isReadOnlyMode()) {
             if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
-                Log.info("The file "+file.getUserData(VirtualFileKeys.ID)+" was not saved, as it belongs to a connection that is no longer active.");
+                Log.info("The file " + file.getUserData(VirtualFileKeys.ID) + " was not saved, as it belongs to a connection that is no longer active.");
                 return true;
             } else {
                 Collection collection = ActiveCluster.getInstance().get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
@@ -92,8 +95,18 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
     }
 
     private void saveFile(Collection collection, VirtualFile file, Document document) {
-        MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), JsonObject.fromJson(document.getText()));
-        file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
-        InferHelper.invalidateInferCacheIfOlder(collection.bucketName(), collection.scopeName(), collection.name(), TimeUnit.MINUTES.toMillis(1));
+
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode node = mapper.readTree(document.getText());
+            MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), node);
+            file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
+            InferHelper.invalidateInferCacheIfOlder(collection.bucketName(), collection.scopeName(), collection.name(), TimeUnit.MINUTES.toMillis(1));
+
+        } catch (JsonProcessingException e) {
+            Log.error("Document " + file.getUserData(VirtualFileKeys.ID) + " is not a valid json");
+        }
+
     }
 }

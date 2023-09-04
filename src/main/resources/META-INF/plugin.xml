@@ -26,24 +26,45 @@
             ]]>
     </description>
 
+    <change-notes>
+        <![CDATA[
+        <h2>New Features</h2>
+        <ul>
+          <li>SQL++ Autocomplete</li>
+          <li>Pillow Fight</li>
+          <li>Data Export</li>
+          <li>DDL Export</li>
+          <li>Key-Value Support</li>
+          <li>Improved Collection Counters</li>
+          <li>Improved New Connection Dialog</li>
+          <li>Create Document from Template</li>
+          <li>and much more!</li>
+        </ul>
+        <h2>Bug Fixes</h2>
+        <ul>
+          <li>Fixed many and most likely added a few new ones</li>
+        </ul>
+        ]]>
+    </change-notes>
+
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
-<!-- Keep this block here for future reference.-->
-<!--    <applicationListeners>-->
-<!--        <listener class=" com.couchbase.intellij.listener.AppLifecycle"-->
-<!--                  topic="com.intellij.ide.ApplicationInitializedListener"-->
-<!--                  activeInHeadlessMode="false"-->
-<!--                  activeInTestMode="true"/>-->
-<!--        <listener-->
-<!--                class="com.couchbase.intellij.listener.LifecycleListener"-->
-<!--                topic="com.intellij.ide.plugins.DynamicPluginListener" activeInTestMode="true"/>-->
-<!--    </applicationListeners>-->
-<!--    <applicationListeners>-->
-<!--    <listener class="com.couchbase.intellij.listener.MyFileDocumentManagerListener"-->
-<!--              topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>-->
-<!--</applicationListeners>-->
+    <!-- Keep this block here for future reference.-->
+    <!--    <applicationListeners>-->
+    <!--        <listener class=" com.couchbase.intellij.listener.AppLifecycle"-->
+    <!--                  topic="com.intellij.ide.ApplicationInitializedListener"-->
+    <!--                  activeInHeadlessMode="false"-->
+    <!--                  activeInTestMode="true"/>-->
+    <!--        <listener-->
+    <!--                class="com.couchbase.intellij.listener.LifecycleListener"-->
+    <!--                topic="com.intellij.ide.plugins.DynamicPluginListener" activeInTestMode="true"/>-->
+    <!--    </applicationListeners>-->
+    <!--    <applicationListeners>-->
+    <!--    <listener class="com.couchbase.intellij.listener.MyFileDocumentManagerListener"-->
+    <!--              topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>-->
+    <!--</applicationListeners>-->
 
     <projectListeners>
         <listener
@@ -63,12 +84,11 @@
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
 
-        <toolWindow id="Couchbase Output" anchor="bottom"  icon="/assets/icons/couchbase.svg"
+        <toolWindow id="Couchbase Output" anchor="bottom" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.workbench.QueryResultToolWindowFactory"/>
 
 
         <fileDocumentSynchronizationVetoer implementation="com.couchbase.intellij.listener.JsonDocumentListener"/>
-
 
 
         <fileType name="SQL++ file" implementationClass="org.intellij.sdk.language.SQLPPFileType"

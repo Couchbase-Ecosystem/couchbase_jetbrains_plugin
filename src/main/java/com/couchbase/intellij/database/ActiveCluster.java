@@ -33,14 +33,11 @@ import java.util.stream.Stream;
 public class ActiveCluster implements CouchbaseClusterEntity {
 
     private static ActiveCluster activeCluster = new ActiveCluster();
+    private final List<Runnable> newConnectionListener = new ArrayList<>();
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
-
     private List<String> services;
-
-    private List<Runnable> newConnectionListener = new ArrayList<>();
-
     private String version;
 
     private Color color;
@@ -56,10 +53,6 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private ActiveCluster() {
     }
 
-    public void registerNewConnectionListener(Runnable runnable) {
-        this.newConnectionListener.add(runnable);
-    }
-
     public static ActiveCluster getInstance() {
         return activeCluster;
     }
@@ -67,6 +60,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     @VisibleForTesting
     public static void setInstance(ActiveCluster i) {
         activeCluster = i;
+    }
+
+    public void registerNewConnectionListener(Runnable runnable) {
+        this.newConnectionListener.add(runnable);
     }
 
     public Cluster get() {
@@ -99,7 +96,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 try {
                     String password = DataLoader.getClusterPassword(savedCluster);
 
-                    Cluster cluster = Cluster.connect(savedCluster.getUrl(),
+                    Cluster cluster = Cluster.connect(savedCluster.getUrl()
+                                    +  (savedCluster.getQueryParams() ==null? "": savedCluster.getQueryParams() ),
                             ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
                                 // env.applyProfile("wan-development");
                             }));
