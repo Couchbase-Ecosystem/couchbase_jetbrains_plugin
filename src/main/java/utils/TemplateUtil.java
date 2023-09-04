@@ -7,6 +7,7 @@ import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -98,8 +99,9 @@ public class TemplateUtil {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         textArea.setEditable(false);
-        textArea.setColumns(40);
+        textArea.setColumns(60);
         textArea.setSize(textArea.getPreferredSize());
+        JBScrollPane pane = new JBScrollPane(textArea);
 
         questionMark.addMouseListener(new MouseAdapter() {
             Balloon balloonHint;
@@ -107,21 +109,24 @@ public class TemplateUtil {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (balloonHint == null || balloonHint.isDisposed()) {
-                    balloonHint = factory.createBalloonBuilder(textArea)
+                    balloonHint = factory.createBalloonBuilder(pane)
                             .setFillColor(UIManager.getColor("ToolTip.background"))
                             .setAnimationCycle(0)
                             .createBalloon();
                     balloonHint.show(factory.guessBestPopupLocation(questionMark), Balloon.Position.below);
+
+                    textArea.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mouseExited(MouseEvent e) {
+                            if (balloonHint != null) {
+                                balloonHint.hide();
+                                balloonHint = null;
+                            }
+                        }
+                    });
                 }
             }
 
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (balloonHint != null) {
-                    balloonHint.hide();
-                    balloonHint = null;
-                }
-            }
         });
 
         JBPanel panel = new JBPanel(new BorderLayout());

@@ -1,8 +1,11 @@
 package com.couchbase.intellij.database;
 
-import com.couchbase.client.core.error.*;
-import com.couchbase.client.java.*;
-import com.couchbase.client.java.Collection;
+import com.couchbase.client.core.error.DocumentNotFoundException;
+import com.couchbase.client.core.error.IndexFailureException;
+import com.couchbase.client.core.error.PlanningFailureException;
+import com.couchbase.client.core.error.TimeoutException;
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.GetResult;
@@ -22,6 +25,8 @@ import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -45,8 +50,6 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import utils.IndexUtils;
 import utils.OSUtil;
 
@@ -321,10 +324,13 @@ public class DataLoader {
             GetResult result = ActiveCluster.getInstance().get().bucket(node.getBucket()).scope(node.getScope()).collection(node.getCollection()).get(node.getId());
             cas = String.valueOf(result.cas());
 
+            docContent = new String(result.contentAsBytes());
+
+            //checks if document us a valid Json
             try {
-                docContent = result.contentAsObject().toString();
-            } catch (DecodingFailureException e) {
-                docContent = new String(result.contentAsBytes());
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.readTree(docContent);
+            } catch (JsonProcessingException e) {
                 isDifferentFormat = true;
             }
 
@@ -382,7 +388,12 @@ public class DataLoader {
                 if (document != null) {
 
                     if (isBinary) {
-                        document.setText(content);
+                        try {
+                            document.setText(content);
+                        } catch ( AssertionError e ) {
+                            Messages.showInfoMessage("Couchbase Plugin", "Cannot open this binary file via the plugin");
+                            return;
+                        }
                     } else {
                         Gson gson = new GsonBuilder().setPrettyPrinting().create();
                         JsonElement jsonElement = JsonParser.parseString(content);
@@ -542,11 +553,12 @@ public class DataLoader {
 
     }
 
-    public static SavedCluster saveDatabaseCredentials(String name, String url, boolean isSSL, String username, String password, String defaultBucket) {
+    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
         sc.setName(name);
+        sc.setQueryParams(queryParams);
         sc.setSslEnable(isSSL);
         sc.setUsername(username);
         sc.setUrl(adjustClusterProtocol(url, isSSL));

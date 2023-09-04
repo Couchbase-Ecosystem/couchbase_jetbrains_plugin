@@ -8,6 +8,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.tools.doctor.SDKDoctorTableCellRenderer;
 import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
+import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.overview.NewConnectionBanner;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.project.Project;
@@ -23,6 +24,7 @@ import utils.TemplateUtil;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
@@ -34,6 +36,7 @@ import java.util.Set;
 public class NewConnectionDialog extends DialogWrapper {
 
     private final Tree tree;
+    private final SavedCluster savedCluster;
     JBTextField defaultBucketTextField;
     private JLabel errorLabel;
     private JLabel messageLabel;
@@ -48,23 +51,43 @@ public class NewConnectionDialog extends DialogWrapper {
     private JBScrollPane consoleScrollPane;
     private JBTable eventLogTable;
     private Project project;
-
     private JBTextField apiKeyField;
-
     private JPasswordField apiSecretField;
-
     private JPanel wrapperPanel;
 
-    public NewConnectionDialog(Project project, Tree tree) {
+    private  DefaultMutableTreeNode clickedNode;
+
+    public NewConnectionDialog(Project project, Tree tree, SavedCluster savedCluster, DefaultMutableTreeNode clickedNode) {
         super(false);
         this.tree = tree;
         this.project = project;
+        this.savedCluster = savedCluster;
+        this.clickedNode = clickedNode;
         createUIComponents();
 
         init();
         setTitle("New Couchbase Connection");
         setResizable(true);
         getPeer().getWindow().setMinimumSize(new Dimension(800, 600));
+    }
+
+    public static String getQueryParams(String url) {
+        int index = url.indexOf('?');
+
+        if (index == -1) {
+            return "";
+        }
+        return url.substring(index);
+    }
+
+    public static String getBaseUrl(String url) {
+        int index = url.indexOf('?');
+
+        if (index == -1) {
+            return url;
+        }
+
+        return url.substring(0, index);
     }
 
     @Override
@@ -144,7 +167,12 @@ public class NewConnectionDialog extends DialogWrapper {
             }
 
             try {
-                SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(), hostTextField.getText(), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()), defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
+
+                if(this.savedCluster != null) {
+                    ConnectionNodeDescriptor userObject = (ConnectionNodeDescriptor) clickedNode.getUserObject();
+                    TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
+                }
+                SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(), getBaseUrl(hostTextField.getText()), getQueryParams(hostTextField.getText()), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()), defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
                 messageLabel.setText("Connection was successful");
                 TreeActionHandler.connectToCluster(project, sc, tree, null);
                 close(DialogWrapper.CANCEL_EXIT_CODE);
@@ -341,6 +369,11 @@ public class NewConnectionDialog extends DialogWrapper {
         gbc2.gridx = 1;
         gbc2.weightx = 0.6;
         secondPanel.add(TemplateUtil.createComponentWithBalloon(passwordField, "The respective password for the user you have specified"), gbc2);
+
+        if (this.savedCluster != null) {
+            usernameTextField.setText(this.savedCluster.getUsername());
+            passwordField.setText(DataLoader.getClusterPassword(savedCluster));
+        }
         return secondPanel;
     }
 
@@ -389,15 +422,23 @@ public class NewConnectionDialog extends DialogWrapper {
         gbc.gridy = 2;
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        firstPanel.add(TemplateUtil.createComponentWithBalloon(hostTextField, "The Connection String is the address of your server. If your cluster is running locally, it could be something like 'http://localhost'. If you are using Couchbase Capella, it should look like 'cb.fwu-odewcpjq7f.cloud.couchbase.com'. Do not include any port numbers"), gbc);
+        firstPanel.add(TemplateUtil.createComponentWithBalloon(hostTextField, "The Connection String is the address of your server. If your cluster is running locally, it could be something like 'couchbase://localhost'. If you are using Couchbase Capella, it should look like 'couchbases://cb.fwu-odewcpjq7f.cloud.couchbase.com'. Do not include any port numbers"), gbc);
 
         gbc.gridy = 3;
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        firstPanel.add(TemplateUtil.createComponentWithBalloon(enableSSLCheckBox, "Check this if TLS is enabled in your cluster. If you specify 'https://' or 'couchbases://' in your Connection String, this option will be checked automatically"), gbc);
+        firstPanel.add(TemplateUtil.createComponentWithBalloon(enableSSLCheckBox, "Check this if TLS is enabled in your cluster. If you specify 'couchbases://' protocol in your Connection String, this option will be checked automatically"), gbc);
+
+        if (this.savedCluster != null) {
+            connectionNameTextField.setText(this.savedCluster.getName());
+            hostTextField.setText(this.savedCluster.getUrl());
+            enableSSLCheckBox.setSelected(this.savedCluster.isSslEnable());
+            cleanURL();
+            hostTextField.setText(hostTextField.getText()+ (savedCluster.getQueryParams()!=null?savedCluster.getQueryParams(): ""));
+        }
+
         return firstPanel;
     }
-
 
     private Component getAdvancedTabs() {
         JBTabbedPane tabbedPane = new JBTabbedPane();
@@ -519,7 +560,6 @@ public class NewConnectionDialog extends DialogWrapper {
         return tabbedPane;
     }
 
-
     private JPanel createCouchbaseBanner() {
         JPanel leftPanel = new JPanel();
         leftPanel.setBackground(Color.WHITE);
@@ -567,7 +607,6 @@ public class NewConnectionDialog extends DialogWrapper {
     }
 
     private void cleanURL() {
-        hostTextField.setText(hostTextField.getText().toLowerCase());
         String text = hostTextField.getText();
         if (text.endsWith("/")) {
             hostTextField.setText(text.substring(0, text.length() - 1));
@@ -582,6 +621,7 @@ public class NewConnectionDialog extends DialogWrapper {
             hostTextField.setText(text.replaceFirst("couchbase://", ""));
         } else if (text.startsWith("couchbases://")) {
             hostTextField.setText(text.replaceFirst("couchbases://", ""));
+            enableSSLCheckBox.setSelected(true);
         }
 
     }

@@ -11,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 public class SavedCluster {
     private String id;
     private String name;
+
+    private String queryParams;
     private String url;
     private String username;
 
@@ -81,10 +83,6 @@ public class SavedCluster {
 
     public Boolean isReadOnly() {
         return readOnly;
-    }
-
-    public void setReadOnly(Boolean readOnly) {
-        this.readOnly = readOnly;
     }
 
     @Override
@@ -166,5 +164,21 @@ public class SavedCluster {
 
     public void setInferCachePeriod(Long inferCachePeriod) {
         this.inferCachePeriod = inferCachePeriod;
+    }
+
+    public String getQueryParams() {
+        return queryParams;
+    }
+
+    public void setQueryParams(String queryParams) {
+        this.queryParams = queryParams;
+    }
+
+    public Boolean getReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(Boolean readOnly) {
+        this.readOnly = readOnly;
     }
 }

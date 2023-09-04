@@ -230,6 +230,16 @@ public class TreeRightClickListener {
         }
 
         actionGroup.addSeparator();
+        AnAction editConnection = new AnAction("Edit Connection") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                NewConnectionDialog dialog = new NewConnectionDialog(project, tree, userObject.getSavedCluster(), clickedNode);
+                dialog.show();
+            }
+        };
+
+        actionGroup.add(editConnection);
+
         AnAction deleteConnection = new AnAction("Delete Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -300,14 +310,8 @@ public class TreeRightClickListener {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
 
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION, bucketName, scopeName);
-                    entityCreationDialog.show();
-
-                    if (entityCreationDialog.isOK()) {
-                        String collectionName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get().bucket(bucketName).collections().createCollection(CollectionSpec.create(collectionName, scopeName));
-                        DataLoader.listCollections(clickedNode, tree);
-                    }
+                    NewCollectionDialog dialog = new NewCollectionDialog(project, bucketName, scopeName, clickedNode, tree);
+                    dialog.show();
                 }
             };
 
@@ -423,11 +427,11 @@ public class TreeRightClickListener {
                     try {
                         ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).remove(col.getId());
 
-                        if(col.getVirtualFile() != null ) {
+                        if (col.getVirtualFile() != null) {
                             try {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                                 fileEditorManager.closeFile(col.getVirtualFile());
-                            } catch(Exception ex) {
+                            } catch (Exception ex) {
                                 ex.printStackTrace();
                                 Log.debug("Could not close the file", ex);
                             }

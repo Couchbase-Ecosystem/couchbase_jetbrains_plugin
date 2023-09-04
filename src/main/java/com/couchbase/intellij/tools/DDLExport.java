@@ -43,6 +43,8 @@ public class DDLExport {
             sb.append("\n");
             sb.append("/* DDL for collection ").append(scope).append(".").append(spec.name()).append(" */");
             sb.append("\n");
+
+
             if (!"_default".equals(spec.name())) {
                 sb.append("CREATE COLLECTION ").append(scopePrefix).append(".`").append(spec.name()).append("`; \n");
             }
