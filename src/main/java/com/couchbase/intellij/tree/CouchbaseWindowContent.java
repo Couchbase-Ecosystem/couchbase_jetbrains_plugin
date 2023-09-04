@@ -47,7 +47,8 @@ public class CouchbaseWindowContent extends JPanel {
         tree.setCellRenderer(new NodeDescriptorRenderer());
 
         // create the toolbar
-        toolBarPanel = TreeToolBarBuilder.build(project, tree);
+        final TreeToolBarBuilder toolBarBuilder = new TreeToolBarBuilder();
+        toolBarPanel = toolBarBuilder.build(project, tree);
         add(toolBarPanel, BorderLayout.NORTH);
         add(new JScrollPane(tree), BorderLayout.CENTER);
 
@@ -81,10 +82,6 @@ public class CouchbaseWindowContent extends JPanel {
                     if (e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
-                            if(descriptor.getType() == FileNodeDescriptor.FileType.BINARY) {
-                                Messages.showInfoMessage("Couchbase Plugin", "You can't open binary files via the plugin");
-                                return;
-                            }
                             //always force to load the file from server on read only mode.
                             if (ActiveCluster.getInstance().isReadOnlyMode()) {
                                 descriptor.setVirtualFile(null);
@@ -123,7 +120,7 @@ public class CouchbaseWindowContent extends JPanel {
                 }
             }
 
-            private void createPrimaryIndex(String bucket, String scope, String collection,  TreePath clickedPath) {
+            private void createPrimaryIndex(String bucket, String scope, String collection, TreePath clickedPath) {
                 if (ActiveCluster.getInstance().isReadOnlyMode()) {
                     Messages.showErrorDialog("You can't create indexes when your connection is on read-only mode", "Couchbase Plugin Error");
                 } else {
@@ -148,8 +145,19 @@ public class CouchbaseWindowContent extends JPanel {
                 // No action needed
             }
         });
-
-
+        if (DataLoader.getSavedClusters() == null || DataLoader.getSavedClusters().isEmpty()) {
+            Timer timer = new Timer(10000, e -> {
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        toolBarBuilder.showGotItTooltip();
+                    }catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                });
+            });
+            timer.setRepeats(false);
+            timer.start();
+        }
     }
 
 
@@ -162,6 +170,10 @@ public class CouchbaseWindowContent extends JPanel {
             root.add(adminLocal);
         }
         return new DefaultTreeModel(root);
+    }
+
+    public static Tree getTree() {
+        return tree;
     }
 
     static class NodeDescriptorRenderer extends DefaultTreeCellRenderer {
@@ -233,9 +245,5 @@ public class CouchbaseWindowContent extends JPanel {
             add(text);
             add(counter);
         }
-    }
-
-    public static Tree getTree() {
-        return tree;
     }
 }

@@ -229,6 +229,16 @@ public class TreeRightClickListener {
         }
 
         actionGroup.addSeparator();
+        AnAction editConnection = new AnAction("Edit Connection") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                NewConnectionDialog dialog = new NewConnectionDialog(project, tree, userObject.getSavedCluster(), clickedNode);
+                dialog.show();
+            }
+        };
+
+        actionGroup.add(editConnection);
+
         AnAction deleteConnection = new AnAction("Delete Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -259,7 +269,7 @@ public class TreeRightClickListener {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE, bucketName);
+                    NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
                     entityCreationDialog.show();
 
                     if (entityCreationDialog.isOK()) {
@@ -297,14 +307,8 @@ public class TreeRightClickListener {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
 
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.COLLECTION, bucketName, scopeName);
-                    entityCreationDialog.show();
-
-                    if (entityCreationDialog.isOK()) {
-                        String collectionName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get().bucket(bucketName).collections().createCollection(CollectionSpec.create(collectionName, scopeName));
-                        DataLoader.listCollections(clickedNode, tree);
-                    }
+                    NewCollectionDialog dialog = new NewCollectionDialog(project, bucketName, scopeName, clickedNode, tree);
+                    dialog.show();
                 }
             };
 
