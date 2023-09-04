@@ -1,6 +1,5 @@
 package com.couchbase.intellij.persistence.storage;
 
-import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.Clusters;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.workbench.Log;
@@ -51,6 +50,10 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
                 myState.clusters.setInferCacheUpdateTimes(
                         myState.clusters.getInferCacheUpdateTimes().entrySet().stream()
                                 .filter(entry -> {
+
+                                    if(myState.clusters.getMap() == null) {
+                                        return false;
+                                    }
                                     if (!myState.clusters.getMap().containsKey(entry.getKey())) {
                                         Log.debug("removing caches for stale cluster " + entry.getKey());
                                         myState.clusters.getInferCache().remove(entry.getKey());

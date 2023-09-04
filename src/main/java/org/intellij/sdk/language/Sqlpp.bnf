@@ -126,7 +126,7 @@ create-function-external ::= CREATE ( OR REPLACE )? FUNCTION function-ref LPAREN
 
 function-ref ::= ( namespace-ref COLON ( bucket-ref DOT scope-ref DOT )? )? identifier-ref
 
-params ::= identifier-ref ( COMMA identifier-ref )* | ELLIPSIS
+params ::= identifier-or-star ( COMMA identifier-or-star )* | ELLIPSIS
 
 body ::= expr
 
@@ -586,6 +586,7 @@ single-quoted-string-character ::= (
 
 bool ::= TRUE | FALSE
 
+identifier-or-star ::= identifier-ref | ASTERISK
 
 identifier-ref ::= IDENTIFIER | escaped-identifier
 
@@ -682,8 +683,9 @@ function-call ::= builtin-function |
                   window-function
 
 function-name ::= identifier-ref
-aggregate-function-name ::= identifier-ref
-window-function-name ::= identifier-ref
+aggregate-function-name ::= FUNCS | identifier-ref
+window-function-name ::= FUNCS | identifier-ref
+
 
 ordinary-function ::= function-name LPAREN ( expr ( COMMA expr )* )? RPAREN
 

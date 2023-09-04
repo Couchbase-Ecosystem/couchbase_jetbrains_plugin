@@ -33,17 +33,16 @@ import java.util.stream.Stream;
 public class ActiveCluster implements CouchbaseClusterEntity {
 
     private static ActiveCluster activeCluster = new ActiveCluster();
+    private final List<Runnable> newConnectionListener = new ArrayList<>();
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
-
     private List<String> services;
-
-    private List<Runnable> newConnectionListener = new ArrayList<>();
-
     private String version;
 
     private Color color;
+
+    private Permissions permissions;
 
     private Set<CouchbaseBucket> buckets;
     private long lastSchemaUpdate = 0;
@@ -52,10 +51,6 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private Runnable disconnectListener;
 
     private ActiveCluster() {
-    }
-
-    public void registerNewConnectionListener(Runnable runnable) {
-        this.newConnectionListener.add(runnable);
     }
 
     public static ActiveCluster getInstance() {
@@ -67,6 +62,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         activeCluster = i;
     }
 
+    public void registerNewConnectionListener(Runnable runnable) {
+        this.newConnectionListener.add(runnable);
+    }
+
     public Cluster get() {
         return cluster;
     }
@@ -76,6 +75,13 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             return null;
         }
         return this.savedCluster.getId();
+    }
+
+    public PermissionChecker getPermissions() throws Exception {
+        if (permissions == null) {
+            permissions = CouchbaseRestAPI.callWhoAmIEndpoint();
+        }
+        return new PermissionChecker(permissions);
     }
 
     public void connect(SavedCluster savedCluster, Consumer<Exception> connectListener, Runnable disconnectListener) throws Exception {
@@ -90,7 +96,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 try {
                     String password = DataLoader.getClusterPassword(savedCluster);
 
-                    Cluster cluster = Cluster.connect(savedCluster.getUrl(),
+                    Cluster cluster = Cluster.connect(savedCluster.getUrl()
+                                    +  (savedCluster.getQueryParams() ==null? "": savedCluster.getQueryParams() ),
                             ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
                                 // env.applyProfile("wan-development");
                             }));
@@ -184,6 +191,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.color = null;
         this.buckets = null;
         this.disconnectListener = null;
+        this.permissions = null;
     }
 
     public String getUsername() {

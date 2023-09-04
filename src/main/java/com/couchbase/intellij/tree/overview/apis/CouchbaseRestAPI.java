@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree.overview.apis;
 import com.couchbase.client.core.deps.com.google.common.reflect.TypeToken;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.Permissions;
 import com.couchbase.intellij.tree.overview.range.Range;
 import com.couchbase.intellij.tree.overview.range.RangeData;
 import com.couchbase.intellij.workbench.Log;
@@ -143,6 +144,12 @@ public class CouchbaseRestAPI {
         String content = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/" + bucket, ActiveCluster.getInstance().getClusterURL());
         Gson gson = new GsonBuilder().serializeNulls().create();
         return gson.fromJson(content, BucketOverview.class);
+    }
+
+    public static Permissions callWhoAmIEndpoint() throws Exception {
+        String content = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/whoami", ActiveCluster.getInstance().getClusterURL());
+        Gson gson = new GsonBuilder().serializeNulls().create();
+        return gson.fromJson(content, Permissions.class);
     }
 
     private static String callSingleEndpoint(String endpoint, String cbURL) throws Exception {

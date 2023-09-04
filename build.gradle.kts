@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.0.2"
+version = "1.0.3"
 
 sourceSets["main"].java.srcDirs("src/main/gen")
 
@@ -21,6 +21,8 @@ dependencies {
 
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -40,7 +42,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("213")
+        sinceBuild.set("222")
         untilBuild.set("243.*")
     }
 

@@ -399,6 +399,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitIdentifierOrStar(@NotNull IdentifierOrStar o) {
+    visitPsiElement(o);
+  }
+
   public void visitIdentifierRef(@NotNull IdentifierRef o) {
     visitPsiElement(o);
   }
