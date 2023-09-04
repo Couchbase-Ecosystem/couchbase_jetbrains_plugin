@@ -87,7 +87,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 try {
                     String password = DataLoader.getClusterPassword(savedCluster);
 
-                    Cluster cluster = Cluster.connect(savedCluster.getUrl() + savedCluster.getQueryParams(),
+                    Cluster cluster = Cluster.connect(savedCluster.getUrl()
+                                    +  (savedCluster.getQueryParams() ==null? "": savedCluster.getQueryParams() ),
                             ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
                                 // env.applyProfile("wan-development");
                             }));
