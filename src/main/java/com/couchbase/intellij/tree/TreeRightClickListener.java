@@ -271,7 +271,7 @@ public class TreeRightClickListener {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(project, EntityType.SCOPE, bucketName);
+                    NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
                     entityCreationDialog.show();
 
                     if (entityCreationDialog.isOK()) {
