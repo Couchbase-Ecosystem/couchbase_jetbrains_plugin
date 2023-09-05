@@ -22,6 +22,7 @@ import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -45,14 +46,18 @@ public class QueryExecutor {
         return resultWindow;
     }
 
-    public static boolean executeScript(QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
+    public static CompletableFuture<Boolean> executeScript(QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
         Cluster cluster = ActiveCluster.getInstance().getCluster();
         if (statements == null || statements.isEmpty()) {
-            return false;
+            future.complete(false);
+            return future;
         }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
-            return false;
+            future.complete(false);
+            return future;
         }
         getOutputWindow(project).setStatusAsLoading();
 
@@ -63,98 +68,107 @@ public class QueryExecutor {
         AtomicInteger resultCount = new AtomicInteger();
         AtomicLong resultSize = new AtomicLong();
         CouchbaseQueryResultError error = new CouchbaseQueryResultError();
-        try {
-            cluster.transactions().run(tx -> {
-                for (int i = 0; i < statements.size(); i++) {
-                    String query = statements.get(i);
 
-                    if (type != QueryType.NORMAL) {
-                        query = String.format("%s %s", type.toString(), query);
-                    }
+        CompletableFuture.runAsync(() -> {
+            try {
+                cluster.transactions().run(tx -> {
+                    for (int i = 0; i < statements.size(); i++) {
+                        String query = statements.get(i);
 
-                    JsonObject queryResult = JsonObject.create();
-                    result.add(queryResult);
-                    queryResult.put("_sequence_num", i);
-                    queryResult.put("_sequence_query", query);
-
-                    try {
-                        TransactionQueryResult r;
-                        if (bucket == null) {
-                            r = tx.query(query);
-                        } else {
-                            r = tx.query(cluster.bucket(bucket).scope(scope), query);
+                        if (type != QueryType.NORMAL) {
+                            query = String.format("%s %s", type.toString(), query);
                         }
 
-                        QueryMetaData meta = r.metaData();
-                        metas.add(meta);
-                        if (meta.status() == QueryStatus.SUCCESS) {
-                            queryResult.put("_sequence_query_status", "success");
-                            JsonArray rows = JsonArray.from(r.rowsAsObject());
-                            if (rows.size() > 0) {
-                                queryResult.put("_sequence_result", rows);
-                                resultCount.addAndGet(rows.size());
-                                meta.metrics().ifPresent(queryMetrics -> {
-                                    resultSize.addAndGet(queryMetrics.resultSize());
-                                    mutationCount.addAndGet(queryMetrics.mutationCount());
-                                });
+                        JsonObject queryResult = JsonObject.create();
+                        result.add(queryResult);
+                        queryResult.put("_sequence_num", i);
+                        queryResult.put("_sequence_query", query);
+
+                        try {
+                            TransactionQueryResult r;
+                            if (bucket == null) {
+                                r = tx.query(query);
                             } else {
-                                meta.metrics().ifPresent(queryMetrics -> {
-                                    mutationCount.addAndGet(queryMetrics.mutationCount());
-                                });
+                                r = tx.query(cluster.bucket(bucket).scope(scope), query);
                             }
-                        } else {
-                            queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
+
+                            QueryMetaData meta = r.metaData();
+                            metas.add(meta);
+                            if (meta.status() == QueryStatus.SUCCESS) {
+                                queryResult.put("_sequence_query_status", "success");
+                                JsonArray rows = JsonArray.from(r.rowsAsObject());
+                                if (rows.size() > 0) {
+                                    queryResult.put("_sequence_result", rows);
+                                    resultCount.addAndGet(rows.size());
+                                    meta.metrics().ifPresent(queryMetrics -> {
+                                        resultSize.addAndGet(queryMetrics.resultSize());
+                                        mutationCount.addAndGet(queryMetrics.mutationCount());
+                                    });
+                                } else {
+                                    meta.metrics().ifPresent(queryMetrics -> {
+                                        mutationCount.addAndGet(queryMetrics.mutationCount());
+                                    });
+                                }
+                            } else {
+                                queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
+                            }
+                        } catch (Throwable e) {
+                            queryResult.put("_sequence_query_status", "error");
+                            queryResult.put("_sequence_query_error", e.getMessage());
+                            throw e;
                         }
-                    } catch (Throwable e) {
-                        queryResult.put("_sequence_query_status", "error");
-                        queryResult.put("_sequence_query_error", e.getMessage());
-                        throw e;
                     }
-                }
-            });
-        } catch (Exception e) {
-            error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
-        }
+                });
+            } catch (Exception e) {
+                error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
+                future.complete(false);
+            }
 
-        List<String> metricsList = new ArrayList<>();
-        metricsList.add(System.currentTimeMillis() - start + " MS");
-        metricsList.add("-");
-        metricsList.add("-");
-        metricsList.add(String.valueOf(mutationCount.get()));
-        metricsList.add(String.valueOf(resultCount.get()));
-        metricsList.add(getSizeText(resultSize.get()));
-        List<String> timings;
-        if (type == QueryType.EXPLAIN) {
-            timings = result.stream()
-                    .map(o -> o.getArray("_sequence_result"))
-                    .filter(Objects::nonNull)
-                    .map(a -> a.getObject(0))
-                    .filter(Objects::nonNull)
-                    .map(o -> o.get("plan"))
-                    .filter(Objects::nonNull)
-                    .map(o -> o.toString())
-                    .collect(Collectors.toList());
-        } else if (type == QueryType.ADVISE) {
-            timings = metas.stream()
-                    .filter(meta -> meta.profile().isPresent())
-                    .map(meta -> meta.profile().get().get("executionTimings").toString())
-                    .collect(Collectors.toList());
-        } else {
-            timings = null;
-        }
-        getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
 
-        return error.getErrors().isEmpty();
+            List<String> metricsList = new ArrayList<>();
+            metricsList.add(System.currentTimeMillis() - start + " MS");
+            metricsList.add("-");
+            metricsList.add("-");
+            metricsList.add(String.valueOf(mutationCount.get()));
+            metricsList.add(String.valueOf(resultCount.get()));
+            metricsList.add(getSizeText(resultSize.get()));
+            List<String> timings;
+            if (type == QueryType.EXPLAIN) {
+                timings = result.stream()
+                        .map(o -> o.getArray("_sequence_result"))
+                        .filter(Objects::nonNull)
+                        .map(a -> a.getObject(0))
+                        .filter(Objects::nonNull)
+                        .map(o -> o.get("plan"))
+                        .filter(Objects::nonNull)
+                        .map(o -> o.toString())
+                        .collect(Collectors.toList());
+            } else if (type == QueryType.ADVISE) {
+                timings = metas.stream()
+                        .filter(meta -> meta.profile().isPresent())
+                        .map(meta -> meta.profile().get().get("executionTimings").toString())
+                        .collect(Collectors.toList());
+            } else {
+                timings = null;
+            }
+            getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
+            future.complete(error.getErrors().isEmpty());
+        });
+
+        return future;
     }
 
-    public static boolean executeQuery(QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
+    public static CompletableFuture<Boolean> executeQuery(QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
 
         if (query == null || query.trim().isEmpty()) {
-            return false;
+            future.complete(false);
+            return future;
         }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
-            return false;
+            future.complete(false);
+            return future;
         }
         getOutputWindow(project).setStatusAsLoading();
 
@@ -171,13 +185,14 @@ public class QueryExecutor {
 
                 getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-", "-"),
                         null, error, null);
-                return false;
+                future.complete(false);
+                return future;
             }
         }
 
         final String adjustedQuery = query;
 
-        SwingUtilities.invokeLater(() -> {
+        CompletableFuture.runAsync(() -> {
             long start = 0;
             try {
                 start = System.currentTimeMillis();
@@ -231,7 +246,6 @@ public class QueryExecutor {
                     }
                 }
 
-
                 String timings;
                 if (QueryType.EXPLAIN == type) {
                     timings = result.rowsAsObject().get(0).get("plan").toString();
@@ -240,6 +254,7 @@ public class QueryExecutor {
                 }
 
                 getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings));
+                future.complete(true);
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
                 getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
@@ -252,12 +267,9 @@ public class QueryExecutor {
 
         //if historyIndex is negative, doesn't add it to the history
         if (historyIndex >= 0) {
-            return updateQueryHistory(query, historyIndex);
-        } else {
-            return false;
+            updateQueryHistory(query, historyIndex);
         }
-
-
+        return future;
     }
 
     private static String getSizeText(long size) {

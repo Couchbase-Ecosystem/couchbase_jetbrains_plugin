@@ -46,6 +46,8 @@ import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
@@ -70,6 +72,9 @@ public class CustomSqlFileEditor implements FileEditor {
     private boolean isExecutingQuery = false;
     private AnAction executeAction;
     private AnAction cancelAction;
+
+    private CompletableFuture<Boolean> queryExecutionFuture;
+    private CompletableFuture<Boolean> scriptExecutionFuture;
 
     CustomSqlFileEditor(Project project, VirtualFile file) {
         this.file = file;
@@ -131,6 +136,12 @@ public class CustomSqlFileEditor implements FileEditor {
                         @Override
                         public void actionPerformed(@NotNull AnActionEvent e) {
 
+                            if (queryExecutionFuture != null && !queryExecutionFuture.isDone()) {
+                                queryExecutionFuture.cancel(true);
+                            }
+                            if (scriptExecutionFuture != null && !scriptExecutionFuture.isDone()) {
+                                scriptExecutionFuture.cancel(true);
+                            }
                             executeGroup.replaceAction(this, executeAction);
                             isExecutingQuery = false;
                         }
@@ -144,22 +155,28 @@ public class CustomSqlFileEditor implements FileEditor {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
 
-                            boolean success = false;
                             if (statements.size() == 0) {
+                                queryExecutionFuture = null;
+                                scriptExecutionFuture= null;
                                 return;
                             } else if (statements.size() == 1) {
-                                success = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                                queryExecutionFuture = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
                             } else {
-                                success = QueryExecutor.executeScript(NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                                scriptExecutionFuture = QueryExecutor.executeScript(NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
                             }
 
-                            if (success) {
-                                int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                                currentHistoryIndex = historySize - 1;
-                                SwingUtilities.invokeLater(() -> {
-                                    historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                                    historyLabel.revalidate();
-                                });
+                            try {
+                                if (((queryExecutionFuture != null) && queryExecutionFuture.get()) ||
+                                        ((scriptExecutionFuture != null) && scriptExecutionFuture.get())) {
+                                    int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
+                                    currentHistoryIndex = historySize - 1;
+                                    SwingUtilities.invokeLater(() -> {
+                                        historyLabel.setText("history (" + historySize + "/" + historySize + ")");
+                                        historyLabel.revalidate();
+                                    });
+                                }
+                            } catch (InterruptedException | ExecutionException ex) {
+                                throw new RuntimeException(ex);
                             }
 
                             executeGroup.replaceAction(cancelAction, executeAction);
