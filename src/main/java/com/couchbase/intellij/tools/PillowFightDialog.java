@@ -4,8 +4,6 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
-import com.couchbase.intellij.tree.NewEntityCreationDialog;
-import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
@@ -241,30 +239,10 @@ public class PillowFightDialog extends DialogWrapper {
             if (scopeComboBox.getItemCount() > 0) {
                 scopeComboBox.setSelectedIndex(0);
             } else {
-                int result = Messages.showYesNoDialog(project,
-                        "The selected bucket " + selectedBucket
-                                + " is empty. Would you like to create a new scope in this bucket?",
-                        "Empty Bucket", Messages.getQuestionIcon());
-
-                if (result == Messages.YES && !ActiveCluster.getInstance().isReadOnlyMode()) {
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
-                            project,
-                            EntityType.SCOPE,
-                            selectedBucket);
-                    entityCreationDialog.show();
-
-                    if (entityCreationDialog.isOK()) {
-                        String scopeName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get().bucket(selectedBucket).collections()
-                                .createScope(scopeName);
-
-                        scopeComboBox.addItem(scopeName);
-                        scopeComboBox.setSelectedItem(scopeName);
-                    }
-                } else {
-                    scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                    collectionComboBox.setSelectedItem(DEFAULT_TAG);
-                }
+                Messages.showErrorDialog("The selectd bucket is empty. Selecting default scope and collection",
+                        "Empty Bucket");
+                scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedItem(DEFAULT_TAG);
 
             }
             handleScopeComboBoxChange();
@@ -305,33 +283,10 @@ public class PillowFightDialog extends DialogWrapper {
             if (collectionComboBox.getItemCount() > 0) {
                 collectionComboBox.setSelectedIndex(0);
             } else {
-                int result = Messages.showYesNoDialog(project,
-                        "The selected scope " + selectedScope
-                                + " is empty. Would you like to create a new collection in this scope?",
-                        "Empty Scope", Messages.getQuestionIcon());
-
-                if (result == Messages.YES && !ActiveCluster.getInstance().isReadOnlyMode()) {
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
-                            project,
-                            EntityType.COLLECTION,
-                            Objects.requireNonNull(bucketComboBox.getSelectedItem()).toString(),
-                            selectedScope);
-                    entityCreationDialog.show();
-
-                    if (entityCreationDialog.isOK()) {
-                        String collectionName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get()
-                                .bucket(bucketComboBox.getSelectedItem().toString()).collections()
-                                .createCollection(CollectionSpec.create(collectionName, selectedScope));
-
-                        collectionComboBox.addItem(collectionName);
-                        collectionComboBox.setSelectedItem(collectionName);
-                    }
-                } else {
-                    scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                    refreshCollectionCombo.accept(DEFAULT_TAG);
-                    collectionComboBox.setSelectedItem(DEFAULT_TAG);
-                }
+                Messages.showErrorDialog("The selectd scope is empty. Selecting default scope and collection",
+                    "Empty Bucket");
+                scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedItem(DEFAULT_TAG);
             }
         } catch (Exception e) {
             Messages.showErrorDialog(
