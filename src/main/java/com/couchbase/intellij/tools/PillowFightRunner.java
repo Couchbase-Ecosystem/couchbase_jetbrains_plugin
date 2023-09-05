@@ -16,6 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PillowFightRunner {
+
+    private static String selectedBucket;
+    private static String selectedScope;
+    private static String selectedCollection;
+
     public void runPillowFightCommand(
             Project project,
             String bucket,
@@ -43,6 +48,11 @@ public class PillowFightRunner {
             String noop,
             String subdoc,
             String pathcount) throws IOException, InterruptedException {
+
+        // Store the current values of the bucket, scope, and collection combo boxes
+        this.selectedBucket = bucket;
+        this.selectedScope = scope;
+        this.selectedCollection = collection;
 
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getPath());
@@ -195,6 +205,9 @@ public class PillowFightRunner {
                     proc.destroy();
                 }
                 dispose();
+                pillowFightDialog.bucketComboBox.setSelectedItem(selectedBucket);
+                pillowFightDialog.scopeComboBox.setSelectedItem(selectedScope);
+                pillowFightDialog.collectionComboBox.setSelectedItem(selectedCollection);
                 pillowFightDialog.show();
             });
 

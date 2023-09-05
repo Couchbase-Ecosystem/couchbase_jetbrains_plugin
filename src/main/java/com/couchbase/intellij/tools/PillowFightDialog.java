@@ -36,9 +36,9 @@ public class PillowFightDialog extends DialogWrapper {
     private static final String COUCHBASE_PLUGIN_ERROR_MESSAGE = "Couchbase Plugin Error";
     private static final String DEFAULT_TAG = "_default";
     private static Balloon balloonHint;
-    private final ComboBox<String> bucketComboBox;
-    private final ComboBox<String> scopeComboBox;
-    private final ComboBox<String> collectionComboBox;
+    protected final ComboBox<String> bucketComboBox;
+    protected final ComboBox<String> scopeComboBox;
+    protected final ComboBox<String> collectionComboBox;
     private final ComboBox<String> durabilityComboBox;
     private final JSpinner persistToSpinner;
     private final JCheckBox persistToCheckbox;
