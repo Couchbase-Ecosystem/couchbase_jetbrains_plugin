@@ -1,5 +1,7 @@
 package com.couchbase.intellij.tools;
 
+import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.workbench.Log;
@@ -24,14 +26,19 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.function.Consumer;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PillowFightDialog extends DialogWrapper {
+    private static final String NETWORK_CONNECTIVITY_ERROR_MESSAGE = "Could not connect to the cluster. Please check your network connectivity, if the cluster is active or if the credentials are still valid.";
+    private static final String COUCHBASE_PLUGIN_ERROR_MESSAGE = "Couchbase Plugin Error";
+    private static final String DEFAULT_TAG = "_default";
     private static Balloon balloonHint;
-    private final ComboBox<String> bucketComboBox;
+    protected final ComboBox<String> bucketComboBox;
+    protected final ComboBox<String> scopeComboBox;
+    protected final ComboBox<String> collectionComboBox;
     private final ComboBox<String> durabilityComboBox;
     private final JSpinner persistToSpinner;
     private final JCheckBox persistToCheckbox;
@@ -67,9 +74,8 @@ public class PillowFightDialog extends DialogWrapper {
     private final ComboBox<String> subdocComboBox;
     private final JSpinner pathcountSpinner;
     private final JCheckBox pathcountCheckbox;
+    private final Project project;
     private JLabel errorMessage;
-
-    private Project project;
 
     public PillowFightDialog(Project project) {
         super(project);
@@ -78,15 +84,20 @@ public class PillowFightDialog extends DialogWrapper {
         setTitle("Pillow Fight");
 
         bucketComboBox = new ComboBox<>();
+        scopeComboBox = new ComboBox<>();
+        collectionComboBox = new ComboBox<>();
         try {
             Set<String> bucketNamesSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
             String[] bucketNamesArray = bucketNamesSet.toArray(new String[0]);
             for (String s : bucketNamesArray) {
                 bucketComboBox.addItem(s);
             }
+            handleBucketComboBoxChange();
+            bucketComboBox.addActionListener(e -> handleBucketComboBoxChange());
+            scopeComboBox.addActionListener(e -> handleScopeComboBoxChange());
+
         } catch (Exception e) {
-            Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
-                    " if the cluster is active or if the credentials are still valid.", "Couchbase Plugin Error");
+            Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
             Log.error(e);
         }
 
@@ -204,6 +215,65 @@ public class PillowFightDialog extends DialogWrapper {
         }
     }
 
+    private void handleBucketComboBoxChange() {
+        try {
+            String selectedBucket = Optional.ofNullable(bucketComboBox.getSelectedItem()).map(Object::toString).orElse(null);
+
+            Set<String> scopeNamesSet = ActiveCluster.getInstance().get().bucket(selectedBucket).collections().getAllScopes().stream().map(ScopeSpec::name).collect(Collectors.toSet());
+            scopeComboBox.removeAllItems();
+            for (String s : scopeNamesSet) {
+                scopeComboBox.addItem(s);
+            }
+
+            if (scopeComboBox.getItemCount() > 0) {
+                scopeComboBox.setSelectedIndex(0);
+            } else {
+                Messages.showErrorDialog("The selectd bucket is empty. Selecting default scope and collection", "Empty Bucket");
+                scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+
+            }
+            handleScopeComboBoxChange();
+        } catch (Exception e) {
+            Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
+            Log.error(e);
+        }
+    }
+
+    private void handleScopeComboBoxChange() {
+        try {
+            String selectedBucket = Optional.ofNullable(bucketComboBox.getSelectedItem()).map(Object::toString).orElse(null);
+            String selectedScope = Optional.ofNullable(scopeComboBox.getSelectedItem()).map(Object::toString).orElse(null);
+
+            if (selectedScope == null || selectedScope.isEmpty()) {
+                scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+                return;
+            }
+
+            Consumer<String> refreshCollectionCombo = scope -> {
+                String[] collectionNamesArray = ActiveCluster.getInstance().get().bucket(selectedBucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(CollectionSpec::name).distinct().toArray(String[]::new);
+                collectionComboBox.removeAllItems();
+                for (String s : collectionNamesArray) {
+                    collectionComboBox.addItem(s);
+                }
+            };
+
+            refreshCollectionCombo.accept(selectedScope);
+
+            if (collectionComboBox.getItemCount() > 0) {
+                collectionComboBox.setSelectedIndex(0);
+            } else {
+                Messages.showErrorDialog("The selectd scope is empty. Selecting default scope and collection", "Empty Bucket");
+                scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+            }
+        } catch (Exception e) {
+            Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
+            Log.error(e);
+        }
+    }
+
     @Override
     protected Action @NotNull [] createActions() {
         Action okAction = getOKAction();
@@ -246,10 +316,24 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.weightx = 0.0;
         gbc.weighty = 0.0;
 
-        panel.add(createLabelWithBalloon("Available Buckets:        ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
+        panel.add(createLabelWithBalloon("Bucket:        ", "A bucket is the fundamental space for storing data in Couchbase Server"), gbc);
 
         gbc.gridx++;
         panel.add(bucketComboBox, gbc);
+
+        gbc.gridx--;
+        gbc.gridy++;
+        panel.add(createLabelWithBalloon("Scope:        ", "A scope is a logical grouping of collections within a bucket"), gbc);
+
+        gbc.gridx++;
+        panel.add(scopeComboBox, gbc);
+
+        gbc.gridx--;
+        gbc.gridy++;
+        panel.add(createLabelWithBalloon("Collection:        ", "A collection is a data container within a scope"), gbc);
+
+        gbc.gridx++;
+        panel.add(collectionComboBox, gbc);
 
         gbc.gridx++;
         JPanel rightPaddingPanel = new JPanel();
@@ -551,7 +635,8 @@ public class PillowFightDialog extends DialogWrapper {
             super.doOKAction();
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
-                pillowFightRunner.runPillowFightCommand(project, getValue(bucketComboBox), getValue(durabilityComboBox), getValue(persistToSpinner), getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(), getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox), getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner), getValue(numberCyclesSpinner), getValue(sequentialComboBox), getValue(startAtSpinner), getValue(timingsComboBox), getValue(expirySpinner), getValue(replicateToSpinner), getValue(lockSpinner), getValue(jsonComboBox), getValue(noopComboBox), getValue(subdocComboBox), getValue(pathcountSpinner));
+                pillowFightRunner.runPillowFightCommand(project, getValue(bucketComboBox), getValue(scopeComboBox), getValue(collectionComboBox), getValue(durabilityComboBox), getValue(persistToSpinner), getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(), getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox), getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner), getValue(numberCyclesSpinner), getValue(sequentialComboBox), getValue(startAtSpinner), getValue(timingsComboBox), getValue(expirySpinner), getValue(replicateToSpinner), getValue(lockSpinner), getValue(jsonComboBox), getValue(noopComboBox), getValue(subdocComboBox), getValue(pathcountSpinner));
+
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
