@@ -16,7 +16,44 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PillowFightRunner {
-    public void runPillowFightCommand(Project project, String bucket, String durability, String persistTo, String batchSize, String numberItems, String keyPrefix, String numberThreads, String percentage, String noPopulation, String populateOnly, String minSize, String maxSize, String numberCycles, String sequential, String startAt, String timings, String expiry, String replicateTo, String lock, String json, String noop, String subdoc, String pathcount) throws IOException, InterruptedException {
+
+    private static String selectedBucket;
+    private static String selectedScope;
+    private static String selectedCollection;
+
+    public void runPillowFightCommand(
+            Project project,
+            String bucket,
+            String scope,
+            String collection,
+            String durability,
+            String persistTo,
+            String batchSize,
+            String numberItems,
+            String keyPrefix,
+            String numberThreads,
+            String percentage,
+            String noPopulation,
+            String populateOnly,
+            String minSize,
+            String maxSize,
+            String numberCycles,
+            String sequential,
+            String startAt,
+            String timings,
+            String expiry,
+            String replicateTo,
+            String lock,
+            String json,
+            String noop,
+            String subdoc,
+            String pathcount) throws IOException, InterruptedException {
+
+        // Store the current values of the bucket, scope, and collection combo boxes
+        this.selectedBucket = bucket;
+        this.selectedScope = scope;
+        this.selectedCollection = collection;
+
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).getPath());
         command.add("-U");
@@ -27,6 +64,11 @@ public class PillowFightRunner {
         command.add(ActiveCluster.getInstance().getPassword());
         command.add("--durability");
         command.add(durability);
+
+        if (scope != null && collection != null) {
+            command.add("--collection");
+            command.add(scope + "." + collection);
+        }
 
         if (persistTo != null) {
             command.add("--persist-to");
@@ -113,7 +155,9 @@ public class PillowFightRunner {
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process proc = processBuilder.start();
 
-        PillowFightDialog pillowFightDialog = new PillowFightDialog(project, bucket, durability, persistTo, batchSize, numberItems, keyPrefix, numberThreads, percentage, noPopulation, populateOnly, minSize, maxSize, numberCycles, sequential, startAt, timings, expiry, replicateTo, lock, json, noop, subdoc, pathcount);
+        PillowFightDialog pillowFightDialog = new PillowFightDialog(project, bucket, durability, persistTo, batchSize,
+                numberItems, keyPrefix, numberThreads, percentage, noPopulation, populateOnly, minSize, maxSize,
+                numberCycles, sequential, startAt, timings, expiry, replicateTo, lock, json, noop, subdoc, pathcount);
 
         StopButtonDialog stopButtonDialog = new StopButtonDialog(proc, pillowFightDialog);
         stopButtonDialog.setVisible(true);
@@ -161,6 +205,9 @@ public class PillowFightRunner {
                     proc.destroy();
                 }
                 dispose();
+                pillowFightDialog.bucketComboBox.setSelectedItem(selectedBucket);
+                pillowFightDialog.scopeComboBox.setSelectedItem(selectedScope);
+                pillowFightDialog.collectionComboBox.setSelectedItem(selectedCollection);
                 pillowFightDialog.show();
             });
 
