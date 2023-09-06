@@ -28,6 +28,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.function.BiConsumer;
 
 public class NewBucketCreationDialog extends DialogWrapper {
     private JTextField bucketName;
@@ -72,6 +73,12 @@ public class NewBucketCreationDialog extends DialogWrapper {
     private JLabel thisBucketMemLabel;
     private JPanel freeMemBar;
     private JPanel thisBucketMemBar;
+    private BiConsumer<Boolean, Throwable> listener;
+
+    public void show(BiConsumer<Boolean, Throwable> listener) {
+        this.listener = listener;
+        super.show();
+    }
 
     @Override
     protected void doOKAction() {
@@ -103,12 +110,26 @@ public class NewBucketCreationDialog extends DialogWrapper {
 
         try {
             cluster.buckets().createBucket(bs);
+            if (listener != null) {
+                listener.accept(false, null);
+            }
         } catch (Exception e) {
             Messages.showErrorDialog(e.getMessage(), "Failed to create bucket");
+            if (listener != null) {
+                listener.accept(false, e);
+            }
             return;
         }
 
         super.doOKAction();
+    }
+
+    @Override
+    public void doCancelAction() {
+        if (listener != null) {
+            listener.accept(true, null);
+        }
+        super.doCancelAction();
     }
 
     @Override
@@ -294,7 +315,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         Font tipFont = new Font(
                 memQuotaInfo.getFont().getName(),
                 memQuotaInfo.getFont().getStyle(),
-                (int) (memQuotaInfo.getFont().getSize() / 1.5)
+                (int) (memQuotaInfo.getFont().getSize() / 1.25)
         );
         memQuotaInfo.setFont(tipFont);
         subGbc.gridx = 0;
@@ -421,6 +442,15 @@ public class NewBucketCreationDialog extends DialogWrapper {
             } else {
                 optionsLabel.setIcon(closedIcon);
             }
+
+            this.pack();
+            SwingUtilities.invokeLater(() -> {
+
+                int locLeft = (int) Math.max(1, (Toolkit.getDefaultToolkit().getScreenSize().getWidth()) / 2 - getSize().getWidth() / 2);
+                int locTop = (int) Math.max(1, (Toolkit.getDefaultToolkit().getScreenSize().getHeight()) / 2 - getSize().getHeight() / 2);
+                setLocation(locLeft, locTop);
+                this.pack();
+            });
         }));
 
         JLabel replicasLabel = new JLabel("Replicas");
@@ -524,7 +554,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         compressionMode = new ButtonGroup();
         JPanel compressionModesPanel = new JPanel(new GridBagLayout());
         gbc.gridy++;
-        gbc.insets = internalInsets;
+        gbc.insets = JBUI.emptyInsets();
         advancedOptionsPanel.add(compressionModesPanel, gbc);
 
         JRadioButton compressionModeOff = new JRadioButton("Off");
@@ -556,7 +586,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
 
         JPanel confictResolutionPanel = new JPanel(new GridBagLayout());
         gbc.gridy++;
-        gbc.insets = internalInsets;
+        gbc.insets = JBUI.emptyInsets();
         advancedOptionsPanel.add(confictResolutionPanel, gbc);
 
         conflictResolutionType = new ButtonGroup();
@@ -581,7 +611,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         advancedOptionsPanel.add(ejectionMethodSectionLabel, gbc);
 
         JPanel ejectionMethodPanel = new JPanel(new GridBagLayout());
-        gbc.insets = internalInsets;
+        gbc.insets = JBUI.emptyInsets();
         gbc.gridy++;
         advancedOptionsPanel.add(ejectionMethodPanel, gbc);
 
@@ -599,31 +629,6 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.gridx++;
         ejectionMethodPanel.add(ejectionMethodFull, subGbc);
 
-        /* not supported
-        JLabel bucketPrioritySectionLabel = new JLabel("Bucket Priority");
-        bucketPrioritySectionLabel.setFont(sectionLabelFont);
-        gbc.insets = sectionInsets;
-        gbc.gridy++;
-        advancedOptionsPanel.add(bucketPrioritySectionLabel, gbc);
-
-        JPanel bucketPriorityPanel = new JPanel(new GridBagLayout());
-        gbc.gridy++;
-        gbc.insets = internalInsets;
-        advancedOptionsPanel.add(bucketPriorityPanel, gbc);
-
-        bucketPriority = new ButtonGroup();
-        JRadioButton bucketPriorityDefault = new JRadioButton("Default");
-        bucketPriority.add(bucketPriorityDefault);
-        subGbc.gridx = 0;
-        subGbc.gridy = 0;
-        bucketPriorityPanel.add(bucketPriorityDefault, subGbc);
-
-        JRadioButton bucketPriorityHigh = new JRadioButton("High");
-        bucketPriority.add(bucketPriorityHigh);
-        subGbc.gridx++;
-        bucketPriorityPanel.add(bucketPriorityHigh, subGbc);
-        */
-
         JLabel minimumDurabilitySectionLabel = new JLabel("Minimum Durability Level");
         minimumDurabilitySectionLabel.setFont(sectionLabelFont);
         gbc.insets = sectionInsets;
@@ -636,262 +641,6 @@ public class NewBucketCreationDialog extends DialogWrapper {
         gbc.insets = internalInsets;
         gbc.gridy++;
         advancedOptionsPanel.add(minimumDurabilityLevel, gbc);
-
-        /* not supported
-        JLabel autoCompactionSectionLabel = new JLabel("Auto-Compaction");
-        autoCompactionSectionLabel.setFont(sectionLabelFont);
-        gbc.insets = sectionInsets;
-        gbc.gridy++;
-        advancedOptionsPanel.add(autoCompactionSectionLabel, gbc);
-
-        autoCompactionOverride = new JCheckBox("Override the default auto-compaction settings?");
-        gbc.insets = internalInsets;
-        gbc.gridy++;
-        advancedOptionsPanel.add(autoCompactionOverride, gbc);
-
-        JPanel autoCompactionPanel = new JPanel(new GridBagLayout());
-        autoCompactionPanel.setVisible(false);
-        gbc.gridy++;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.weightx = 1;
-        advancedOptionsPanel.add(autoCompactionPanel, gbc);
-        autoCompactionOverride.addChangeListener(changeEvent -> {
-            autoCompactionPanel.setVisible(autoCompactionOverride.isSelected());
-        });
-
-
-        JPanel compactionOptionsPanel = new JPanel(new GridBagLayout());
-        subGbc.gridy++;
-        subGbc.insets = internalInsets;
-        autoCompactionPanel.add(compactionOptionsPanel, subGbc);
-        GridBagConstraints subSubGbc = new GridBagConstraints();
-        subSubGbc.gridx = 0;
-        subSubGbc.gridy = 0;
-        subSubGbc.anchor = GridBagConstraints.WEST;
-
-        JLabel databaseFragmentationSectionLabel = new JLabel("Database Fragmentation");
-        databaseFragmentationSectionLabel.setFont(sectionLabelFont);
-        subSubGbc.insets = sectionInsets;
-        compactionOptionsPanel.add(databaseFragmentationSectionLabel, subSubGbc);
-
-        JTextArea databaseFragmentationTip = new JTextArea("Set the database fragmentation level to determine the point when compaction is triggered.");
-        databaseFragmentationTip.setEditable(false);
-        databaseFragmentationTip.setBackground(autoCompactionPanel.getBackground());
-        databaseFragmentationTip.setLineWrap(true);
-        databaseFragmentationTip.setWrapStyleWord(true);
-        databaseFragmentationTip.setFont(tipFont);
-        databaseFragmentationTip.setForeground(JBColor.GRAY);
-        subSubGbc.gridy++;
-        subSubGbc.weightx = 1;
-        subSubGbc.fill = GridBagConstraints.HORIZONTAL;
-        subSubGbc.gridwidth = GridBagConstraints.REMAINDER;
-        subSubGbc.anchor = GridBagConstraints.WEST;
-        compactionOptionsPanel.add(databaseFragmentationTip, subSubGbc);
-
-        compactionEnableOnPercentFragmentation = new JCheckBox();
-        subSubGbc.insets = internalInsets;
-        subSubGbc.weightx = 2;
-        subSubGbc.gridy++;
-        subSubGbc.gridx = 0;
-        subSubGbc.fill = GridBagConstraints.NONE;
-        subSubGbc.gridwidth = 1;
-        compactionEnableOnPercentFragmentation.setSelected(true);
-        compactionOptionsPanel.add(compactionEnableOnPercentFragmentation, subSubGbc);
-
-        compactionOnPercentFragmentation = new JSpinner(new SpinnerNumberModel(30, 0, 100, 1));
-        editor = (JSpinner.DefaultEditor) compactionOnPercentFragmentation.getEditor();
-        editor.getTextField().setColumns(10);
-        subSubGbc.insets = JBUI.emptyInsets();
-        subSubGbc.gridx++;
-        subSubGbc.weightx = 0;
-        compactionOptionsPanel.add(compactionOnPercentFragmentation, subSubGbc);
-        compactionEnableOnPercentFragmentation.addChangeListener(changeEvent -> compactionOnPercentFragmentation.setEnabled(compactionEnableOnPercentFragmentation.isSelected()));
-
-        JLabel compactionPercentLabel = new JLabel("%");
-        compactionPercentLabel.setForeground(JBColor.GRAY);
-        subSubGbc.gridx++;
-        subSubGbc.weightx = 1;
-        compactionOptionsPanel.add(compactionPercentLabel, subSubGbc);
-
-        compactionEnableOnSizeFragmentation = new JCheckBox();
-        subSubGbc.insets = internalInsets;
-        subSubGbc.weightx = 2;
-        subSubGbc.gridy++;
-        subSubGbc.gridx = 0;
-        compactionOptionsPanel.add(compactionEnableOnSizeFragmentation, subSubGbc);
-
-        compactionOnSizeFragmentation = new JSpinner(new SpinnerNumberModel());
-        editor = (JSpinner.DefaultEditor) compactionOnSizeFragmentation.getEditor();
-        editor.getTextField().setColumns(10);
-        subSubGbc.insets = JBUI.emptyInsets();
-        subSubGbc.weightx = 1;
-        subSubGbc.gridx++;
-        compactionOptionsPanel.add(compactionOnSizeFragmentation, subSubGbc);
-        compactionEnableOnSizeFragmentation.addChangeListener(changeEvent ->
-                compactionOnSizeFragmentation.setEnabled(compactionEnableOnSizeFragmentation.isSelected()));
-
-        JLabel compactionSizeLabel = new JLabel("MiB");
-        compactionSizeLabel.setForeground(JBColor.GRAY);
-        subSubGbc.gridx++;
-        subSubGbc.weightx = 1;
-        subSubGbc.fill = GridBagConstraints.NONE;
-        compactionOptionsPanel.add(compactionSizeLabel, subSubGbc);
-
-        JLabel viewFragmentationSectionLabel = new JLabel("View Fragmentation");
-        viewFragmentationSectionLabel.setFont(sectionLabelFont);
-        subSubGbc.insets = sectionInsets;
-        subSubGbc.gridx = 0;
-        subSubGbc.gridy++;
-        compactionOptionsPanel.add(viewFragmentationSectionLabel, subSubGbc);
-
-        enableViewCompactOnPercentageFragmentation = new JCheckBox();
-        subSubGbc.gridx = 0;
-        subSubGbc.gridy++;
-        subSubGbc.weightx = 2;
-        subSubGbc.insets = internalInsets;
-        compactionOptionsPanel.add(enableViewCompactOnPercentageFragmentation, subSubGbc);
-
-        compactViewOnPercentFragmentation = new JSpinner(new SpinnerNumberModel(30, 0, 100, 1));
-        editor = (JSpinner.DefaultEditor) compactViewOnPercentFragmentation.getEditor();
-        editor.getTextField().setColumns(10);
-        subSubGbc.weightx = 1;
-        subSubGbc.gridx++;
-        subSubGbc.insets = JBUI.emptyInsets();
-        compactionOptionsPanel.add(compactViewOnPercentFragmentation, subSubGbc);
-
-        JLabel compactionViewPercentLabel = new JLabel("%");
-        compactionViewPercentLabel.setForeground(JBColor.GRAY);
-        subSubGbc.gridx++;
-        subSubGbc.weightx = 1;
-        compactionOptionsPanel.add(compactionViewPercentLabel, subSubGbc);
-
-        compactionViewEnableOnSizeFragmentation = new JCheckBox();
-        subSubGbc.insets = internalInsets;
-        subSubGbc.weightx = 2;
-        subSubGbc.gridy++;
-        subSubGbc.gridx = 0;
-        compactionOptionsPanel.add(compactionViewEnableOnSizeFragmentation, subSubGbc);
-
-        compactionViewOnSizeFragmentation = new JSpinner(new SpinnerNumberModel());
-        editor = (JSpinner.DefaultEditor) compactionViewOnSizeFragmentation.getEditor();
-        editor.getTextField().setColumns(10);
-        subSubGbc.insets = JBUI.emptyInsets();
-        subSubGbc.weightx = 1;
-        subSubGbc.gridx++;
-        compactionOptionsPanel.add(compactionViewOnSizeFragmentation, subSubGbc);
-        compactionEnableOnSizeFragmentation.addChangeListener(changeEvent ->
-                compactionViewOnSizeFragmentation.setEnabled(compactionViewEnableOnSizeFragmentation.isSelected()));
-
-        JLabel compactionViewSizeLabel = new JLabel("MiB");
-        compactionViewSizeLabel.setForeground(JBColor.GRAY);
-        subSubGbc.gridx++;
-        subSubGbc.weightx = 1;
-        subSubGbc.fill = GridBagConstraints.NONE;
-        compactionOptionsPanel.add(compactionViewSizeLabel, subSubGbc);
-
-        JLabel compactTimeSection = new JLabel("Time Interval");
-        compactTimeSection.setFont(sectionLabelFont);
-        subSubGbc.gridy++;
-        subSubGbc.gridx = 0;
-        subSubGbc.insets = sectionInsets;
-        compactionOptionsPanel.add(compactTimeSection, subSubGbc);
-
-        enableCompactTimeInterval = new JCheckBox("Set the time interval for when compaction is allowed to run");
-        subSubGbc.gridy++;
-        subSubGbc.gridwidth = GridBagConstraints.REMAINDER;
-        subSubGbc.insets = internalInsets;
-        compactionOptionsPanel.add(enableCompactTimeInterval, subSubGbc);
-
-        subSubGbc.gridy++;
-        compactionOptionsPanel.add(new JLabel("Start Time"), subSubGbc);
-
-        JPanel timeStartPanel = new JPanel();
-        subSubGbc.gridy++;
-        subSubGbc.gridx = 0;
-        compactionOptionsPanel.add(timeStartPanel, subSubGbc);
-        compactIntervalStartHour = new JSpinner(new SpinnerNumberModel(0, 0, 23, 1));
-        compactIntervalStartHour.setEnabled(false);
-        timeStartPanel.add(compactIntervalStartHour);
-
-        timeStartPanel.add(new JLabel(":"));
-
-        compactIntervalStartMinute = new JSpinner(new SpinnerNumberModel(0, 0, 59, 1));
-        compactIntervalStartMinute.setEnabled(false);
-        timeStartPanel.add(compactIntervalStartMinute);
-
-        subSubGbc.gridy++;
-        compactionOptionsPanel.add(new JLabel("End Time"), subSubGbc);
-
-        JPanel timeEndPanel = new JPanel();
-        subSubGbc.gridy++;
-        subSubGbc.gridx = 0;
-        compactionOptionsPanel.add(timeEndPanel, subSubGbc);
-        compactIntervalEndHour = new JSpinner(new SpinnerNumberModel(0, 0, 23, 1));
-        compactIntervalEndHour.setEnabled(false);
-        timeEndPanel.add(compactIntervalEndHour);
-
-        timeEndPanel.add(new JLabel(":"));
-
-        compactIntervalEndMinute = new JSpinner(new SpinnerNumberModel(0, 0, 59, 1));
-        compactIntervalEndMinute.setEnabled(false);
-        timeEndPanel.add(compactIntervalEndMinute);
-
-        subSubGbc.gridy++;
-        subSubGbc.fill = GridBagConstraints.HORIZONTAL;
-        subGbc.gridwidth = GridBagConstraints.REMAINDER;
-        abortCompactionsAtIntervalEnd = new JCheckBox("Abort compaction exceeding the set time interval");
-        abortCompactionsAtIntervalEnd.setEnabled(false);
-        compactionOptionsPanel.add(abortCompactionsAtIntervalEnd, subSubGbc);
-
-        enableCompactTimeInterval.addChangeListener(changeEvent -> {
-            boolean e = enableCompactTimeInterval.isSelected();
-            compactIntervalStartHour.setEnabled(e);
-            compactIntervalStartMinute.setEnabled(e);
-            compactIntervalEndHour.setEnabled(e);
-            compactIntervalEndMinute.setEnabled(e);
-            abortCompactionsAtIntervalEnd.setEnabled(e);
-        });
-
-        compactInParallel = new JCheckBox("Compact buckets and views indexes in parallel");
-        subSubGbc.gridy++;
-        subGbc.gridwidth = GridBagConstraints.REMAINDER;
-        compactionOptionsPanel.add(compactInParallel, subSubGbc);
-
-        JTextArea gsiCompactNote = new JTextArea();
-        gsiCompactNote.setEditable(false);
-        gsiCompactNote.setWrapStyleWord(true);
-        gsiCompactNote.setBackground(JBColor.LIGHT_GRAY);
-        gsiCompactNote.setText("NOTE FOR GSI INDEXES :\nAuto-compaction settings are unnecessary for memory-optimized and plasma-based indexes.");
-        gsiCompactNote.setLineWrap(true);
-        gsiCompactNote.setBorder(BorderFactory.createLineBorder(JBColor.LIGHT_GRAY, 10));
-        subSubGbc.fill = GridBagConstraints.HORIZONTAL;
-        subSubGbc.gridy++;
-        subSubGbc.gridwidth = GridBagConstraints.REMAINDER;
-        subSubGbc.weightx = 1;
-        subSubGbc.insets = JBUI.insets(10, 5);
-        compactionOptionsPanel.add(gsiCompactNote, subSubGbc);
-
-        JLabel metadataPurgeSection = new JLabel("Metadata Purge Interval");
-        metadataPurgeSection.setFont(sectionLabelFont);
-        subSubGbc.gridy++;
-        subSubGbc.insets = sectionInsets;
-        compactionOptionsPanel.add(metadataPurgeSection, subSubGbc);
-
-        JPanel metadataPurgePanel = new JPanel();
-        subSubGbc.fill = GridBagConstraints.NONE;
-        subSubGbc.gridwidth = 1;
-        subSubGbc.gridy++;
-        subSubGbc.insets = internalInsets;
-        compactionOptionsPanel.add(metadataPurgePanel, subSubGbc);
-        metadataPurgeInterval = new JTextField("3", 4);
-        metadataPurgePanel.add(metadataPurgeInterval);
-
-        JLabel metadataPurgeUnit = new JLabel("days, min 0.04 (1 hour) max 60");
-        metadataPurgeUnit.setFont(tipFont);
-        metadataPurgeUnit.setForeground(JBColor.GRAY);
-        metadataPurgePanel.add(metadataPurgeUnit);
-        */
 
         JLabel flushSection = new JLabel("Flush");
         flushSection.setFont(sectionLabelFont);

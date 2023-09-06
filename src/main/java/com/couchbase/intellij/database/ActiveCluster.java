@@ -377,4 +377,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     public boolean hasQueryService() {
         return CBConfigUtil.hasQueryService(services);
     }
+
+    public boolean isCapella() {
+        return savedCluster != null && savedCluster.getUrl().contains("cloud.couchbase.com");
+    }
 }

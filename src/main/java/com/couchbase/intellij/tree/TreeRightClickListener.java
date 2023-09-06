@@ -92,6 +92,26 @@ public class TreeRightClickListener {
             actionGroup.add(clusterOverview);
             actionGroup.addSeparator();
 
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && !ActiveCluster.getInstance().isCapella()) {
+                // Add "Create New Bucket" option
+                AnAction createNewBucketItem = new AnAction("Create New Bucket") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        try {
+                            new NewBucketCreationDialog(project).show((cancelled, err) -> {
+                                TreePath treePath = new TreePath(clickedNode.getPath());
+                                tree.collapsePath(treePath);
+                                tree.expandPath(treePath);
+                                tree.invalidate();
+                            });
+                        } catch (Exception ex) {
+                            Log.error("Bucket Creation failed ", ex);
+                        }
+                    }
+                };
+                actionGroup.add(createNewBucketItem);
+            }
+
             AnAction refreshBuckets = new AnAction("Refresh Buckets") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
@@ -110,21 +130,6 @@ public class TreeRightClickListener {
                 }
             };
             actionGroup.add(menuItem);
-
-            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-                // Add "Create New Bucket" option
-                AnAction createNewBucketItem = new AnAction("Create New Bucket") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        try {
-                            new NewBucketCreationDialog(project).show();
-                        } catch (Exception ex) {
-                            Log.error("Bucket Creation failed ", ex);
-                        }
-                    }
-                };
-                actionGroup.add(createNewBucketItem);
-            }
 
             DefaultActionGroup tools = new DefaultActionGroup("Tools", true);
 
