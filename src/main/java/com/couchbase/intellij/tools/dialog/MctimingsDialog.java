@@ -2,6 +2,7 @@ package com.couchbase.intellij.tools.dialog;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.Nullable;
@@ -13,7 +14,6 @@ import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
-
 import utils.ProcessUtils;
 import utils.TemplateUtil;
 
@@ -76,6 +76,7 @@ public class MctimingsDialog extends DialogWrapper {
         c.gridx = 1;
         c.gridy = 1;
         outputFormatComboBox = new JComboBox<>();
+        outputFormatComboBox.addItem("Summary of All Operations");
         outputFormatComboBox.addItem("Histogram");
         outputFormatComboBox.addItem("Json");
         outputFormatComboBox.addItem("Json pretty printed");
@@ -133,6 +134,7 @@ public class MctimingsDialog extends DialogWrapper {
         return southPanel;
     }
 
+
     public static class ChartGenerator {
         protected JPanel generateBarChart(String[] labels, int[] values) {
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -151,7 +153,7 @@ public class MctimingsDialog extends DialogWrapper {
 
             // Set dynamic range for Y-axis
             NumberAxis rangeAxis = (NumberAxis) barChart.getCategoryPlot().getRangeAxis();
-            rangeAxis.setRange(0, Arrays.stream(values).max().getAsInt());
+            rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
 
             // Rotate X-axis labels
             CategoryAxis domainAxis = barChart.getCategoryPlot().getDomainAxis();
@@ -159,15 +161,18 @@ public class MctimingsDialog extends DialogWrapper {
 
             ChartPanel chartPanel = new ChartPanel(barChart);
             chartPanel.setDisplayToolTips(true); // Enable tooltips
+            chartPanel.setMouseWheelEnabled(true); // Enable zooming using mouse wheel
+            chartPanel.setMouseZoomable(true); // Enable zooming using mouse drag
 
             return chartPanel;
         }
     }
 
+
     @Override
     protected void doOKAction() {
         dialogPanel.add(outputPanel, c);
-        getWindow().setMinimumSize(new Dimension(1800, 1000));
+        getWindow().setMinimumSize(new Dimension(1600, 800));
 
         String selectedOutputFormat = (String) outputFormatComboBox.getSelectedItem();
         if (Objects.equals(selectedOutputFormat, "Histogram")) {
@@ -201,27 +206,37 @@ public class MctimingsDialog extends DialogWrapper {
             JPanel chartPanel = chartGenerator.generateBarChart(labels, values);
             outputPanel.removeAll();
             outputPanel.add(chartPanel, BorderLayout.CENTER);
-            outputPanel.revalidate();
-            outputPanel.repaint();
-        } else if (Objects.requireNonNull(selectedOutputFormat).startsWith("Json")) {
-            // Generate an empty text area
+
+        } else {
             JTextArea outputTextArea = new JTextArea();
 
             outputTextArea.setEditable(false);
+            outputTextArea.setLineWrap(true);  // Enable line wrapping
+            outputTextArea.setWrapStyleWord(true);  // Wrap lines at word boundaries
+
             JScrollPane scrollPane = new JScrollPane(outputTextArea);
+            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);  // Disable horizontal scrolling
+
+            executeCommand(outputTextArea);
             outputPanel.removeAll();
             outputPanel.add(scrollPane, BorderLayout.CENTER);
-            outputPanel.revalidate();
-            outputPanel.repaint();
-
-            // TODO: Impplement Text area
         }
 
+        outputPanel.revalidate();
+        outputPanel.repaint();
     }
 
     public void executeCommand(JTextArea outputTextArea) {
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.MCTIMINGS).getPath());
+        command.add("-h");
+        command.add(ActiveCluster.getInstance().getClusterURL().replaceFirst("^couchbase://", ""));
+        command.add("-p");
+        command.add(ActiveCluster.getInstance().isSSLEnabled() ? "11207" : "11210");
+        command.add("-u");
+        command.add(ActiveCluster.getInstance().getUsername());
+        command.add("-P");
+        command.add(ActiveCluster.getInstance().getPassword());
 
         // Add the selected bucket to the command
         String selectedBucket = (String) bucketComboBox.getSelectedItem();
@@ -234,18 +249,17 @@ public class MctimingsDialog extends DialogWrapper {
 
         // Add the selected output format to the command
         String selectedOutputFormat = (String) outputFormatComboBox.getSelectedItem();
-        if ("Json".equals(selectedOutputFormat)) {
-            command.add("-o");
-            command.add("json");
-        } else if ("Json pretty printed".equals(selectedOutputFormat)) {
-            command.add("-o");
-            command.add("jsonpretty");
+        if (Objects.equals(selectedOutputFormat, "Json")){
+            command.add("-j");
+        } else if (Objects.equals(selectedOutputFormat, "Json pretty printed")){
+            command.add("-j");
+            command.add("-v");
         }
 
         // Add the selected optional parameters to the command
         List<String> selectedOptionalParameters = optionalParametersComboCheckBox.getSelectedItems();
         for (String parameter : selectedOptionalParameters) {
-            command.add("--" + parameter.toLowerCase());
+            command.add(" " + parameter.toLowerCase());
         }
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -253,7 +267,7 @@ public class MctimingsDialog extends DialogWrapper {
             Process process = processBuilder.start();
             ProcessUtils.printOutput(process, outputTextArea);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.error("Exception Occurred: ",e);
         }
     }
 

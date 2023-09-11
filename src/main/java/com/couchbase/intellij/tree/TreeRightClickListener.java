@@ -151,7 +151,7 @@ public class TreeRightClickListener {
             // tools.add(cbimport);
             // }
 
-            if (CBTools.getTool(CBTools.Type.MCTIMINGS).isAvailable()) {
+           if (CBTools.getTool(CBTools.Type.MCTIMINGS).isAvailable()) {
                 AnAction cbmctimings = new AnAction("Mctimings") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -160,7 +160,7 @@ public class TreeRightClickListener {
                     }
                 };
                 tools.add(cbmctimings);
-            }
+           }
 
             DefaultActionGroup settings = new DefaultActionGroup("Settings", true);
             DefaultActionGroup colors = new DefaultActionGroup("Connection Colors", true);
