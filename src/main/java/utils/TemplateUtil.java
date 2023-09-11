@@ -184,4 +184,11 @@ public class TemplateUtil {
         panel.add(HelpIcon.createHelpIcon(help, 5));
         return panel;
     }
+
+    public static JPanel getLabelWithHelp(JLabel label, String help) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        panel.add(label);
+        panel.add(HelpIcon.createHelpIcon(help, 5));
+        return panel;
+    }
 }
