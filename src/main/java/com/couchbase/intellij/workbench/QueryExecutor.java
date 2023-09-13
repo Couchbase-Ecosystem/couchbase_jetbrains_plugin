@@ -17,12 +17,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import reactor.core.publisher.Mono;
 
 import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -46,18 +47,14 @@ public class QueryExecutor {
         return resultWindow;
     }
 
-    public static CompletableFuture<Boolean> executeScript(QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
+    public static Boolean executeScript(BlockingQueue<Boolean> queue,QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
         Cluster cluster = ActiveCluster.getInstance().getCluster();
         if (statements == null || statements.isEmpty()) {
-            future.complete(false);
-            return future;
+            return false;
         }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
-            future.complete(false);
-            return future;
+            return false;
         }
         getOutputWindow(project).setStatusAsLoading();
 
@@ -69,10 +66,11 @@ public class QueryExecutor {
         AtomicLong resultSize = new AtomicLong();
         CouchbaseQueryResultError error = new CouchbaseQueryResultError();
 
-        CompletableFuture.runAsync(() -> {
             try {
-                cluster.transactions().run(tx -> {
+                var future = cluster.reactive().transactions().run(tx -> {
+                    Mono<TransactionQueryResult> aggregatedResult = null;
                     for (int i = 0; i < statements.size(); i++) {
+
                         String query = statements.get(i);
 
                         if (type != QueryType.NORMAL) {
@@ -85,45 +83,63 @@ public class QueryExecutor {
                         queryResult.put("_sequence_query", query);
 
                         try {
-                            TransactionQueryResult r;
+                            Mono<TransactionQueryResult> transactionResult;
+
                             if (bucket == null) {
-                                r = tx.query(query);
+                                transactionResult = tx.query(query);
                             } else {
-                                r = tx.query(cluster.bucket(bucket).scope(scope), query);
+                                transactionResult = tx.query(cluster.bucket(bucket).scope(scope).reactive(), query);
+                            }
+                            if (aggregatedResult == null) {
+                                aggregatedResult = transactionResult;
+                            } else {
+                                aggregatedResult = aggregatedResult.then(transactionResult);
                             }
 
-                            QueryMetaData meta = r.metaData();
-                            metas.add(meta);
-                            if (meta.status() == QueryStatus.SUCCESS) {
-                                queryResult.put("_sequence_query_status", "success");
-                                JsonArray rows = JsonArray.from(r.rowsAsObject());
-                                if (rows.size() > 0) {
-                                    queryResult.put("_sequence_result", rows);
-                                    resultCount.addAndGet(rows.size());
-                                    meta.metrics().ifPresent(queryMetrics -> {
-                                        resultSize.addAndGet(queryMetrics.resultSize());
-                                        mutationCount.addAndGet(queryMetrics.mutationCount());
-                                    });
+                            aggregatedResult = aggregatedResult.flatMap((r) -> {
+                                QueryMetaData meta = r.metaData();
+                                metas.add(meta);
+                                if (meta.status() == QueryStatus.SUCCESS) {
+                                    queryResult.put("_sequence_query_status", "success");
+                                    JsonArray rows = JsonArray.from(r.rowsAsObject());
+                                    if (rows.size() > 0) {
+                                        queryResult.put("_sequence_result", rows);
+                                        resultCount.addAndGet(rows.size());
+                                        meta.metrics().ifPresent(queryMetrics -> {
+                                            resultSize.addAndGet(queryMetrics.resultSize());
+                                            mutationCount.addAndGet(queryMetrics.mutationCount());
+                                        });
+                                    } else {
+                                        meta.metrics().ifPresent(queryMetrics -> mutationCount.addAndGet(queryMetrics.mutationCount()));
+                                    }
                                 } else {
-                                    meta.metrics().ifPresent(queryMetrics -> {
-                                        mutationCount.addAndGet(queryMetrics.mutationCount());
-                                    });
+                                    queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
                                 }
-                            } else {
-                                queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
-                            }
+                                return Mono.empty();
+                            });
+
                         } catch (Throwable e) {
                             queryResult.put("_sequence_query_status", "error");
                             queryResult.put("_sequence_query_error", e.getMessage());
                             throw e;
                         }
                     }
-                });
+
+                    return  aggregatedResult;
+                }).toFuture();
+
+                do {
+                    if (queue.peek() != null) {
+                        queue.poll();
+                        future.cancel(true);
+                        getOutputWindow(project).setStatusAsCanceled();
+                    }
+                } while (!future.isDone());
+
+                future.get();
             } catch (Exception e) {
                 error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
-                future.complete(false);
             }
-
 
             List<String> metricsList = new ArrayList<>();
             metricsList.add(System.currentTimeMillis() - start + " MS");
@@ -152,23 +168,17 @@ public class QueryExecutor {
                 timings = null;
             }
             getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
-            future.complete(error.getErrors().isEmpty());
-        });
 
-        return future;
+        return error.getErrors().isEmpty();
     }
 
-    public static CompletableFuture<Boolean> executeQuery(QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
+    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
         if (query == null || query.trim().isEmpty()) {
-            future.complete(false);
-            return future;
+            return false;
         }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
-            future.complete(false);
-            return future;
+            return false;
         }
         getOutputWindow(project).setStatusAsLoading();
 
@@ -185,25 +195,33 @@ public class QueryExecutor {
 
                 getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-", "-"),
                         null, error, null);
-                future.complete(false);
-                return future;
+                return false;
             }
         }
 
         final String adjustedQuery = query;
 
-        CompletableFuture.runAsync(() -> {
             long start = 0;
             try {
                 start = System.currentTimeMillis();
-                QueryResult result;
+                CompletableFuture<QueryResult> futureResult;
 
                 if (bucket != null) {
-                    result = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(adjustedQuery,
+                    futureResult = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).async().query(adjustedQuery,
                             QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
                 } else {
-                    result = ActiveCluster.getInstance().get().query(adjustedQuery, QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
+                    futureResult = ActiveCluster.getInstance().get().async().query(adjustedQuery, QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
                 }
+
+                while (!futureResult.isDone()) {
+                    if (queue.peek() != null) {
+                        queue.poll();
+                        futureResult.cancel(true);
+                        getOutputWindow(project).setStatusAsCanceled();
+                    }
+                }
+                QueryResult result = futureResult.get();
+
                 long end = System.currentTimeMillis();
 
                 Optional<QueryMetrics> metrics = result.metaData().metrics();
@@ -254,22 +272,27 @@ public class QueryExecutor {
                 }
 
                 getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings));
-                future.complete(true);
+
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
                 getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
                         null, CouchbaseQueryErrorUtil.parseQueryError(e), null);
-            } catch (Exception e) {
+            } catch (ExecutionException e) {
+                long end = System.currentTimeMillis();
+                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
+                        null, CouchbaseQueryErrorUtil.parseQueryError(e), null);
+            }
+            catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
             }
-        });
 
         //if historyIndex is negative, doesn't add it to the history
         if (historyIndex >= 0) {
-            updateQueryHistory(query, historyIndex);
+            return updateQueryHistory(query, historyIndex);
+        } else {
+            return false;
         }
-        return future;
     }
 
     private static String getSizeText(long size) {

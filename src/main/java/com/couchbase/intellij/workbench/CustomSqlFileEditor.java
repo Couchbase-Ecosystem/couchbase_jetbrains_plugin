@@ -46,8 +46,7 @@ import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
@@ -73,8 +72,8 @@ public class CustomSqlFileEditor implements FileEditor {
     private AnAction executeAction;
     private AnAction cancelAction;
 
-    private CompletableFuture<Boolean> queryExecutionFuture;
-    private CompletableFuture<Boolean> scriptExecutionFuture;
+    private BlockingQueue<Boolean> queryExecutionChannel;
+    private BlockingQueue<Boolean> scriptExecutionChannel;
 
     CustomSqlFileEditor(Project project, VirtualFile file) {
         this.file = file;
@@ -129,19 +128,30 @@ public class CustomSqlFileEditor implements FileEditor {
                     return;
                 }
 
+                queryExecutionChannel = new LinkedBlockingQueue<>(1);
+                scriptExecutionChannel = new LinkedBlockingQueue<>(1);
+
                 if (!isExecutingQuery) {
                     isExecutingQuery = true;
 
                     cancelAction = new AnAction("Cancel", "Cancel query execution", cancelIcon) {
                         @Override
                         public void actionPerformed(@NotNull AnActionEvent e) {
+                            if (queryExecutionChannel.peek() == null) {
+                                try {
+                                    queryExecutionChannel.put(true);
+                                } catch (InterruptedException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            }
+                            if (scriptExecutionChannel.peek() == null) {
+                                try {
+                                    scriptExecutionChannel.put(true);
+                                } catch (InterruptedException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            }
 
-                            if (queryExecutionFuture != null && !queryExecutionFuture.isDone()) {
-                                queryExecutionFuture.cancel(true);
-                            }
-                            if (scriptExecutionFuture != null && !scriptExecutionFuture.isDone()) {
-                                scriptExecutionFuture.cancel(true);
-                            }
                             executeGroup.replaceAction(this, executeAction);
                             isExecutingQuery = false;
                         }
@@ -154,20 +164,18 @@ public class CustomSqlFileEditor implements FileEditor {
                     new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
-
+                            boolean query = false;
+                            boolean script = false;
                             if (statements.size() == 0) {
-                                queryExecutionFuture = null;
-                                scriptExecutionFuture= null;
                                 return;
                             } else if (statements.size() == 1) {
-                                queryExecutionFuture = QueryExecutor.executeQuery(NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                                query = QueryExecutor.executeQuery(queryExecutionChannel,NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
                             } else {
-                                scriptExecutionFuture = QueryExecutor.executeScript(NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                                script = QueryExecutor.executeScript(scriptExecutionChannel,NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
                             }
 
                             try {
-                                if (((queryExecutionFuture != null) && queryExecutionFuture.get()) ||
-                                        ((scriptExecutionFuture != null) && scriptExecutionFuture.get())) {
+                                if (query || script) {
                                     int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
                                     currentHistoryIndex = historySize - 1;
                                     SwingUtilities.invokeLater(() -> {
@@ -175,7 +183,7 @@ public class CustomSqlFileEditor implements FileEditor {
                                         historyLabel.revalidate();
                                     });
                                 }
-                            } catch (InterruptedException | ExecutionException ex) {
+                            } catch (Exception ex) {
                                 throw new RuntimeException(ex);
                             }
 
@@ -200,7 +208,7 @@ public class CustomSqlFileEditor implements FileEditor {
                 }
                 String statement = getFocusedStatement();
 
-                QueryExecutor.executeQuery(ADVISE, statement, selectedBucketContext, selectedScopeContext, -1, project);
+                QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, statement, selectedBucketContext, selectedScopeContext, -1, project);
             }
         });
 
@@ -212,7 +220,7 @@ public class CustomSqlFileEditor implements FileEditor {
                     return;
                 }
                 String statement = getFocusedStatement();
-                QueryExecutor.executeQuery(EXPLAIN, statement, selectedBucketContext, selectedScopeContext, -1, project);
+                QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, statement, selectedBucketContext, selectedScopeContext, -1, project);
             }
         });
 
