@@ -74,6 +74,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
     private JPanel freeMemBar;
     private JPanel thisBucketMemBar;
     private BiConsumer<Boolean, Throwable> listener;
+    private final Component advoptSeparator = new JSeparator();
 
     public void show(BiConsumer<Boolean, Throwable> listener) {
         this.listener = listener;
@@ -142,7 +143,8 @@ public class NewBucketCreationDialog extends DialogWrapper {
             return new ValidationInfo("bucket name cannot be empty", bucketName);
         }
 
-        if (cluster.buckets().getAllBuckets().containsKey(bucketName.getText())) {
+        if (cluster.buckets().getAllBuckets().keySet().stream()
+                .anyMatch(bucketName.getText()::equalsIgnoreCase)) {
             return new ValidationInfo("bucket with this name already exists", bucketName);
         }
 
@@ -208,6 +210,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.fill = GridBagConstraints.HORIZONTAL;
 
         JPanel bucketNamePanel = new JPanel(new GridBagLayout());
+        gbc.insets = JBUI.emptyInsets();
         mainFrame.add(bucketNamePanel, gbc);
         JLabel bucketNameLabel = new JLabel("Name");
         Font sectionLabelFont = new Font(
@@ -216,6 +219,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
                 bucketNameLabel.getFont().getSize()
         );
         bucketNameLabel.setFont(sectionLabelFont);
+        subGbc.insets = sectionInsets;
         bucketNamePanel.add(bucketNameLabel, subGbc);
 
         bucketName = new JTextField(40);
@@ -223,13 +227,12 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.gridy++;
         subGbc.fill = GridBagConstraints.HORIZONTAL;
         subGbc.gridwidth = GridBagConstraints.REMAINDER;
-        subGbc.insets = JBUI.emptyInsets();
+        subGbc.insets = internalInsets;
         bucketNamePanel.add(bucketName, subGbc);
 
         subGbc.gridy++;
         subGbc.fill = GridBagConstraints.NONE;
         subGbc.gridwidth = 1;
-        subGbc.insets = JBUI.insets(0, 10, 5, 5);
         bucketNameError = new JLabel("Bucket name cannot be empty");
         Font errorFont = new Font(
                 bucketNameError.getFont().getName(),
@@ -243,16 +246,18 @@ public class NewBucketCreationDialog extends DialogWrapper {
         bucketNamePanel.add(bucketNameError, subGbc);
 
         gbc.gridy++;
+        gbc.insets = sectionInsets;
         JLabel bucketTypeLabel = new JLabel("Bucket type");
         bucketTypeLabel.setFont(sectionLabelFont);
         mainFrame.add(bucketTypeLabel, gbc);
 
         JPanel bucketTypePanel = new JPanel(new GridBagLayout());
         gbc.gridy++;
+        gbc.insets = internalInsets;
         mainFrame.add(bucketTypePanel, gbc);
         subGbc.gridx = 0;
         subGbc.gridy = 0;
-        subGbc.insets = JBUI.insets(5);
+        Insets optionInsets = subGbc.insets = JBUI.insets(5, 0, 5, 5);
         subGbc.fill = GridBagConstraints.NONE;
         subGbc.anchor = GridBagConstraints.WEST;
         bucketTypes = new ButtonGroup();
@@ -299,16 +304,18 @@ public class NewBucketCreationDialog extends DialogWrapper {
         subGbc.gridx++;
         storageBackendsPanel.add(storageBackendMagma, subGbc);
 
-        JLabel memoryQuotaLabel = new JLabel("Memory Quota");
-        memoryQuotaLabel.setFont(sectionLabelFont);
-        gbc.gridy++;
-        gbc.insets = sectionInsets;
-        mainFrame.add(memoryQuotaLabel, gbc);
-
         JPanel memQuotaLabels = new JPanel(new GridBagLayout());
-        gbc.insets = internalInsets;
+        gbc.insets = sectionInsets;
         gbc.gridy++;
         mainFrame.add(memQuotaLabels, gbc);
+
+        JLabel memoryQuotaLabel = new JLabel("Memory Quota");
+        memoryQuotaLabel.setFont(sectionLabelFont);
+        subGbc.gridx = 0;
+        subGbc.gridy = 0;
+        subGbc.anchor = GridBagConstraints.BASELINE;
+        subGbc.insets = JBUI.emptyInsets();
+        memQuotaLabels.add(memoryQuotaLabel, subGbc);
 
         JLabel memQuotaInfo = new JLabel("in MegaBytes per server node");
         memQuotaInfo.setForeground(JBColor.GRAY);
@@ -318,8 +325,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
                 (int) (memQuotaInfo.getFont().getSize() / 1.25)
         );
         memQuotaInfo.setFont(tipFont);
-        subGbc.gridx = 0;
-        subGbc.gridy = 0;
+        subGbc.gridx++;
         subGbc.anchor = GridBagConstraints.BASELINE;
         subGbc.insets = JBUI.insets(0, 5, 2, 5);
         memQuotaLabels.add(memQuotaInfo, subGbc);
@@ -422,21 +428,41 @@ public class NewBucketCreationDialog extends DialogWrapper {
             this.pack();
         });
 
+        JPanel optionsLabelPanel = new JPanel(new GridBagLayout());
+        gbc.insets = JBUI.emptyInsets();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridy++;
+        mainFrame.add(optionsLabelPanel, gbc);
+        gbc.fill = GridBagConstraints.NONE;
+
         final Icon closedIcon = IconLoader.getIcon("/assets/icons/triangle-right.svg", getClass().getClassLoader());
         final Icon openedIcon = IconLoader.getIcon("/assets/icons/triangle-down.svg", getClass().getClassLoader());
         JLabel optionsLabel = new JLabel("Advanced bucket settings", closedIcon, SwingConstants.CENTER);
-        gbc.gridy++;
-        gbc.insets = sectionInsets;
-        gbc.fill = GridBagConstraints.NONE;
-        mainFrame.add(optionsLabel, gbc);
+        subGbc.gridy = 0;
+        subGbc.gridx = 0;
+        subGbc.insets = sectionInsets;
+        subGbc.fill = GridBagConstraints.NONE;
+        subGbc.anchor = GridBagConstraints.WEST;
+        subGbc.weightx = 1;
+        optionsLabelPanel.add(optionsLabel, subGbc);
+
+        subGbc.gridx++;
+        subGbc.fill = GridBagConstraints.HORIZONTAL;
+        subGbc.insets = JBUI.emptyInsets();
+        subGbc.weightx = 100;
+        advoptSeparator.setVisible(false);
+        optionsLabelPanel.add(advoptSeparator, subGbc);
+        subGbc.fill = GridBagConstraints.NONE;
+        subGbc.gridx--;
 
         JPanel advancedOptionsPanel = new JPanel(new GridBagLayout());
         advancedOptionsPanel.setVisible(false);
         gbc.gridy++;
-        gbc.insets = JBUI.insets(5, 15, 5, 5);
+        gbc.insets = internalInsets;
         mainFrame.add(advancedOptionsPanel, gbc);
         optionsLabel.addMouseListener(Mouse.click(mouseEvent -> {
             advancedOptionsPanel.setVisible(!advancedOptionsPanel.isVisible());
+            advoptSeparator.setVisible(advancedOptionsPanel.isVisible());
             if (advancedOptionsPanel.isVisible()) {
                 optionsLabel.setIcon(openedIcon);
             } else {
@@ -480,7 +506,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
 
         JPanel replicasErrorPanel = new JPanel(new GridBagLayout());
         replicasErrorPanel.setVisible(nodeCount <= 1);
-        gbc.gridx = 1;
+        gbc.gridx = 0;
         gbc.gridy++;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -554,7 +580,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         compressionMode = new ButtonGroup();
         JPanel compressionModesPanel = new JPanel(new GridBagLayout());
         gbc.gridy++;
-        gbc.insets = JBUI.emptyInsets();
+        gbc.insets = internalInsets;
         advancedOptionsPanel.add(compressionModesPanel, gbc);
 
         JRadioButton compressionModeOff = new JRadioButton("Off");
@@ -562,7 +588,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         compressionMode.add(compressionModeOff);
         subGbc.gridx = 0;
         subGbc.gridy = 0;
-        subGbc.insets = internalInsets;
+        subGbc.insets = optionInsets;
         compressionModesPanel.add(compressionModeOff, subGbc);
 
         JRadioButton compressionModePassive = new JRadioButton("Passive");
@@ -586,7 +612,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
 
         JPanel confictResolutionPanel = new JPanel(new GridBagLayout());
         gbc.gridy++;
-        gbc.insets = JBUI.emptyInsets();
+        gbc.insets = internalInsets;
         advancedOptionsPanel.add(confictResolutionPanel, gbc);
 
         conflictResolutionType = new ButtonGroup();
@@ -611,7 +637,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
         advancedOptionsPanel.add(ejectionMethodSectionLabel, gbc);
 
         JPanel ejectionMethodPanel = new JPanel(new GridBagLayout());
-        gbc.insets = JBUI.emptyInsets();
+        gbc.insets = internalInsets;
         gbc.gridy++;
         advancedOptionsPanel.add(ejectionMethodPanel, gbc);
 

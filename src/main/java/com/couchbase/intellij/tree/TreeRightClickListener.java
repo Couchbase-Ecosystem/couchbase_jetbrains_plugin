@@ -12,7 +12,6 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
-import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
@@ -321,11 +320,13 @@ public class TreeRightClickListener {
                             return;
                         }
 
+                        ActiveCluster.ReconnectOnDisconnect.set(true);
                         ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
+                        ActiveCluster.ReconnectOnDisconnect.set(false);
                         // Refresh buckets
                         TreePath treePath = new TreePath(clickedNode.getPath());
-                        tree.collapsePath(treePath);
-                        tree.expandPath(treePath);
+                        tree.collapsePath(treePath.getParentPath());
+                        tree.expandPath(treePath.getParentPath());
                     } catch (Exception ex) {
                         Log.error("Bucket deletion failed ", ex);
                     }

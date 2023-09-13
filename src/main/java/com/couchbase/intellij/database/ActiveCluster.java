@@ -50,6 +50,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     private Runnable disconnectListener;
 
+    public static final AtomicBoolean ReconnectOnDisconnect = new AtomicBoolean();
+
     private ActiveCluster() {
     }
 
@@ -112,6 +114,16 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     eventBus.subscribe(event -> {
                         if (event instanceof UnexpectedEndpointDisconnectedEvent) {
                             if (cluster != null) {
+                                if (ReconnectOnDisconnect.get()) {
+                                    try {
+                                        Log.info("Reconnecting to cluster '" + savedCluster.getId() + "'");
+                                        cluster.disconnect();
+                                        connect(savedCluster, connectListener, disconnectListener);
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    return;
+                                }
                                 Log.info("Disconnected from cluster " + savedCluster.getId());
                                 SwingUtilities.invokeLater(() -> {
                                     try {
@@ -125,7 +137,6 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                                 });
                                 eventBus.stop(Duration.ZERO);
                                 disconnect();
-                                ActiveCluster.getInstance().get().environment().shutdown();
                             }
                         }
                     });
