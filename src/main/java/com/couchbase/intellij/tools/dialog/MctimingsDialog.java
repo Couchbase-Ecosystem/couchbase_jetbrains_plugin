@@ -19,18 +19,27 @@ import utils.TemplateUtil;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.*;
 
 public class MctimingsDialog extends DialogWrapper {
 
+    private final JComboCheckBox optionalParametersComboCheckBox = new JComboCheckBox();
+    private GridBagConstraints c;
     private JComboBox<String> bucketComboBox;
     private JComboBox<String> outputFormatComboBox;
     private JPanel outputPanel;
     private JPanel dialogPanel;
-    private GridBagConstraints c;
-    private final JComboCheckBox optionalParametersComboCheckBox = new JComboCheckBox();
+
+    private static final String SUMMARY_OF_ALL_OPERATIONS = "Summary of All Operations";
+    private static final String HISTOGRAM = "Histogram";
+    private static final String JSON = "Json";
+    private static final String JSON_PRETTY_PRINTED = "Json pretty printed";
+
+    private JTextArea outputTextArea;
 
     public MctimingsDialog() {
         super(true);
@@ -66,6 +75,7 @@ public class MctimingsDialog extends DialogWrapper {
             bucketComboBox.addItem(bucket);
         }
         dialogPanel.add(bucketComboBox, c);
+
         // Line 2: Output format
         c.gridx = 0;
         c.gridy = 1;
@@ -76,10 +86,11 @@ public class MctimingsDialog extends DialogWrapper {
         c.gridx = 1;
         c.gridy = 1;
         outputFormatComboBox = new JComboBox<>();
-        outputFormatComboBox.addItem("Summary of All Operations");
-        outputFormatComboBox.addItem("Histogram");
-        outputFormatComboBox.addItem("Json");
-        outputFormatComboBox.addItem("Json pretty printed");
+        outputFormatComboBox.addItem(SUMMARY_OF_ALL_OPERATIONS);
+        outputFormatComboBox.addItem(HISTOGRAM);
+        outputFormatComboBox.addItem(JSON);
+        outputFormatComboBox.addItem(JSON_PRETTY_PRINTED);
+
         dialogPanel.add(outputFormatComboBox, c);
 
         // Line 3: Optional parameters
@@ -113,7 +124,6 @@ public class MctimingsDialog extends DialogWrapper {
         c.weighty = 1;
         c.gridwidth = 2;
         c.fill = GridBagConstraints.BOTH;
-        outputPanel = new JPanel(new BorderLayout());
 
         return dialogPanel;
     }
@@ -134,99 +144,45 @@ public class MctimingsDialog extends DialogWrapper {
         return southPanel;
     }
 
-
-    public static class ChartGenerator {
-        protected JPanel generateBarChart(String[] labels, int[] values) {
-            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-            for (int i = 0; i < labels.length; i++) {
-                dataset.addValue(values[i], "Occurrences", labels[i]);
-            }
-
-            JFreeChart barChart = ChartFactory.createBarChart(
-                    "Bar Chart for Specified Period",
-                    "Time Buckets",
-                    "Occurrences",
-                    dataset,
-                    PlotOrientation.VERTICAL,
-                    true, true, false);
-
-            // Set dynamic range for Y-axis
-            NumberAxis rangeAxis = (NumberAxis) barChart.getCategoryPlot().getRangeAxis();
-            rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-
-            // Rotate X-axis labels
-            CategoryAxis domainAxis = barChart.getCategoryPlot().getDomainAxis();
-            domainAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
-
-            ChartPanel chartPanel = new ChartPanel(barChart);
-            chartPanel.setDisplayToolTips(true); // Enable tooltips
-            chartPanel.setMouseWheelEnabled(true); // Enable zooming using mouse wheel
-            chartPanel.setMouseZoomable(true); // Enable zooming using mouse drag
-
-            return chartPanel;
-        }
-    }
-
-
     @Override
     protected void doOKAction() {
-        dialogPanel.add(outputPanel, c);
+
         getWindow().setMinimumSize(new Dimension(1600, 800));
-
-        String selectedOutputFormat = (String) outputFormatComboBox.getSelectedItem();
-        if (Objects.equals(selectedOutputFormat, "Histogram")) {
-            // Generate a bar chart using the hardcoded values
-            final String[] labels = { "[0.00 - 2.00]us", "[2.00 - 6.00]us", "[6.00 - 7.00]us", "[7.00 - 9.00]us",
-                    "[9.00 - 11.00]us", "[11.00 - 13.00]us", "[13.00 - 15.00]us", "[15.00 - 16.00]us",
-                    "[16.00 - 18.00]us", "[18.00 - 20.00]us", "[20.00 - 22.00]us", "[22.00 - 23.00]us",
-                    "[23.00 - 25.00]us", "[25.00 - 26.00]us", "[26.00 - 28.00]us", "[28.00 - 30.00]us",
-                    "[30.00 - 31.00]us", "[31.00 - 33.00]us", "[33.00 - 35.00]us", "[35.00 - 37.00]us",
-                    "[37.00 - 39.00]us", "[39.00 - 39.00]us", "[39.00 - 41.00]us", "[41.00 - 41.00]us",
-                    "[41.00 - 43.00]us", "[43.00 - 45.00]us", "[45.00 - 47.00]us", "[47.00 - 49.00]us",
-                    "[49.00 - 51.00]us", "[51.00 - 53.00]us", "[53.00 - 57.00]us", "[57.00 - 57.00]us",
-                    "[57.00 - 59.00]us", "[59.00 - 63.00]us", "[63.00 - 67.00]us", "[67.00 - 71.00]us",
-                    "[71.00 - 75.00]us", "[75.00 - 75.00]us", "[75.00 - 79.00]us", "[79.00 - 83.00]us",
-                    "[83.00 - 91.00]us", "[91.00 - 95.00]us", "[95.00 - 95.00]us", "[95.00 - 103.00]us",
-                    "[103.00 - 111.00]us", "[111.00 - 123.00]us", "[123.00 - 127.00]us", "[127.00 - 135.00]us",
-                    "[135.00 - 151.00]us", "[151.00 - 167.00]us", "[167.00 - 199.00]us", "[199.00 - 199.00]us",
-                    "[199.00 - 215.00]us", "[215.00 - 215.00]us", "[215.00 - 231.00]us", "[231.00 - 287.00]us",
-                    "[287.00 - 335.00]us", "[335.00 - 399.00]us", "[399.00 - 431.00]us", "[431.00 - 479.00]us",
-                    "[479.00 - 479.00]us", "[479.00 - 543.00]us", "[543.00 - 831.00]us", "[831.00 - 831.00]us",
-                    "[831.00 - 895.00]us", "[895.00 - 895.00]us", "[0.89 - 1.09]ms", "[1.09 - 1.09]ms",
-                    "[1.09 - 1.09]ms", "[1.09 - 1.15]ms", "[1.15 - 1.15]ms", "[1.15 - 1.15]ms", "[1.15 - 1.15]ms",
-                    "[1.15 - 1.15]ms", "[1.15 - 2.17]ms", "[2.17 - 2.17]ms", };
-
-            final int[] values = { 3, 3909, 1596, 2727, 2698, 2013, 1664, 766, 1336, 1237, 1016, 512, 892, 394, 672,
-                    645, 274, 453, 424, 310, 259, 0, 234, 0, 197, 134, 91, 96, 76, 60, 91, 0, 38, 56, 39, 36, 36, 0, 20,
-                    11, 25, 13, 0, 14, 9, 10, 1, 6, 5, 5, 6, 0, 5, 0, 4, 1, 1, 2, 1, 2, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0,
-                    0, 0, 0, 1, 0 };
-
-            ChartGenerator chartGenerator = new ChartGenerator();
-            JPanel chartPanel = chartGenerator.generateBarChart(labels, values);
+        if (outputPanel != null) {
             outputPanel.removeAll();
-            outputPanel.add(chartPanel, BorderLayout.CENTER);
-
-        } else {
-            JTextArea outputTextArea = new JTextArea();
-
-            outputTextArea.setEditable(false);
-            outputTextArea.setLineWrap(true);  // Enable line wrapping
-            outputTextArea.setWrapStyleWord(true);  // Wrap lines at word boundaries
-
-            JScrollPane scrollPane = new JScrollPane(outputTextArea);
-            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);  // Disable horizontal scrolling
-
-            executeCommand(outputTextArea);
-            outputPanel.removeAll();
-            outputPanel.add(scrollPane, BorderLayout.CENTER);
+            dialogPanel.remove(outputPanel);
         }
 
-        outputPanel.revalidate();
-        outputPanel.repaint();
+        String selectedOutputFormat = (String) outputFormatComboBox.getSelectedItem();
+        if (Objects.equals(selectedOutputFormat, HISTOGRAM)) {
+            outputPanel = new JPanel();
+            outputPanel.setLayout(new BoxLayout(outputPanel, BoxLayout.Y_AXIS));
+            executeCommand();
+
+        } else {
+            outputTextArea = new JTextArea();
+
+            outputTextArea.setEditable(false);
+            outputTextArea.setLineWrap(true); // Enable line wrapping
+            outputTextArea.setWrapStyleWord(true); // Wrap lines at word boundaries
+
+            JScrollPane scrollPane = new JScrollPane(outputTextArea);
+            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+            outputPanel = new JPanel(new BorderLayout());
+            executeCommand();
+            outputPanel.add(scrollPane, BorderLayout.CENTER);
+            outputPanel.revalidate();
+            outputPanel.repaint();
+            dialogPanel.add(outputPanel, c);
+        }
+
+        dialogPanel.revalidate();
+        dialogPanel.repaint();
+
     }
 
-    public void executeCommand(JTextArea outputTextArea) {
+    public void executeCommand() {
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.MCTIMINGS).getPath());
         command.add("-h");
@@ -249,9 +205,11 @@ public class MctimingsDialog extends DialogWrapper {
 
         // Add the selected output format to the command
         String selectedOutputFormat = (String) outputFormatComboBox.getSelectedItem();
-        if (Objects.equals(selectedOutputFormat, "Json")){
+        if (Objects.equals(selectedOutputFormat, HISTOGRAM)) {
+            command.add("-v");
+        } else if (Objects.equals(selectedOutputFormat, JSON)) {
             command.add("-j");
-        } else if (Objects.equals(selectedOutputFormat, "Json pretty printed")){
+        } else if (Objects.equals(selectedOutputFormat, JSON_PRETTY_PRINTED)) {
             command.add("-j");
             command.add("-v");
         }
@@ -265,9 +223,127 @@ public class MctimingsDialog extends DialogWrapper {
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         try {
             Process process = processBuilder.start();
-            ProcessUtils.printOutput(process, outputTextArea);
+            if (Objects.equals(selectedOutputFormat, HISTOGRAM)) {
+                Map<String, Map<String, Map<String, String>>> histogramData = parseHistogram(process);
+                generateHistograms(histogramData);
+            } else
+                ProcessUtils.printOutput(process, outputTextArea);
         } catch (IOException e) {
-            Log.error("Exception Occurred: ",e);
+            Log.error("Exception Occurred: ", e);
+        }
+    }
+
+    public static Map<String, Map<String, Map<String, String>>> parseHistogram(Process process) throws IOException {
+        Map<String, Map<String, Map<String, String>>> histogramData = new HashMap<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            String currentBucket = "";
+            String currentOperation = "";
+            String bucketTag = "Bucket:";
+            String operationTag = "The following data is collected for ";
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith(bucketTag)) {
+                    currentBucket = line.substring(bucketTag.length()).trim().replaceAll("[\"']", "");
+                    histogramData.put(currentBucket, new HashMap<>());
+                } else if (line.startsWith(operationTag)) {
+                    currentOperation = line.substring(operationTag.length()).trim().replaceAll("[\"']", "");
+                    histogramData.get(currentBucket).put(currentOperation, new HashMap<>());
+                } else if (histogramData.containsKey(currentBucket)
+                        && histogramData.get(currentBucket).containsKey(currentOperation)) {
+                    String label;
+                    String value;
+
+                    int labelStartIndex = line.indexOf(" (");
+                    int valueStartIndex = line.indexOf("%)");
+                    int pipeIndex = line.indexOf("|");
+
+                    if (labelStartIndex != -1 && valueStartIndex != -1 && pipeIndex != -1) {
+                        label = line.substring(0, labelStartIndex).trim();
+                        value = line.substring(valueStartIndex + 3, pipeIndex).trim();
+                        histogramData.get(currentBucket).get(currentOperation).put(label, value);
+                    }
+                }
+            }
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Log.error(line);
+            }
+        }
+
+        return histogramData;
+    }
+
+    public void generateHistograms(Map<String, Map<String, Map<String, String>>> histogramData) {
+        // For each bucket in the histogram data
+        for (Map.Entry<String, Map<String, Map<String, String>>> bucketEntry : histogramData.entrySet()) {
+            String bucket = bucketEntry.getKey();
+            Map<String, Map<String, String>> operationsData = bucketEntry.getValue();
+
+            // For each operation in the bucket
+            for (Map.Entry<String, Map<String, String>> operationEntry : operationsData.entrySet()) {
+                String operation = operationEntry.getKey();
+                Map<String, String> operationData = operationEntry.getValue();
+
+                // Get the labels and values for this operation
+                String[] labels = operationData.keySet().toArray(new String[0]);
+                int[] values = operationData.values().stream().mapToInt(Integer::parseInt).toArray();
+
+                // Generate a bar chart using the labels and values
+                ChartGenerator chartGenerator = new ChartGenerator();
+                JPanel chartPanel = chartGenerator.generateBarChart(bucket, operation, labels, values);
+
+                // Set preferred size for the chart panel
+                chartPanel.setPreferredSize(new Dimension(1600, 800));
+
+                // Add the chart to the output panel
+                outputPanel.add(chartPanel);
+            }
+        }
+
+        // Create a JScrollPane containing the output panel
+        JScrollPane scrollPane = new JScrollPane(outputPanel);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        // Replace output panel with scroll pane in dialog panel
+        dialogPanel.remove(outputPanel);
+        dialogPanel.add(scrollPane, c);
+    }
+
+    public static class ChartGenerator {
+        protected JPanel generateBarChart(String bucket, String operation, String[] labels, int[] values) {
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            for (int i = 0; i < labels.length; i++) {
+                dataset.addValue(values[i], "Occurrences", labels[i]);
+            }
+
+            JFreeChart barChart = ChartFactory.createBarChart(
+                    "Operaton Duration Histogram for " + bucket + "with operation " + operation,
+                    "Operation Duration",
+                    "Occurrences",
+                    dataset,
+                    PlotOrientation.VERTICAL,
+                    true, true, false);
+
+            // Set dynamic range for Y-axis
+            NumberAxis rangeAxis = (NumberAxis) barChart.getCategoryPlot().getRangeAxis();
+            rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+
+            // Rotate X-axis labels
+            CategoryAxis domainAxis = barChart.getCategoryPlot().getDomainAxis();
+            domainAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+
+            ChartPanel chartPanel = new ChartPanel(barChart);
+            chartPanel.setDisplayToolTips(true); // Enable tooltips
+            chartPanel.setMouseWheelEnabled(true); // Enable zooming using mouse wheel
+            chartPanel.setMouseZoomable(true); // Enable zooming using mouse drag
+
+            return chartPanel;
         }
     }
 
