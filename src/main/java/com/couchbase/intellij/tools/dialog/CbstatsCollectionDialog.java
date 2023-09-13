@@ -40,8 +40,8 @@ public class CbstatsCollectionDialog extends DialogWrapper {
     public CbstatsCollectionDialog() {
         super(true);
         init();
-        setTitle("Custom Dialog");
-        getWindow().setMinimumSize(new Dimension(800, 600));
+        setTitle("Collection Statistics");
+        getWindow().setMinimumSize(new Dimension(600, 400));
         setResizable(true);
 
 
@@ -71,6 +71,8 @@ public class CbstatsCollectionDialog extends DialogWrapper {
 
         // Line 3: Collection
         addLabelAndComponent("Collection:", "Select the collection", 2, collectionComboBox);
+
+        handleBucketComboBoxChange();
 
         // Line 4: Collection Statistics
         c.gridx = 0;
