@@ -1,10 +1,30 @@
 package com.couchbase.intellij.tools.dialog;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.tools.CBTools;
-import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.util.ui.JBUI;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
+
 import org.jetbrains.annotations.Nullable;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -14,16 +34,15 @@ import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
+
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.tools.CBTools;
+import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.util.ui.JBUI;
+
 import utils.ProcessUtils;
 import utils.TemplateUtil;
-
-import javax.swing.*;
-import java.awt.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.List;
-import java.util.*;
 
 public class MctimingsDialog extends DialogWrapper {
 
@@ -104,7 +123,29 @@ public class MctimingsDialog extends DialogWrapper {
         c.gridy = 2;
 
         String[] optionalParameters = { "Get", "Set", "Add", "Replace", "Delete", "Increment", "Decrement", "Quit",
-                "Flush", "GetQ", "No-op", "Version", "GetK", "GetKQ", "Append", "Prepend" };
+                "Flush", "GetQ", "No-op", "Version", "GetK", "GetKQ", "Append", "Prepend", "Stat", "SetQ", "AddQ",
+                "ReplaceQ", "DeleteQ", "IncrementQ", "DecrementQ", "QuitQ", "FlushQ", "AppendQ", "PrependQ",
+                "Verbosity", "Touch", "GAT", "GATQ", "HELO", "SASL list mechs", "SASL Auth", "SASL Step", "Ioctl get",
+                "Ioctl set", "Config validate", "Config reload", "Audit put", "Audit config reload", "Shutdown", "RGet",
+                "RSet", "RSetQ", "RAppend", "RAppendQ", "RPrepend", "RPrependQ", "RDelete", "RDeleteQ", "RIncr",
+                "RIncrQ", "RDecr", "RDecrQ", "Set VBucket", "Get VBucket", "Del VBucket", "TAP Connect", "TAP Mutation",
+                "TAP Delete", "TAP Flush", "TAP Opaque", "TAP VBucket Set", "TAP Checkout Start", "TAP Checkpoint End",
+                "Get all vb seqnos", "Dcp Open", "Dcp add stream", "Dcp close stream", "Dcp stream req",
+                "Dcp get failover log", "Dcp stream end", "Dcp snapshot marker", "Dcp mutation", "Dcp deletion",
+                "Dcp expiration", "Dcp flush", "Dcp set vbucket state", "Dcp noop", "Dcp buffer acknowledgement",
+                "Dcp control", "Dcp reserved4", "Stop persistence", "Start persistence", "Set param", "Get replica",
+                "Create bucket", "Delete bucket", "List buckets", "Select bucket", "Assume role", "Observe seqno",
+                "Observe", "Evict key", "Get locked", "Unlock key", "Last closed checkpoint", "Deregister tap client",
+                "Reset replication chain", "Get meta", "Getq meta", "Set with meta", "Setq with meta", "Add with meta",
+                "Addq with meta", "Snapshot vb states", "Vbucket batch count", "Del with meta", "Delq with meta",
+                "Create checkpoint", "Notify vbucket update", "Enable traffic", "Disable traffic", "Change vb filter",
+                "Checkpoint persistence", "Return meta", "Compact db", "Set cluster config", "Get cluster config",
+                "Get random key", "Seqno persistence", "Get keys", "Set drift counter state", "Get adjusted time",
+                "Subdoc get", "Subdoc exists", "Subdoc dict add", "Subdoc dict upsert", "Subdoc delete",
+                "Subdoc replace", "Subdoc array push last", "Subdoc array push first", "Subdoc array insert",
+                "Subdoc array add unique", "Subdoc counter", "Subdoc multi lookup", "Subdoc multi mutation", "Scrub",
+                "Isasl refresh", "Ssl certs refresh", "Get cmd timer", "Set ctrl token", "Get ctrl token",
+                "Init complete" };
 
         List<String> optionalParametersList = new ArrayList<>(Arrays.asList(optionalParameters));
         optionalParametersComboCheckBox.removeAllItems();
@@ -216,9 +257,12 @@ public class MctimingsDialog extends DialogWrapper {
 
         // Add the selected optional parameters to the command
         List<String> selectedOptionalParameters = optionalParametersComboCheckBox.getSelectedItems();
-        for (String parameter : selectedOptionalParameters) {
-            command.add(" " + parameter.toLowerCase());
+        if (!selectedOptionalParameters.isEmpty()) {
+            String parameters = String.join(" ", selectedOptionalParameters).toLowerCase();
+            command.add(parameters);
         }
+
+        Log.debug("Command is" + command);
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         try {
@@ -289,8 +333,16 @@ public class MctimingsDialog extends DialogWrapper {
                 Map<String, String> operationData = operationEntry.getValue();
 
                 // Get the labels and values for this operation
-                String[] labels = operationData.keySet().toArray(new String[0]);
-                int[] values = operationData.values().stream().mapToInt(Integer::parseInt).toArray();
+                int size = operationData.size();
+                String[] labels = new String[size];
+                int[] values = new int[size];
+                int index = 0;
+
+                for (Map.Entry<String, String> entry : operationData.entrySet()) {
+                    labels[index] = entry.getKey();
+                    values[index] = Integer.parseInt(entry.getValue());
+                    index++;
+                }
 
                 // Generate a bar chart using the labels and values
                 ChartGenerator chartGenerator = new ChartGenerator();
@@ -323,7 +375,7 @@ public class MctimingsDialog extends DialogWrapper {
             }
 
             JFreeChart barChart = ChartFactory.createBarChart(
-                    "Operaton Duration Histogram for " + bucket + "with operation " + operation,
+                    "Operation Duration Histogram for " + bucket + "with operation " + operation,
                     "Operation Duration",
                     "Occurrences",
                     dataset,
