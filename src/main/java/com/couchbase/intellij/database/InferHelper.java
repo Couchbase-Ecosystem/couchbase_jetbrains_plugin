@@ -51,7 +51,7 @@ public class InferHelper {
                 }
             }
         } catch (Exception e) {
-            Log.debug("Could not infer the schema of the collection", e);
+            Log.debug("Could not infer the schema of the collection "+collectionName);
             return null;
         }
     }
