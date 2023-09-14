@@ -27,13 +27,10 @@ public class CBStats {
         // Your command
         List<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.CBSTATS).getPath());
-        command.add("-h");
-        command.add(ActiveCluster.getInstance().getClusterURL().replaceFirst("^couchbase://", ""));
-        command.add("-p");
-        command.add(ActiveCluster.getInstance().isSSLEnabled() ? "11207" : "11210");
+        command.add((ActiveCluster.getInstance().getClusterURL().replaceFirst("^couchbase://", "")) + ":" + (ActiveCluster.getInstance().isSSLEnabled() ? "11207" : "11210"));
         command.add("-u");
         command.add(ActiveCluster.getInstance().getUsername());
-        command.add("-P");
+        command.add("-p");
         command.add(ActiveCluster.getInstance().getPassword());
 
         command.add("-b");
