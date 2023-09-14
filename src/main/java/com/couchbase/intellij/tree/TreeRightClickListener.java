@@ -12,6 +12,7 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
+import com.couchbase.intellij.tools.dialog.ImportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
@@ -164,12 +165,18 @@ public class TreeRightClickListener {
                 tools.add(cbexport);
             }
 
-            // TODO: Desabled temporarily until the feature is completed
-            // if (!ActiveCluster.getInstance().isReadOnlyMode() &&
-            // CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
-            // JBMenuItem cbimport = new JBMenuItem("Data Import");
-            // tools.add(cbimport);
-            // }
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
+
+                AnAction cbimport = new AnAction("Data Import") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        ImportDialog importDialog = new ImportDialog(project);
+                        importDialog.show();
+                    }
+                };
+                tools.add(cbimport);
+                tools.addSeparator();
+            }
 
             DefaultActionGroup settings = new DefaultActionGroup("Settings", true);
             DefaultActionGroup colors = new DefaultActionGroup("Connection Colors", true);
