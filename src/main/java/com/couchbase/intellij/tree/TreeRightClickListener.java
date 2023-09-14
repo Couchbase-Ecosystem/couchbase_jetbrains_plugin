@@ -600,7 +600,11 @@ public class TreeRightClickListener {
         AnAction viewStats = new AnAction("View Collection Statistics") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                CbstatsCollectionDialog cbstatsCollectionDialog = new CbstatsCollectionDialog();
+                CbstatsCollectionDialog cbstatsCollectionDialog = new CbstatsCollectionDialog(
+                        col.getBucket(),
+                        col.getScope(),
+                        col.getText()
+                );
                 cbstatsCollectionDialog.show();
             }
         };
