@@ -4,6 +4,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.Mctimings;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import utils.TemplateUtil;
 
@@ -88,6 +89,30 @@ public class MctimingsDialog extends DialogWrapper {
         c.gridx = 1;
         c.gridy = 2;
 
+        List<String> optionalParametersList = getStrings();
+        optionalParametersComboCheckBox.removeAllItems();
+        optionalParametersComboCheckBox.setHint("Select some or none optional parameters");
+        optionalParametersList.forEach(optionalParametersComboCheckBox::addItem);
+        dialogPanel.add(optionalParametersComboCheckBox, c);
+
+        // Line 4: Output
+        c.gridx = 0;
+        c.gridy = 3;
+        JPanel outputLabel = TemplateUtil.getLabelWithHelp("Output:", "");
+        dialogPanel.add(outputLabel, c);
+
+        c.gridx = 0;
+        c.gridy = 4;
+        c.weightx = 1;
+        c.weighty = 1;
+        c.gridwidth = 2;
+        c.fill = GridBagConstraints.BOTH;
+
+        return dialogPanel;
+    }
+
+    @NotNull
+    private static List<String> getStrings() {
         String[] optionalParameters = { "Get", "Set", "Add", "Replace", "Delete", "Increment", "Decrement", "Quit",
                 "Flush", "GetQ", "No-op", "Version", "GetK", "GetKQ", "Append", "Prepend", "Stat", "SetQ", "AddQ",
                 "ReplaceQ", "DeleteQ", "IncrementQ", "DecrementQ", "QuitQ", "FlushQ", "AppendQ", "PrependQ",
@@ -113,26 +138,7 @@ public class MctimingsDialog extends DialogWrapper {
                 "Isasl refresh", "Ssl certs refresh", "Get cmd timer", "Set ctrl token", "Get ctrl token",
                 "Init complete" };
 
-        List<String> optionalParametersList = new ArrayList<>(Arrays.asList(optionalParameters));
-        optionalParametersComboCheckBox.removeAllItems();
-        optionalParametersComboCheckBox.setHint("Select some or none optional parameters");
-        optionalParametersList.forEach(optionalParametersComboCheckBox::addItem);
-        dialogPanel.add(optionalParametersComboCheckBox, c);
-
-        // Line 4: Output
-        c.gridx = 0;
-        c.gridy = 3;
-        JPanel outputLabel = TemplateUtil.getLabelWithHelp("Output:", "");
-        dialogPanel.add(outputLabel, c);
-
-        c.gridx = 0;
-        c.gridy = 4;
-        c.weightx = 1;
-        c.weighty = 1;
-        c.gridwidth = 2;
-        c.fill = GridBagConstraints.BOTH;
-
-        return dialogPanel;
+        return new ArrayList<>(Arrays.asList(optionalParameters));
     }
 
     @Override
