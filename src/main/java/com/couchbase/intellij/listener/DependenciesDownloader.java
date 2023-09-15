@@ -159,17 +159,21 @@ public class DependenciesDownloader {
 
         CBTools.Type[] toolTypes = {CBTools.Type.CBC_PILLOW_FIGHT, CBTools.Type.MCTIMINGS, CBTools.Type.CBSTATS};
 
+        boolean shouldDownload = false;
         for (CBTools.Type toolType : toolTypes) {
             if (CBTools.getTool(toolType).getStatus() == ToolStatus.NOT_AVAILABLE
                     && !isInstalled(toolsPath, downloads.get(ALL_TOOLS), toolType)) {
-
-                Log.info("Downloading " + toolType + " tool. The feature will be automatically enabled when the download is complete.");
+                shouldDownload = true;
                 CBTools.getTool(toolType).setStatus(ToolStatus.DOWNLOADING);
-                downloadAndUnzip(toolsDir, cbTools);
             } else {
                 Log.debug(toolType + " tool is already installed");
                 setToolActive(ToolStatus.AVAILABLE, toolsDir, cbTools);
             }
+        }
+
+        if (shouldDownload) {
+            Log.info("Downloading tools. The features will be automatically enabled when the download is complete.");
+            downloadAndUnzip(toolsDir, cbTools);
         }
 
     }
