@@ -28,7 +28,7 @@ public class CbstatsCollectionDialog extends DialogWrapper {
         this.scopeName = scope;
         this.collectionName = collection;
         init();
-        setTitle("Cbstats Collection Dialog");
+        setTitle("Stats for collection");
         getWindow().setMinimumSize(new Dimension(600, 400));
         setResizable(true);
     }
