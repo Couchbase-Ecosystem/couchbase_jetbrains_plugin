@@ -15,7 +15,6 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
-import com.intellij.util.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 import utils.CBConfigUtil;
@@ -27,6 +26,7 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,6 +49,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
     private Runnable disconnectListener;
+
+    public static final AtomicBoolean ReconnectOnDisconnect = new AtomicBoolean();
 
     private ActiveCluster() {
     }
@@ -112,6 +114,16 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     eventBus.subscribe(event -> {
                         if (event instanceof UnexpectedEndpointDisconnectedEvent) {
                             if (cluster != null) {
+                                if (ReconnectOnDisconnect.get()) {
+                                    try {
+                                        Log.info("Reconnecting to cluster '" + savedCluster.getId() + "'");
+                                        cluster.disconnect();
+                                        connect(savedCluster, connectListener, disconnectListener);
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    return;
+                                }
                                 Log.info("Disconnected from cluster " + savedCluster.getId());
                                 SwingUtilities.invokeLater(() -> {
                                     try {
@@ -125,7 +137,6 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                                 });
                                 eventBus.stop(Duration.ZERO);
                                 disconnect();
-                                ActiveCluster.getInstance().get().environment().shutdown();
                             }
                         }
                     });
@@ -160,7 +171,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                             "Failed to connect to cluster"
                     ));
                     if (connectListener != null) {
-                        connectListener.consume(e);
+                        connectListener.accept(e);
                     }
                     if (cluster != null) {
                         disconnect();
@@ -305,12 +316,12 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     try {
                         doUpdateSchema();
                         if (onComplete != null) {
-                            onComplete.consume(null);
+                            onComplete.accept(null);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                         if (onComplete != null) {
-                            onComplete.consume(e);
+                            onComplete.accept(e);
                         }
                         SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not read cluster schema.", "Couchbase Connection Error"));
                         disconnect();
@@ -376,5 +387,9 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     public boolean hasQueryService() {
         return CBConfigUtil.hasQueryService(services);
+    }
+
+    public boolean isCapella() {
+        return savedCluster != null && savedCluster.getUrl().contains("cloud.couchbase.com");
     }
 }

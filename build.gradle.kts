@@ -6,13 +6,10 @@ plugins {
 group = "com.couchbase"
 version = "1.0.3"
 
-
 sourceSets["main"].java.srcDirs("src/main/gen")
 
 repositories {
     mavenCentral()
-
-
 }
 
 dependencies {
@@ -20,12 +17,12 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.7")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
     implementation("org.jfree:jfreechart:1.5.3")
+    implementation("com.opencsv:opencsv:5.5.2")
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
-
 
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
