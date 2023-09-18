@@ -356,7 +356,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 label.setText("-");
             }
             statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Canceled execution\"}"));
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Query cancelled\"}"));
         });
     }
 }
