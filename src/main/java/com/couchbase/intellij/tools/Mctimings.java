@@ -107,8 +107,10 @@ public class Mctimings {
 
         // Add the selected optional parameters to the command
         if (!selectedOptionalParameters.isEmpty()) {
-            String parameters = String.join(" ", selectedOptionalParameters).toLowerCase();
-            command.add(parameters);
+            for (String parameter : selectedOptionalParameters) {
+                String parameterLowerCase = parameter.toLowerCase();
+                command.add(parameterLowerCase);
+            }
         }
 
         Log.debug("Command is" + command);
@@ -162,7 +164,7 @@ public class Mctimings {
     public JPanel generateHistograms(Map<String, Map<String, Map<String, String>>> histogramData) {
         JPanel outputPanel = new JPanel();
         outputPanel.setLayout(new BoxLayout(outputPanel, BoxLayout.Y_AXIS));
-        
+
         // For each bucket in the histogram data
         for (Map.Entry<String, Map<String, Map<String, String>>> bucketEntry : histogramData.entrySet()) {
             String bucket = bucketEntry.getKey();
@@ -210,12 +212,8 @@ public class Mctimings {
             }
 
             JFreeChart barChart = ChartFactory.createBarChart(
-                    "Operation Duration Histogram for " + bucket + "with operation " + operation,
-                    "Operation Duration",
-                    "Occurrences",
-                    dataset,
-                    PlotOrientation.VERTICAL,
-                    true, true, false);
+                    "Operation Duration Histogram for " + bucket + "with operation " + operation, "Operation Duration",
+                    "Occurrences", dataset, PlotOrientation.VERTICAL, true, true, false);
 
             // Set dynamic range for Y-axis
             NumberAxis rangeAxis = (NumberAxis) barChart.getCategoryPlot().getRangeAxis();

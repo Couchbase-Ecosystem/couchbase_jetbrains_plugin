@@ -1,37 +1,54 @@
 package com.couchbase.intellij.tools.dialog;
 
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
+
+import com.intellij.openapi.ui.ComboBox;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.Mctimings;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import utils.TemplateUtil;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.List;
-import java.util.*;
+import utils.TemplateUtil;
 
 public class MctimingsDialog extends DialogWrapper {
 
+    private static final String SUMMARY_OF_ALL_OPERATIONS = "Summary of All Operations";
+    private static final String HISTOGRAM = "Histogram";
+    private static final String JSON = "Json";
+    private static final String JSON_PRETTY_PRINTED = "Json pretty printed";
     private final JComboCheckBox optionalParametersComboCheckBox = new JComboCheckBox();
     private GridBagConstraints c;
     private JComboBox<String> bucketComboBox;
     private JComboBox<String> outputFormatComboBox;
     private JPanel outputPanel;
     private JPanel dialogPanel;
-
-    private static final String SUMMARY_OF_ALL_OPERATIONS = "Summary of All Operations";
-    private static final String HISTOGRAM = "Histogram";
-    private static final String JSON = "Json";
-    private static final String JSON_PRETTY_PRINTED = "Json pretty printed";
+    private JBScrollPane histogramScrollPane;
 
     public MctimingsDialog() {
         super(true);
         init();
         setTitle("Couchbase Mctimings Dialog");
-        getWindow().setMinimumSize(new Dimension(800, 600));
+        getWindow().setMinimumSize(new Dimension(600, 400));
         setResizable(true);
         setOKButtonText("Display Timings");
     }
@@ -53,7 +70,7 @@ public class MctimingsDialog extends DialogWrapper {
 
         c.gridx = 1;
         c.gridy = 0;
-        bucketComboBox = new JComboBox<>();
+        bucketComboBox = new ComboBox<>();
         Set<String> bucketSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
         String[] buckets = bucketSet.toArray(new String[0]);
         bucketComboBox.addItem("All buckets");
@@ -71,7 +88,7 @@ public class MctimingsDialog extends DialogWrapper {
 
         c.gridx = 1;
         c.gridy = 1;
-        outputFormatComboBox = new JComboBox<>();
+        outputFormatComboBox = new ComboBox<>();
         outputFormatComboBox.addItem(SUMMARY_OF_ALL_OPERATIONS);
         outputFormatComboBox.addItem(HISTOGRAM);
         outputFormatComboBox.addItem(JSON);
@@ -159,12 +176,11 @@ public class MctimingsDialog extends DialogWrapper {
 
     @Override
     protected void doOKAction() {
-
         getWindow().setMinimumSize(new Dimension(1600, 800));
-        if (outputPanel != null) {
-            outputPanel.removeAll();
+        if (outputPanel != null)
             dialogPanel.remove(outputPanel);
-        }
+        if (histogramScrollPane != null)
+            dialogPanel.remove(histogramScrollPane);
 
         String selectedBucket = (String) bucketComboBox.getSelectedItem();
         String selectedOutputFormat = (String) outputFormatComboBox.getSelectedItem();
@@ -174,14 +190,11 @@ public class MctimingsDialog extends DialogWrapper {
             Mctimings mctimings = new Mctimings(selectedBucket, selectedOutputFormat, selectedOptionalParameters);
             outputPanel = mctimings.executeCommandAndReturnPanel();
 
-            // Create a JScrollPane containing the output panel
-            JScrollPane scrollPane = new JScrollPane(outputPanel);
-            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-            scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+            histogramScrollPane = new JBScrollPane(outputPanel);
+            histogramScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            histogramScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-            // Replace output panel with scroll pane in dialog panel
-            dialogPanel.remove(outputPanel);
-            dialogPanel.add(scrollPane, c);
+            dialogPanel.add(histogramScrollPane, c);
 
         } else {
             JTextArea outputTextArea = new JTextArea();
@@ -190,17 +203,15 @@ public class MctimingsDialog extends DialogWrapper {
             outputTextArea.setLineWrap(true); // Enable line wrapping
             outputTextArea.setWrapStyleWord(true); // Wrap lines at word boundaries
 
-            JScrollPane scrollPane = new JScrollPane(outputTextArea);
-            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            JBScrollPane outputTextAreaScrollPane = new JBScrollPane(outputTextArea);
+            outputTextAreaScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
             outputPanel = new JPanel(new BorderLayout());
             Mctimings mctimings = new Mctimings(selectedBucket, selectedOutputFormat, selectedOptionalParameters);
             String output = mctimings.executeCommandAndReturnString();
             outputTextArea.setText(output);
 
-            outputPanel.add(scrollPane, BorderLayout.CENTER);
-            outputPanel.revalidate();
-            outputPanel.repaint();
+            outputPanel.add(outputTextAreaScrollPane, BorderLayout.CENTER);
             dialogPanel.add(outputPanel, c);
         }
 
