@@ -1,19 +1,26 @@
 package com.couchbase.intellij.tools.dialog;
 
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+
+import org.jetbrains.annotations.Nullable;
+
 import com.couchbase.intellij.tools.CBStats;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.DialogWrapper;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
-import java.awt.*;
 
 public class CbstatsCollectionDialog extends DialogWrapper {
 
 
     private final String bucketName;
-    private String scopeName;
-    private String collectionName;
+    private final String scopeName;
+    private final String collectionName;
 
     public CbstatsCollectionDialog(String bucket, String scope, String collection) {
         super(true);
