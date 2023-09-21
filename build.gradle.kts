@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.0.3"
+version = "1.0.4"
 
 sourceSets["main"].java.srcDirs("src/main/gen")
 

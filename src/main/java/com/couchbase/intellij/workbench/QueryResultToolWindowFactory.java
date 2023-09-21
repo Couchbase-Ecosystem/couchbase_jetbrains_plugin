@@ -54,6 +54,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String docsSizeTooltip = "Total size of documents returned";
     public static QueryResultToolWindowFactory instance;
     public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
+    private final String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, mutationsToolTip, docsTooltip, docsSizeTooltip};
     private HtmlPanel htmlPanel;
     private JsonTableModel model;
     private JLabel statusIcon;
@@ -62,9 +64,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<JLabel> queryLabelsList;
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
-
-    private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
-    private final String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, mutationsToolTip, docsTooltip, docsSizeTooltip};
     private Project project;
 
     public QueryResultToolWindowFactory() {
@@ -82,6 +81,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         JBTabs tabs = new JBTabsImpl(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
+        table.setCellSelectionEnabled(true);
+        table.setRowSelectionAllowed(true);
+        table.setColumnSelectionAllowed(true);
 
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BorderLayout());
