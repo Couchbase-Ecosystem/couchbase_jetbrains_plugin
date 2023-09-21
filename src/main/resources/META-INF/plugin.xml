@@ -30,19 +30,15 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>SQL++ Autocomplete</li>
-          <li>Pillow Fight</li>
-          <li>Data Export</li>
-          <li>DDL Export</li>
-          <li>Key-Value Support</li>
-          <li>Improved Collection Counters</li>
-          <li>Improved New Connection Dialog</li>
-          <li>Create Document from Template</li>
+          <li>Data Import</li>
+          <li>Create Buckets</li>
+          <li>Create Collection now supports Max TTL</li>
+          <li>Support for connection params in the connection string</li>
           <li>and much more!</li>
         </ul>
         <h2>Bug Fixes</h2>
         <ul>
-          <li>Fixed many and most likely added a few new ones</li>
+          <li>Fixed many and most likely added a few new ones :)</li>
         </ul>
         ]]>
     </change-notes>
