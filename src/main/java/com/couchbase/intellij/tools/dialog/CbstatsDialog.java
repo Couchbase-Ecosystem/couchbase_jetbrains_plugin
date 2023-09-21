@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tools.dialog;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -30,7 +29,7 @@ public class CbstatsDialog extends DialogWrapper {
     private static final String NUMBER_OF_STORE_OPERATIONS = "Number Of Store Operations";
     private static final String SCOPE_NAME = "Scope Name";
 
-    public CbstatsDialog(String bucket, String scope, String collection,String type) {
+    public CbstatsDialog(String bucket, String scope, String collection, String type) {
         super(true);
         this.bucketName = bucket;
         this.scopeName = scope;
@@ -46,7 +45,7 @@ public class CbstatsDialog extends DialogWrapper {
     protected JComponent createCenterPanel() {
         JPanel dialogPanel = new JPanel(new BorderLayout());
 
-        CBStats cbStats = new CBStats(bucketName, scopeName, collectionName,type);
+        CBStats cbStats = new CBStats(bucketName, scopeName, collectionName, type);
         String output = "";
         try {
             output = cbStats.executeCommand();
@@ -132,8 +131,21 @@ public class CbstatsDialog extends DialogWrapper {
                 } else {
                     return String.format("%.2f MB", sizeInMB);
                 }
+            case NUMBER_OF_DELETE_OPERATIONS:
+            case NUMBER_OF_GET_OPERATIONS:
+            case NUMBER_OF_STORE_OPERATIONS:
+            case NUMBER_OF_ITEMS:
+                long count = Long.parseLong(value);
+                if (count >= 1_000_000) {
+                    return String.format("%.2f M", count / 1_000_000.0);
+                } else if (count >= 1_000) {
+                    return String.format("%.2f K", count / 1_000.0);
+                } else {
+                    return value;
+                }
             default:
                 return value;
         }
     }
+
 }

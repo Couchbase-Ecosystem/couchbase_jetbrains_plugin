@@ -62,7 +62,7 @@ public class CBStats {
             command.add("collections");
             command.add(scopeName + "." + collectionName);
         } else if (type.equalsIgnoreCase("scope")) {
-            command.add("collections");
+            command.add("scopes");
             command.add(scopeName);
         }
 
