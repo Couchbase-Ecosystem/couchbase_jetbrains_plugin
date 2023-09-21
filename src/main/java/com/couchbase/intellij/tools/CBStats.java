@@ -24,7 +24,7 @@ public class CBStats {
         this.type = type;
     }
 
-    public String getCollectionStatistics() throws IOException, InterruptedException {
+    public String executeCommand() throws IOException, InterruptedException {
         StringBuilder output;
 
         List<String> command = new ArrayList<>();
@@ -48,7 +48,8 @@ public class CBStats {
             default:
                 throw new UnsupportedOperationException("Unsupported operating system: " + osArch);
         }
-        command.add((ActiveCluster.getInstance().getClusterURL().replaceFirst("^couchbase://", "")) + ":" + (ActiveCluster.getInstance().isSSLEnabled() ? "11207" : "11210"));
+        command.add((ActiveCluster.getInstance().getClusterURL().replaceFirst("^couchbase://", "")) + ":"
+                + (ActiveCluster.getInstance().isSSLEnabled() ? "11207" : "11210"));
         command.add("-u");
         command.add(ActiveCluster.getInstance().getUsername());
         command.add("-p");
@@ -57,8 +58,13 @@ public class CBStats {
         command.add("-b");
         command.add(bucketName);
 
-        command.add("collections");
-        command.add(scopeName + "." + collectionName);
+        if (type.equalsIgnoreCase("collection")) {
+            command.add("collections");
+            command.add(scopeName + "." + collectionName);
+        } else if (type.equalsIgnoreCase("scope")) {
+            command.add("collections");
+            command.add(scopeName);
+        }
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process process = processBuilder.start();

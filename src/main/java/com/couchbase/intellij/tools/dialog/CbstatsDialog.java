@@ -38,7 +38,6 @@ public class CbstatsDialog extends DialogWrapper {
         this.type = type;
         init();
         setTitle("Stats for " + type);
-        getWindow().setMinimumSize(new Dimension(350, 350));
         setResizable(true);
     }
 
@@ -50,7 +49,7 @@ public class CbstatsDialog extends DialogWrapper {
         CBStats cbStats = new CBStats(bucketName, scopeName, collectionName,type);
         String output = "";
         try {
-            output = cbStats.getCollectionStatistics();
+            output = cbStats.executeCommand();
         } catch (Exception ex) {
             Log.error(ex);
         }
@@ -63,8 +62,8 @@ public class CbstatsDialog extends DialogWrapper {
         for (int i = 0; i < lines.length; i++) {
             int keyStartIndex = lines[i].indexOf(':', lines[i].indexOf(':') + 1) + 1;
             int valueStartIndex = lines[i].lastIndexOf(':') + 1;
-            keys[i] = getCollectionFriendlyKeyName(lines[i].substring(keyStartIndex, valueStartIndex - 1).trim());
-            values[i] = getCollectionFriendlyValue(lines[i].substring(valueStartIndex).trim(), keys[i]);
+            keys[i] = getFriendlyKeyName(lines[i].substring(keyStartIndex, valueStartIndex - 1).trim());
+            values[i] = getFriendlyValue(lines[i].substring(valueStartIndex).trim(), keys[i]);
             helpTexts[i] = getHelpText(keys[i]); // get help text for each key
         }
 
@@ -98,7 +97,7 @@ public class CbstatsDialog extends DialogWrapper {
         }
     }
 
-    private String getCollectionFriendlyKeyName(String key) {
+    private String getFriendlyKeyName(String key) {
         switch (key) {
             case "collections_mem_used":
                 return MEMORY_USED_BY_COLLECTION;
@@ -121,7 +120,7 @@ public class CbstatsDialog extends DialogWrapper {
         }
     }
 
-    private String getCollectionFriendlyValue(String value, String key) {
+    private String getFriendlyValue(String value, String key) {
         switch (key) {
             case MEMORY_USED_BY_COLLECTION:
             case COLLECTION_DATA_SIZE:
