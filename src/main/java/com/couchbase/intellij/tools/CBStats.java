@@ -15,13 +15,16 @@ public class CBStats {
     private final String scopeName;
     private final String collectionName;
 
-    public CBStats(String bucketName, String scopeName, String collectionName) {
+    private final String type;
+
+    public CBStats(String bucketName, String scopeName, String collectionName, String type) {
         this.bucketName = bucketName;
         this.scopeName = scopeName;
         this.collectionName = collectionName;
+        this.type = type;
     }
 
-    public String executeCommand() throws IOException, InterruptedException {
+    public String getCollectionStatistics() throws IOException, InterruptedException {
         StringBuilder output;
 
         List<String> command = new ArrayList<>();

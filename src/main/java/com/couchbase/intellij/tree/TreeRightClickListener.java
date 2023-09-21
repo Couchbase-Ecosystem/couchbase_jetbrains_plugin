@@ -10,7 +10,7 @@ import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.PillowFightDialog;
-import com.couchbase.intellij.tools.dialog.CbstatsCollectionDialog;
+import com.couchbase.intellij.tools.dialog.CbstatsDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
@@ -600,12 +600,13 @@ public class TreeRightClickListener {
         AnAction viewStats = new AnAction("View Collection Statistics") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                CbstatsCollectionDialog cbstatsCollectionDialog = new CbstatsCollectionDialog(
+                CbstatsDialog cbstatsDialog = new CbstatsDialog(
                         col.getBucket(),
                         col.getScope(),
-                        col.getText()
+                        col.getText(),
+                        "collection"
                 );
-                cbstatsCollectionDialog.show();
+                cbstatsDialog.show();
             }
         };
         actionGroup.add(viewStats);
