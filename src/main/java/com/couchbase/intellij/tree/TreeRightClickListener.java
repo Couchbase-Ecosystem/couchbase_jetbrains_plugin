@@ -371,6 +371,18 @@ public class TreeRightClickListener {
         };
         actionGroup.add(simpleExport);
 
+        actionGroup.addSeparator();
+
+        AnAction viewStats = new AnAction("View Scope Statistics") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                // You can replace the following line with your own implementation for viewing scope statistics.
+                CbstatsDialog cbstatsDialog = new CbstatsDialog(scope.getBucket(),scope.getText(),"","scope");
+                cbstatsDialog.show();
+            }
+        };
+        actionGroup.add(viewStats);
+
         showPopup(e, tree, actionGroup);
     }
 
