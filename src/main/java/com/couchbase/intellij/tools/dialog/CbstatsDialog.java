@@ -39,17 +39,17 @@ public class CbstatsDialog extends DialogWrapper {
     private static final String SCOPE_DATA_SIZE = "Scope Data Size";
     private static final String SCOPE_NAME = "Scope Name";
 
-    private static final String NUMBER_OF_ITEMS_IN_COLLECTION = "Number Of Items In Collection";
-    private static final String NUMBER_OF_DELETE_OPERATIONS_IN_COLLECTION = "Number Of Delete Operations In Collection";
-    private static final String NUMBER_OF_GET_OPERATIONS_IN_COLLECTION = "Number Of Get Operations In Collection";
-    private static final String NUMBER_OF_STORE_OPERATIONS_IN_COLLECTION = "Number Of Store Operations In Collection";
+    private static final String NUMBER_OF_ITEMS_IN_COLLECTION = "# Items In Collection";
+    private static final String NUMBER_OF_DELETE_OPERATIONS_IN_COLLECTION = "# Delete Operations In Collection";
+    private static final String NUMBER_OF_GET_OPERATIONS_IN_COLLECTION = "# Get Operations In Collection";
+    private static final String NUMBER_OF_STORE_OPERATIONS_IN_COLLECTION = "# Store Operations In Collection";
 
-    private static final String NUMBER_OF_ITEMS_IN_SCOPE = "Number Of Items In Scope";
-    private static final String NUMBER_OF_DELETE_OPERATIONS_IN_SCOPE = "Number Of Delete Operations In Scope";
-    private static final String NUMBER_OF_GET_OPERATIONS_IN_SCOPE = "Number Of Get Operations In Scope";
-    private static final String NUMBER_OF_STORE_OPERATIONS_IN_SCOPE = "Number Of Store Operations In Scope";
+    private static final String NUMBER_OF_ITEMS_IN_SCOPE = "# Items In Scope";
+    private static final String NUMBER_OF_DELETE_OPERATIONS_IN_SCOPE = "# Delete Operations In Scope";
+    private static final String NUMBER_OF_GET_OPERATIONS_IN_SCOPE = "# Get Operations In Scope";
+    private static final String NUMBER_OF_STORE_OPERATIONS_IN_SCOPE = "# Store Operations In Scope";
 
-    private static final String COLLECTIONS_IN_SCOPE = "Number Of Collections in Scope";
+    private static final String COLLECTIONS_IN_SCOPE = "# Collections in Scope";
 
     private static final Map<String, String> COLLECTION_KEY_MAPPINGS;
     private static final Map<String, String> SCOPE_KEY_MAPPINGS;
@@ -199,9 +199,10 @@ public class CbstatsDialog extends DialogWrapper {
 
             // If this is the start of a new collection's stats, add a separator and flush
             // the cache
-            if ((friendlyKey.equals(COLLECTION_NAME) && currentEntityForStatistic.equals(COLLECTION_LITERAL))
-                    || (friendlyKey.equals(SCOPE_NAME) && currentEntityForStatistic.equals(SCOPE_LITERAL))) {
+            if ((friendlyKey.equals(COLLECTION_NAME) && currentEntityForStatistic.equals(COLLECTION_LITERAL))) {
                 keyValuePanel.add(TemplateUtil.getSeparator(friendlyValue));
+            } else if ((friendlyKey.equals(SCOPE_NAME) && currentEntityForStatistic.equals(SCOPE_LITERAL))) {
+                keyValuePanel.add(TemplateUtil.getSeparator("Scope Summary: "));
             } else if (cacheMap.containsKey(friendlyKey) || friendlyKey.equals(COLLECTIONS_IN_SCOPE)) {
                 keyValuePanel.add(createKeyValuePanelFromCache(cacheMap));
                 cacheMap.clear();
