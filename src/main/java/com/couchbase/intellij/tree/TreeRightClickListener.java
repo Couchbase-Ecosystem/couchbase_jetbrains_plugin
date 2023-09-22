@@ -13,6 +13,7 @@ import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.CbstatsDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
+import com.couchbase.intellij.tools.dialog.ImportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
@@ -36,6 +37,7 @@ import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.ColorPicker;
 import com.intellij.ui.ColorPickerListener;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
@@ -91,6 +93,26 @@ public class TreeRightClickListener {
             actionGroup.add(clusterOverview);
             actionGroup.addSeparator();
 
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && !ActiveCluster.getInstance().isCapella()) {
+                // Add "Create New Bucket" option
+                AnAction createNewBucketItem = new AnAction("Create New Bucket") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        try {
+                            new NewBucketCreationDialog(project).show((cancelled, err) -> {
+                                TreePath treePath = new TreePath(clickedNode.getPath());
+                                tree.collapsePath(treePath);
+                                tree.expandPath(treePath);
+                                tree.invalidate();
+                            });
+                        } catch (Exception ex) {
+                            Log.error("Bucket Creation failed ", ex);
+                        }
+                    }
+                };
+                actionGroup.add(createNewBucketItem);
+            }
+
             AnAction refreshBuckets = new AnAction("Refresh Buckets") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
@@ -144,12 +166,18 @@ public class TreeRightClickListener {
                 tools.add(cbexport);
             }
 
-            // TODO: Desabled temporarily until the feature is completed
-            // if (!ActiveCluster.getInstance().isReadOnlyMode() &&
-            // CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
-            // JBMenuItem cbimport = new JBMenuItem("Data Import");
-            // tools.add(cbimport);
-            // }
+            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT).isAvailable()) {
+
+                AnAction cbimport = new AnAction("Data Import") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        ImportDialog importDialog = new ImportDialog(project);
+                        importDialog.show();
+                    }
+                };
+                tools.add(cbimport);
+                tools.addSeparator();
+            }
 
             DefaultActionGroup settings = new DefaultActionGroup("Settings", true);
             DefaultActionGroup colors = new DefaultActionGroup("Connection Colors", true);
@@ -157,7 +185,7 @@ public class TreeRightClickListener {
             AnAction colorAction = new AnAction("Set Connection Color") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    Color initialColor = Color.RED;
+                    Color initialColor = JBColor.RED;
                     ColorPickerListener colorPickerListener = new ColorPickerListener() {
                         @Override
                         public void colorChanged(Color newColor) {
@@ -267,19 +295,52 @@ public class TreeRightClickListener {
             AnAction addNewScopeItem = new AnAction("Add New Scope") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+                    try {
+
+                        String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
                     NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
                     entityCreationDialog.show();
 
-                    if (entityCreationDialog.isOK()) {
-                        String scopeName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
-                        DataLoader.listScopes(clickedNode, tree);
+                        if (entityCreationDialog.isOK()) {
+                            String scopeName = entityCreationDialog.getEntityName();
+                            ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
+                            DataLoader.listScopes(clickedNode, tree);
+                        }
+                    } catch (Exception ex) {
+                        Log.error("Scope creation failed ", ex);
                     }
                 }
             };
             actionGroup.add(addNewScopeItem);
+
+            // Add "Delete Bucket" option
+            AnAction deleteBucketItem = new AnAction("Delete Bucket") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    try {
+
+                        String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+
+                        // Show confirmation dialog before deleting bucket
+                        int result = Messages.showYesNoDialog("Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket", Messages.getQuestionIcon());
+                        if (result != Messages.YES) {
+                            return;
+                        }
+
+                        ActiveCluster.ReconnectOnDisconnect.set(true);
+                        ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
+                        ActiveCluster.ReconnectOnDisconnect.set(false);
+                        // Refresh buckets
+                        TreePath treePath = new TreePath(clickedNode.getPath());
+                        tree.collapsePath(treePath.getParentPath());
+                        tree.expandPath(treePath.getParentPath());
+                    } catch (Exception ex) {
+                        Log.error("Bucket deletion failed ", ex);
+                    }
+                }
+            };
+            actionGroup.add(deleteBucketItem);
         }
 
         showPopup(e, tree, actionGroup);
@@ -320,18 +381,23 @@ public class TreeRightClickListener {
                 AnAction deleteScopeItem = new AnAction("Delete Scope") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        // Show confirmation dialog before deleting scope
-                        int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
-                        if (result != Messages.YES) {
-                            return;
-                        }
+                        try {
 
-                        ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
-                        // Refresh buckets
-                        DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                        TreePath treePath = new TreePath(bucketTreeNode.getPath());
-                        tree.collapsePath(treePath);
-                        tree.expandPath(treePath);
+                            // Show confirmation dialog before deleting scope
+                            int result = Messages.showYesNoDialog("Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", Messages.getQuestionIcon());
+                            if (result != Messages.YES) {
+                                return;
+                            }
+
+                            ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
+                            // Refresh buckets
+                            DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                            TreePath treePath = new TreePath(bucketTreeNode.getPath());
+                            tree.collapsePath(treePath);
+                            tree.expandPath(treePath);
+                        } catch (Exception ex) {
+                            Log.error("Scope deletion failed ", ex);
+                        }
                     }
                 };
                 actionGroup.add(deleteScopeItem);
@@ -556,17 +622,22 @@ public class TreeRightClickListener {
                 AnAction deleteCollectionItem = new AnAction("Delete Collection") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());
-                        if (result != Messages.YES) {
-                            return;
-                        }
+                        try {
 
-                        ActiveCluster.getInstance().get().bucket(col.getBucket()).collections().dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
-                        // Refresh collections
-                        DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                        TreePath treePath = new TreePath(colsTreeNode.getPath());
-                        tree.collapsePath(treePath);
-                        tree.expandPath(treePath);
+                            int result = Messages.showYesNoDialog("Are you sure you want to delete the collection " + col.getText() + "?", "Delete Collection", Messages.getQuestionIcon());
+                            if (result != Messages.YES) {
+                                return;
+                            }
+
+                            ActiveCluster.getInstance().get().bucket(col.getBucket()).collections().dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
+                            // Refresh collections
+                            DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
+                            TreePath treePath = new TreePath(colsTreeNode.getPath());
+                            tree.collapsePath(treePath);
+                            tree.expandPath(treePath);
+                        } catch (Exception ex) {
+                            Log.error("Collection deletion failed ", ex);
+                        }
                     }
                 };
                 actionGroup.add(deleteCollectionItem);
