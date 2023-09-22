@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.swing.Action;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.intellij.tools.CBStats;
@@ -24,6 +26,9 @@ public class CbstatsDialog extends DialogWrapper {
     private final String scopeName;
     private final String collectionName;
     private final String type;
+
+    private static final String COLLECTION_LITERAL = "collection";
+    private static final String SCOPE_LITERAL = "scope";
 
     private static final String MEMORY_USED_BY_COLLECTION = "Memory Used By Collection";
     private static final String COLLECTION_DATA_SIZE = "Collection Data Size";
@@ -104,13 +109,19 @@ public class CbstatsDialog extends DialogWrapper {
         this.type = type;
         init();
         setTitle("Stats for " + type);
+        setOKButtonText("Okay");
         setResizable(true);
+    }
+
+    @NotNull
+    @Override
+    protected Action @NotNull [] createActions() {
+        return new Action[] { getOKAction() };
     }
 
     @Nullable
     @Override
     protected JComponent createCenterPanel() {
-        JPanel dialogPanel = new JPanel(new BorderLayout());
 
         CBStats cbStats = new CBStats(bucketName, scopeName, collectionName, type);
         String output = "";
@@ -120,55 +131,80 @@ public class CbstatsDialog extends DialogWrapper {
             Log.error(ex);
         }
 
-        String[] lines = output.split("\n");
-        JPanel keyValuePanel = new JPanel();
-        keyValuePanel.setLayout(new BoxLayout(keyValuePanel, BoxLayout.Y_AXIS));
+        JPanel dialogPanel = new JPanel(new BorderLayout());
 
-        Map<String, String> cacheMap = new LinkedHashMap<>();
-        String currentEntityForStatistic;
+        if (type.equalsIgnoreCase(COLLECTION_LITERAL)) {
 
-        for (String line : lines) {
-            String[] parts = line.split(":");
-            String key;
-            String value;
+            String[] lines = output.split("\n");
+            String[] keys = new String[lines.length];
+            String[] values = new String[lines.length];
+            String[] helpTexts = new String[lines.length]; // array for help texts
 
-            if (parts.length == 4) {
-                key = parts[2].trim();
-                value = parts[3].trim();
-                currentEntityForStatistic = "collection";
-            } else if (parts.length == 3) {
-                key = parts[1].trim();
-                value = parts[2].trim();
-                currentEntityForStatistic = "scope";
-            } else {
-                continue; // Skip lines with unexpected format
+            for (int i = 0; i < lines.length; i++) {
+                int keyStartIndex = lines[i].indexOf(':', lines[i].indexOf(':') + 1) + 1;
+                int valueStartIndex = lines[i].lastIndexOf(':') + 1;
+                keys[i] = getFriendlyKeyName(lines[i].substring(keyStartIndex, valueStartIndex - 1).trim(),
+                        COLLECTION_LITERAL);
+                values[i] = getFriendlyValue(lines[i].substring(valueStartIndex).trim(), keys[i]);
+                helpTexts[i] = getHelpText(keys[i]); // get help text for each key
             }
 
-            String friendlyKey = getFriendlyKeyName(key, currentEntityForStatistic);
-            String friendlyValue = getFriendlyValue(value, friendlyKey);
+            JPanel keyValuePanel = TemplateUtil.createKeyValuePanelWithHelp(keys, values, helpTexts, 1);
 
-            // If this is the start of a new collection's stats, add a separator and flush
-            // the cache
-            if ((friendlyKey.equals(COLLECTION_NAME) && currentEntityForStatistic.equals("collection"))
-                    || (friendlyKey.equals(SCOPE_NAME) && currentEntityForStatistic.equals("scope"))) {
-                keyValuePanel.add(TemplateUtil.getSeparator(friendlyValue));
-            } else if (cacheMap.containsKey(friendlyKey) || friendlyKey.equals(COLLECTIONS_IN_SCOPE)) {
+            dialogPanel.add(keyValuePanel, BorderLayout.CENTER);
+
+        } else if (type.equalsIgnoreCase(SCOPE_LITERAL)) {
+
+            String[] lines = output.split("\n");
+            JPanel keyValuePanel = new JPanel();
+            keyValuePanel.setLayout(new BoxLayout(keyValuePanel, BoxLayout.Y_AXIS));
+
+            Map<String, String> cacheMap = new LinkedHashMap<>();
+            String currentEntityForStatistic;
+
+            for (String line : lines) {
+                String[] parts = line.split(":");
+                String key;
+                String value;
+
+                if (parts.length == 4) {
+                    key = parts[2].trim();
+                    value = parts[3].trim();
+                    currentEntityForStatistic = COLLECTION_LITERAL;
+                } else if (parts.length == 3) {
+                    key = parts[1].trim();
+                    value = parts[2].trim();
+                    currentEntityForStatistic = SCOPE_LITERAL;
+                } else {
+                    continue; // Skip lines with unexpected format
+                }
+
+                String friendlyKey = getFriendlyKeyName(key, currentEntityForStatistic);
+                String friendlyValue = getFriendlyValue(value, friendlyKey);
+
+                // If this is the start of a new collection's stats, add a separator and flush
+                // the cache
+                if ((friendlyKey.equals(COLLECTION_NAME) && currentEntityForStatistic.equals(COLLECTION_LITERAL))
+                        || (friendlyKey.equals(SCOPE_NAME) && currentEntityForStatistic.equals(SCOPE_LITERAL))) {
+                    keyValuePanel.add(TemplateUtil.getSeparator(friendlyValue));
+                } else if (cacheMap.containsKey(friendlyKey) || friendlyKey.equals(COLLECTIONS_IN_SCOPE)) {
+                    keyValuePanel.add(createKeyValuePanelFromCache(cacheMap));
+                    cacheMap.clear();
+                }
+
+                cacheMap.put(friendlyKey, friendlyValue);
+            }
+
+            // Flush the remaining items in the cache
+            if (!cacheMap.isEmpty()) {
                 keyValuePanel.add(createKeyValuePanelFromCache(cacheMap));
-                cacheMap.clear();
             }
 
-            cacheMap.put(friendlyKey, friendlyValue);
+            // Wrap the keyValuePanel in a JScrollPane
+            JBScrollPane scrollPane = new JBScrollPane(keyValuePanel);
+            dialogPanel.add(scrollPane, BorderLayout.CENTER);
+
         }
-
-        // Flush the remaining items in the cache
-        if (!cacheMap.isEmpty()) {
-            keyValuePanel.add(createKeyValuePanelFromCache(cacheMap));
-        }
-
-        // Wrap the keyValuePanel in a JScrollPane
-        JBScrollPane scrollPane = new JBScrollPane(keyValuePanel);
-        dialogPanel.add(scrollPane, BorderLayout.CENTER);
-
         return dialogPanel;
     }
 
@@ -192,7 +228,7 @@ public class CbstatsDialog extends DialogWrapper {
     private String getFriendlyKeyName(String key, String type) {
 
         // Assign the appropriate key mappings based on the type
-        Map<String, String> keyMappings = (type.equals("collection")) ? COLLECTION_KEY_MAPPINGS : SCOPE_KEY_MAPPINGS;
+        Map<String, String> keyMappings = (type.equals(COLLECTION_LITERAL)) ? COLLECTION_KEY_MAPPINGS : SCOPE_KEY_MAPPINGS;
 
         // Default case, return the original key if no match is found
         return keyMappings.getOrDefault(key, key);
