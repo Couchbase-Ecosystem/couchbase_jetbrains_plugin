@@ -11,6 +11,9 @@ public class Clusters {
     private Map<String, Map<String, Long>> inferCacheUpdateTimes;
 
     public Map<String, SavedCluster> getMap() {
+        if (map == null) {
+            map = new HashMap<>();
+        }
         return map;
     }
 

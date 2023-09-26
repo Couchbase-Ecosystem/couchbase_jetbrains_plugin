@@ -565,9 +565,6 @@ public class DataLoader {
         sc.setDefaultBucket(defaultBucket);
 
         Clusters clusters = ClustersStorage.getInstance().getValue();
-        if (clusters == null) {
-            clusters = new Clusters();
-        }
 
         if (clusters.getMap() == null) {
             clusters.setMap(new HashMap<>());

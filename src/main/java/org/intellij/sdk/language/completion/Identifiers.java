@@ -4,6 +4,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.codeInsight.completion.*;
+import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
@@ -199,7 +200,11 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
             if (aliasName.equals(name)) {
                 List<String> aliasPath = Utils.getAliasPath(alias);
                 if (aliasPath.size() == 1) {
-                    aliasPath = Utils.expandCollectionPath(aliasPath.get(0));
+                    List<String> context = Collections.EMPTY_LIST;
+                    if (element.getContainingFile() instanceof SqlppFile) {
+                        context = ((SqlppFile) element.getContainingFile()).getClusterContext();
+                    }
+                    aliasPath = Utils.expandCollectionPath(context, aliasPath.get(0));
                 }
                 int rm = aliasPath.size();
                 aliasPath.addAll(path);
@@ -258,24 +263,4 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         return found;
     }
 
-    private boolean completeForContext(CompletionResultSet result, ActiveCluster cluster, PsiElement element, List<String> editorContext, List<String> statementContext, List<String> completePath) {
-        List<String> path = new ArrayList<>(editorContext);
-        path.addAll(statementContext);
-        if (!path.isEmpty() && !completePath.isEmpty()) {
-            if (completePath.get(0).equalsIgnoreCase(path.get(path.size() - 1))) {
-                int rm = path.size();
-                path.addAll(completePath);
-                path.remove(rm);
-            } else {
-                path.addAll(completePath);
-            }
-        } else {
-            path.addAll(completePath);
-        }
-
-        if (!path.isEmpty()) {
-            return completeForPath(cluster, path, result);
-        }
-        return false;
-    }
 }

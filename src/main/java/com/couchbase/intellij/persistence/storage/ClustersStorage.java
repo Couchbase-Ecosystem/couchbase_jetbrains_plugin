@@ -85,6 +85,9 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
     }
 
     public Clusters getValue() {
+        if (myState.clusters == null) {
+            myState.clusters = new Clusters();
+        }
         return myState.clusters;
     }
 
