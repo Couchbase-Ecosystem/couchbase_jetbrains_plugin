@@ -351,4 +351,14 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
         });
     }
+
+    public void setStatusAsCanceled() {
+        SwingUtilities.invokeLater(() -> {
+            for (JLabel label : queryStatsList) {
+                label.setText("-");
+            }
+            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
+            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Query cancelled\"}"));
+        });
+    }
 }
