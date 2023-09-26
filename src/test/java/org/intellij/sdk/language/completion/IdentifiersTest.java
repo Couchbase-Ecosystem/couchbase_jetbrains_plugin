@@ -256,6 +256,11 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     }
 
     @Test
+    public void testAliasWithContext() {
+        assertCompletes("select * from collection-entity as test_alias where test-alias.", "parent-field");
+    }
+
+    @Test
     public void testAliasPath() {
         assertCompletes("select * from bucket-entity.scope-entity.collection-entity as test_alias where test_alias.", "parent-field");
     }
