@@ -2,6 +2,7 @@ package org.intellij.sdk.language.completion;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
+import com.couchbase.intellij.database.entity.CouchbaseField;
 import com.couchbase.intellij.database.entity.CouchbaseScope;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElement;
@@ -41,11 +42,6 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
 
     @Override
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext ctx, @NotNull CompletionResultSet result) {
-
-        PsiElement element = parameters.getPosition();
-//        System.out.println(element);
-//        System.out.println(element.getParent());
-
         result.addAllElements(getStaticRecommendations());
         List<String> context = getQueryContext(parameters);
         if (!context.isEmpty()) {
@@ -61,7 +57,7 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
         if (scope.isPresent()) {
             Set<CouchbaseCollection> collections = scope.get().getChildren();
             Map<String, Set<String>> colAttributes = collections
-                    .stream().collect(Collectors.toMap(e -> e.getName(), e -> getCollectionAttributes(e)));
+                    .stream().collect(Collectors.toMap(CouchbaseCollection::getName, this::getCollectionAttributes));
 
             for (Map.Entry<String, Set<String>> entry : colAttributes.entrySet()) {
                 recommendations.addAll(getCollectionRecommendations(entry.getKey(), entry.getValue()));
@@ -103,10 +99,9 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     }
 
     private Set<String> getCollectionAttributes(CouchbaseCollection col) {
-        return new TreeSet<>(col.getChildren().stream()
+        return col.getChildren().stream()
                 .flatMap(e -> e.getChildren().stream())
-                .map(e -> e.getName())
-                .collect(Collectors.toSet()));
+                .map(CouchbaseField::getName).collect(Collectors.toCollection(TreeSet::new));
     }
 
     private List<LookupElement> getStaticRecommendations() {
@@ -220,8 +215,7 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     private List<String> getQueryContext(CompletionParameters parameters) {
         PsiElement element = Utils.cleanErrorIfPresent(parameters.getPosition());
         PsiFile psiFile = element.getContainingFile();
-        List<String> editorContext = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
-        return editorContext;
+        return psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
     }
 
 
