@@ -132,4 +132,116 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         }
         return csvData.toString();
     }
+
+    // public String convertToSQLPP() {
+    //     StringBuilder sqlpp = new StringBuilder();
+
+    //     for (Map<String, Object> row : data) {
+    //         sqlpp.append("UPSERT {");
+
+    //         boolean first = true;
+    //         for (Map.Entry<String, Object> entry : row.entrySet()) {
+    //             if (!first) {
+    //                 sqlpp.append(", ");
+    //             }
+    //             sqlpp.append("\"").append(entry.getKey()).append("\": ");
+    //             if (entry.getValue() instanceof String) {
+    //                 sqlpp.append("\"").append(entry.getValue()).append("\"");
+    //             } else {
+    //                 sqlpp.append(entry.getValue());
+    //             }
+    //             first = false;
+    //         }
+
+    //         sqlpp.append("}\n");
+    //     }
+
+    //     return sqlpp.toString();
+    // }
+
+    public String convertToSQLPPUpsert() {
+        StringBuilder sqlpp = new StringBuilder();
+
+        for (Map<String, Object> row : data) {
+            Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
+            if (keyObject == null) {
+                return "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+            }
+            String key = keyObject.toString(); // Convert the key to a string
+            row.remove("key");
+            row.remove("id");
+            sqlpp.append("UPSERT INTO keyspace (KEY, VALUE) VALUES (\"");
+            sqlpp.append(key);
+            sqlpp.append("\", ");
+
+            JsonObject value = JsonObject.from(row);
+            sqlpp.append(value.toString());
+
+            sqlpp.append(");\n");
+        }
+
+        return sqlpp.toString();
+    }
+
+    public String convertToSQLPPInsert() {
+        StringBuilder sqlpp = new StringBuilder();
+
+        for (Map<String, Object> row : data) {
+            Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
+            if (keyObject == null) {
+                return "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+            }
+            String key = keyObject.toString(); // Convert the key to a string
+            row.remove("key");
+            row.remove("id");
+            sqlpp.append("INSERT INTO keyspace (KEY, VALUE) VALUES (\"");
+            sqlpp.append(key);
+            sqlpp.append("\", ");
+
+            JsonObject value = JsonObject.from(row);
+            sqlpp.append(value.toString());
+
+            sqlpp.append(");\n"); // Append semicolon at the end of each statement
+        }
+
+        return sqlpp.toString();
+    }
+
+    public String convertToSQLPPUpdate() {
+        StringBuilder sqlpp = new StringBuilder();
+
+        for (Map<String, Object> row : data) {
+            Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
+            if (keyObject == null) {
+                return "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+            }
+            String key = keyObject.toString(); // Convert the key to a string
+            row.remove("key");
+            row.remove("id");
+            sqlpp.append("UPDATE keyspace USE KEYS \"");
+            sqlpp.append(key);
+            sqlpp.append("\" SET ");
+
+            boolean first = true;
+            for (Map.Entry<String, Object> entry : row.entrySet()) {
+                if (!first) {
+                    sqlpp.append(", ");
+                }
+                sqlpp.append(entry.getKey()).append(" = ");
+                if (entry.getValue() instanceof String) {
+                    sqlpp.append("\"").append(entry.getValue()).append("\"");
+                } else {
+                    sqlpp.append(entry.getValue());
+                }
+                first = false;
+            }
+
+            sqlpp.append(";\n"); // Append semicolon at the end of each statement
+        }
+
+        return sqlpp.toString();
+    }
+
+
+
 }

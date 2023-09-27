@@ -21,6 +21,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
@@ -122,12 +124,20 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         JPopupMenu popupMenu = new JPopupMenu();
         JMenuItem jsonMenuItem = new JMenuItem("JSON");
         JMenuItem csvMenuItem = new JMenuItem("CSV");
+        JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
+        JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
+        JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
         popupMenu.add(csvMenuItem);
         popupMenu.add(jsonMenuItem);
+        popupMenu.add(sqlppUpsertMenuItem);
+        popupMenu.add(sqlppInsertMenuItem);
+        popupMenu.add(sqlppUpdateMenuItem);
 
         csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
-
         jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
+        addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
+        addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
+        addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
         Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
@@ -202,6 +212,17 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                     queryResultTab.revalidate();
                 }
             });
+        });
+    }
+
+    private void addSQLPPMenuItemListener(JMenuItem menuItem, String title, Supplier<String> sqlppSupplier) {
+        menuItem.addActionListener(actionEvent -> {
+            String sqlppContent = sqlppSupplier.get();
+            if (sqlppContent.startsWith("The query result should")) {
+                Messages.showErrorDialog(sqlppContent, "Error Exporting to SQL++ " + title);
+            } else {
+                FileExporter.exportResultToSQLPP(project, sqlppContent);
+            }
         });
     }
 
