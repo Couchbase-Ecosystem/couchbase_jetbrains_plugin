@@ -30,15 +30,12 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>Data Import</li>
-          <li>Create Buckets</li>
-          <li>Create Collection now supports Max TTL</li>
-          <li>Support for connection params in the connection string</li>
-          <li>and much more!</li>
+          <li>You can now cancel queries</li>
+          <li>There are templates for select (sel), insert (ins), delete (del), and update (upd)</li>
         </ul>
         <h2>Bug Fixes</h2>
         <ul>
-          <li>Fixed many and most likely added a few new ones :)</li>
+          <li>Fixed an issue that was making autocomplete not work properly</li>
         </ul>
         ]]>
     </change-notes>
