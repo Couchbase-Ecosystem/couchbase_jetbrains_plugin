@@ -113,6 +113,7 @@ public class CustomSqlFileEditor implements FileEditor {
         panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
         queryEditor.getContentComponent().requestFocusInWindow();
         component = panel;
+        executeAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, queryEditor.getComponent());
     }
 
     private void buildToolbar() {
