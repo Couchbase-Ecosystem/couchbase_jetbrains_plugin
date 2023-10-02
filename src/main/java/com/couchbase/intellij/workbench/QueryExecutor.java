@@ -31,6 +31,7 @@ public class QueryExecutor {
     private static final DecimalFormat df = new DecimalFormat("#.00");
     private static ToolWindow toolWindow;
     private static QueryResultToolWindowFactory resultWindow;
+    private static boolean isQueryScript = false;
 
     private static QueryResultToolWindowFactory getOutputWindow(Project project) {
         if (toolWindow == null) {
@@ -142,7 +143,7 @@ public class QueryExecutor {
         } else {
             timings = null;
         }
-        getOutputWindow(project).updateQueryStats(metricsList, result, error, timings);
+        getOutputWindow(project).updateQueryStats(metricsList, result, error, timings,true);
 
         return error.getErrors().isEmpty();
     }
@@ -170,7 +171,7 @@ public class QueryExecutor {
                 error.setErrors(List.of(err));
 
                 getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-", "-"),
-                        null, error, null);
+                        null, error, null,false);
                 return false;
             }
         }
@@ -239,11 +240,11 @@ public class QueryExecutor {
                     timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
                 }
 
-                getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings));
+                getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings),false);
             } catch (CouchbaseException e) {
                 long end = System.currentTimeMillis();
                 getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
-                        null, CouchbaseQueryErrorUtil.parseQueryError(e), null);
+                        null, CouchbaseQueryErrorUtil.parseQueryError(e), null,false);
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
@@ -295,6 +296,14 @@ public class QueryExecutor {
             hist.remove(0);
             hist.add(query.trim());
         }
+    }
+
+    public static void setIsQueryScript(boolean isQueryScript) {
+        QueryExecutor.isQueryScript = isQueryScript;
+    }
+
+    public static boolean getIsQueryScript() {
+        return isQueryScript;
     }
 
     public enum QueryType {

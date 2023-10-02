@@ -67,6 +67,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
     private Project project;
+    private JPopupMenu popupMenu;
+
 
     public QueryResultToolWindowFactory() {
         instance = this;
@@ -121,23 +123,16 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         topPanel.add(resultStats, BorderLayout.WEST);
 
-        JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu = new JPopupMenu();
         JMenuItem jsonMenuItem = new JMenuItem("JSON");
         JMenuItem csvMenuItem = new JMenuItem("CSV");
-        JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
-        JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
-        JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
+
         popupMenu.add(csvMenuItem);
         popupMenu.add(jsonMenuItem);
-        popupMenu.add(sqlppUpsertMenuItem);
-        popupMenu.add(sqlppInsertMenuItem);
-        popupMenu.add(sqlppUpdateMenuItem);
+
 
         csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
         jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
-        addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
-        addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
-        addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
         Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
@@ -318,7 +313,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain) {
+    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain, boolean isQueryScript) {
         SwingUtilities.invokeLater(() -> {
             if (results != null && error == null || error.getErrors().isEmpty()) {
 
@@ -353,6 +348,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 }
 
                 model.updateData(convertedResults);
+
+
+                if (!isQueryScript) {
+
+                    JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
+                    JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
+                    JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
+
+                    popupMenu.add(sqlppUpsertMenuItem);
+                    popupMenu.add(sqlppInsertMenuItem);
+                    popupMenu.add(sqlppUpdateMenuItem);
+
+                    addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
+                    addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
+                    addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
+
+                }
 
             } else {
                 cachedResults = null;
