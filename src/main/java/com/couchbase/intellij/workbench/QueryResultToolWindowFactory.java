@@ -165,10 +165,17 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
 
 
+        JPanel chartPanel = new JPanel(new BorderLayout());
+        HtmlPanel chartHTML = new HtmlPanel();
+        chartPanel.add(chartHTML, BorderLayout.CENTER);
+
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
+        resultTabs.addTab(new TabInfo(new JBScrollPane(chartHTML)).setText("Chart"));
         resultTabs.addTab(explainTab);
+
+
 
 
         JPanel queryResultPanel = new JPanel();
