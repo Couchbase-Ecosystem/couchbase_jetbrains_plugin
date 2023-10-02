@@ -351,20 +351,55 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
 
                 if (!isQueryScript) {
+                    boolean sqlppUpsertMenuItemExists = false;
+                    boolean sqlppInsertMenuItemExists = false;
+                    boolean sqlppUpdateMenuItemExists = false;
 
-                    JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
-                    JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
-                    JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
+                    for (Component component : popupMenu.getComponents()) {
+                        if (component instanceof JMenuItem) {
+                            JMenuItem menuItem = (JMenuItem) component;
+                            if (menuItem.getText().equals("SQL++ UPSERT")) {
+                                sqlppUpsertMenuItemExists = true;
+                            } else if (menuItem.getText().equals("SQL++ INSERT")) {
+                                sqlppInsertMenuItemExists = true;
+                            } else if (menuItem.getText().equals("SQL++ UPDATE")) {
+                                sqlppUpdateMenuItemExists = true;
+                            }
+                        }
+                    }
 
-                    popupMenu.add(sqlppUpsertMenuItem);
-                    popupMenu.add(sqlppInsertMenuItem);
-                    popupMenu.add(sqlppUpdateMenuItem);
+                    if (!sqlppUpsertMenuItemExists) {
+                        JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
+                        popupMenu.add(sqlppUpsertMenuItem);
+                        addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
+                    }
 
-                    addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
-                    addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
-                    addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
+                    if (!sqlppInsertMenuItemExists) {
+                        JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
+                        popupMenu.add(sqlppInsertMenuItem);
+                        addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
+                    }
 
+                    if (!sqlppUpdateMenuItemExists) {
+                        JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
+                        popupMenu.add(sqlppUpdateMenuItem);
+                        addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
+                    }
+                } else {
+                    for (Component component : popupMenu.getComponents()) {
+                        if (component instanceof JMenuItem) {
+                            JMenuItem menuItem = (JMenuItem) component;
+                            if (menuItem.getText().equals("SQL++ UPSERT") ||
+                                    menuItem.getText().equals("SQL++ INSERT") ||
+                                    menuItem.getText().equals("SQL++ UPDATE")) {
+                                popupMenu.remove(menuItem);
+                            }
+                        }
+                    }
                 }
+
+                popupMenu.revalidate();
+                popupMenu.repaint();
 
             } else {
                 cachedResults = null;
