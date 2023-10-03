@@ -302,19 +302,31 @@ public class Utils {
                 .orElse((List<String>) Collections.EMPTY_LIST);
     }
 
-    public static List<String> expandCollectionPath(String s) {
-        Set<List<String>> matches = ActiveCluster.getInstance().getChildren().stream()
-                .flatMap(b -> b.getChildren().stream())
-                .flatMap(scope -> scope.getChildren().stream())
-                .filter(c -> c.getName().equalsIgnoreCase(s))
+    public static List<String> expandCollectionPath(List<String> context, String s) {
+        Stream<CouchbaseCollection> options;
+        if (context.isEmpty()) {
+            options = ActiveCluster.getInstance().getChildren().stream()
+                    .flatMap(b -> b.getChildren().stream())
+                    .flatMap(scope -> scope.getChildren().stream())
+                    .filter(c -> c.getName().equalsIgnoreCase(s));
+        } else {
+            options = ActiveCluster.getInstance().navigate(context)
+              .flatMap(scope -> scope.getChildren().stream())
+              .map(c -> (CouchbaseCollection) c);
+        }
+
+        Set<List<String>> matches = options
                 .map(CouchbaseCollection::pathElements)
                 .collect(Collectors.toSet());
+
 
         if (matches.size() == 1) {
             return matches.iterator().next();
         }
 
-        throw new IllegalArgumentException("Failed to unambiguously maa name '" + s + "' to collection");
+        ArrayList<String> stub = new ArrayList<>(context);
+        stub.add(s);
+        return stub;
     }
 
     public static boolean isInFailedSubQuery(PsiElement element) {

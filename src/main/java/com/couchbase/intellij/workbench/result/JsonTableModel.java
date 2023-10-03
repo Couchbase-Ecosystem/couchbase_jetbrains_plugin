@@ -133,32 +133,6 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         return csvData.toString();
     }
 
-    // public String convertToSQLPP() {
-    //     StringBuilder sqlpp = new StringBuilder();
-
-    //     for (Map<String, Object> row : data) {
-    //         sqlpp.append("UPSERT {");
-
-    //         boolean first = true;
-    //         for (Map.Entry<String, Object> entry : row.entrySet()) {
-    //             if (!first) {
-    //                 sqlpp.append(", ");
-    //             }
-    //             sqlpp.append("\"").append(entry.getKey()).append("\": ");
-    //             if (entry.getValue() instanceof String) {
-    //                 sqlpp.append("\"").append(entry.getValue()).append("\"");
-    //             } else {
-    //                 sqlpp.append(entry.getValue());
-    //             }
-    //             first = false;
-    //         }
-
-    //         sqlpp.append("}\n");
-    //     }
-
-    //     return sqlpp.toString();
-    // }
-
     public String convertToSQLPPUpsert() {
         StringBuilder sqlpp = new StringBuilder();
 
