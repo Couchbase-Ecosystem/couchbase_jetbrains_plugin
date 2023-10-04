@@ -73,7 +73,6 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
 
-
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
 
@@ -101,8 +100,35 @@
         <completion.contributor language="sqlpp"
                                 implementationClass="org.intellij.sdk.language.completion.SqlppCompletionContributor"/>
 
-
     </extensions>
+
+    <actions>
+
+        <action id="PillowFightAction"
+                class="com.couchbase.intellij.actions.PillowFightAction"
+                text="Couchbase Pillow Fight"
+                description="Start a Couchbase Pillow Fight operation for performance testing.">
+        </action>
+
+        <action id="DDLExport"
+                class="com.couchbase.intellij.actions.DDLExportAction"
+                text="Couchbase DDL Export"
+                description="Export the DDL (Data Definition Language) statements of your database.">
+        </action>
+
+        <action id="DataExport"
+                class="com.couchbase.intellij.actions.DataExportAction"
+                text="Couchbase Data Export"
+                description="Export data from your database to a file.">
+        </action>
+
+        <action id="DataImport"
+                class="com.couchbase.intellij.actions.DataImportAction"
+                text="Couchbase Data Import"
+                description="Import data into your database from a file.">
+        </action>
+
+    </actions>
 
 
 </idea-plugin>
