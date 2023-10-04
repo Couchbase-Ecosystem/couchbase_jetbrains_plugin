@@ -14,6 +14,9 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
     private final List<Map<String, Object>> data;
     private final List<String> columns;
 
+    private static final String QUERY_KEY_ID_NOT_PRESENT_MESSAGE = "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+
+
     public JsonTableModel() {
         data = new ArrayList<>();
         columns = new ArrayList<>();
@@ -139,17 +142,17 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
             if (keyObject == null) {
-                return "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+                return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
             }
-            String key = keyObject.toString(); // Convert the key to a string
+            String key = keyObject.toString();
             row.remove("key");
             row.remove("id");
-            sqlpp.append("UPSERT INTO keyspace (KEY, VALUE) VALUES (\"");
+            sqlpp.append("UPSERT INTO my_collection (KEY, VALUE) VALUES (\"");
             sqlpp.append(key);
             sqlpp.append("\", ");
 
             JsonObject value = JsonObject.from(row);
-            sqlpp.append(value.toString());
+            sqlpp.append(value);
 
             sqlpp.append(");\n");
         }
@@ -163,19 +166,19 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
             if (keyObject == null) {
-                return "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+                return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
             }
-            String key = keyObject.toString(); // Convert the key to a string
+            String key = keyObject.toString();
             row.remove("key");
             row.remove("id");
-            sqlpp.append("INSERT INTO keyspace (KEY, VALUE) VALUES (\"");
+            sqlpp.append("INSERT INTO my_collection (KEY, VALUE) VALUES (\"");
             sqlpp.append(key);
             sqlpp.append("\", ");
 
             JsonObject value = JsonObject.from(row);
-            sqlpp.append(value.toString());
+            sqlpp.append(value);
 
-            sqlpp.append(");\n"); // Append semicolon at the end of each statement
+            sqlpp.append(");\n");
         }
 
         return sqlpp.toString();
@@ -187,12 +190,12 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
             if (keyObject == null) {
-                return "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+                return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
             }
-            String key = keyObject.toString(); // Convert the key to a string
+            String key = keyObject.toString();
             row.remove("key");
             row.remove("id");
-            sqlpp.append("UPDATE keyspace USE KEYS \"");
+            sqlpp.append("UPDATE my_collection USE KEYS \"");
             sqlpp.append(key);
             sqlpp.append("\" SET ");
 
@@ -210,7 +213,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
                 first = false;
             }
 
-            sqlpp.append(";\n"); // Append semicolon at the end of each statement
+            sqlpp.append(";\n");
         }
 
         return sqlpp.toString();
