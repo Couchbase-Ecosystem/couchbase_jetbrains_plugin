@@ -553,7 +553,7 @@ public class DataLoader {
 
     }
 
-    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket) {
+    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket,String apiKey, String apiSecret) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
@@ -563,6 +563,8 @@ public class DataLoader {
         sc.setUsername(username);
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
+        sc.setApiKey(apiKey);
+        sc.setApiSecret(apiSecret);
 
         Clusters clusters = ClustersStorage.getInstance().getValue();
 
