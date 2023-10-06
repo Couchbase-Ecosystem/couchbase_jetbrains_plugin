@@ -124,6 +124,7 @@ marker {
   min-width: 200px;
   z-index: 10;
 }
+
 .wb-explain-tooltip h5 {
   margin-right: 1rem;
 }
@@ -142,4 +143,34 @@ ul.wb-explain-tooltip-list li ul li {
   padding: 0;
   margin: 0;
   font-size: 0.75rem;
+}
+.wb-explain-tooltip > div.row > h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.zoom-button {
+  font-size: 36px;
+  width: 50px;
+  height: 50px;
+  border: 1px solid black;
+  border-radius: 50%;
+}
+
+.zoom-button:hover {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.menu-bar {
+  display: flex;
+  gap: 6px;
+  place-content: end;
+  padding: 6px;
+}
+
+.wrapper {
+  border: 2px solid black;
+  border-radius: 10px;
 }
