@@ -4,7 +4,6 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.ToolSpec;
 import com.couchbase.intellij.tools.ToolStatus;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.application.PathManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static com.couchbase.intellij.listener.DependenciesUtil.*;
 import static utils.FileUtils.*;
 import static utils.OSUtil.*;
 
@@ -116,23 +116,50 @@ public class DependenciesDownloader {
         return map;
     }
 
-    public void downloadDependencies() throws Exception {
-        String toolsPath = PathManager.getConfigPath() + File.separator + "couchbase-intellij-plugin";
-        createFolder(toolsPath);
-        toolsPath += File.separator + "tools";
+    private void cleanOldVersions(String configPath, String toolsPath, Map<String, ToolSpec> downloads) {
+
+        if (isInstalled(toolsPath, downloads.get(TOOL_SHELL), CBTools.Type.SHELL)
+                && !SHELL_VERSION.equals(getPropertyValue(configPath, SHELL_KEY))) {
+            ToolSpec shell = downloads.get(TOOL_SHELL);
+            Log.info("A new version of Couchbase Shell is available. Removing local version and downloading the new one");
+            deleteFolder(toolsPath + File.separator + shell.getInstallationPath());
+        }
+
+        if (isInstalled(toolsPath, downloads.get(TOOL_IMPORT_EXPORT), CBTools.Type.CB_EXPORT)
+                && !CBIMPORT_EXPORT_VERSION.equals(getPropertyValue(configPath, CBIMPORT_EXPORT_KEY))) {
+            Log.info("A new version of CB Import/Export is available. Removing local version and downloading the new one");
+            ToolSpec cbImport = downloads.get(TOOL_IMPORT_EXPORT);
+            deleteFolder( toolsPath + File.separator + cbImport.getInstallationPath());
+        }
+
+        if (isInstalled(toolsPath, downloads.get(ALL_TOOLS), CBTools.Type.CBC_PILLOW_FIGHT)
+                && !TOOLS_VERSION.equals(getPropertyValue(configPath, TOOLS_KEY))) {
+            Log.info("A new version of Couchbase Tools is available. Removing local version and downloading the new one");
+            ToolSpec cbTools = downloads.get(ALL_TOOLS);
+            String toolsDir = toolsPath + File.separator + cbTools.getInstallationPath();
+            deleteFolder( toolsDir);
+        }
+    }
+
+    public void downloadDependencies(String pluginConfigPath) throws Exception {
+
+        String toolsPath = pluginConfigPath + File.separator + "tools";
         createFolder(toolsPath);
 
         String os = getOSArch();
         Map<String, ToolSpec> downloads = getDownloadList(os);
+        cleanOldVersions(pluginConfigPath, toolsPath, downloads);
 
         ToolSpec shell = downloads.get(TOOL_SHELL);
         String shellPath = toolsPath + File.separator + shell.getInstallationPath();
+
+
         if (CBTools.getTool(CBTools.Type.SHELL).getStatus() == ToolStatus.NOT_AVAILABLE
                 && !isInstalled(toolsPath, downloads.get(TOOL_SHELL), CBTools.Type.SHELL)) {
             //avoiding 2 threads to install the same thing at the same time
             Log.info("Downloading CB Shell. The feature will be automatically enabled when the download is complete.");
             CBTools.getTool(CBTools.Type.SHELL).setStatus(ToolStatus.DOWNLOADING);
-            downloadAndUnzip(shellPath, shell);
+            downloadAndUnzip(shellPath, shell, pluginConfigPath, SHELL_KEY, SHELL_VERSION);
         } else {
             Log.debug("CBShell is already installed");
             setToolActive(ToolStatus.AVAILABLE, shellPath, shell);
@@ -146,7 +173,7 @@ public class DependenciesDownloader {
             Log.info("Downloading CB Import/Export. The feature will be automatically enabled when the download is complete.");
             CBTools.getTool(CBTools.Type.CB_EXPORT).setStatus(ToolStatus.DOWNLOADING);
             CBTools.getTool(CBTools.Type.CB_IMPORT).setStatus(ToolStatus.DOWNLOADING);
-            downloadAndUnzip(cbImportDir, cbImport);
+            downloadAndUnzip(cbImportDir, cbImport, pluginConfigPath, CBIMPORT_EXPORT_KEY, CBIMPORT_EXPORT_VERSION);
         } else {
             Log.debug("CB Import/Export is already installed");
             setToolActive(ToolStatus.AVAILABLE, cbImportDir, cbImport);
@@ -161,14 +188,13 @@ public class DependenciesDownloader {
             Log.info("Downloading CB tools. The feature will be automatically enabled when the download is complete.");
             CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).setStatus(ToolStatus.DOWNLOADING);
             CBTools.getTool(CBTools.Type.MCTIMINGS).setStatus(ToolStatus.DOWNLOADING);
-            downloadAndUnzip(toolsDir, cbTools);
+            downloadAndUnzip(toolsDir, cbTools, pluginConfigPath, TOOLS_KEY, TOOLS_VERSION);
         } else {
             Log.debug("CB Tools are already installed");
             setToolActive(ToolStatus.AVAILABLE, toolsDir, cbTools);
         }
 
     }
-
 
     private void setToolActive(ToolStatus status, String path, ToolSpec spec) {
         for (Map.Entry<CBTools.Type, String> entry : spec.getToolsMap().entrySet()) {
@@ -177,7 +203,15 @@ public class DependenciesDownloader {
         }
     }
 
-    public void downloadAndUnzip(String targetDir, ToolSpec spec) {
+    /**
+     *
+     * @param targetDir where the zip file should be downloaded
+     * @param spec
+     * @param configFolder folder where the file with the versions is stored
+     * @param key the key that will be updated
+     * @param value the value that will be set
+     */
+    public void downloadAndUnzip(String targetDir, ToolSpec spec, String configFolder, String key, String value) {
         CompletableFuture.runAsync(() -> {
             try {
                 createFolder(targetDir);
@@ -192,6 +226,7 @@ public class DependenciesDownloader {
                 unzipFile(localFilePath, targetDir);
                 makeFilesExecutable(new File(targetDir));
                 setToolActive(ToolStatus.AVAILABLE, targetDir, spec);
+                DependenciesUtil.setPropertyValue(configFolder, key, value);
             } catch (Exception e) {
                 setToolActive(ToolStatus.NOT_AVAILABLE, null, null);
                 Log.error(e);

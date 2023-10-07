@@ -45,7 +45,6 @@ public class ExplainContent {
                     "    <script src=\"" + utils + "getLink.js\"></script>\n" +
                     "    <script src=\"" + utils + "removeAllToolTips.js\"></script>\n" +
                     "    <script src=\"" + utils + "makeToolTip.js\"></script>\n" +
-                    "    <script src=\"" + utils + "removeAllToolTips.js\"></script>\n" +
                     "    <script src=\"" + scripts + "makeD3TreeFromSimpleTree.js\"></script>\n" +
                     "  </head>\n" +
                     "\n" +
@@ -53,6 +52,11 @@ public class ExplainContent {
                     "    <pre id='debug' style='display: none;'>\n" +
                     "    </pre>\n" +
                     "\n" +
+                    "   <div class=\"wrapper\">\n" +
+                    "      <div class=\"menu-bar\">\n" +
+                    "        <button id=\"zoomInBtn\" class=\"zoom-button\">&plus;</button>\n" +
+                    "        <button id=\"zoomOutBtn\" class=\"zoom-button\">&minus;</button>\n" +
+                    "      </div>"+
                     "    <div\n" +
                     "      id=\"explain-plan\"\n" +
                     "      style=\"\n" +
@@ -62,6 +66,7 @@ public class ExplainContent {
                     "        margin: 10px auto;\n" +
                     "      \"\n" +
                     "    ></div>\n" +
+                    "  </div>"+
                     "    <script type=\"module\">\n" +
                     "      const debug = document.getElementById('debug');\n" +
                     "      debug.innerText += mockedJson;\n" +
