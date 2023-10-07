@@ -121,20 +121,20 @@ public class DependenciesDownloader {
         if (isInstalled(toolsPath, downloads.get(TOOL_SHELL), CBTools.Type.SHELL)
                 && !SHELL_VERSION.equals(getPropertyValue(configPath, SHELL_KEY))) {
             ToolSpec shell = downloads.get(TOOL_SHELL);
-            System.out.println("===========DDELETING CBSHELL");
+            Log.info("A new version of Couchbase Shell is available. Removing local version and downloading the new one");
             deleteFolder(toolsPath + File.separator + shell.getInstallationPath());
         }
 
         if (isInstalled(toolsPath, downloads.get(TOOL_IMPORT_EXPORT), CBTools.Type.CB_EXPORT)
                 && !CBIMPORT_EXPORT_VERSION.equals(getPropertyValue(configPath, CBIMPORT_EXPORT_KEY))) {
-            System.out.println("===========DELETING CBEXPORT");
+            Log.info("A new version of CB Import/Export is available. Removing local version and downloading the new one");
             ToolSpec cbImport = downloads.get(TOOL_IMPORT_EXPORT);
             deleteFolder( toolsPath + File.separator + cbImport.getInstallationPath());
         }
 
         if (isInstalled(toolsPath, downloads.get(ALL_TOOLS), CBTools.Type.CBC_PILLOW_FIGHT)
                 && !TOOLS_VERSION.equals(getPropertyValue(configPath, TOOLS_KEY))) {
-            System.out.println("===========DELETING ALL TOOLS");
+            Log.info("A new version of Couchbase Tools is available. Removing local version and downloading the new one");
             ToolSpec cbTools = downloads.get(ALL_TOOLS);
             String toolsDir = toolsPath + File.separator + cbTools.getInstallationPath();
             deleteFolder( toolsDir);

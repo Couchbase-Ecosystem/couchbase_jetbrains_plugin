@@ -21,7 +21,7 @@ const makeTooltip = (node) => (event, d) => {
       .html(d.data.tooltip)
       .style("z-index", "30")
       .style("left", `${event.x}px`)
-      .style("bottom", `${window.innerHeight - event.y}px`);
+      .style("top", `${event.y - (document.getElementById("svg_tooltip" + d.id).offsetHeight / 2)}px`);
   }
 
   // todo: tooltip is not being appended to the DOM

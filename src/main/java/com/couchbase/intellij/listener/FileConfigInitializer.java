@@ -49,7 +49,7 @@ public class FileConfigInitializer {
         String path = configPath + File.separator + "explain";
 
         if(!EXPLAIN_VERSION.equals(getPropertyValue(toolsPath, EXPLAIN_KEY))) {
-            System.out.println("=========DELETING NEW EXPLAIN");
+            Log.info("A new version of Couchbase Explain is available. Removing local version and downloading the new one");
             DependenciesUtil.deleteFolder(path);
         }
 

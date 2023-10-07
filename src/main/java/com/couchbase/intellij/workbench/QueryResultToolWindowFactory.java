@@ -34,6 +34,7 @@ import com.intellij.ui.content.ContentManager;
 import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.TabInfo;
+import com.intellij.ui.tabs.TabsListener;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -54,6 +55,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String docsSizeTooltip = "Total size of documents returned";
     public static QueryResultToolWindowFactory instance;
     public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static String latestExplain = null;
     private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
     private final String[] tooltips = {rttToolTip, elapsedToolTip, executionTooltip, mutationsToolTip, docsTooltip, docsSizeTooltip};
     private HtmlPanel htmlPanel;
@@ -65,6 +67,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
     private Project project;
+
 
     public QueryResultToolWindowFactory() {
         instance = this;
@@ -158,7 +161,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
 
         htmlPanel = new HtmlPanel();
-        htmlPanel.loadHTML(getEmptyExplain());
+        latestExplain = getEmptyExplain();
+        htmlPanel.loadHTML(latestExplain);
+
 
         JPanel explainPanel = new JPanel(new BorderLayout());
         explainPanel.add(htmlPanel, BorderLayout.CENTER);
@@ -169,6 +174,16 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
         resultTabs.addTab(explainTab);
+
+        //NOTE: This is an workaround as the explain tends to render awkwardly when it is not on focus
+        resultTabs.addListener(new TabsListener() {
+            @Override
+            public void selectionChanged(TabInfo oldSelection, TabInfo newSelection) {
+                if (newSelection == explainTab) {
+                    htmlPanel.loadHTML(latestExplain);
+                }
+            }
+        });
 
 
         JPanel queryResultPanel = new JPanel();
@@ -314,8 +329,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                     editor.getDocument().setText(gson.toJson(convertedResults));
                 });
 
-                String content = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
-                htmlPanel.loadHTML(content);
+                latestExplain = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
+                htmlPanel.loadHTML(latestExplain);
 
                 queryStatsPanel.revalidate();
 

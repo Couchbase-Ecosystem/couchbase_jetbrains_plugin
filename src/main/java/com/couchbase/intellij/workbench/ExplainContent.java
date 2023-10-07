@@ -45,7 +45,6 @@ public class ExplainContent {
                     "    <script src=\"" + utils + "getLink.js\"></script>\n" +
                     "    <script src=\"" + utils + "removeAllToolTips.js\"></script>\n" +
                     "    <script src=\"" + utils + "makeToolTip.js\"></script>\n" +
-                    "    <script src=\"" + utils + "removeAllToolTips.js\"></script>\n" +
                     "    <script src=\"" + scripts + "makeD3TreeFromSimpleTree.js\"></script>\n" +
                     "  </head>\n" +
                     "\n" +
