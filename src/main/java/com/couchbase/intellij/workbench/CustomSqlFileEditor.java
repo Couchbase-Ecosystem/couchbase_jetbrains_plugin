@@ -27,6 +27,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.pom.Navigatable;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
@@ -46,12 +47,13 @@ import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
 
-public class CustomSqlFileEditor implements FileEditor {
+public class CustomSqlFileEditor implements FileEditor, TextEditor {
     public static final String NO_QUERY_CONTEXT_SELECTED = "No Query Context Selected";
     private final EditorWrapper queryEditor;
     private final VirtualFile file;
@@ -634,6 +636,21 @@ public class CustomSqlFileEditor implements FileEditor {
         if (psiFile instanceof SqlppFile) {
             ((SqlppFile) psiFile).setClusterContext(context);
         }
+    }
+
+    @Override
+    public @NotNull Editor getEditor() {
+        return queryEditor.textEditor.getEditor();
+    }
+
+    @Override
+    public boolean canNavigateTo(@NotNull Navigatable navigatable) {
+        return false;
+    }
+
+    @Override
+    public void navigateTo(@NotNull Navigatable navigatable) {
+
     }
 
     static class EditorWrapper {

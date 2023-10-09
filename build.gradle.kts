@@ -16,8 +16,12 @@ dependencies {
     implementation("com.couchbase.client:java-client:3.4.9")
     implementation("org.slf4j:slf4j-simple:2.0.7")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("com.opencsv:opencsv:5.5.2") // OpenCSV
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.squareup.okhttp3:okhttp-sse:4.10.0")
+    implementation("com.obiscr:openai-auth:1.0.1")
 
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
