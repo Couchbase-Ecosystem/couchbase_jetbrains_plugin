@@ -557,6 +557,44 @@ public class NewConnectionDialog extends DialogWrapper {
         tabbedPane.addTab("Troubleshooting", thirdPanel);
         tabbedPane.setBorder(JBUI.Borders.emptyTop(10));
 
+        // Add "Non-standard Ports" tab
+        JPanel nonStandardPortsPanel = new JPanel(new BorderLayout());
+        nonStandardPortsPanel.setBorder(JBUI.Borders.empty(10));
+
+        // Create a form panel to hold the labels and fields
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = JBUI.insets(5);
+
+        // Add labels and fields for each non-standard port
+        String[] portLabels = { "Data Service:", "Query Service:", "Index Service:", "Search Service:",
+                "Analytics Service:", "Eventing Service:", "Backup Service:",
+                "Cluster Management:", "Views and XDCR Management:", "Inter-node Communication:" };
+        JBTextField[] portFields = new JBTextField[portLabels.length];
+
+        for (int i = 0; i < portLabels.length; i++) {
+            JLabel label = new JLabel(portLabels[i]);
+            portFields[i] = new JBTextField(30);
+
+            c.gridy = i;
+            c.gridx = 0;
+            c.weightx = 0.4;
+            c.fill = GridBagConstraints.NONE;
+            formPanel.add(label, c);
+
+            c.gridx = 1;
+            c.weightx = 0.6;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            formPanel.add(portFields[i], c);
+        }
+
+        nonStandardPortsPanel.add(formPanel, BorderLayout.NORTH);
+        tabbedPane.addTab("Non-standard Ports", nonStandardPortsPanel);
+
+        
+        thirdPanel.setPreferredSize(null);
+        nonStandardPortsPanel.setPreferredSize(null);
+
         return tabbedPane;
     }
 
