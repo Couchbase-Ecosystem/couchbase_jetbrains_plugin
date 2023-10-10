@@ -115,7 +115,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
         queryEditor.getContentComponent().requestFocusInWindow();
         component = panel;
-        executeAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, queryEditor.getComponent());
+
     }
 
     private void buildToolbar() {
@@ -160,6 +160,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         }
                     };
 
+                    executeAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, queryEditor.getComponent());
                     executeGroup.replaceAction(this, cancelAction);
                     isExecutingQuery = true;
 
@@ -640,7 +641,11 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     @Override
     public @NotNull Editor getEditor() {
-        return queryEditor.textEditor.getEditor();
+        if (queryEditor.textEditor != null) {
+            return queryEditor.textEditor.getEditor();
+        } else {
+            return queryEditor.viewer;
+        }
     }
 
     @Override

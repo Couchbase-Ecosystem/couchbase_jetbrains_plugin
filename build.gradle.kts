@@ -5,11 +5,17 @@ plugins {
 
 group = "com.couchbase"
 version = "1.0.5"
+java {
+    sourceCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_16
+}
 
 sourceSets["main"].java.srcDirs("src/main/gen")
 
 repositories {
+    mavenLocal()
     mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
@@ -23,10 +29,12 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp-sse:4.10.0")
     implementation("com.obiscr:openai-auth:1.0.1")
 
+
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -41,8 +49,8 @@ intellij {
 tasks {
     // Set the JVM compatibility versions
     withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = "16"
+        targetCompatibility = "16"
     }
 
     patchPluginXml {

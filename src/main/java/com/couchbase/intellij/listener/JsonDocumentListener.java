@@ -64,8 +64,8 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                             || getResult.cas() != Long.parseLong(file.getUserData(VirtualFileKeys.CAS))) {
 
                         String[] options = {"Overwrite server's version", "Replace mine with the latest version from server", "Cancel"};
-                        int result = Messages.showDialog("Document Conflict",
-                                "The document that you are trying to save has already been modified in the server. How would you like to proceed?"
+                        int result = Messages.showDialog(
+                                "The document that you are trying to save has already been modified in the server. How would you like to proceed?", "Document Conflict"
                                 , options, 1, Messages.getWarningIcon());
 
                         if (result == 0) {

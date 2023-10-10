@@ -8,6 +8,7 @@ import com.couchbase.intellij.tree.iq.message.ChatGPTBundle;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.ui.listener.SendListener;
 import com.couchbase.intellij.tree.iq.util.HtmlUtil;
+import com.couchbase.intellij.tree.node.MissingIndexFootNoteNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.find.SearchTextArea;
 import com.intellij.icons.AllIcons;
@@ -31,6 +32,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -66,12 +68,17 @@ public class CouchbaseIQPanel {
 
         myIsChatGPTModel = isChatGPTModel;
         myProject = project;
+        mainPanel = new JPanel(new BorderLayout());
 
         try {
-            AuthResponse auth = IQRestService.login("denis.rosa@couchbase.com", "");
-            this.jwt = auth.getJwt();
-            OrganizationResponse response = IQRestService.loadOrganizations(this.jwt);
-            this.orgId = response.getData().get(0).getData().getId();
+            if (this.jwt == null) {
+                AuthResponse auth = IQRestService.login("denis.rosa@couchbase.com", "umasenhaMUIT0complicada!");
+                this.jwt = auth.getJwt();
+                System.out.println(jwt);
+            }
+            //OrganizationResponse response = IQRestService.loadOrganizations(this.jwt);
+            //this.orgId = response.getData().get(0).getData().getId();
+            this.orgId = "68bc50f0-d13b-4838-859a-a4a7d43a59c9";
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -102,7 +109,7 @@ public class CouchbaseIQPanel {
                     String selectedText = "";
                     if (editor != null) {
                         SelectionModel selectionModel = editor.getSelectionModel();
-                        selectedText = selectionModel.getSelectedText();
+                        selectedText = selectionModel.getSelectedText() != null? selectionModel.getSelectedText(): "" ;
                     }
 
                     MessageGroupComponent contentPanel = getContentPanel();
@@ -115,33 +122,34 @@ public class CouchbaseIQPanel {
                     contentPanel.updateLayout();
                     contentPanel.scrollToBottom();
                     final String message = getSearchTextArea().getTextArea().getText();
+
                     getSearchTextArea().getTextArea().setText("");
 
-                    ExecutorService executorService = getExecutorService();
+
                     // Request the server.
-                    if (!"".equals(selectedText)) {
-                        selectedText = "The user might ask about the following code: " + selectedText;
+                    if (selectedText!= null && !"".equals(selectedText)) {
+                        selectedText = "The user might ask about the following code: " + selectedText.replace("\"", "\\\"");
                     }
 
                     final String systemMessage = selectedText;
 
-                    executorService.submit(() -> {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            try {
-                                ChatCompletionResponse response = IQRestService.sendIQMessage(orgId, jwt,
-                                        systemMessage, message);
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            ChatCompletionResponse response = IQRestService.sendIQMessage(orgId, jwt,
+                                    systemMessage, message);
 
 
-                                String html = HtmlUtil.md2html(response.getChoices().get(0).getMessage().getContent());
-                                System.out.println(html);
+                            String html = HtmlUtil.md2html(response.getChoices().get(0).getMessage().getContent());
+                            System.out.println(html);
 
+                            SwingUtilities.invokeLater(() -> {
                                 answer.setContent(html);
                                 contentPanel.updateLayout();
                                 contentPanel.scrollToBottom();
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
-                        });
+                            });
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                     });
 
 
@@ -174,9 +182,10 @@ public class CouchbaseIQPanel {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         actionGroup.add(toggleAction);
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("MyToolbar", actionGroup, false);
+        actionToolbar.setTargetComponent(mainPanel);
 
 
-        AnAction newCouchbaseIQChat = new AnAction("New Couchbase IQ Chat") {
+        AnAction newCouchbaseIQChat = new AnAction("Clean Chat") {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -184,18 +193,18 @@ public class CouchbaseIQPanel {
                 System.out.println("Create new Chat");
             }
         };
-        newCouchbaseIQChat.getTemplatePresentation().setIcon(AllIcons.General.Add);
-
+        newCouchbaseIQChat.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/clear.svg", CouchbaseIQPanel.class));
         DefaultActionGroup rightActionGroup = new DefaultActionGroup();
         rightActionGroup.add(newCouchbaseIQChat);
         ActionToolbar rightToolBar = ActionManager.getInstance().createActionToolbar("NewChatToolbar", rightActionGroup, false);
+        rightToolBar.setTargetComponent(mainPanel);
 
         actionPanel.add(progressBar, BorderLayout.NORTH);
         actionPanel.add(searchTextArea, BorderLayout.CENTER);
         actionPanel.add(button, BorderLayout.EAST);
         contentPanel = new MessageGroupComponent(project, isChatGPTModel());
 
-        JLabel centerLabel = new JLabel("New Chat");
+        JLabel centerLabel = new JLabel("Couchbase iQ Chat");
         centerLabel.setHorizontalAlignment(JLabel.CENTER);
         centerLabel.setBorder(new EmptyBorder(-5, 0, 0, 0)); // pushes the label up by 5 pixels
 
@@ -261,6 +270,8 @@ public class CouchbaseIQPanel {
         leftPanelActionGroup.add(exportChatTitleLeftMenu);
 
         ActionToolbar leftPanelToolbar = ActionManager.getInstance().createActionToolbar("LeftPanelToolbar", leftPanelActionGroup, true);
+        leftPanelToolbar.setTargetComponent(mainPanel);
+
         JPanel chatHistoryPanel = new JPanel(new BorderLayout());
         chatHistoryPanel.add(leftPanelToolbar.getComponent(), BorderLayout.NORTH);
         chatHistoryPanel.add(historyChat, BorderLayout.CENTER);
@@ -269,7 +280,6 @@ public class CouchbaseIQPanel {
         mainSplitter.setFirstComponent(chatHistoryPanel);
         mainSplitter.setSecondComponent(splitter);
 
-        mainPanel = new JPanel(new BorderLayout());
 
         JBLabel notificationLabel = new JBLabel("Couchbase iQ is a beta feature. Don't forget to give us your feedback!", AllIcons.General.Beta, SwingConstants.LEFT);
         notificationLabel.setBorder(JBUI.Borders.empty(5));
@@ -358,11 +368,9 @@ public class CouchbaseIQPanel {
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-            // Set the icon and text for each item in the list
             setIcon(AllIcons.General.Balloon);
             setText((String) value);
 
-            // To ensure proper spacing between the icon and text
             setIconTextGap(JBUI.scale(5));
 
             return this;
