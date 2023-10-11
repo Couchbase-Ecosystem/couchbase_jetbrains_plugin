@@ -181,7 +181,7 @@ public class CouchbaseRestAPI {
         return callEndpoint(false, endpoint, servers.get(0), data);
     }
 
-    private static String callGetEndpoint(String endpoint, String serverURL) throws Exception {
+    public static String callGetEndpoint(String endpoint, String serverURL) throws Exception {
         return callEndpoint(true, endpoint, serverURL, null);
     }
 
