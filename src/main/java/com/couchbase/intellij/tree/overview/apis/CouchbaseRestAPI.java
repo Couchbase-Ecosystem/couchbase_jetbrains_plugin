@@ -152,7 +152,7 @@ public class CouchbaseRestAPI {
         return gson.fromJson(content, Permissions.class);
     }
 
-    private static String callSingleEndpoint(String endpoint, String cbURL) throws Exception {
+    public static String callSingleEndpoint(String endpoint, String cbURL) throws Exception {
         List<String> servers = NSLookup.getServerURL(cbURL);
         return callGetEndpoint(endpoint, servers.get(0));
     }
@@ -181,7 +181,7 @@ public class CouchbaseRestAPI {
         return callEndpoint(false, endpoint, servers.get(0), data);
     }
 
-    public static String callGetEndpoint(String endpoint, String serverURL) throws Exception {
+    private static String callGetEndpoint(String endpoint, String serverURL) throws Exception {
         return callEndpoint(true, endpoint, serverURL, null);
     }
 

@@ -1,5 +1,26 @@
 package com.couchbase.intellij.database;
 
+import java.awt.Color;
+import java.lang.reflect.Type;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.swing.SwingUtilities;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.VisibleForTesting;
+
 import com.couchbase.client.core.cnc.EventBus;
 import com.couchbase.client.core.cnc.events.endpoint.UnexpectedEndpointDisconnectedEvent;
 import com.couchbase.client.java.Cluster;
@@ -10,25 +31,15 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.workbench.Log;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.VisibleForTesting;
-import utils.CBConfigUtil;
 
-import javax.swing.*;
-import java.awt.*;
-import java.time.Duration;
-import java.util.List;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import utils.CBConfigUtil;
 
 public class ActiveCluster implements CouchbaseClusterEntity {
 
@@ -49,6 +60,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
     private Runnable disconnectListener;
+    private Map<String, Integer> portMap;
 
     public static final AtomicBoolean ReconnectOnDisconnect = new AtomicBoolean();
 
@@ -144,6 +156,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         ActiveCluster.this.color = Color.decode(savedCluster.getColor());
                     }
 
+                    if (portMap == null) {
+                        ActiveCluster.this.portMap = updatePortMap();
+                    }
+
                     ServerOverview overview = CouchbaseRestAPI.getOverview();
                     setServices(overview.getNodes().stream()
                             .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
@@ -221,6 +237,44 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             return false;
         }
         return this.savedCluster.isSslEnable();
+    }
+
+    public Map<String, Integer> updatePortMap() {
+        Map<String, Integer> tempMap = new HashMap<>();
+        if (isCapella()) {
+            // If the active cluster is Capella, we don't allow port changing
+            // Initialize the portMap with default values
+
+            tempMap.put("capi", 8092);
+            tempMap.put("capiSSL", 18092);
+            tempMap.put("kv", 11210);
+            tempMap.put("kvSSL", 11207);
+            tempMap.put("mgmt", 8091);
+            tempMap.put("mgmtSSL", 18091);
+        } else {
+            try {
+                String json = CouchbaseRestAPI
+                        .callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") +
+                                "/pools/default/nodeServices", ActiveCluster.getInstance().getClusterURL());
+                Gson gson = new Gson();
+                Type type = new TypeToken<Map<String, Object>>() {
+                }.getType();
+                Map<String, Object> data = gson.fromJson(json, type);
+                tempMap = (Map<String, Integer>) ((Map<String, Object>) ((List<?>) data
+                        .get("nodesExt")).get(0)).get("services");
+            } catch (Exception e) {
+                Log.error("Error getting ports from server: " + getClusterURL(), e);
+            }
+        }
+        return tempMap;
+    }
+
+    public int getPort(String service) {
+        return portMap.get(service);
+    }
+
+    public void setPort(String service, int port) {
+        portMap.put(service, port);
     }
 
     public String getClusterURL() {
