@@ -219,6 +219,9 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.buckets = null;
         this.disconnectListener = null;
         this.permissions = null;
+        this.services = null;
+        this.version = null;
+        this.portMap = null;
     }
 
     public String getUsername() {
