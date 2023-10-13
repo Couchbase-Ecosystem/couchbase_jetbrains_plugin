@@ -13,6 +13,7 @@ import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import org.apache.batik.bridge.DocumentLoader;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -103,7 +104,9 @@ public class OpenDocumentDialog extends DialogWrapper {
             gc.gridy = 1;
             gc.gridx = 1;
             gc.weightx = 1;
-            formPanel.add(generateStub, gc);
+            if (DataLoader.stubsAvailable(bucket, scope, collection)) {
+                formPanel.add(generateStub, gc);
+            }
         }
 
         panel.add(formPanel, BorderLayout.NORTH);

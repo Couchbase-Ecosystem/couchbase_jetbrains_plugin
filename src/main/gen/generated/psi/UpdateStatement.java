@@ -23,7 +23,7 @@ public interface UpdateStatement extends PsiElement {
   UnsetClause getUnsetClause();
 
   @Nullable
-  UseKeys getUseKeys();
+  UseKeysClause getUseKeysClause();
 
   @Nullable
   WhereClause getWhereClause();

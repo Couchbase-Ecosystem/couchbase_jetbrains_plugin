@@ -1031,10 +1031,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitUseKeys(@NotNull UseKeys o) {
-    visitPsiElement(o);
-  }
-
   public void visitUseKeysClause(@NotNull UseKeysClause o) {
     visitPsiElement(o);
   }

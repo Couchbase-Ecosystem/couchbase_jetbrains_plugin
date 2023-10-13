@@ -34,7 +34,8 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     public SQLPPTemplates(CompletionContributor with) {
         with.extend(
                 CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER),
+                PlatformPatterns.psiElement().inFile(PlatformPatterns.psiFile(SqlppFile.class))
+                        .with(Utils.START_OF_STATEMENT),
                 this
         );
     }

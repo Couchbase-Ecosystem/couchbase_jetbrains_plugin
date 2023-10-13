@@ -197,11 +197,9 @@ merge-update ::= WHEN MATCHED THEN UPDATE set-clause? unset-clause? where-clause
 
 merge-delete ::= WHEN MATCHED THEN DELETE where-clause?
 
-update-statement ::= UPDATE target-keyspace use-keys? set-clause? unset-clause?
+update-statement ::= UPDATE target-keyspace use-keys-clause? set-clause? unset-clause?
             where-clause? limit-clause? returning-clause?
 
-
-use-keys ::= str
 
 upsert-statement ::= UPSERT INTO target-keyspace ( insert-values | insert-select )
             returning-clause?
@@ -677,10 +675,10 @@ element-expr ::= LBRACKET expr RBRACKET
 slice-expr ::= LBRACKET expr COLON expr? RBRACKET
 
 
-function-call ::= builtin-function |
+function-call ::= (builtin-function |
                   ordinary-function |
                   aggregate-function |
-                  window-function
+                  window-function) ( DOT path )?
 
 function-name ::= identifier-ref
 aggregate-function-name ::= FUNCS | identifier-ref
