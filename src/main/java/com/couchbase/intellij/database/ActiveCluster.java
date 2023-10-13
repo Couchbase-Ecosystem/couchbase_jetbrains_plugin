@@ -60,7 +60,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
     private Runnable disconnectListener;
-    private Map<String, Integer> portMap;
+    private Map<String, Integer> portMap = new HashMap<>();
 
     public static final AtomicBoolean ReconnectOnDisconnect = new AtomicBoolean();
 
@@ -156,9 +156,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         ActiveCluster.this.color = Color.decode(savedCluster.getColor());
                     }
 
-                    if (portMap == null) {
-                        ActiveCluster.this.portMap = updatePortMap();
-                    }
+                    ActiveCluster.this.portMap = updatePortMap(savedCluster);
 
                     ServerOverview overview = CouchbaseRestAPI.getOverview();
                     setServices(overview.getNodes().stream()
@@ -242,23 +240,48 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return this.savedCluster.isSslEnable();
     }
 
-    public Map<String, Integer> updatePortMap() {
+    public Map<String, Integer> updatePortMap(SavedCluster savedCluster) {
         Map<String, Integer> tempMap = new HashMap<>();
         if (isCapella()) {
             // If the active cluster is Capella, we don't allow port changing
             // Initialize the portMap with default values
 
+            tempMap.put("backupAPI", 8097);
+            tempMap.put("backupAPIHTTPS", 18097);
+            tempMap.put("backupGRPC", 9124);
             tempMap.put("capi", 8092);
             tempMap.put("capiSSL", 18092);
+            tempMap.put("cbas", 8095);
+            tempMap.put("cbasSSL", 18095);
+            tempMap.put("eventingAdminPort", 8096);
+            tempMap.put("eventingDebug", 9140);
+            tempMap.put("eventingSSL", 18096);
+            tempMap.put("fts", 8094);
+            tempMap.put("ftsGRPC", 9130);
+            tempMap.put("ftsGRPCSSL", 19130);
+            tempMap.put("ftsSSL", 18094);
+            tempMap.put("indexAdmin", 9100);
+            tempMap.put("indexHttp", 9102);
+            tempMap.put("indexHttps", 19102);
+            tempMap.put("indexScan", 9101);
+            tempMap.put("indexStreamCatchup", 9104);
+            tempMap.put("indexStreamInit", 9103);
+            tempMap.put("indexStreamMaint", 9105);
             tempMap.put("kv", 11210);
             tempMap.put("kvSSL", 11207);
             tempMap.put("mgmt", 8091);
             tempMap.put("mgmtSSL", 18091);
+            tempMap.put("n1ql", 8093);
+            tempMap.put("n1qlSSL", 18093);
+            tempMap.put("projector", 9999);
         } else {
             try {
+                // We cannot use the portMap from the ActiveCluster because it is not updated.
+                // Thus, we need to get the management port from the savedCluster
+                // Once we have the management port, we can get the portMap from the server
                 String json = CouchbaseRestAPI
-                        .callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") +
-                                "/pools/default/nodeServices", ActiveCluster.getInstance().getClusterURL());
+                        .callSingleEndpoint(
+                            (String.valueOf(savedCluster.getManagementPort() + "/pools/default/nodeServices")), savedCluster.getUrl());
                 Gson gson = new Gson();
                 Type type = new TypeToken<Map<String, Object>>() {
                 }.getType();

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.core.env.SeedNode;
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
@@ -534,14 +535,18 @@ public class DataLoader {
         return protocol + cluster;
     }
 
-    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password) {
-
+    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password,
+            int managementPort) {
         Cluster cluster = null;
         try {
-            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), ClusterOptions.clusterOptions(username, password).environment(env -> {
-                //env.applyProfile("wan-development");
-            }));
-            cluster.waitUntilReady(Duration.ofSeconds(5));
+            String[] addresses = clusterUrl.split(",");
+
+            Set<SeedNode> seedNodes = new HashSet<>();
+            for (String address : addresses) {
+                seedNodes.add(SeedNode.create(address).withManagerPort(managementPort));
+            }
+
+            cluster = Cluster.connect(seedNodes, ClusterOptions.clusterOptions(username, password));
 
             return cluster.buckets().getAllBuckets().keySet();
         } catch (Exception e) {
@@ -550,10 +555,9 @@ public class DataLoader {
             cluster.disconnect();
             throw e;
         }
-
     }
 
-    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket) {
+    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket, int managementPort) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
@@ -563,6 +567,7 @@ public class DataLoader {
         sc.setUsername(username);
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
+        sc.setManagementPort(managementPort);
 
         Clusters clusters = ClustersStorage.getInstance().getValue();
 

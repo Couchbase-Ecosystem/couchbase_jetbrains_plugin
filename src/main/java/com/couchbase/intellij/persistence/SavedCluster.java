@@ -25,6 +25,8 @@ public class SavedCluster {
 
     private Long inferCachePeriod;
 
+    private int managementPort;
+
     public String getId() {
         return id;
     }
@@ -83,6 +85,14 @@ public class SavedCluster {
 
     public Boolean isReadOnly() {
         return readOnly;
+    }
+
+    public int getManagementPort() {
+        return managementPort;
+    }
+
+    public void setManagementPort(int managementPort) {
+        this.managementPort = managementPort;
     }
 
     @Override

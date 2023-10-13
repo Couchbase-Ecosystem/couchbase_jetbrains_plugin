@@ -57,6 +57,8 @@ public class NewConnectionDialog extends DialogWrapper {
 
     private  DefaultMutableTreeNode clickedNode;
 
+    private int managementPort = 0;
+
     public NewConnectionDialog(Project project, Tree tree, SavedCluster savedCluster, DefaultMutableTreeNode clickedNode) {
         super(false);
         this.tree = tree;
@@ -172,7 +174,16 @@ public class NewConnectionDialog extends DialogWrapper {
                     ConnectionNodeDescriptor userObject = (ConnectionNodeDescriptor) clickedNode.getUserObject();
                     TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
                 }
-                SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(), getBaseUrl(hostTextField.getText()), getQueryParams(hostTextField.getText()), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()), defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
+                SavedCluster sc = DataLoader.saveDatabaseCredentials(
+                        connectionNameTextField.getText(),
+                        getBaseUrl(hostTextField.getText()),
+                        getQueryParams(hostTextField.getText()),
+                        enableSSLCheckBox.isSelected(),
+                        usernameTextField.getText(),
+                        String.valueOf(passwordField.getPassword()),
+                        defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText(),
+                        managementPort
+                );
                 messageLabel.setText("Connection was successful");
                 TreeActionHandler.connectToCluster(project, sc, tree, null);
                 close(DialogWrapper.CANCEL_EXIT_CODE);
@@ -239,7 +250,7 @@ public class NewConnectionDialog extends DialogWrapper {
     }
 
     private boolean hasCorrectBucketConnection() {
-        Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()));
+        Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()), managementPort);
 
         if (!defaultBucketTextField.getText().trim().isEmpty()) {
             if (!buckets.contains(defaultBucketTextField.getText())) {
@@ -252,7 +263,12 @@ public class NewConnectionDialog extends DialogWrapper {
 
     private List<String> validateForm() {
         List<String> errors = new ArrayList<>();
-        cleanURL();
+         try {
+            parseAndCleanConnectionUrl();
+        } catch (Exception ex) {
+            errors.add("Connection String is invalid");
+        }
+
 
         if (connectionNameTextField.getText().trim().isEmpty()) {
             errors.add("Name can't be empty");
@@ -433,7 +449,7 @@ public class NewConnectionDialog extends DialogWrapper {
             connectionNameTextField.setText(this.savedCluster.getName());
             hostTextField.setText(this.savedCluster.getUrl());
             enableSSLCheckBox.setSelected(this.savedCluster.isSslEnable());
-            cleanURL();
+            parseAndCleanConnectionUrl();
             hostTextField.setText(hostTextField.getText()+ (savedCluster.getQueryParams()!=null?savedCluster.getQueryParams(): ""));
         }
 
@@ -557,30 +573,29 @@ public class NewConnectionDialog extends DialogWrapper {
         tabbedPane.addTab("Troubleshooting", thirdPanel);
         tabbedPane.setBorder(JBUI.Borders.emptyTop(10));
 
-        // Add "Non-standard Ports" tab
-        JPanel nonStandardPortsPanel = new JPanel(new BorderLayout());
-        nonStandardPortsPanel.setBorder(JBUI.Borders.empty(10));
+        /* *************** Custom Ports Tab **************************/
+        JPanel customPortsPanel = new JPanel(new BorderLayout());
+        customPortsPanel.setBorder(JBUI.Borders.empty(10));
 
-        // Create a form panel to hold the labels and fields
         JPanel formPanel = new JPanel(new GridBagLayout());
         c.anchor = GridBagConstraints.WEST;
         c.insets = JBUI.insets(5);
 
-        // Add labels and fields for each non-standard port
-        String[] portLabels = { "Data Service:", "Query Service:", "Index Service:", "Search Service:",
-                "Analytics Service:", "Eventing Service:", "Backup Service:",
-                "Cluster Management:", "Views and XDCR Management:", "Inter-node Communication:" };
+        String[] portLabels = {"KV Port: ", "Manager port: ", "Protostellar port: "};
+        String[] hintTexts = {"The port used by the Key-Value (KV) service. The KV service is responsible for basic Create, Read, Update, Delete (CRUD) operations in Couchbase.",
+                "The port used by the Manager service. The Manager service is responsible for cluster management operations.",
+                "The port used by the Protostellar service. Protostellar is an internal Couchbase service and this method is marked as @Stability.Volatile, which means its API might change in future versions."};
         JBTextField[] portFields = new JBTextField[portLabels.length];
 
         for (int i = 0; i < portLabels.length; i++) {
-            JLabel label = new JLabel(portLabels[i]);
+            JPanel portPanel = TemplateUtil.getLabelWithHelp(portLabels[i], hintTexts[i]);
             portFields[i] = new JBTextField(30);
 
             c.gridy = i;
             c.gridx = 0;
             c.weightx = 0.4;
             c.fill = GridBagConstraints.NONE;
-            formPanel.add(label, c);
+            formPanel.add(portPanel, c);
 
             c.gridx = 1;
             c.weightx = 0.6;
@@ -588,12 +603,12 @@ public class NewConnectionDialog extends DialogWrapper {
             formPanel.add(portFields[i], c);
         }
 
-        nonStandardPortsPanel.add(formPanel, BorderLayout.NORTH);
-        tabbedPane.addTab("Non-standard Ports", nonStandardPortsPanel);
+        customPortsPanel.add(formPanel, BorderLayout.NORTH);
+        tabbedPane.addTab("Custom Ports(experimental)", customPortsPanel);
 
         
         thirdPanel.setPreferredSize(null);
-        nonStandardPortsPanel.setPreferredSize(null);
+        customPortsPanel.setPreferredSize(null);
 
         return tabbedPane;
     }
@@ -644,23 +659,46 @@ public class NewConnectionDialog extends DialogWrapper {
         errorLabel.setText("");
     }
 
-    private void cleanURL() {
+    private void parseAndCleanConnectionUrl() {
         String text = hostTextField.getText();
-        if (text.endsWith("/")) {
-            hostTextField.setText(text.substring(0, text.length() - 1));
+        String hostname = text;
+        Integer port = null;
+
+        if (text.contains(":")) {
+            String[] parts = text.split(":");
+            hostname = parts[0];
+            try {
+                port = Integer.parseInt(parts[1]);
+                if (port <= 0) {
+                    throw new IllegalArgumentException("Port number must be positive");
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid port number");
+            }
         }
 
-        if (text.startsWith("https://")) {
-            hostTextField.setText(text.replaceFirst("https://", ""));
+        if (hostname.endsWith("/")) {
+            hostname = hostname.substring(0, hostname.length() - 1);
+        }
+
+        if (hostname.startsWith("https://")) {
+            hostname = hostname.replaceFirst("https://", "");
             enableSSLCheckBox.setSelected(true);
-        } else if (text.startsWith("http://")) {
-            hostTextField.setText(text.replaceFirst("http://", ""));
-        } else if (text.startsWith("couchbase://")) {
-            hostTextField.setText(text.replaceFirst("couchbase://", ""));
-        } else if (text.startsWith("couchbases://")) {
-            hostTextField.setText(text.replaceFirst("couchbases://", ""));
+        } else if (hostname.startsWith("http://")) {
+            hostname = hostname.replaceFirst("http://", "");
+        } else if (hostname.startsWith("couchbase://")) {
+            hostname = hostname.replaceFirst("couchbase://", "");
+        } else if (hostname.startsWith("couchbases://")) {
+            hostname = hostname.replaceFirst("couchbases://", "");
             enableSSLCheckBox.setSelected(true);
         }
 
+        hostTextField.setText(hostname);
+
+        if (port != null && managementPort != port) {
+            managementPort = port;
+        } else if (managementPort == 0) {
+            managementPort = enableSSLCheckBox.isSelected() ? 18091 : 8091;
+        }
     }
 }
