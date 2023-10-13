@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -322,7 +323,8 @@ public class ServerOverviewDialog extends DialogWrapper {
             }
 
             String home = System.getProperty("user.home");
-            document.save(home + "/Downloads/ExportedContent.pdf");
+            String fileName = generateUniqueFileName(home + "/Downloads/ExportedContent.pdf");
+            document.save(fileName);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
@@ -336,11 +338,28 @@ public class ServerOverviewDialog extends DialogWrapper {
         }
     }
 
+    private String generateUniqueFileName(String baseFileName) {
+        File file = new File(baseFileName);
+        String fileName = baseFileName;
+
+        int count = 1;
+        while (file.exists()) {
+            String name = baseFileName.substring(0, baseFileName.lastIndexOf(".pdf"));
+            String extension = ".pdf";
+            fileName = name + "-" + count + extension;
+            file = new File(fileName);
+            count++;
+        }
+
+        return fileName;
+    }
+
+
     private void createPageAndAddHeader(PDDocument document, String header) throws IOException {
         PDPage page = new PDPage();
         document.addPage(page);
         PDPageContentStream contentStream = new PDPageContentStream(document, page);
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 16);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 18);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, 700);
         contentStream.showText(header);
@@ -354,7 +373,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
         int yOffset = 670;
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("General");
@@ -400,7 +419,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("Quota");
@@ -412,7 +431,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         String[] quotaValues = {mbToGb(overview.getMemoryQuota()), mbToGb(overview.getIndexMemoryQuota()), mbToGb(overview.getFtsMemoryQuota()), mbToGb(overview.getEventingMemoryQuota()), mbToGb(overview.getCbasMemoryQuota())};
 
         for (int i = 0; i < quotaKeys.length; i++) {
-            // Check if the content exceeds the current page, and create a new page if needed
             if (yOffset < 50) {
                 contentStream.close();
                 PDPage nextPage = new PDPage();
@@ -439,7 +457,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("RAM");
@@ -478,7 +496,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("Storage");
@@ -531,7 +549,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
         PDPageContentStream contentStream = new PDPageContentStream(document, currentPage, PDPageContentStream.AppendMode.APPEND, true);
 
-        int yOffset = 670;
+        int yOffset = 680;
 
         if (yOffset < 50) {
             contentStream.close();
@@ -581,7 +599,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("Hardware");
@@ -619,7 +637,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("System Stats");
@@ -667,7 +685,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("Interesting Stats");
@@ -799,7 +817,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("Quota");
@@ -837,7 +855,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset = 700;
         }
 
-        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
         contentStream.newLineAtOffset(100, yOffset);
         contentStream.showText("Basic Stats");
