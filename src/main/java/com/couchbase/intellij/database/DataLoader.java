@@ -301,6 +301,14 @@ public class DataLoader {
         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
     }
 
+    public static boolean stubsAvailable(String bucket, String scope, String collection) {
+        return ActiveCluster.getInstance().getChild(bucket)
+                .flatMap(b -> b.getChild(scope))
+                .flatMap(s -> s.getChild(collection))
+                .map(col -> ((CouchbaseCollection) col).generateDocument())
+                .filter(Objects::nonNull)
+                .findAny().isPresent();
+    }
 
     /**
      * Creates the file before it is opened.
