@@ -17,6 +17,9 @@ public interface FunctionCall extends PsiElement {
   OrdinaryFunction getOrdinaryFunction();
 
   @Nullable
+  Path getPath();
+
+  @Nullable
   WindowFunction getWindowFunction();
 
 }
