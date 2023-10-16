@@ -1,111 +1,230 @@
-
+/*
+ * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package com.couchbase.intellij.tree.iq.settings;
 
-import com.couchbase.intellij.tree.CouchbaseWindowFactory;
+import com.didalgo.gpt3.ModelType;
+import com.couchbase.intellij.tree.iq.ChatGptToolWindowFactory;
+import com.couchbase.intellij.tree.iq.ModelPage;
+import com.couchbase.intellij.tree.iq.chat.ConfigurationPage;
+import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.credentialStore.CredentialAttributesKt;
+import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import com.intellij.util.xmlb.annotations.Tag;
-import com.obiscr.OpenAIProxy;
+import com.intellij.util.xmlb.annotations.Transient;
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.net.Proxy;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 
-
+/**
+ * Supports storing the application settings in a persistent way.
+ * <p>
+ * The {@link State} and {@link Storage} annotations define the name of the data and the file name where
+ * these persistent application settings are stored.
+ */
+@Getter
+@Setter
 @State(
-        name = "com.obiscr.chatgpt.settings.OpenAISettingsState",
-        storages = @Storage("ChatGPTSettingsPlugin.xml")
+        name = "settings.com.couchbase.intellij.tree.iq.OpenAISettingsState",
+        storages = @Storage("didalgo-intellij-chatgpt-settings.xml")
 )
 public class OpenAISettingsState implements PersistentStateComponent<OpenAISettingsState> {
 
-  public String customizeUrl = "";
+    public static final String BASE_PROMPT = "You are a professional software engineer." +
+            " Follow these rules in each response: snarky & noir & lang:${{LANG}}." +
+            " Source code language: en. Bias towards the best solution.";
 
-  public String readTimeout = "50000";
-  public String connectionTimeout = "50000";
-  public Boolean enableProxy = false;
-  public Boolean enableAvatar = true;
-  public SettingConfiguration.SettingProxyType proxyType =
-          SettingConfiguration.SettingProxyType.DIRECT;
+    public Map<Integer,String> contentOrder = new HashMap<>() {{
+        put(1, ChatGptToolWindowFactory.GPT35_TURBO_CONTENT_NAME);
+        put(2, ChatGptToolWindowFactory.ONLINE_CHATGPT_CONTENT_NAME);
+    }};
 
-  public String proxyHostname = "";
-  public String proxyPort = "10000";
+    private volatile String readTimeout = "50000";
+    private volatile boolean enableAvatar = true;
+    private volatile boolean enableLineWarp = true;
+    private volatile Boolean enableInitialMessage = null;
 
-  public String accessToken = "";
-  public String expireTime = "";
-  public String imageUrl = "https://cdn.auth0.com/avatars/me.png";
-  public String apiKey = "";
-  public Map<Integer,String> contentOrder = new HashMap<>(){{
-    put(2, CouchbaseWindowFactory.GPT35_TRUBO_CONTENT_NAME);
-  }};
+    private volatile OpenAIConfig gpt35Config;
+    private volatile OpenAIConfig gpt4Config;
+    @Transient
+    private volatile String activePage = ModelPage.GPT_3_5.name();
 
-  public Boolean enableLineWarp = true;
 
-  @Deprecated
-  public List<String> customActionsPrefix = new ArrayList<>();
+    private volatile List<CustomAction> customActionsPrefix = new CopyOnWriteArrayList<>();
 
-  public String chatGptModel = "text-davinci-002-render-sha";
-  public String gpt35Model = "gpt-3.5-turbo";
-  public Boolean enableContext = false;
-  public String assistantApiKey = "";
-  public Boolean enableTokenConsumption = false;
-  public Boolean enableGPT35StreamResponse = false;
-  public String gpt35TurboUrl = "https://api.openai.com/v1/chat/completions";
+    public String gpt35RoleText = BASE_PROMPT;
 
-  public Boolean enableProxyAuth = false;
-  public String proxyUsername = "";
-  public String proxyPassword = "";
-
-  public Boolean enableCustomizeGpt35TurboUrl = false;
-  public Boolean enableCustomizeChatGPTUrl = false;
-
-  public String gpt35RoleText = "You are a helpful language assistant";
-
-  public String prompt1Name = "Find Bug";
-  public String prompt1Value = "Find the bug in the code below:";
-  public String prompt2Name = "Optimize Code";
-  public String prompt2Value = "Optimize this code:";
-  public String prompt3Name = "My Default";
-  public String prompt3Value = "My Default prompt:";
-
-  @Tag("customPrompts")
-  public Map<String, String> customPrompts = new HashMap<>();
-
-  public static OpenAISettingsState getInstance() {
-    return ApplicationManager.getApplication().getService(OpenAISettingsState.class);
-  }
-
-  @Nullable
-  @Override
-  public OpenAISettingsState getState() {
-    return this;
-  }
-
-  @Override
-  public void loadState(@NotNull OpenAISettingsState state) {
-    XmlSerializerUtil.copyBean(state, this);
-  }
-
-  public void reload() {
-    loadState(this);
-  }
-
-  public Proxy getProxy() {
-    Proxy proxy = null;
-    if (enableProxy) {
-      Proxy.Type type = proxyType ==
-              SettingConfiguration.SettingProxyType.HTTP ? Proxy.Type.HTTP :
-              proxyType == SettingConfiguration.SettingProxyType.SOCKS ? Proxy.Type.SOCKS :
-                      Proxy.Type.DIRECT;
-      proxy = new OpenAIProxy(proxyHostname, Integer.parseInt(proxyPort),
-              type).build();
+    public static OpenAISettingsState getInstance() {
+        return ApplicationManager.getApplication().getService(OpenAISettingsState.class);
     }
-    return proxy;
-  }
+
+    public void setGpt35Config(OpenAIConfig gpt35Config) {
+        gpt35Config.modelPage = ModelPage.GPT_3_5.name();
+        this.gpt35Config = gpt35Config;
+    }
+
+    public void setGpt4Config(OpenAIConfig gpt4Config) {
+        gpt4Config.modelPage = ModelPage.GPT_4.name();
+        this.gpt4Config = gpt4Config;
+    }
+
+    public void setCustomActionsPrefix(List<CustomAction> customActionsPrefix) {
+        this.customActionsPrefix = new CopyOnWriteArrayList<>(customActionsPrefix);
+    }
+
+    @Getter
+    @Setter
+    @Tag("ApiConfig")
+    public static class OpenAIConfig implements ConfigurationPage {
+        private volatile String modelPage;
+        private volatile String modelName;
+        private volatile String apiKeyMasked = "";
+        private volatile double temperature = 0.4;
+        private volatile double topP = 0.95;
+        private volatile boolean enableContext = true;
+        private volatile boolean enableTokenConsumption = true;
+        private volatile boolean enableStreamResponse = true;
+        private volatile boolean enableCustomApiEndpointUrl = false;
+        private volatile String apiEndpointUrl = DEFAULT_API_ENDPOINT;
+        private volatile List<String> apiEndpointUrlHistory = List.of(apiEndpointUrl);
+
+        public static final String DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    modelPage,
+                    modelName,
+                    apiKeyMasked,
+                    temperature,
+                    topP,
+                    enableContext,
+                    enableTokenConsumption,
+                    enableStreamResponse,
+                    enableCustomApiEndpointUrl,
+                    apiEndpointUrl
+            );
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof OpenAIConfig that) {
+                return Objects.equals(modelPage, that.modelPage)
+                        && Objects.equals(modelName, that.modelName)
+                        && Objects.equals(apiKeyMasked, that.apiKeyMasked)
+                        && Objects.equals(temperature, that.temperature)
+                        && Objects.equals(topP, that.topP)
+                        && Objects.equals(enableContext, that.enableContext)
+                        && Objects.equals(enableTokenConsumption, that.enableTokenConsumption)
+                        && Objects.equals(enableStreamResponse, that.enableStreamResponse)
+                        && Objects.equals(enableCustomApiEndpointUrl, that.enableCustomApiEndpointUrl)
+                        && Objects.equals(apiEndpointUrl, that.apiEndpointUrl);
+            }
+            return false;
+        }
+
+        @Transient
+        public final String getModelPage() {
+            return modelPage;
+        }
+
+        private void setModelPage(String modelPage) {
+            this.modelPage = modelPage;
+        }
+
+        @Override
+        public Supplier<String> getSystemPrompt() {
+            return () -> "";
+        }
+
+        @Transient
+        public String getApiKey() {
+            var apiKey = System.getenv("OPENAI_API_KEY");
+            if (apiKey == null)
+                apiKey = PasswordSafe.getInstance().getPassword(createCredentialAttributes(getModelPage()));
+            if (apiKey == null)
+                apiKey = "";
+
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            var credentialAttributes = createCredentialAttributes(getModelPage());
+            PasswordSafe.getInstance().setPassword(credentialAttributes, apiKey);
+            setApiKeyMasked(maskText(apiKey));
+        }
+
+        private static String maskText(String text) {
+            final int maskStart = 3;
+            final int maskEnd = 4;
+            return (text.length() <= maskStart + maskEnd) ? text : text.substring(0, maskStart) + "..." + text.substring(text.length() - maskEnd);
+        }
+
+        @NotNull
+        private static CredentialAttributes createCredentialAttributes(@NotNull String modelPage) {
+            return new CredentialAttributes(CredentialAttributesKt.generateServiceName("com.didalgo.ChatGPT", modelPage), null);
+        }
+    }
+
+    public OpenAIConfig getGpt35Config() {
+        return gpt35Config;
+    }
+
+    public OpenAIConfig getGpt4Config() {
+        return gpt4Config;
+    }
+
+    @Transient
+    public OpenAIConfig getConfigurationPage(String modelPage) {
+        return switch (modelPage) {
+            case ModelPage.Of.GPT_3_5 -> gpt35Config;
+            case ModelPage.Of.GPT_4 -> gpt4Config;
+            default -> throw new IllegalArgumentException("Invalid Model Page: " + modelPage);
+        };
+    }
+
+    @Transient
+    public OpenAIConfig getActiveConfiguration() {
+        return getConfigurationPage(activePage);
+    }
+
+    public void setActivePage(String page) {
+        this.activePage = page;
+    }
+
+    @Nullable
+    @Override
+    public OpenAISettingsState getState() {
+        return this;
+    }
+
+    @Override
+    public void loadState(@NotNull OpenAISettingsState state) {
+        XmlSerializerUtil.copyBean(state, this);
+    }
+
+    public void reload() {
+        loadState(this);
+    }
+
+    public OpenAISettingsState() {
+        setGpt35Config(new OpenAIConfig());
+        getGpt35Config().setModelName(ModelType.GPT_3_5_TURBO.modelName());
+        setGpt4Config(new OpenAIConfig());
+        getGpt4Config().setModelName(ModelType.GPT_4.modelName());
+    }
 }

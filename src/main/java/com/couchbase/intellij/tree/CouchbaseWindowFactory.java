@@ -1,6 +1,6 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.intellij.tree.iq.ChatGPTToolWindow;
+//import com.couchbase.intellij.tree.iq.ChatGPTToolWindow;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
@@ -27,10 +27,10 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
         Content explorer = contentFactory.createContent(couchbaseWindowContent, "Explorer", false);
         toolWindow.getContentManager().addContent(explorer);
 
-        ChatGPTToolWindow chatGPTToolWindow = new ChatGPTToolWindow(project);
-        Content chatGpt = contentFactory.createContent(chatGPTToolWindow.getContent(), "iQ", false);
-        chatGpt.setIcon(AllIcons.General.Add);
-        toolWindow.getContentManager().addContent(chatGpt);
+//        ChatGPTToolWindow chatGPTToolWindow = new ChatGPTToolWindow(project);
+//        Content chatGpt = contentFactory.createContent(chatGPTToolWindow.getContent(), "iQ", false);
+//        chatGpt.setIcon(AllIcons.General.Add);
+//        toolWindow.getContentManager().addContent(chatGpt);
 
     }
 }

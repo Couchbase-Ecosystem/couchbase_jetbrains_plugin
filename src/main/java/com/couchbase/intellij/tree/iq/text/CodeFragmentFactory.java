@@ -1,6 +1,6 @@
 package com.couchbase.intellij.tree.iq.text;
 
-import com.didalgo.intellij.chatgpt.ChatGptBundle;
+import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.EditorEx;
 import org.apache.commons.lang3.StringUtils;
