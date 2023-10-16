@@ -12,6 +12,7 @@ import com.couchbase.intellij.tools.CBTools;
 import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
+import com.couchbase.intellij.tools.dialog.MctimingsDialog;
 import com.couchbase.intellij.tools.dialog.ImportDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
@@ -177,6 +178,17 @@ public class TreeRightClickListener {
                 tools.add(cbimport);
                 tools.addSeparator();
             }
+
+           if (CBTools.getTool(CBTools.Type.MCTIMINGS).isAvailable()) {
+                AnAction cbmctimings = new AnAction("Mctimings") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        MctimingsDialog dialog = new MctimingsDialog();
+                        dialog.show();
+                    }
+                };
+                tools.add(cbmctimings);
+           }
 
             DefaultActionGroup settings = new DefaultActionGroup("Settings", true);
             DefaultActionGroup colors = new DefaultActionGroup("Connection Colors", true);

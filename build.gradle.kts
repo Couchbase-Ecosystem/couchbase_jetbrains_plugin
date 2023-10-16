@@ -16,9 +16,8 @@ dependencies {
     implementation("com.couchbase.client:java-client:3.4.9")
     implementation("org.slf4j:slf4j-simple:2.0.7")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
-
-    implementation("com.opencsv:opencsv:5.5.2") // OpenCSV
-
+    implementation("org.jfree:jfreechart:1.5.3")
+    implementation("com.opencsv:opencsv:5.5.2")
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
