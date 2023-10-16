@@ -100,8 +100,13 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     }
 
     private Set<String> getCollectionAttributes(CouchbaseCollection col) {
+        if (col == null || col.getChildren() == null ) {
+            return  new HashSet<>();
+        }
         return col.getChildren().stream()
-                .flatMap(e -> e.getChildren().stream())
+                .flatMap(e -> Optional.ofNullable(e.getChildren())
+                        .map(Collection::stream)
+                        .orElseGet(Stream::empty))
                 .map(CouchbaseField::getName).collect(Collectors.toCollection(TreeSet::new));
     }
 

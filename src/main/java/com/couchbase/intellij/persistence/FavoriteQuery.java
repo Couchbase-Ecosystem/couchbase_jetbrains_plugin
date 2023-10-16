@@ -5,6 +5,10 @@ public class FavoriteQuery {
     private String name;
     private String query;
 
+    public FavoriteQuery(){
+        super();
+    }
+
     public FavoriteQuery(String name, String query) {
         this.name = name;
         this.query = query;

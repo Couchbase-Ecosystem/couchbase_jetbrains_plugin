@@ -68,6 +68,11 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.settings.OpenAISettingsState"/>
+        <projectService serviceImplementation="com.couchbase.intellij.tree.iq.ChatGPTHandler"/>
+        <projectService serviceImplementation="com.couchbase.intellij.tree.iq.core.ConversationManager"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.core.TokenManager"/>
+        <projectService serviceImplementation="com.couchbase.intellij.tree.iq.core.SendAction"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.ClustersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
