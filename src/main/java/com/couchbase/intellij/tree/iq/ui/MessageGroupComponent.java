@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package com.couchbase.intellij.tree.iq.ui;
 
-import com.couchbase.intellij.tree.iq.core.Constant;
+import com.couchbase.intellij.tree.iq.SystemMessageHolder;
+import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
-import com.google.gson.JsonArray;
+import com.couchbase.intellij.tree.iq.text.TextFragment;
+import com.couchbase.intellij.tree.iq.util.ScrollingTools;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -10,50 +16,53 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.NullableComponent;
+import com.intellij.ui.Gray;
+import com.intellij.ui.HideableTitledPanel;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.ui.components.labels.LinkLabel;
 import com.intellij.ui.components.panels.NonOpaquePanel;
 import com.intellij.ui.components.panels.VerticalLayout;
+import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implements NullableComponent {
-    private static final String systemRoleText = "You are a helpful language assistant";
-    private final JPanel myList = new JPanel(new VerticalLayout(JBUI.scale(10)));
-    private final MyScrollPane myScrollPane = new MyScrollPane(myList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+import static com.couchbase.intellij.tree.iq.settings.OpenAISettingsState.BASE_PROMPT;
+
+public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implements NullableComponent, SystemMessageHolder {
+    private final JPanel myList = new JPanel(new VerticalLayout(0));
+    private final JBScrollPane myScrollPane = new JBScrollPane(myList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                       ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-    private final MyAdjustmentListener scrollListener = new MyAdjustmentListener();
-//    private final MessageComponent chatGPTExplanation =
-//            new MessageComponent(Constant.getChatGPTContent(),false);
-    private final MessageComponent gpt35TurboModelExplanation =
-            new MessageComponent(Constant.getGpt35TurboContent(),false);
-    private final MessageComponent tips =
-            new MessageComponent("Ask me anything about Couchbase.",false);
     private int myScrollValue = 0;
     private JBTextField systemRole;
-    private JsonArray messages = new JsonArray();
-    public MessageGroupComponent(@NotNull Project project, boolean isChatGPT) {
-        setBorder(JBUI.Borders.empty(10, 10, 10, 0));
-        setLayout(new BorderLayout(JBUI.scale(7), 0));
+    private final Project project;
+    private final ChatLink chatLink;
+
+    public MessageGroupComponent(ChatLink chatLink, @NotNull Project project) {
+        this.chatLink = chatLink;
+        this.project = project;
+        setBorder(JBUI.Borders.empty());
+        setLayout(new BorderLayout());
         setBackground(UIUtil.getListBackground());
 
-        JPanel mainPanel = new JPanel(new BorderLayout(0, JBUI.scale(8)));
-        mainPanel.setOpaque(false);
-        mainPanel.setBorder(JBUI.Borders.emptyLeft(8));
+        myScrollPane.getVerticalScrollBar().putClientProperty(JBScrollPane.IGNORE_SCROLLBAR_IN_INSETS, Boolean.TRUE);
+        ScrollingTools.installAutoScrollToBottom(myScrollPane);
 
-        if (!isChatGPT) {
-            JPanel panel = new NonOpaquePanel(new GridLayout(2,1));
-            panel.add(new JBLabel(" System role: you can direct your assistant and set its behavior"));
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
+        mainPanel.setOpaque(false);
+        mainPanel.setBorder(JBUI.Borders.emptyLeft(0));
+
+        if (true) {
+            JPanel panel = new NonOpaquePanel(new GridLayout(0,1));
             JPanel rolePanel = new NonOpaquePanel(new BorderLayout());
             systemRole = new JBTextField();
             OpenAISettingsState instance = OpenAISettingsState.getInstance();
@@ -70,112 +79,132 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                     systemRole.setEnabled(false);
                 }
             });
-            rolePanel.add(systemRole,BorderLayout.CENTER);
+            rolePanel.add(systemRole, BorderLayout.CENTER);
             DefaultActionGroup toolbarActions = new DefaultActionGroup();
             toolbarActions.add(new AnAction(AllIcons.Actions.MenuSaveall) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    instance.gpt35RoleText = systemRole.getText().isEmpty() ? systemRoleText : systemRole.getText();
+                    instance.gpt35RoleText = systemRole.getText().isEmpty() ? BASE_PROMPT : systemRole.getText();
                 }
             });
             toolbarActions.add(new AnAction(AllIcons.Actions.Rollback) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    systemRole.setText(systemRoleText);
-                    instance.gpt35RoleText = systemRoleText;
+                    systemRole.setText(BASE_PROMPT);
+                    instance.setGpt35RoleText(BASE_PROMPT);
                 }
             });
             ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
             actonPanel.setTargetComponent(this);
             rolePanel.add(actonPanel,BorderLayout.EAST);
             panel.add(rolePanel);
-            panel.setBorder(JBUI.Borders.empty(0,8,10,10));
-            add(panel,BorderLayout.NORTH);
+            panel.setBorder(JBUI.Borders.empty(0,8,10,0));
+
+            HideableTitledPanel cPanel = new HideableTitledPanel("System role: you can guide your assistant and define its behavior.", false);
+            cPanel.setContentComponent(panel);
+            cPanel.setOn(false);
+            cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
+            add(cPanel, BorderLayout.NORTH);
         }
 
-        add(mainPanel,BorderLayout.CENTER);
+        add(mainPanel, BorderLayout.CENTER);
 
-//        JBLabel myTitle = new JBLabel("Conversation");
-//        myTitle.setForeground(JBColor.namedColor("Label.infoForeground", new JBColor(Gray.x80, Gray.x8C)));
-//        myTitle.setFont(JBFont.label());
+        JBLabel myTitle = new JBLabel("Conversation");
+        myTitle.setForeground(JBColor.namedColor("Label.infoForeground", new JBColor(Gray.x80, Gray.x8C)));
+        myTitle.setFont(JBFont.label());
 
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
         panel.setBorder(JBUI.Borders.empty(0,10,10,0));
 
- //       panel.add(myTitle, BorderLayout.WEST);
+        panel.add(myTitle, BorderLayout.WEST);
 
-//        LinkLabel<String> newChat = new LinkLabel<>("New chat", null);
-//        newChat.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                super.mouseClicked(e);
-//                myList.removeAll();
-//                myList.add(tips);
-//                myList.updateUI();
-//                if (isChatGPT) {
-//                    ConversationManager.getInstance(project).setConversationId(null);
-//                } else {
-//                    messages = new JsonArray();
-//                }
-//            }
-//        });
-//
-//        newChat.setFont(JBFont.label());
-//        newChat.setBorder(JBUI.Borders.emptyRight(20));
-//        panel.add(newChat, BorderLayout.EAST);
+        LinkLabel<String> newChat = new LinkLabel<>("New chat", null);
+        newChat.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                myList.removeAll();
+                addAssistantTipsIfEnabled(false);
+                myList.updateUI();
+                chatLink.getConversationContext().clear();
+            }
+        });
+
+        newChat.setFont(JBFont.label());
+        newChat.setBorder(JBUI.Borders.emptyRight(20));
+        panel.add(newChat, BorderLayout.EAST);
         mainPanel.add(panel, BorderLayout.NORTH);
 
         myList.setOpaque(true);
         myList.setBackground(UIUtil.getListBackground());
-        myList.setBorder(JBUI.Borders.emptyRight(10));
+        myList.setBorder(JBUI.Borders.emptyRight(0));
 
         myScrollPane.setBorder(JBUI.Borders.empty());
         mainPanel.add(myScrollPane);
         myScrollPane.getVerticalScrollBar().setAutoscrolls(true);
         myScrollPane.getVerticalScrollBar().addAdjustmentListener(e -> {
-            int value = e.getValue();
-            if (myScrollValue == 0 && value > 0 || myScrollValue > 0 && value == 0) {
-                myScrollValue = value;
-                repaint();
-            }
-            else {
-                myScrollValue = value;
-            }
+            myScrollValue = e.getValue();
         });
 
-        // Add the default message
-//        if (isChatGPT) {
-//            add(chatGPTExplanation);
-//        } else {
-//            add(gpt35TurboModelExplanation);
-//        }
-        add(tips);
+        addAssistantTipsIfEnabled(true);
+    }
+
+    public void addSeparator(JComponent comp) {
+        SwingUtilities.invokeLater(() -> {
+            JSeparator separator = new JSeparator();
+            separator.setForeground(JBColor.border());
+            comp.add(separator);
+            updateLayout();
+            invalidate();
+            validate();
+            repaint();
+        });
+    }
+
+    protected void addAssistantTipsIfEnabled(boolean firstUse) {
+        addSeparator(myList);
+
+        var introEnabled = OpenAISettingsState.getInstance().getEnableInitialMessage();
+        if (!firstUse && introEnabled == null)
+            OpenAISettingsState.getInstance().setEnableInitialMessage(introEnabled = false);
+        if (!Boolean.FALSE.equals(introEnabled))
+            myList.add(createAssistantTips());
+    }
+
+    protected MessageComponent createAssistantTips() {
+        var modelType = chatLink.getConversationContext().getModelType();
+        return new MessageComponent(TextFragment.of("""
+                Hi, I'm your AI-powered annoying pair programmer. How can I assist you today?
+                
+                Here are some suggestions to get you started:
+                [✦ Explain the selected code](assistant://?prompt=Explain+the+selected+code)
+                [✦ Convert this Oracle SQL to PostgreSQL](assistant://?prompt=Convert+this+Oracle+SQL+to+PostgreSQL)
+                [✦ What for can I use atomics in Java?](assistant://?prompt=What+for+can+I+use+atomics+in+Java%3F)
+                [✦ Explain the LazyHolder pattern in Java](assistant://?prompt=Explain+the+LazyHolder+pattern+in+Java)
+                [✦ Suggest Java library's method for doing OCR](assistant://?prompt=Suggest+Java+library%27s+method+for+doing+OCR)
+                """), modelType);
     }
 
     public void add(MessageComponent messageComponent) {
-        // The component should be immediately added to the
-        // container and displayed in the UI
-
-        // SwingUtilities.invokeLater(() -> {
-        myList.add(messageComponent);
-        updateLayout();
-        scrollToBottom();
-        updateUI();
-        // });
+        SwingUtilities.invokeLater(() -> {
+            myList.add(messageComponent);
+            updateLayout();
+            scrollToBottom();
+            invalidate();
+            validate();
+            repaint();
+        });
     }
 
     public void scrollToBottom() {
-        JScrollBar verticalScrollBar = myScrollPane.getVerticalScrollBar();
-        verticalScrollBar.setValue(verticalScrollBar.getMaximum());
+        ScrollingTools.scrollToBottom(myScrollPane);
     }
 
     public void updateLayout() {
         LayoutManager layout = myList.getLayout();
         int componentCount = myList.getComponentCount();
-        for (int i = 0 ; i< componentCount ; i++) {
+        for (int i = 0; i < componentCount; i++) {
             layout.removeLayoutComponent(myList.getComponent(i));
-            layout.addLayoutComponent(null,myList.getComponent(i));
+            layout.addLayoutComponent(null, myList.getComponent(i));
         }
     }
 
@@ -188,7 +217,6 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             g.drawLine(0, y, getWidth(), y);
         }
     }
-
 
     @Override
     public boolean isVisible() {
@@ -208,32 +236,8 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         return !isVisible();
     }
 
-    public void addScrollListener() {
-        myScrollPane.getVerticalScrollBar().
-                addAdjustmentListener(scrollListener);
-    }
-
-    public void removeScrollListener() {
-        myScrollPane.getVerticalScrollBar().
-                removeAdjustmentListener(scrollListener);
-    }
-
-    public JsonArray getMessages() {
-        return messages;
-    }
-
-    public String getSystemRole() {
-        return OpenAISettingsState.getInstance().gpt35RoleText;
-    }
-
-    static class MyAdjustmentListener implements AdjustmentListener {
-
-        @Override
-        public void adjustmentValueChanged(AdjustmentEvent e) {
-            JScrollBar source = (JScrollBar) e.getSource();
-            if (!source.getValueIsAdjusting()) {
-                source.setValue(source.getMaximum());
-            }
-        }
+    @Override
+    public String getSystemMessage() {
+        return systemRole.getText();
     }
 }
