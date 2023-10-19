@@ -368,22 +368,37 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                         }
                     }
 
-                    if (!sqlppUpsertMenuItemExists) {
-                        JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
-                        popupMenu.add(sqlppUpsertMenuItem);
-                        addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
-                    }
+                    // If SQLPP items do not exist, add them after a divider
+                    if (!sqlppUpsertMenuItemExists || !sqlppInsertMenuItemExists || !sqlppUpdateMenuItemExists) {
+                        boolean dividerExists = false;
+                        for (Component component : popupMenu.getComponents()) {
+                            if (component instanceof JSeparator) {
+                                dividerExists = true;
+                                break;
+                            }
+                        }
 
-                    if (!sqlppInsertMenuItemExists) {
-                        JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
-                        popupMenu.add(sqlppInsertMenuItem);
-                        addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
-                    }
+                        if (!dividerExists) {
+                            popupMenu.add(new JSeparator());
+                        }
 
-                    if (!sqlppUpdateMenuItemExists) {
-                        JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
-                        popupMenu.add(sqlppUpdateMenuItem);
-                        addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
+                        if (!sqlppUpsertMenuItemExists) {
+                            JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
+                            popupMenu.add(sqlppUpsertMenuItem);
+                            addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
+                        }
+
+                        if (!sqlppInsertMenuItemExists) {
+                            JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
+                            popupMenu.add(sqlppInsertMenuItem);
+                            addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
+                        }
+
+                        if (!sqlppUpdateMenuItemExists) {
+                            JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
+                            popupMenu.add(sqlppUpdateMenuItem);
+                            addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
+                        }
                     }
                 } else {
                     for (Component component : popupMenu.getComponents()) {
@@ -394,6 +409,10 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                                     menuItem.getText().equals("SQL++ UPDATE")) {
                                 popupMenu.remove(menuItem);
                             }
+
+                        }
+                        if (component instanceof JSeparator) {
+                            popupMenu.remove(component);
                         }
                     }
                 }
