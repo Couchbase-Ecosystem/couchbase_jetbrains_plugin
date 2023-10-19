@@ -14,10 +14,7 @@ import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
-import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
-import com.couchbase.intellij.persistence.Clusters;
-import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
-import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
@@ -31,10 +28,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.intellij.json.JsonFileType;
+import com.intellij.lang.Language;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.event.DocumentEvent;
+import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.fileTypes.UserBinaryFileType;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -45,8 +48,10 @@ import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.PsiManager;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.EditorComboBox;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
@@ -374,36 +379,11 @@ public class DataLoader {
         final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
+                final FileType type = isBinary ? UserBinaryFileType.INSTANCE : JsonFileType.INSTANCE;
+                CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(
+                       node.getBucket(), node.getScope(), node.getCollection(), node.getId()
+                );
 
-                PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(), node.getBucket(), node.getScope(), node.getCollection());
-                String fileName = (isBinary ? ("(read-only)") : "") + node.getId() + (isBinary ? "" : ".json");
-
-                PsiFile psiFile = psiDirectory.findFile(fileName);
-                if (psiFile == null) {
-                    psiFile = Objects.requireNonNull(psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())).createFile(fileName);
-                }
-
-                // Get the Document associated with the PsiFile
-                Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
-                if (document != null) {
-
-                    if (isBinary) {
-                        try {
-                            document.setText(content);
-                        } catch ( AssertionError e ) {
-                            Messages.showInfoMessage("Couchbase Plugin", "Cannot open this binary file via the plugin");
-                            return;
-                        }
-                    } else {
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        JsonElement jsonElement = JsonParser.parseString(content);
-                        document.setText(gson.toJson(jsonElement));
-                    }
-                }
-
-
-                // Retrieve the VirtualFile from the PsiFile
-                VirtualFile virtualFile = psiFile.getVirtualFile();
                 virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.BUCKET, node.getBucket());
