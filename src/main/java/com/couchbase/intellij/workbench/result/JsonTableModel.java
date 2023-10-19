@@ -2,6 +2,7 @@ package com.couchbase.intellij.workbench.result;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.util.ui.ItemRemovable;
 
 import javax.swing.table.AbstractTableModel;
@@ -138,6 +139,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
 
     public String convertToSQLPPUpsert() {
         StringBuilder sqlpp = new StringBuilder();
+        String targetCollection = Messages.showInputDialog("Give a target collection name", "Target Collection", null);
 
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
@@ -145,9 +147,11 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
                 return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
             }
             String key = keyObject.toString();
-            row.remove("key");
-            row.remove("id");
-            sqlpp.append("UPSERT INTO my_collection (KEY, VALUE) VALUES (\"");
+            // row.remove("key");
+            // row.remove("id");
+            sqlpp.append("UPSERT INTO ");
+            sqlpp.append(targetCollection);
+            sqlpp.append(" (KEY, VALUE) VALUES (\"");
             sqlpp.append(key);
             sqlpp.append("\", ");
 
@@ -162,6 +166,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
 
     public String convertToSQLPPInsert() {
         StringBuilder sqlpp = new StringBuilder();
+        String targetCollection = Messages.showInputDialog("Give a target collection name", "Target Collection", null);
 
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
@@ -169,9 +174,11 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
                 return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
             }
             String key = keyObject.toString();
-            row.remove("key");
-            row.remove("id");
-            sqlpp.append("INSERT INTO my_collection (KEY, VALUE) VALUES (\"");
+            // row.remove("key");
+            // row.remove("id");
+            sqlpp.append("INSERT INTO ");
+            sqlpp.append(targetCollection);
+            sqlpp.append(" (KEY, VALUE) VALUES (\"");
             sqlpp.append(key);
             sqlpp.append("\", ");
 
@@ -186,6 +193,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
 
     public String convertToSQLPPUpdate() {
         StringBuilder sqlpp = new StringBuilder();
+        String targetCollection = Messages.showInputDialog("Give a target collection name", "Target Collection", null);
 
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
@@ -193,9 +201,11 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
                 return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
             }
             String key = keyObject.toString();
-            row.remove("key");
-            row.remove("id");
-            sqlpp.append("UPDATE my_collection USE KEYS \"");
+            // row.remove("key");
+            // row.remove("id");
+            sqlpp.append("UPDATE ");
+            sqlpp.append(targetCollection);
+            sqlpp.append(" USE KEYS \"");
             sqlpp.append(key);
             sqlpp.append("\" SET ");
 
