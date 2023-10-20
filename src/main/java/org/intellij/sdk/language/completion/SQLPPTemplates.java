@@ -34,7 +34,8 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     public SQLPPTemplates(CompletionContributor with) {
         with.extend(
                 CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER),
+                PlatformPatterns.psiElement().inFile(PlatformPatterns.psiFile(SqlppFile.class))
+                        .with(Utils.START_OF_STATEMENT),
                 this
         );
     }
@@ -99,8 +100,13 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     }
 
     private Set<String> getCollectionAttributes(CouchbaseCollection col) {
+        if (col == null || col.getChildren() == null ) {
+            return  new HashSet<>();
+        }
         return col.getChildren().stream()
-                .flatMap(e -> e.getChildren().stream())
+                .flatMap(e -> Optional.ofNullable(e.getChildren())
+                        .map(Collection::stream)
+                        .orElseGet(Stream::empty))
                 .map(CouchbaseField::getName).collect(Collectors.toCollection(TreeSet::new));
     }
 

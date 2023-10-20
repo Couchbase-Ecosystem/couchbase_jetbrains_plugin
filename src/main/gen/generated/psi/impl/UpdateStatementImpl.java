@@ -59,8 +59,8 @@ public class UpdateStatementImpl extends SqlppPSIWrapper implements UpdateStatem
 
   @Override
   @Nullable
-  public UseKeys getUseKeys() {
-    return findChildByClass(UseKeys.class);
+  public UseKeysClause getUseKeysClause() {
+    return findChildByClass(UseKeysClause.class);
   }
 
   @Override

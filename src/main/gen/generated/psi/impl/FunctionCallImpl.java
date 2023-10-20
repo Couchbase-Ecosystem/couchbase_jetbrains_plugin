@@ -47,6 +47,12 @@ public class FunctionCallImpl extends SqlppPSIWrapper implements FunctionCall {
 
   @Override
   @Nullable
+  public Path getPath() {
+    return findChildByClass(Path.class);
+  }
+
+  @Override
+  @Nullable
   public WindowFunction getWindowFunction() {
     return findChildByClass(WindowFunction.class);
   }

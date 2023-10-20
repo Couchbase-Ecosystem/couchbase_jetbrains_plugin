@@ -1,5 +1,6 @@
 package org.intellij.sdk.language.completion;
 
+import com.couchbase.client.core.projections.PathElement;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
@@ -11,6 +12,7 @@ import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.ui.TreeActions;
 import com.intellij.util.ProcessingContext;
 import generated.GeneratedTypes;
 import generated.psi.Alias;
@@ -52,6 +54,28 @@ public class Utils {
             return !isAfterDot(element);
         }
     };
+
+    public static final PatternCondition<PsiElement> START_OF_STATEMENT = new PatternCondition<PsiElement>("At the start of the statement") {
+        @Override
+        public boolean accepts(@NotNull PsiElement psiElement, ProcessingContext context) {
+            boolean fileDetected = false;
+            PsiElement prevSibling = null;
+            if ((psiElement.getParent() instanceof PsiErrorElement && psiElement.getParent().getParent() instanceof PsiFile) ) {
+                prevSibling = psiElement.getParent().getPrevSibling();
+                fileDetected = true;
+            } else if (psiElement.getParent() instanceof PsiFile) {
+                prevSibling = psiElement.getPrevSibling();
+                fileDetected = true;
+            }
+
+            if (prevSibling instanceof PsiWhiteSpace) {
+                prevSibling = prevSibling.getPrevSibling();
+            }
+
+            return fileDetected && (prevSibling == null || prevSibling.getNode().getElementType() == GeneratedTypes.SEMICOLON);
+        }
+    };
+
     public static final PatternCondition<PsiElement> INCLUDE_FUNCTIONS = new PatternCondition<PsiElement>("include functions") {
         @Override
         public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
@@ -200,6 +224,15 @@ public class Utils {
                 return false;
             }
             element = element.getPrevSibling();
+        }
+
+        // special case -- function return traversal
+        PsiElement parentPath = PsiTreeUtil.findFirstParent(element, psiElement -> psiElement.getNode().getElementType() == GeneratedTypes.PATH);
+        if (parentPath != null) {
+            PsiElement parentPathPrevSibling = parentPath.getPrevSibling();
+            if (parentPathPrevSibling != null && parentPathPrevSibling.getNode().getElementType() == GeneratedTypes.DOT) {
+                return true;
+            }
         }
         return false;
     }
