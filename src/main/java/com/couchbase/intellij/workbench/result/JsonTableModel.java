@@ -140,11 +140,16 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
     public String convertToSQLPPUpsert() {
         StringBuilder sqlpp = new StringBuilder();
         String targetCollection = Messages.showInputDialog("Give a target collection name", "Target Collection", null);
-
+        String validationError = validateCollectionName(targetCollection);
+        if (validationError != null) {
+            Messages.showErrorDialog(validationError, "Invalid Collection Name");
+            return null;
+        }
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
             if (keyObject == null) {
-                return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
+                Messages.showErrorDialog(QUERY_KEY_ID_NOT_PRESENT_MESSAGE, "Invalid Key");
+                return null;
             }
             String key = keyObject.toString();
             // row.remove("key");
@@ -167,11 +172,16 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
     public String convertToSQLPPInsert() {
         StringBuilder sqlpp = new StringBuilder();
         String targetCollection = Messages.showInputDialog("Give a target collection name", "Target Collection", null);
-
+        String validationError = validateCollectionName(targetCollection);
+        if (validationError != null) {
+            Messages.showErrorDialog(validationError, "Invalid Collection Name");
+            return null;
+        }
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
             if (keyObject == null) {
-                return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
+                Messages.showErrorDialog(QUERY_KEY_ID_NOT_PRESENT_MESSAGE, "Invalid Key");
+                return null;
             }
             String key = keyObject.toString();
             // row.remove("key");
@@ -194,11 +204,16 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
     public String convertToSQLPPUpdate() {
         StringBuilder sqlpp = new StringBuilder();
         String targetCollection = Messages.showInputDialog("Give a target collection name", "Target Collection", null);
-
+        String validationError = validateCollectionName(targetCollection);
+        if (validationError != null) {
+            Messages.showErrorDialog(validationError, "Invalid Collection Name");
+            return null;
+        }
         for (Map<String, Object> row : data) {
             Object keyObject = row.containsKey("key") ? row.get("key") : row.get("id");
             if (keyObject == null) {
-                return QUERY_KEY_ID_NOT_PRESENT_MESSAGE;
+                Messages.showErrorDialog(QUERY_KEY_ID_NOT_PRESENT_MESSAGE, "Invalid Key");
+                return null;
             }
             String key = keyObject.toString();
             // row.remove("key");
@@ -229,6 +244,14 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         return sqlpp.toString();
     }
 
-
+    public String validateCollectionName(String targetCollection) {
+        if (targetCollection == null || targetCollection.trim().isEmpty()) {
+            return "Collection name cannot be empty.";
+        }
+        if (!targetCollection.matches("[A-Za-z0-9=+/.,_@]+")) {
+            return "Collection name contains invalid characters. Only text letters [A-Z, a-z], digits [0-9], and special characters [= + / . , _ @] are allowed.";
+        }
+        return null;
+    }
 
 }
