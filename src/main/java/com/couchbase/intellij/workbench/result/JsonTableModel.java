@@ -254,6 +254,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         private String value;
     
         public CustomInputDialog() {
+            setModal(true); // Necessary to block input to other windows while this dialog is open
             setLayout(new BorderLayout());
             setTitle("Enter Target Collection Name");
             setMinimumSize(new Dimension(400, 100));
