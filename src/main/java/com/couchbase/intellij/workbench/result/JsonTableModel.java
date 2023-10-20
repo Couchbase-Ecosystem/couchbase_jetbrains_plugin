@@ -313,11 +313,12 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
             if (targetCollection == null || targetCollection.trim().isEmpty()) {
                 return "Collection name cannot be empty.";
             }
-            if (!targetCollection.matches("[A-Za-z0-9=+/.,_@]+")) {
-                return "Collection name contains invalid characters. Only text letters [A-Z, a-z], digits [0-9], and special characters [= + / . , _ @] are allowed.";
+            if (!targetCollection.matches("[A-Za-z0-9=+/.,_@-]+")) {
+                return "Collection name contains invalid characters. Only text letters [A-Z, a-z], digits [0-9], and special characters [= + / . , _ @ -] are allowed.";
             }
             return null;
         }
+        
     }
 
 }
