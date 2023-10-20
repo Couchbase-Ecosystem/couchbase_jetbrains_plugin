@@ -1,6 +1,11 @@
 package com.couchbase.intellij.persistence;
 
+import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.intellij.json.JsonFileType;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.UserBinaryFileType;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileSystem;
@@ -8,10 +13,8 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import javax.swing.*;
+import java.io.*;
 
 public class CouchbaseDocumentVirtualFile extends VirtualFile {
     private final String bucket;
@@ -21,16 +24,55 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     private final String path;
     private final String name;
+    private FileType type;
 
-    public CouchbaseDocumentVirtualFile(String bucket, String scope, String collection, String id) {
+    private Long timestamp = System.currentTimeMillis();
+    private Long modified = -1L;
+
+    private byte[] content;
+
+    public CouchbaseDocumentVirtualFile(FileType type, String bucket, String scope, String collection, String id) {
+        this.type = type;
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;
         this.id = id;
 
         this.path = String.format("%s/%s/%s", bucket, scope, collection);
-        this.name = String.format("%s_%s.json", collection, id);
+        if (JsonFileType.INSTANCE.equals(type)) {
+            this.name = String.format("%s.json", id);
+        } else {
+            this.name = String.format("(read-only)%s", id);
+        }
     }
+
+    public CouchbaseDocumentVirtualFile(String bucket, String scope, String collection, String id) {
+        content = ActiveCluster.getInstance().get()
+                .bucket(bucket)
+                .scope(scope)
+                .collection(collection)
+                .get(id)
+                .contentAsBytes();
+        try {
+            JsonObject.fromJson(content);
+            this.type = JsonFileType.INSTANCE;
+        } catch (Exception jpe) {
+            this.type = UserBinaryFileType.INSTANCE;
+        }
+
+        this.bucket = bucket;
+        this.scope = scope;
+        this.collection = collection;
+        this.id = id;
+
+        this.path = String.format("%s/%s/%s", bucket, scope, collection);
+        if (JsonFileType.INSTANCE.equals(type)) {
+            this.name = String.format("%s.json", id);
+        } else {
+            this.name = String.format("(read-only)%s", id);
+        }
+    }
+
     @Override
     public @NotNull @NlsSafe String getName() {
         return name;
@@ -48,7 +90,7 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     @Override
     public boolean isWritable() {
-        return !ActiveCluster.getInstance().isReadOnlyMode();
+        return !ActiveCluster.getInstance().isReadOnlyMode() && JsonFileType.INSTANCE.equals(type);
     }
 
     @Override
@@ -72,22 +114,34 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     }
 
     @Override
+    public void setBinaryContent(byte @NotNull [] content, long newModificationStamp, long newTimeStamp, Object requestor) throws IOException {
+        this.content = content;
+        super.setBinaryContent(content, newModificationStamp, newTimeStamp, requestor);
+    }
+
+    @Override
     public @NotNull OutputStream getOutputStream(Object requestor, long newModificationStamp, long newTimeStamp) throws IOException {
-        return new CouchbaseDocumentOutputStream(this);
+        modified = newModificationStamp;
+        timestamp = newTimeStamp;
+        return new ByteArrayOutputStream();
     }
 
     @Override
     public byte @NotNull [] contentsToByteArray() throws IOException {
-        return ActiveCluster.getInstance().getCluster()
-                .bucket(bucket)
-                .scope(scope)
-                .collection(collection)
-                .get(id).contentAsBytes();
+        if (content == null) {
+            refresh(false, false, null);
+        }
+        return content;
+    }
+
+    @Override
+    public long getModificationStamp() {
+        return modified;
     }
 
     @Override
     public long getTimeStamp() {
-        return 0;
+        return timestamp;
     }
 
     @Override
@@ -99,9 +153,8 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
         }
     }
 
-    @Override
-    public void refresh(boolean asynchronous, boolean recursive, @Nullable Runnable postRunnable) {
-
+    public void setTimeStamp(long timeStamp) {
+        this.timestamp = timeStamp;
     }
 
     @Override
@@ -120,7 +173,42 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     public String collection() {
         return collection;
     }
+
     public String id() {
         return id;
+    }
+
+    @Override
+    public void refresh(boolean asynchronous, boolean recursive, @Nullable Runnable postRunnable) {
+        Runnable refresh = () -> {
+            GetResult gr = ActiveCluster.getInstance().getCluster()
+                    .bucket(bucket)
+                    .scope(scope)
+                    .collection(collection)
+                    .get(id);
+
+            byte[] newContent;
+            try {
+                newContent = JsonObject.fromJson(gr.contentAsBytes()).toString().getBytes();
+            } catch (Throwable e) {
+                newContent = gr.contentAsBytes();
+            }
+
+            content = newContent;
+
+            if (postRunnable != null) {
+                postRunnable.run();
+            }
+        };
+
+        if (asynchronous) {
+            SwingUtilities.invokeLater(refresh);
+        } else {
+            refresh.run();
+        }
+    }
+
+    public FileType getType() {
+        return type;
     }
 }

@@ -24,17 +24,8 @@ import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import com.intellij.json.JsonFileType;
-import com.intellij.lang.Language;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.event.DocumentEvent;
-import com.intellij.openapi.editor.event.DocumentListener;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.UserBinaryFileType;
@@ -47,11 +38,8 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.PsiManager;
 import com.intellij.testFramework.LightVirtualFile;
-import com.intellij.ui.EditorComboBox;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
@@ -381,7 +369,7 @@ public class DataLoader {
             ApplicationManager.getApplication().runWriteAction(() -> {
                 final FileType type = isBinary ? UserBinaryFileType.INSTANCE : JsonFileType.INSTANCE;
                 CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(
-                       node.getBucket(), node.getScope(), node.getCollection(), node.getId()
+                        type, node.getBucket(), node.getScope(), node.getCollection(), node.getId()
                 );
 
                 virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
