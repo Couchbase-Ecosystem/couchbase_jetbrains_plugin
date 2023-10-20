@@ -4,8 +4,17 @@ import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.overview.apis.*;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileChooserFactory;
+import com.intellij.openapi.fileChooser.FileSaverDescriptor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.Splitter;
+import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +46,7 @@ public class ServerOverviewDialog extends DialogWrapper {
     private Map<String, BucketSettings> bucketMap;
     private boolean firstNodeContent = true;
     private boolean firstBucketContent = true;
+    private Project project;
 
 
     public ServerOverviewDialog(boolean canBeParent) {
@@ -294,66 +304,64 @@ public class ServerOverviewDialog extends DialogWrapper {
         Action exportAction = new AbstractAction("Export") {
             @Override
             public void actionPerformed(ActionEvent e) {
-                exportContent();
+
+                FileSaverDescriptor fsd = new FileSaverDescriptor("Export Cluster Overview", "Choose where you want to save the file:");
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project).save(("ExportedContent.pdf"));
+                if (wrapper != null) {
+                    File file = wrapper.getFile();
+                    exportContent(file.getAbsolutePath());
+                }
             }
         };
 
         return new Action[]{exportAction, getOKAction()};
     }
 
-    private void exportContent() {
+    private void exportContent(String filePath) {
         PDDocument document = new PDDocument();
 
         List<CBNode> nodes = overview.getNodes();
         List<BucketName> buckets = overview.getBucketNames();
 
-        try {
-            createPageAndAddHeader(document, "Server Overview");
-            addServerOverviewContent(document, overview);
+        ProgressManager.getInstance().run(new Task.Backgroundable(null, "Exporting cluster overview", false) {
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                try {
+                    createPageAndAddHeader(document, "Server Overview");
+                    addServerOverviewContent(document, overview);
 
-            createPageAndAddHeader(document, "Nodes");
-            for (CBNode node : nodes) {
-                addNodeContent(document, node);
+                    createPageAndAddHeader(document, "Nodes");
+                    for (CBNode node : nodes) {
+                        addNodeContent(document, node);
+                    }
+
+                    createPageAndAddHeader(document, "Buckets");
+
+                    for (BucketName bucket : buckets) {
+                        addBucketsContent(document, bucket);
+                    }
+
+                    document.save(filePath);
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        Log.info("File " + filePath + " was exported successfully");
+                        Messages.showInfoMessage("File saved successfully.", "Cluster Overview Export");
+                    });
+                } catch (Exception e) {
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to export the Cluster Overview", "Cluster Overview Export Error"));
+                    Log.error(e);
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        document.close();
+                    } catch (IOException e) {
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to export the Cluster Overview", "Cluster Overview Export Error"));
+                        Log.error(e);
+                        e.printStackTrace();
+                    }
+                }
             }
-
-            createPageAndAddHeader(document, "Buckets");
-
-            for (BucketName bucket : buckets) {
-                addBucketsContent(document, bucket);
-            }
-
-            String home = System.getProperty("user.home");
-            String fileName = generateUniqueFileName(home + "/Downloads/ExportedContent.pdf");
-            document.save(fileName);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            try {
-                document.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        });
     }
-
-    private String generateUniqueFileName(String baseFileName) {
-        File file = new File(baseFileName);
-        String fileName = baseFileName;
-
-        int count = 1;
-        while (file.exists()) {
-            String name = baseFileName.substring(0, baseFileName.lastIndexOf(".pdf"));
-            String extension = ".pdf";
-            fileName = name + "-" + count + extension;
-            file = new File(fileName);
-            count++;
-        }
-
-        return fileName;
-    }
-
 
     private void createPageAndAddHeader(PDDocument document, String header) throws IOException {
         PDPage page = new PDPage();
