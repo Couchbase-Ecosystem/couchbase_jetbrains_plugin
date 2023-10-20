@@ -213,10 +213,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private void addSQLPPMenuItemListener(JMenuItem menuItem, String title, Supplier<String> sqlppSupplier) {
         menuItem.addActionListener(actionEvent -> {
             String sqlppContent = sqlppSupplier.get();
-            if (sqlppContent.startsWith("The query result should")) {
-                Messages.showErrorDialog(sqlppContent, "Error Exporting to SQL++ " + title);
-            } else {
-                FileExporter.exportResultToSQLPP(project, sqlppContent);
+            if (sqlppContent != null) {
+                if (sqlppContent.startsWith("The query result should")) {
+                    Messages.showErrorDialog(sqlppContent, "Error Exporting to SQL++ " + title);
+                } else {
+                    FileExporter.exportResultToSQLPP(project, sqlppContent);
+                }
             }
         });
     }
