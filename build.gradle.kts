@@ -20,6 +20,7 @@ repositories {
 
 dependencies {
     implementation("org.projectlombok:lombok:1.18.28")
+    implementation("com.couchbase.lite:couchbase-lite-java:3.1.1")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
     compileOnly("org.projectlombok:lombok:1.18.30")
     implementation("com.couchbase.client:java-client:3.4.9")
