@@ -1,14 +1,15 @@
 package com.couchbase.intellij.workbench.result;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.BoxLayout;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -19,6 +20,9 @@ import javax.swing.table.AbstractTableModel;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.intellij.util.ui.ItemRemovable;
+import com.intellij.util.ui.JBUI;
+
+import utils.TemplateUtil;
 
 public class JsonTableModel extends AbstractTableModel implements ItemRemovable {
 
@@ -252,73 +256,94 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         private final JTextField textField;
         private final JLabel errorLabel;
         private String value;
-    
+
         public CustomInputDialog() {
             setModal(true); // Necessary to block input to other windows while this dialog is open
-            setLayout(new BorderLayout());
-            setTitle("Enter Target Collection Name");
-            setMinimumSize(new Dimension(400, 100));
+            setTitle("Target Collection");
+            setMinimumSize(new Dimension(400, 10));
 
-            JPanel centerPanel = new JPanel();
-            centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
-            textField = new JTextField(10);
-            textField.setMaximumSize(new Dimension(Short.MAX_VALUE, 30));
+            JPanel centerPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+
+            JPanel labelWithHelp = TemplateUtil.getLabelWithHelp("Enter Target Collection Name",
+                    "Your elaborate hint here.");
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.weightx = 1.0;
+            gbc.insets = JBUI.insets(5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            centerPanel.add(labelWithHelp, gbc);
+
+            textField = new JTextField(40);
+            gbc.gridx = 1;
+            centerPanel.add(textField, gbc);
+
             errorLabel = new JLabel();
             errorLabel.setForeground(Color.RED);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.gridy = 1;
+            gbc.gridx = 0;
+            gbc.gridwidth = 2;
+            centerPanel.add(errorLabel, gbc);
 
-            centerPanel.add(textField);
-            centerPanel.add(errorLabel);
             add(centerPanel, BorderLayout.CENTER);
-    
+
             JPanel southPanel = new JPanel();
             southPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
             JButton okButton = new JButton("OK");
             okButton.addActionListener(e -> onOk());
             JButton cancelButton = new JButton("Cancel");
             cancelButton.addActionListener(e -> onCancel());
+
             southPanel.add(okButton);
             southPanel.add(cancelButton);
+
             add(southPanel, BorderLayout.SOUTH);
-    
+
             pack();
         }
-    
+
         private void onOk() {
             String text = textField.getText();
             String validationError = validateCollectionName(text);
             if (validationError != null) {
                 setError(validationError);
-                pack(); // Resize the dialog to fit the content
+                textField.setBorder(BorderFactory.createLineBorder(Color.decode("#FF4444")));
+                pack();
             } else {
                 value = text;
                 setVisible(false);
             }
         }
-    
+
         private void onCancel() {
             value = null;
             setVisible(false);
         }
-    
+
         public String showDialog() {
             setVisible(true);
             return value;
         }
-    
+
         public void setError(String error) {
             errorLabel.setText(error);
         }
-    
+
         private String validateCollectionName(String targetCollection) {
             if (targetCollection == null || targetCollection.trim().isEmpty()) {
                 return "Collection name cannot be empty.";
             }
-            if (!targetCollection.matches("[A-Za-z0-9=+/.,_@-]+")) {
-                return "Collection name contains invalid characters. Only text letters [A-Z, a-z], digits [0-9], and special characters [= + / . , _ @ -] are allowed.";
+            if ((targetCollection.startsWith("'") && !targetCollection.endsWith("'")) ||
+                    (targetCollection.startsWith("\"") && !targetCollection.endsWith("\"")) ||
+                    (targetCollection.startsWith("`") && !targetCollection.endsWith("`"))) {
+                return "If collection name starts with a quote ('), double quote (\") or backtick (`), it must also end with the same.";
+            }
+            if (!targetCollection.matches("[A-Za-z0-9=+/.,_@'\"`-]+")) {
+                return "Only text letters [A-Z, a-z], digits [0-9], and special characters [= + / . , _ @ ' \" ` -] are allowed.";
             }
             return null;
         }
-        
     }
 
 }
