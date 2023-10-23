@@ -358,7 +358,7 @@ public class DataLoader {
             ApplicationManager.getApplication().runWriteAction(() -> {
                 final FileType type = isBinary ? UserBinaryFileType.INSTANCE : JsonFileType.INSTANCE;
                 CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(
-                        type, node.getBucket(), node.getScope(), node.getCollection(), node.getId()
+                        project, type, node.getBucket(), node.getScope(), node.getCollection(), node.getId()
                 );
 
                 virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());

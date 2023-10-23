@@ -8,6 +8,7 @@ import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.InferHelper;
+import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
 import com.couchbase.intellij.workbench.Log;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,6 +30,9 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
     private static Project getProject(VirtualFile virtualFile) {
         Project[] projects = ProjectManager.getInstance().getOpenProjects();
+        if (virtualFile instanceof CouchbaseDocumentVirtualFile) {
+            return ((CouchbaseDocumentVirtualFile) virtualFile).getProject();
+        }
         for (Project project : projects) {
             if (ProjectRootManager.getInstance(project).getFileIndex().isInContent(virtualFile)) {
                 return project;

@@ -5,6 +5,7 @@ import com.intellij.openapi.util.io.FileAttributes;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileListener;
 import com.intellij.openapi.vfs.newvfs.NewVirtualFileSystem;
+import org.apache.commons.lang.NotImplementedException;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,12 +24,7 @@ public class CouchbaseFileSystem extends NewVirtualFileSystem {
 
     @Override
     public @Nullable VirtualFile findFileByPath(@NotNull @NonNls String path) {
-        String[] parts = path.split("/");
-        if (parts.length != 4) {
-            return null;
-        }
-
-        return new CouchbaseDocumentVirtualFile(parts[0], parts[1], parts[2], parts[3]);
+        throw new NotImplementedException();
     }
 
     @Override

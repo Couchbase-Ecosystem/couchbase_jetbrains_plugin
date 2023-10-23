@@ -1,11 +1,11 @@
 package com.couchbase.intellij.persistence;
 
-import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMapper;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.fileTypes.FileType;
-import com.intellij.openapi.fileTypes.UserBinaryFileType;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileSystem;
@@ -30,36 +30,11 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     private Long modified = -1L;
 
     private byte[] content;
+    private final Project project;
 
-    public CouchbaseDocumentVirtualFile(FileType type, String bucket, String scope, String collection, String id) {
+    public CouchbaseDocumentVirtualFile(Project project, FileType type, String bucket, String scope, String collection, String id) {
+        this.project = project;
         this.type = type;
-        this.bucket = bucket;
-        this.scope = scope;
-        this.collection = collection;
-        this.id = id;
-
-        this.path = String.format("%s/%s/%s", bucket, scope, collection);
-        if (JsonFileType.INSTANCE.equals(type)) {
-            this.name = String.format("%s.json", id);
-        } else {
-            this.name = String.format("(read-only)%s", id);
-        }
-    }
-
-    public CouchbaseDocumentVirtualFile(String bucket, String scope, String collection, String id) {
-        content = ActiveCluster.getInstance().get()
-                .bucket(bucket)
-                .scope(scope)
-                .collection(collection)
-                .get(id)
-                .contentAsBytes();
-        try {
-            JsonObject.fromJson(content);
-            this.type = JsonFileType.INSTANCE;
-        } catch (Exception jpe) {
-            this.type = UserBinaryFileType.INSTANCE;
-        }
-
         this.bucket = bucket;
         this.scope = scope;
         this.collection = collection;
@@ -189,7 +164,8 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
             byte[] newContent;
             try {
-                newContent = JsonObject.fromJson(gr.contentAsBytes()).toString().getBytes();
+                ObjectMapper mapper = new ObjectMapper();
+                newContent = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsBytes(mapper.readTree(gr.contentAsBytes()));
             } catch (Throwable e) {
                 newContent = gr.contentAsBytes();
             }
@@ -210,5 +186,9 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     public FileType getType() {
         return type;
+    }
+
+    public Project getProject() {
+        return project;
     }
 }
