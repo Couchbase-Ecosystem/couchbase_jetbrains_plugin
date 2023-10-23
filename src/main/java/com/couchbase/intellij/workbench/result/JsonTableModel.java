@@ -153,7 +153,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
 
     public String convertToSQLPPUpsert() {
         StringBuilder sqlpp = new StringBuilder();
-        CustomInputDialog dialog = new CustomInputDialog();
+        CustomInputDialog dialog = new CustomInputDialog("SQL++ Upsert Export");
         String targetCollection = dialog.showDialog();
         if (targetCollection == null) {
             return null; // User closed the dialog or entered invalid collection name
@@ -183,7 +183,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
 
     public String convertToSQLPPInsert() {
         StringBuilder sqlpp = new StringBuilder();
-        CustomInputDialog dialog = new CustomInputDialog();
+        CustomInputDialog dialog = new CustomInputDialog("SQL++ Insert Export");
         String targetCollection = dialog.showDialog();
         if (targetCollection == null) {
             return null; // User closed the dialog or entered invalid collection name
@@ -213,7 +213,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
 
     public String convertToSQLPPUpdate() {
         StringBuilder sqlpp = new StringBuilder();
-        CustomInputDialog dialog = new CustomInputDialog();
+        CustomInputDialog dialog = new CustomInputDialog("SQL++ Update Export");
         String targetCollection = dialog.showDialog();
         if (targetCollection == null) {
             return null; // User closed the dialog or entered invalid collection name
@@ -257,9 +257,9 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         private final JLabel errorLabel;
         private String value;
 
-        public CustomInputDialog() {
+        public CustomInputDialog(String title) {
             setModal(true); // Necessary to block input to other windows while this dialog is open
-            setTitle("Target Collection");
+            setTitle(title);
             setMinimumSize(new Dimension(400, 10));
 
             JPanel centerPanel = new JPanel(new GridBagLayout());
