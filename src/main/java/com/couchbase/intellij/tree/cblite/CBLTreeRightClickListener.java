@@ -36,7 +36,8 @@ public class CBLTreeRightClickListener {
     private static void handleDatabase(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLDatabaseNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
-        if (userObject.isActive()) {
+        boolean isActive = userObject.getDatabase().getId().equals(ActiveCBLiteDatabase.getInstance().getDatabaseId());
+        if (isActive) {
             AnAction menuItem = new AnAction("Disconnect") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {

@@ -2,19 +2,21 @@ package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabases;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDuplicateNewDatabaseNameException;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
-import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
-import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
+import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.couchbase.lite.*;
 import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -71,17 +73,33 @@ public class CBLDataLoader {
                     parentNode.remove(parentNode.getChildCount() - 1);
                 }
 
-                String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  " +
+                String query = "Select meta(couchbaseAlias).id as cbFileNameId  " +
                         "from `"+colNode.getScope()+"`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id "
                         + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                 Query thisQuery = ActiveCBLiteDatabase.getInstance().getDatabase().createQuery(query);
                 List<Result> results = thisQuery.execute().allResults();
 
-                for (Result result : results) {
+                if (!results.isEmpty()) {
+                    for (Result result : results) {
+                        String docId = result.getString("cbFileNameId");
+                        String fileName = docId + ".json";
 
-           //         result.
+                        CBLFileNodeDescriptor node = new CBLFileNodeDescriptor(fileName, colNode.getScope(), colNode.getText(), docId, null);
+                        DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                        parentNode.add(jsonFileNode);
+                    }
+
+                    if (results.size() == 10) {
+                        DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
+                                new CBLLoadMoreNodeDescriptor( colNode.getScope(), colNode.getText(), newOffset + 10));
+                        parentNode.add(loadMoreNode);
+                    }
+                } else if (newOffset == 0) {
+                    parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                 }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
