@@ -16,6 +16,7 @@ repositories {
     mavenLocal()
     mavenCentral()
     gradlePluginPortal()
+    maven { url = uri("https://mobile.maven.couchbase.com/maven2/dev/") }
 }
 
 dependencies {
@@ -27,6 +28,7 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.7")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
     implementation("com.google.code.gson:gson:2.10.1")
+
 
     implementation("com.google.code.gson:gson:2.10.1")
 
@@ -52,6 +54,7 @@ dependencies {
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
+    implementation("com.couchbase.lite:couchbase-lite-java:3.1.1")
 
 }
 

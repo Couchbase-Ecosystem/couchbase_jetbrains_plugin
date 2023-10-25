@@ -1,10 +1,8 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.DataLoader;
-import com.couchbase.intellij.persistence.SavedCluster;
-import com.couchbase.intellij.tree.CouchbaseWindowContent;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage;
+import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
 import com.couchbase.intellij.tree.node.*;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -18,12 +16,19 @@ import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.actionSystem.*;
 
 import javax.swing.*;
+import javax.swing.event.MouseInputAdapter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.util.Map;
-import java.util.TreeMap;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.couchbase.lite.CouchbaseLite;
 
 public class CBLiteWindowContent extends JPanel {
 
@@ -35,26 +40,112 @@ public class CBLiteWindowContent extends JPanel {
 
     public CBLiteWindowContent(Project project) {
         this.project = project;
+        CouchbaseLite.init();
         setLayout(new BorderLayout());
         add(createTopToolbar(), BorderLayout.NORTH);
 
-        treeModel = getTreeModel(project);
+        treeModel = getTreeModel();
         tree = new Tree(treeModel);
         tree.setRootVisible(false);
         tree.setCellRenderer(new NodeDescriptorRenderer());
         add(new JScrollPane(tree), BorderLayout.CENTER);
+
+        tree.addMouseListener(new MouseInputAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    mouseClicked(e);
+                } else {
+                    TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
+                    if (clickedPath != null) {
+                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                        if (SwingUtilities.isRightMouseButton(e)) {
+                            CBLTreeRightClickListener.handle(tree, project, e, clickedNode);
+                            //TODO: Fix this for listing more documents
+                        } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
+//                            LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
+//                            DataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
+                        }
+                    }
+                }
+            }
+        });
+
+        tree.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
+                if (clickedPath != null) {
+                    DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                    Object userObject = clickedNode.getUserObject();
+                    if (e.getClickCount() == 2) {
+                        System.out.println("==============double click not being properly handled yet");
+                    }
+                }
+            }
+        });
     }
 
+    public static void removeNullDbnames(List<SavedCBLiteDatabase> list) {
+        Iterator<SavedCBLiteDatabase> iterator = list.iterator();
+        while (iterator.hasNext()) {
+            SavedCBLiteDatabase item = iterator.next();
+            if (item.getId() == null) {
+                iterator.remove();
+            }
+        }
+    }
+    public static DefaultTreeModel getTreeModel() {
 
-    public static DefaultTreeModel getTreeModel(Project project) {
+        java.util.List<SavedCBLiteDatabase> savedDBs = null;
+        if (CBLiteDatabaseStorage.getInstance().getValue() == null || CBLiteDatabaseStorage.getInstance().getValue().getSavedDatabases() == null) {
+            savedDBs = new ArrayList<>();
+        } else {
+            savedDBs = CBLiteDatabaseStorage.getInstance().getValue().getSavedDatabases();
+        }
+
+
+        removeNullDbnames(savedDBs);
+
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
 
-        //TODO: Load from storage
-        DefaultMutableTreeNode activeDatabase = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor("database1", true));
-        root.add(activeDatabase);
 
-        DefaultMutableTreeNode inactiveDatabase = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor("database2", false));
-        root.add(inactiveDatabase);
+
+        Map<String, SavedCBLiteDatabase> map = savedDBs.stream()
+                .collect(Collectors.toMap(SavedCBLiteDatabase::getId, e->e));
+
+        Map<String, SavedCBLiteDatabase> sortedClusters = new TreeMap<>(map);
+        for (Map.Entry<String, SavedCBLiteDatabase> entry : sortedClusters.entrySet()) {
+            DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor(entry.getValue(), false));
+            root.add(adminLocal);
+        }
+//        return new DefaultTreeModel(root);
+//
+//
+//        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
+//
+//        try {
+//            DatabaseConfiguration config = new DatabaseConfiguration();
+//            config.setDirectory("/Users/denisrosa/Downloads/pbwarehouses.cblite2");
+//
+//            Database database = new Database("db", config);
+//
+//            System.out.println("+++++++++++++++abrindo database scopes "+database.getScopes());
+//            for (Scope scope : database.getScopes()) {
+//                System.out.println("========="+scope.getName());
+//            }
+//
+//            database.close();
+//        }catch (Exception e ) {
+//            e.printStackTrace();
+//        }
+
+        //TODO: Load from storage
+//        DefaultMutableTreeNode activeDatabase = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor("database1", true));
+//        root.add(activeDatabase);
+//
+//        DefaultMutableTreeNode inactiveDatabase = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor("database2", false));
+//        root.add(inactiveDatabase);
 
         return new DefaultTreeModel(root);
     }
@@ -73,7 +164,8 @@ public class CBLiteWindowContent extends JPanel {
         AnAction importDatabase = new AnAction("Import CBLite Database") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                // Add connection action code here
+                ImportCBLiteDatabaseDialog dialog = new ImportCBLiteDatabaseDialog(project, null, tree);
+                dialog.show();
             }
         };
         importDatabase.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/open_database.svg", CBLiteWindowContent.class));
@@ -83,6 +175,7 @@ public class CBLiteWindowContent extends JPanel {
         leftActionGroup.add(importDatabase);
 
         ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
+        leftActionToolbar.setTargetComponent(this);
 
         toolBarPanel.add(leftActionToolbar.getComponent(), BorderLayout.NORTH);
         return toolBarPanel;
@@ -97,11 +190,11 @@ public class CBLiteWindowContent extends JPanel {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
 
-
-                NodeDescriptor descriptor = (NodeDescriptor) userObject;
-                setIcon(descriptor.getIcon());
-                setText(descriptor.getText());
-
+                if (userObject instanceof NodeDescriptor) {
+                    NodeDescriptor descriptor = (NodeDescriptor) userObject;
+                    setIcon(descriptor.getIcon());
+                    setText(descriptor.getText());
+                }
             }
             return this;
         }

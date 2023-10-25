@@ -4,7 +4,8 @@
  */
 package com.couchbase.intellij.tree.iq.ui;
 
-import com.couchbase.intellij.tree.iq.ChatGptHandler;
+
+import com.couchbase.intellij.tree.iq.ChatGPTHandler;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageListener;
 import com.couchbase.intellij.tree.iq.chat.ConversationContext;
@@ -33,9 +34,11 @@ public class MainConversationHandler implements ConversationHandler {
         var chatCompletionRequest = chatCompletionRequestProvider.chatCompletionRequest(ctx, userMessage)
                 .build();
 
-        return application.getService(ChatGptHandler.class)
-                .handle(ctx, event.initiating(chatCompletionRequest), listener)
-                .subscribeOn(Schedulers.io())
-                .subscribe();
+//        return application.getService(ChatGPTHandler.class)
+//                .handle(ctx, event.initiating(chatCompletionRequest), listener)
+//                .subscribeOn(Schedulers.io())
+//                .subscribe();
+
+        return null;
     }
 }

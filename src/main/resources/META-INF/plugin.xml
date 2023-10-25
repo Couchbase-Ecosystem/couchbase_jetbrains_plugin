@@ -73,6 +73,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage"/>
 
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
@@ -103,7 +104,7 @@
 
     </extensions>
 
-    <resource-bundle>messages.ChatGptBundle</resource-bundle>
+    <resource-bundle>messages.ChatGptHandler</resource-bundle>
 
     <actions>
 
