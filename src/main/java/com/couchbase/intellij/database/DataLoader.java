@@ -14,10 +14,7 @@ import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
-import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
-import com.couchbase.intellij.persistence.Clusters;
-import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
-import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
@@ -27,41 +24,26 @@ import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.fileTypes.UserBinaryFileType;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
 import utils.IndexUtils;
-import utils.OSUtil;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -382,36 +364,11 @@ public class DataLoader {
         final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
+                final FileType type = isBinary ? UserBinaryFileType.INSTANCE : JsonFileType.INSTANCE;
+                CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(
+                        project, type, node.getBucket(), node.getScope(), node.getCollection(), node.getId()
+                );
 
-                PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(), node.getBucket(), node.getScope(), node.getCollection());
-                String fileName = (isBinary ? ("(read-only)") : "") + node.getId() + (isBinary ? "" : ".json");
-
-                PsiFile psiFile = psiDirectory.findFile(fileName);
-                if (psiFile == null) {
-                    psiFile = Objects.requireNonNull(psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())).createFile(fileName);
-                }
-
-                // Get the Document associated with the PsiFile
-                Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
-                if (document != null) {
-
-                    if (isBinary) {
-                        try {
-                            document.setText(content);
-                        } catch ( AssertionError e ) {
-                            Messages.showInfoMessage("Couchbase Plugin", "Cannot open this binary file via the plugin");
-                            return;
-                        }
-                    } else {
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        JsonElement jsonElement = JsonParser.parseString(content);
-                        document.setText(gson.toJson(jsonElement));
-                    }
-                }
-
-
-                // Retrieve the VirtualFile from the PsiFile
-                VirtualFile virtualFile = psiFile.getVirtualFile();
                 virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.BUCKET, node.getBucket());
@@ -468,63 +425,6 @@ public class DataLoader {
             });
         } else {
             throw new IllegalStateException("The expected parent was SchemaNodeDescriptor but got something else");
-        }
-    }
-
-    private static PsiDirectory findOrCreateFolder(Project project, String conId, String bucket, String scope, String collection) {
-
-        String basePath = project.getBasePath();
-        assert basePath != null;
-        VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
-
-
-        try {
-            //if it is windows we create a hidden file, if it is linuxs/mac we add the . to the name of the file
-            if (OSUtil.isWindows()) {
-                createHiddenFolder("cbcache");
-            }
-
-            String dirPath = (OSUtil.isWindows() ? "" : ".") + "cbcache" + "/" + (OSUtil.isWindows() ? conId.replace(":", "_") : conId) + "/" + bucket + "/" + scope + "/" + collection;
-            VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
-            return PsiManager.getInstance(project).findDirectory(directory);
-
-        } catch (IOException e) {
-            Log.error(e);
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static void createHiddenFolder(String dir) throws IOException {
-        Path path = Paths.get(dir);
-        if (!Files.exists(path)) {
-            Files.createDirectories(path);
-            DosFileAttributeView dosAttributes = Files.getFileAttributeView(path, DosFileAttributeView.class);
-            dosAttributes.setHidden(true);
-        }
-    }
-
-
-    public static void cleanCache(Project project, String conId) {
-
-        String basePath = project.getBasePath();
-        assert basePath != null;
-
-        if (OSUtil.isWindows()) {
-            conId = conId.replace(":", "_");
-        }
-
-        try {
-            String dirPath = basePath + File.separator + (OSUtil.isWindows() ? "cbcache" : ".cbcache");
-
-            if (conId != null) {
-                dirPath += File.separator + conId;
-            }
-
-            cleanupFolder(dirPath);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.error("Could not clean up the cache directory", e);
         }
     }
 
@@ -674,27 +574,6 @@ public class DataLoader {
             Log.error("Failed to load the metadata for document " + docId, e);
             return null;
         }
-    }
-
-    private static void cleanupFolder(String folderPath) {
-        File folder = new File(folderPath);
-
-        if (!folder.exists() || !folder.isDirectory()) {
-            return;
-        }
-
-        File[] files = folder.listFiles();
-
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    cleanupFolder(file.getAbsolutePath());
-                } else {
-                    file.delete();
-                }
-            }
-        }
-        folder.delete();
     }
 
     public static String formatCount(Integer num) {
