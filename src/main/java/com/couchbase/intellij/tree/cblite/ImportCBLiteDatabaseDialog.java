@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.VirtualFile;
+import utils.TemplateUtil;
 
 public class ImportCBLiteDatabaseDialog extends DialogWrapper {
 
@@ -33,39 +34,53 @@ public class ImportCBLiteDatabaseDialog extends DialogWrapper {
         this.tree = tree;
         init();
         setTitle("Import Couchbase Lite Database");
+        getPeer().getWindow().setMinimumSize(new Dimension(500, 200));
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(500, 200);
     }
 
     @Override
     @Nullable
     protected JComponent createCenterPanel() {
+        JPanel main = new JPanel(new BorderLayout());
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridwidth = GridBagConstraints.RELATIVE;
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 0.4;
         gbc.insets = JBUI.insets(5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JLabel nameLabel = new JLabel("Database's Name:");
-        panel.add(nameLabel, gbc);
+        JLabel nameLabel = new JLabel("Database's Display Name:");
+
+        panel.add(TemplateUtil.createComponentWithBalloon(nameLabel, "The name of the database that will be displayed in the plugin"), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.weightx = 1.0;
+        gbc.weightx = 0.6;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         textField = new JTextField();
         panel.add(textField, gbc);
 
 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        panel.add(new JLabel("Database's Folder"), gbc);
+        gbc.weightx = 0.4;
+        panel.add(TemplateUtil.createComponentWithBalloon(new JLabel("Database's Location:"),"Path to where the Couchbase Lite database is located"), gbc);
 
-        gbc.fill = GridBagConstraints.NONE;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridwidth = GridBagConstraints.RELATIVE;
         gbc.gridx = 1;
         gbc.gridy = 1;
+        gbc.weightx = 0.6;
         databasePathField = new TextFieldWithBrowseButton();
         databasePathField.addBrowseFolderListener(
-                "Select the database folder",
+                "Select the database location",
                 "Choose a .cblite2 or .cblite3 folder",
                 project,
                 new FileChooserDescriptor(false, true, false, false, false, false) {
@@ -77,14 +92,16 @@ public class ImportCBLiteDatabaseDialog extends DialogWrapper {
                 }
         );
 
-        panel.add(databasePathField, gbc);
+        panel.add(databasePathField,  gbc);
 
         gbc.gridy = 2;
         errorLabel = new JLabel("");
         errorLabel.setForeground(Color.decode("#FF4444"));
         panel.add(errorLabel, gbc);
 
-        return panel;
+        main.add(panel, BorderLayout.CENTER);
+
+        return main;
     }
 
     @Override
@@ -94,7 +111,9 @@ public class ImportCBLiteDatabaseDialog extends DialogWrapper {
         String lastFolderName = path.getFileName().toString();
         String parentPathString = path.getParent().toString();
 
-        SavedCBLiteDatabase database = CBLDataLoader.saveNewDatabase(textField.getText(), lastFolderName, parentPathString );
+        String dbname = lastFolderName.substring(0, lastFolderName.indexOf("."));
+
+        SavedCBLiteDatabase database = CBLDataLoader.saveNewDatabase(textField.getText(), dbname, parentPathString );
         CBLTreeHandler.connectToDatabase(project, database, tree);
 
         close(DialogWrapper.CANCEL_EXIT_CODE);

@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tree.cblite.nodes;
 
 import com.couchbase.intellij.tree.node.NodeDescriptor;
-import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
 import com.intellij.openapi.util.IconLoader;
 import lombok.Getter;
 

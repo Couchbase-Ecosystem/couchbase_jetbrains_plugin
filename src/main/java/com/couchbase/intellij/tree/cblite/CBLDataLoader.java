@@ -1,17 +1,21 @@
 package com.couchbase.intellij.tree.cblite;
 
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabases;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDuplicateNewDatabaseNameException;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
-import com.couchbase.lite.Collection;
-import com.couchbase.lite.CouchbaseLiteException;
-import com.couchbase.lite.Database;
-import com.couchbase.lite.Scope;
+import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
+import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
+import com.couchbase.intellij.workbench.Log;
+import com.couchbase.intellij.workbench.SQLPPQueryUtils;
+import com.couchbase.lite.*;
+import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class CBLDataLoader {
@@ -50,6 +54,46 @@ public class CBLDataLoader {
         return newdDb;
     }
 
+    public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
+        Object userObject = parentNode.getUserObject();
+        tree.setPaintBusy(true);
+
+        if (userObject instanceof CBLCollectionNodeDescriptor) {
+
+            try {
+                CBLCollectionNodeDescriptor colNode = (CBLCollectionNodeDescriptor) parentNode.getUserObject();
+
+                if (newOffset == 0) {
+                    //removed loading node
+                    parentNode.removeAllChildren();
+                } else {
+                    //removes "Load More" node
+                    parentNode.remove(parentNode.getChildCount() - 1);
+                }
+
+                String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  " +
+                        "from `"+colNode.getScope()+"`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id "
+                        + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
+
+                Query thisQuery = ActiveCBLiteDatabase.getInstance().getDatabase().createQuery(query);
+                List<Result> results = thisQuery.execute().allResults();
+
+                for (Result result : results) {
+
+           //         result.
+                }
+            } catch (Exception e) {
+                Log.error(e);
+                e.printStackTrace();
+            } finally {
+                tree.setPaintBusy(false);
+            }
+
+        } else {
+            throw new IllegalStateException("The expected parent was CBLCollectionNodeDescriptor but got something else");
+        }
+
+    }
 
     public static void loadScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
 
@@ -62,6 +106,8 @@ public class CBLDataLoader {
             for( Collection col: database.getCollections(scope.getName())) {
                 DefaultMutableTreeNode colNode = new DefaultMutableTreeNode(
                         new CBLCollectionNodeDescriptor(col.getName(), scope.getName()));
+                colNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+
                 scopeNode.add(colNode);
             }
         }

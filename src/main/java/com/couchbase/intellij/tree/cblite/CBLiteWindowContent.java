@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
+import com.couchbase.intellij.tree.TreeExpandListener;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
@@ -17,6 +18,8 @@ import com.intellij.openapi.actionSystem.*;
 
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
+import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -82,6 +85,17 @@ public class CBLiteWindowContent extends JPanel {
                         System.out.println("==============double click not being properly handled yet");
                     }
                 }
+            }
+        });
+
+        tree.addTreeExpansionListener(new TreeExpansionListener() {
+            @Override
+            public void treeExpanded(TreeExpansionEvent event) {
+                CBLTreeExpandListener.handle(tree, event);
+            }
+            @Override
+            public void treeCollapsed(TreeExpansionEvent event) {
+                // No action needed
             }
         });
     }
