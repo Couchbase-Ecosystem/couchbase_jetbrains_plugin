@@ -166,14 +166,14 @@ public class CBLDataLoader {
             return;
         }
 
-        String docContent = "{}";
         String cas = null;
-
         try {
             Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(node.getScope()).getCollection(node.getCollection()).getDocument(node.getId());
-            cas = document.getRevisionID();
 
-            docContent = document.toJSON();
+            if(!isNew || document != null) {
+                cas = document.getRevisionID();
+            }
+
 
         } catch (CouchbaseLiteException e) {
             Log.error("Could not load the document " + node.getId() + ".", e);

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
+import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -29,7 +30,41 @@ public class CBLTreeRightClickListener {
 
         if (userObject instanceof CBLDatabaseNodeDescriptor) {
             handleDatabase(project, e, clickedNode, (CBLDatabaseNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof CBLCollectionNodeDescriptor) {
+            handleCollection(project, e, clickedNode, (CBLCollectionNodeDescriptor) userObject, tree);
         }
+    }
+
+    private static void handleCollection(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLCollectionNodeDescriptor userObject, Tree tree) {
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+        AnAction openDocument = new AnAction("Open Document") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                CBLOpenDocumentDialog dialog = new CBLOpenDocumentDialog(false, project, tree, userObject.getScope(), userObject.getText());
+                dialog.show();
+            }
+        };
+        actionGroup.add(openDocument);
+
+        AnAction createDocument = new AnAction("Create Document") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                CBLOpenDocumentDialog dialog = new CBLOpenDocumentDialog(true, project, tree, userObject.getScope(), userObject.getText());
+                dialog.show();
+            }
+        };
+        actionGroup.add(createDocument);
+
+        AnAction deleteDocument = new AnAction("Delete Document") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                //TODO
+            }
+        };
+        actionGroup.add(deleteDocument);
+
+        showPopup(e, tree, actionGroup);
     }
 
     private static void handleDatabase(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLDatabaseNodeDescriptor userObject, Tree tree) {

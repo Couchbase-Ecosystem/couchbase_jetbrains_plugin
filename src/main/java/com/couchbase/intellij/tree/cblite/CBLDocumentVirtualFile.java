@@ -160,8 +160,13 @@ public class CBLDocumentVirtualFile extends VirtualFile {
                         .getCollection(collection)
                         .getDocument(id);
 
-                content = doc.toJSON().getBytes();
-            } catch (CouchbaseLiteException e) {
+                if(doc == null) {
+                    content = "{}".getBytes();
+                } else {
+                    ObjectMapper mapper = new ObjectMapper();
+                    content = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsBytes(mapper.readTree(doc.toJSON().getBytes()));
+                }
+            } catch (Exception e) {
                 Log.error("Could not refresh document "+id, e);
             }
             if (postRunnable != null) {
