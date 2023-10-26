@@ -266,7 +266,10 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
             GridBagConstraints gbc = new GridBagConstraints();
 
             JPanel labelWithHelp = TemplateUtil.getLabelWithHelp("Enter Target Collection Name",
-                    "Your elaborate hint here.");
+                    "The collection name must be a valid SQL++ identifier. " +
+                            "If the collection name starts with a quote ('), double quote (\") or backtick (`), " +
+                            "it must also end with the same. " +
+                            "Only text letters [A-Z, a-z], digits [0-9], and special characters [= + / . , _ @ ' \" ` -] are allowed.");
             gbc.gridx = 0;
             gbc.gridy = 0;
             gbc.weightx = 1.0;
