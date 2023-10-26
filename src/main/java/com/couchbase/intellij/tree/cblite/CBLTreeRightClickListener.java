@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.intellij.ide.DataManager;
@@ -36,7 +35,7 @@ public class CBLTreeRightClickListener {
     private static void handleDatabase(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLDatabaseNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
-        boolean isActive = userObject.getDatabase().getId().equals(ActiveCBLiteDatabase.getInstance().getDatabaseId());
+        boolean isActive = userObject.getDatabase().getId().equals(ActiveCBLDatabase.getInstance().getDatabaseId());
         if (isActive) {
             AnAction menuItem = new AnAction("Disconnect") {
                 @Override

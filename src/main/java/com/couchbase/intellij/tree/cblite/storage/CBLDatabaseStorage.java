@@ -16,45 +16,45 @@ import org.jetbrains.annotations.Nullable;
                 )
         }
 )
-public class CBLiteDatabaseStorage  implements PersistentStateComponent<CBLiteDatabaseStorage.State> {
+public class CBLDatabaseStorage implements PersistentStateComponent<CBLDatabaseStorage.State> {
 
 
-    private final CBLiteDatabaseStorage.State myState = new CBLiteDatabaseStorage.State();
+    private final CBLDatabaseStorage.State myState = new CBLDatabaseStorage.State();
 
-    public static CBLiteDatabaseStorage getInstance() {
-        return ApplicationManager.getApplication().getService(CBLiteDatabaseStorage.class);
+    public static CBLDatabaseStorage getInstance() {
+        return ApplicationManager.getApplication().getService(CBLDatabaseStorage.class);
     }
 
     @Nullable
     @Override
-    public CBLiteDatabaseStorage.State getState() {
+    public CBLDatabaseStorage.State getState() {
         return myState;
     }
 
     @Override
-    public void loadState(@NotNull CBLiteDatabaseStorage.State state) {
+    public void loadState(@NotNull CBLDatabaseStorage.State state) {
         XmlSerializerUtil.copyBean(state, myState);
     }
 
-    public CBLiteDatabases getValue() {
+    public CBLDatabases getValue() {
         if (myState.databases == null) {
-            myState.databases = new CBLiteDatabases();
+            myState.databases = new CBLDatabases();
         }
         return myState.databases;
     }
 
-    public void setValue(CBLiteDatabases newValue) {
+    public void setValue(CBLDatabases newValue) {
         myState.databases = newValue;
     }
 
     public static class State {
-        public CBLiteDatabases databases = null;
+        public CBLDatabases databases = null;
 
-        public CBLiteDatabases getStoredDatabases() {
+        public CBLDatabases getStoredDatabases() {
             return databases;
         }
 
-        public void setStoredDatabases(CBLiteDatabases databases) {
+        public void setStoredDatabases(CBLDatabases databases) {
             this.databases = databases;
         }
     }

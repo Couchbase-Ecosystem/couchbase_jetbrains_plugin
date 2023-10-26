@@ -1,17 +1,23 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.intellij.tree.TreeExpandListener;
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage;
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
+import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
+import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 import com.intellij.openapi.actionSystem.*;
@@ -33,7 +39,7 @@ import java.util.stream.Collectors;
 
 import com.couchbase.lite.CouchbaseLite;
 
-public class CBLiteWindowContent extends JPanel {
+public class CBLWindowContent extends JPanel {
 
     private Project project;
 
@@ -41,7 +47,7 @@ public class CBLiteWindowContent extends JPanel {
 
     private static DefaultTreeModel treeModel;
 
-    public CBLiteWindowContent(Project project) {
+    public CBLWindowContent(Project project) {
         this.project = project;
         CouchbaseLite.init();
         setLayout(new BorderLayout());
@@ -64,10 +70,9 @@ public class CBLiteWindowContent extends JPanel {
                         DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
                         if (SwingUtilities.isRightMouseButton(e)) {
                             CBLTreeRightClickListener.handle(tree, project, e, clickedNode);
-                            //TODO: Fix this for listing more documents
-                        } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
-//                            LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
-//                            DataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
+                        } else if (clickedNode.getUserObject() instanceof CBLLoadMoreNodeDescriptor) {
+                            CBLLoadMoreNodeDescriptor loadMore = (CBLLoadMoreNodeDescriptor) clickedNode.getUserObject();
+                            CBLDataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
                         }
                     }
                 }
@@ -82,7 +87,18 @@ public class CBLiteWindowContent extends JPanel {
                     DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
                     Object userObject = clickedNode.getUserObject();
                     if (e.getClickCount() == 2) {
-                        System.out.println("==============double click not being properly handled yet");
+                        if (userObject instanceof CBLFileNodeDescriptor) {
+                            CBLFileNodeDescriptor descriptor = (CBLFileNodeDescriptor) userObject;
+
+                            CBLDataLoader.loadDocument(project, descriptor, tree, false);
+                            VirtualFile virtualFile = descriptor.getVirtualFile();
+                            if (virtualFile != null) {
+                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                                fileEditorManager.openFile(virtualFile, true);
+                            } else {
+                                Log.debug("virtual file is null");
+                            }
+                        }
                     }
                 }
             }
@@ -100,10 +116,10 @@ public class CBLiteWindowContent extends JPanel {
         });
     }
 
-    public static void removeNullDbnames(List<SavedCBLiteDatabase> list) {
-        Iterator<SavedCBLiteDatabase> iterator = list.iterator();
+    public static void removeNullDbnames(List<SavedCBLDatabase> list) {
+        Iterator<SavedCBLDatabase> iterator = list.iterator();
         while (iterator.hasNext()) {
-            SavedCBLiteDatabase item = iterator.next();
+            SavedCBLDatabase item = iterator.next();
             if (item.getId() == null) {
                 iterator.remove();
             }
@@ -111,11 +127,11 @@ public class CBLiteWindowContent extends JPanel {
     }
     public static DefaultTreeModel getTreeModel() {
 
-        java.util.List<SavedCBLiteDatabase> savedDBs = null;
-        if (CBLiteDatabaseStorage.getInstance().getValue() == null || CBLiteDatabaseStorage.getInstance().getValue().getSavedDatabases() == null) {
+        java.util.List<SavedCBLDatabase> savedDBs = null;
+        if (CBLDatabaseStorage.getInstance().getValue() == null || CBLDatabaseStorage.getInstance().getValue().getSavedDatabases() == null) {
             savedDBs = new ArrayList<>();
         } else {
-            savedDBs = CBLiteDatabaseStorage.getInstance().getValue().getSavedDatabases();
+            savedDBs = CBLDatabaseStorage.getInstance().getValue().getSavedDatabases();
         }
 
 
@@ -125,11 +141,11 @@ public class CBLiteWindowContent extends JPanel {
 
 
 
-        Map<String, SavedCBLiteDatabase> map = savedDBs.stream()
-                .collect(Collectors.toMap(SavedCBLiteDatabase::getId, e->e));
+        Map<String, SavedCBLDatabase> map = savedDBs.stream()
+                .collect(Collectors.toMap(SavedCBLDatabase::getId, e->e));
 
-        Map<String, SavedCBLiteDatabase> sortedClusters = new TreeMap<>(map);
-        for (Map.Entry<String, SavedCBLiteDatabase> entry : sortedClusters.entrySet()) {
+        Map<String, SavedCBLDatabase> sortedClusters = new TreeMap<>(map);
+        for (Map.Entry<String, SavedCBLDatabase> entry : sortedClusters.entrySet()) {
             DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor(entry.getValue(), false));
             root.add(adminLocal);
         }
@@ -178,11 +194,11 @@ public class CBLiteWindowContent extends JPanel {
         AnAction importDatabase = new AnAction("Import CBLite Database") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                ImportCBLiteDatabaseDialog dialog = new ImportCBLiteDatabaseDialog(project, null, tree);
+                ImportCBLDatabaseDialog dialog = new ImportCBLDatabaseDialog(project, null, tree);
                 dialog.show();
             }
         };
-        importDatabase.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/open_database.svg", CBLiteWindowContent.class));
+        importDatabase.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/open_database.svg", CBLWindowContent.class));
 
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(createNewDatabase);

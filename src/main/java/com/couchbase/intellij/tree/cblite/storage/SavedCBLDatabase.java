@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class SavedCBLiteDatabase {
+public class SavedCBLDatabase {
 
     private String id;
     private String name;

@@ -12,6 +12,8 @@ public class VirtualFileKeys {
     public static final Key<String> ID = new Key<>("ID");
     public static final Key<String> CAS = new Key<>("cas");
 
+    public static final Key<String> CBL_CON_ID = new Key<>("cbl_conn_id");
+
     public static final Key<String> READ_ONLY = new Key<>("readonly");
 
 }

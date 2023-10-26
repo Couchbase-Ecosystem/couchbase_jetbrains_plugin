@@ -1,26 +1,26 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
+import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DatabaseConfiguration;
 import lombok.Getter;
 import org.jetbrains.annotations.VisibleForTesting;
 
-public class ActiveCBLiteDatabase {
+public class ActiveCBLDatabase {
 
-    private static ActiveCBLiteDatabase activeDatabase = new ActiveCBLiteDatabase();
+    private static ActiveCBLDatabase activeDatabase = new ActiveCBLDatabase();
 
     @Getter
     private Database database;
 
     @Getter
-    private SavedCBLiteDatabase savedDatabase;
+    private SavedCBLDatabase savedDatabase;
 
-    private ActiveCBLiteDatabase() {
+    private ActiveCBLDatabase() {
     }
 
-    public void connect(SavedCBLiteDatabase savedDatabase) throws CouchbaseLiteException {
+    public void connect(SavedCBLDatabase savedDatabase) throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
         config.setDirectory(savedDatabase.getPath());
         database = new Database(savedDatabase.getName(), config);
@@ -44,12 +44,12 @@ public class ActiveCBLiteDatabase {
     }
 
 
-    public static ActiveCBLiteDatabase getInstance() {
+    public static ActiveCBLDatabase getInstance() {
         return activeDatabase;
     }
 
     @VisibleForTesting
-    public static void setInstance(ActiveCBLiteDatabase i) {
+    public static void setInstance(ActiveCBLDatabase i) {
         activeDatabase = i;
     }
 }

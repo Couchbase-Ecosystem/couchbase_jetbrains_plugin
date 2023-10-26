@@ -1,6 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
+import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.treeStructure.Tree;
@@ -18,7 +18,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.VirtualFile;
 import utils.TemplateUtil;
 
-public class ImportCBLiteDatabaseDialog extends DialogWrapper {
+public class ImportCBLDatabaseDialog extends DialogWrapper {
 
     private final DefaultMutableTreeNode clickedNode;
     private final Tree tree;
@@ -27,7 +27,7 @@ public class ImportCBLiteDatabaseDialog extends DialogWrapper {
     private TextFieldWithBrowseButton databasePathField;
     private Project project;
 
-    protected ImportCBLiteDatabaseDialog(Project project, DefaultMutableTreeNode
+    protected ImportCBLDatabaseDialog(Project project, DefaultMutableTreeNode
             clickedNode, Tree tree) {
         super(project);
         this.clickedNode = clickedNode;
@@ -113,7 +113,7 @@ public class ImportCBLiteDatabaseDialog extends DialogWrapper {
 
         String dbname = lastFolderName.substring(0, lastFolderName.indexOf("."));
 
-        SavedCBLiteDatabase database = CBLDataLoader.saveNewDatabase(textField.getText(), dbname, parentPathString );
+        SavedCBLDatabase database = CBLDataLoader.saveNewDatabase(textField.getText(), dbname, parentPathString );
         CBLTreeHandler.connectToDatabase(project, database, tree);
 
         close(DialogWrapper.CANCEL_EXIT_CODE);

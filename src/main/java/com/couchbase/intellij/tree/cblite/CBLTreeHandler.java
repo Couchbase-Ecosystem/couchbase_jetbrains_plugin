@@ -1,7 +1,7 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
+import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.intellij.openapi.project.Project;
@@ -21,16 +21,16 @@ public class CBLTreeHandler {
         ((DefaultTreeModel) tree.getModel()).reload();
         if (con.isActive()) {
             con.setActive(false);
-            ActiveCBLiteDatabase.getInstance().disconnect();
+            ActiveCBLDatabase.getInstance().disconnect();
         }
 
     }
 
-    public static void connectToDatabase(Project project, SavedCBLiteDatabase savedDatabase, Tree tree) {
+    public static void connectToDatabase(Project project, SavedCBLDatabase savedDatabase, Tree tree) {
         tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
-            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
-            Enumeration<TreeNode> children = selectedNode.children();
+            DefaultMutableTreeNode rootNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
+            Enumeration<TreeNode> children = rootNode.children();
             DefaultMutableTreeNode newActiveNode = null;
 
             try {
@@ -49,21 +49,24 @@ public class CBLTreeHandler {
 
                 if (newActiveNode == null) {
                     newActiveNode = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor(savedDatabase, true));
+                    rootNode.add(newActiveNode);
                 } else {
                     ((CBLDatabaseNodeDescriptor) newActiveNode.getUserObject()).setActive(true);
                     newActiveNode.removeAllChildren();
                 }
 
 
-                ActiveCBLiteDatabase.getInstance().connect(savedDatabase);
-                ((CBLDatabaseNodeDescriptor) newActiveNode.getUserObject()).setActive(false);
+                try {
+                    ActiveCBLDatabase.getInstance().connect(savedDatabase);
+                } catch (CouchbaseLiteException ex) {
+                    ((CBLDatabaseNodeDescriptor) newActiveNode.getUserObject()).setActive(false);
+                    throw ex;
+                }
 
 
                 CBLDataLoader.loadScopesAndCollections(newActiveNode);
-                //newActiveNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                selectedNode.add(newActiveNode);
 
-                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(selectedNode);
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(rootNode);
                 ((DefaultTreeModel) tree.getModel()).reload();
 
                 tree.setPaintBusy(false);
@@ -77,7 +80,7 @@ public class CBLTreeHandler {
                 tree.setPaintBusy(false);
             }
 
-            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(selectedNode);
+            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(rootNode);
             ((DefaultTreeModel) tree.getModel()).reload();
 
         });
@@ -86,8 +89,8 @@ public class CBLTreeHandler {
 
     public static void deleteConnection(DefaultMutableTreeNode node, CBLDatabaseNodeDescriptor con, Tree tree) throws CouchbaseLiteException {
 
-        if (ActiveCBLiteDatabase.getInstance().getDatabase() != null
-                && ActiveCBLiteDatabase.getInstance().getDatabaseId().equals(con.getDatabase().getId())) {
+        if (ActiveCBLDatabase.getInstance().getDatabase() != null
+                && ActiveCBLDatabase.getInstance().getDatabaseId().equals(con.getDatabase().getId())) {
             disconnectFromCluster(node, con, tree);
         }
         CBLDataLoader.deleteConnection(con.getDatabase().getId());

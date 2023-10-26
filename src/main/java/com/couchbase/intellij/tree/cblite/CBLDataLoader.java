@@ -1,29 +1,47 @@
 package com.couchbase.intellij.tree.cblite;
 
+import com.couchbase.client.core.error.DocumentNotFoundException;
+import com.couchbase.client.core.error.TimeoutException;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.GetResult;
+import com.couchbase.intellij.VirtualFileKeys;
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
+import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
 import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabaseStorage;
-import com.couchbase.intellij.tree.cblite.storage.CBLiteDatabases;
-import com.couchbase.intellij.tree.cblite.storage.CBLiteDuplicateNewDatabaseNameException;
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLiteDatabase;
+import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
+import com.couchbase.intellij.tree.cblite.storage.CBLDatabases;
+import com.couchbase.intellij.tree.cblite.storage.CBLDuplicateNewDatabaseNameException;
+import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.Log;
-import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.couchbase.lite.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intellij.json.JsonFileType;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.UserBinaryFileType;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
 
+import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.couchbase.intellij.VirtualFileKeys.READ_ONLY;
 
 public class CBLDataLoader {
 
 
-    public static SavedCBLiteDatabase saveNewDatabase(String id, String name, String path) {
+    public static SavedCBLDatabase saveNewDatabase(String id, String name, String path) {
 
         if (id == null) {
             throw new IllegalStateException("The database id can't be null");
@@ -38,15 +56,15 @@ public class CBLDataLoader {
         }
 
 
-        CBLiteDatabases databases = CBLiteDatabaseStorage.getInstance().getValue();
+        CBLDatabases databases = CBLDatabaseStorage.getInstance().getValue();
 
-        for (SavedCBLiteDatabase db : databases.getSavedDatabases()) {
+        for (SavedCBLDatabase db : databases.getSavedDatabases()) {
             if (db.equals(id)) {
-                throw new CBLiteDuplicateNewDatabaseNameException();
+                throw new CBLDuplicateNewDatabaseNameException();
             }
         }
 
-        SavedCBLiteDatabase newdDb = new SavedCBLiteDatabase();
+        SavedCBLDatabase newdDb = new SavedCBLDatabase();
         newdDb.setId(id);
         newdDb.setName(name);
         newdDb.setPath(path);
@@ -77,7 +95,7 @@ public class CBLDataLoader {
                         "from `"+colNode.getScope()+"`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id "
                         + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
-                Query thisQuery = ActiveCBLiteDatabase.getInstance().getDatabase().createQuery(query);
+                Query thisQuery = ActiveCBLDatabase.getInstance().getDatabase().createQuery(query);
                 List<Result> results = thisQuery.execute().allResults();
 
                 if (!results.isEmpty()) {
@@ -115,7 +133,7 @@ public class CBLDataLoader {
 
     public static void loadScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
 
-        Database database = ActiveCBLiteDatabase.getInstance().getDatabase();
+        Database database = ActiveCBLDatabase.getInstance().getDatabase();
 
         for (Scope scope : database.getScopes()) {
             DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
@@ -133,11 +151,56 @@ public class CBLDataLoader {
 
     public static void deleteConnection(String id) {
 
-        CBLiteDatabases databases = CBLiteDatabaseStorage.getInstance().getValue();
+        CBLDatabases databases = CBLDatabaseStorage.getInstance().getValue();
 
         databases.setSavedDatabases(databases.getSavedDatabases().stream()
                 .filter(e-> !e.getId().equals(id))
                 .collect(Collectors.toList()));
     }
 
+
+    public static void loadDocument(Project project, CBLFileNodeDescriptor node, Tree tree, boolean isNew) {
+        tree.setPaintBusy(true);
+
+        if (node.getVirtualFile() != null) {
+            return;
+        }
+
+        String docContent = "{}";
+        String cas = null;
+
+        try {
+            Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(node.getScope()).getCollection(node.getCollection()).getDocument(node.getId());
+            cas = document.getRevisionID();
+
+            docContent = document.toJSON();
+
+        } catch (CouchbaseLiteException e) {
+            Log.error("Could not load the document " + node.getId() + ".", e);
+            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+            return;
+        } finally {
+            tree.setPaintBusy(false);
+        }
+
+        final String docCass = cas;
+        try {
+            ApplicationManager.getApplication().runWriteAction(() -> {
+                CBLDocumentVirtualFile virtualFile = new CBLDocumentVirtualFile(
+                        project, JsonFileType.INSTANCE,  node.getScope(), node.getCollection(), node.getId()
+                );
+
+                virtualFile.putUserData(VirtualFileKeys.CBL_CON_ID, ActiveCBLDatabase.getInstance().getDatabaseId());
+                virtualFile.putUserData(VirtualFileKeys.SCOPE, node.getScope());
+                virtualFile.putUserData(VirtualFileKeys.COLLECTION, node.getCollection());
+                virtualFile.putUserData(VirtualFileKeys.ID, node.getId());
+                virtualFile.putUserData(VirtualFileKeys.CAS, docCass);
+                node.setVirtualFile(virtualFile);
+            });
+        } catch (Exception e) {
+            tree.setPaintBusy(false);
+            Log.error("An error occurred while trying to load the file", e);
+            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+        }
+    }
 }

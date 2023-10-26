@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-public class CBLiteDatabases {
+public class CBLDatabases {
 
-    private List<SavedCBLiteDatabase> savedDatabases = new ArrayList<>();
+    private List<SavedCBLDatabase> savedDatabases = new ArrayList<>();
 }
