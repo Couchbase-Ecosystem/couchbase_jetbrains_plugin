@@ -73,17 +73,18 @@ public class CBLTreeRightClickListener {
             AnAction createScope = new AnAction("Create Scope") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    String scopeName = Messages.showInputDialog("Enter the name of the new scope:", "Create Scope",
-                            null);
-                    if (scopeName != null && !scopeName.isEmpty()) {
-                        try {
-                            CBLCreateScopeDialog dialog = new CBLCreateScopeDialog(project, tree, scopeName);
-                            dialog.show();
-                        } catch (Exception ex) {
-                            Log.error(ex);
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the scope.",
-                                    "Couchbase Lite Plugin Error"));
+                    try {
+                        CBLCreateScopeDialog dialog = new CBLCreateScopeDialog(project, tree);
+                        dialog.show();
+                        DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                        if (parentNode != null) {
+                            parentNode.removeAllChildren();
                         }
+                        CBLDataLoader.loadScopesAndCollections(clickedNode);
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
+                    } catch (Exception ex) {
+                        Log.error(ex);
+                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the scope.","Couchbase Lite Plugin Error"));
                     }
                 }
             };
@@ -122,17 +123,17 @@ public class CBLTreeRightClickListener {
         AnAction createCollection = new AnAction("Create Collection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                String collectionName = Messages.showInputDialog("Enter collection name:", "Create Collection", null);
-                if (collectionName != null && !collectionName.isEmpty()) {
-                    try {
-                        CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog(project, tree,
-                                userObject.getText());
-                        dialog.show();
-                    } catch (Exception ex) {
-                        Log.error(ex);
-                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the collection.",
-                                "Couchbase Lite Plugin Error"));
-                    }
+                try {
+                    CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog(project, tree, userObject.getText());
+                    dialog.show();
+                    // remove all children nodes and list collections
+                    clickedNode.removeAllChildren();
+                    CBLDataLoader.listCollections(clickedNode, userObject.getText());
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
+                } catch (Exception ex) {
+                    Log.error(ex);
+                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the collection.",
+                            "Couchbase Lite Plugin Error"));
                 }
             }
         };
@@ -146,7 +147,7 @@ public class CBLTreeRightClickListener {
                 if (result != Messages.YES) {
                     return;
                 }
-    
+
                 try {
                     // TODO: delete scope
                     // ActiveCBLDatabase.getInstance().getDatabase().deleteScope(userObject.getText());
@@ -194,7 +195,7 @@ public class CBLTreeRightClickListener {
                 if (result != Messages.YES) {
                     return;
                 }
-    
+
                 try {
                     // TODO: delete collection
                     // ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).deleteCollection(userObject.getText());

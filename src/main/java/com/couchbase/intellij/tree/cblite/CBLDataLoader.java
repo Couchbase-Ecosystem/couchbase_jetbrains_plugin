@@ -74,6 +74,25 @@ public class CBLDataLoader {
         return newdDb;
     }
 
+    public static void listScopes(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
+        Database database = ActiveCBLDatabase.getInstance().getDatabase();
+        for (Scope scope : database.getScopes()) {
+            DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
+            parent.add(scopeNode);
+        }
+    }
+    
+    public static void listCollections(DefaultMutableTreeNode parent, String scopeName) throws CouchbaseLiteException {
+        Database database = ActiveCBLDatabase.getInstance().getDatabase();
+        for (Collection collection : database.getCollections(scopeName)) {
+            DefaultMutableTreeNode collectionNode = new DefaultMutableTreeNode(
+                new CBLCollectionNodeDescriptor(collection.getName(), scopeName));
+            collectionNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+            parent.add(collectionNode);
+        }
+    }
+    
+
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);

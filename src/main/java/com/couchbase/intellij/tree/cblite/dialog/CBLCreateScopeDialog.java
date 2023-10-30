@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.cblite.dialog;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -8,7 +9,9 @@ import java.awt.GridBagLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.border.LineBorder;
 
+import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
@@ -19,34 +22,38 @@ public class CBLCreateScopeDialog extends DialogWrapper {
     private JPanel panel;
     private JBTextField textField;
     private JLabel errorLabel;
+    private Tree tree;
+    private Project project;
+    private String scopeName;
 
-    public CBLCreateScopeDialog(Project project, Tree tree, String scopeName) {
+    public CBLCreateScopeDialog(Project project, Tree tree) {
         super(true);
+        this.project = project;
+        this.tree = tree;
         init();
         setTitle("New Scope");
         setResizable(true);
         getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
     }
 
-    public static boolean isValidScopeName(String scopeName) {
+    public static String isValidScopeName(String scopeName) {
         if (scopeName == null || scopeName.trim().isEmpty()) {
-            return false;
+            return "Scope name cannot be empty";
         }
-        int maxScopeNameLength = 30;
-        if (scopeName.length() > maxScopeNameLength) {
-            return false;
+        if (scopeName.length() > 30) {
+            return "Scope name cannot be more than 30 characters";
         }
         String regex = "^[A-Za-z0-9_.-]+$";
         if (!scopeName.matches(regex)) {
-            return false;
+            return "Scope name contains invalid characters";
         }
-
-        return true;
+        return null;
     }
 
     @Override
     protected JComponent createCenterPanel() {
         errorLabel = new JLabel("");
+        errorLabel.setForeground(Color.decode("#FF4444"));
         JLabel label = new JLabel("Scope Name:");
         textField = new JBTextField(30);
 
@@ -74,19 +81,22 @@ public class CBLCreateScopeDialog extends DialogWrapper {
 
     @Override
     protected void doOKAction() {
-        if (!isValidScopeName(textField.getText())) {
-            errorLabel.setText("Invalid scope name");
+        this.scopeName = textField.getText();
+        String validationError = isValidScopeName(scopeName);
+        if (validationError != null) {
+            errorLabel.setText(validationError);
+            textField.setBorder(new LineBorder(Color.decode("#FF4444")));
             return;
         }
 
         try {
-            // ActiveCBLDatabase.getInstance().getDatabase().createScope(textField.getText());
+            ActiveCBLDatabase.getInstance().getDatabase().createCollection("default", scopeName);
         } catch (Exception e) {
-            errorLabel.setText("Invalid scope name");
+            errorLabel.setText("Error creating scope: " + e.getMessage());
+            textField.setBorder(new LineBorder(Color.decode("#FF4444")));
             return;
         }
-        
-        
+
         super.doOKAction();
     }
 }
