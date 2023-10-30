@@ -84,7 +84,8 @@ public class CBLTreeRightClickListener {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
                     } catch (Exception ex) {
                         Log.error(ex);
-                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the scope.","Couchbase Lite Plugin Error"));
+                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the scope.",
+                                "Couchbase Lite Plugin Error"));
                     }
                 }
             };
@@ -124,7 +125,8 @@ public class CBLTreeRightClickListener {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 try {
-                    CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog(project, tree, userObject.getText());
+                    CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog(project, tree,
+                            userObject.getText());
                     dialog.show();
                     // remove all children nodes and list collections
                     clickedNode.removeAllChildren();
@@ -149,8 +151,13 @@ public class CBLTreeRightClickListener {
                 }
 
                 try {
-                    // TODO: delete scope
-                    // ActiveCBLDatabase.getInstance().getDatabase().deleteScope(userObject.getText());
+                    for (int i = 0; i < clickedNode.getChildCount(); i++) {
+                        DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
+                        CBLCollectionNodeDescriptor collectionNode = (CBLCollectionNodeDescriptor) childNode
+                                .getUserObject();
+                        ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(collectionNode.getText(),
+                                userObject.getText());
+                    }
                     ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
                 } catch (Exception ex) {
                     Log.error(ex);
@@ -197,8 +204,8 @@ public class CBLTreeRightClickListener {
                 }
 
                 try {
-                    // TODO: delete collection
-                    // ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).deleteCollection(userObject.getText());
+                    ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(userObject.getText(),
+                            userObject.getScope());
                     ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
                 } catch (Exception ex) {
                     Log.error(ex);
