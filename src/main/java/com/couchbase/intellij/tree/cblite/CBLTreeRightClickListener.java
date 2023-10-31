@@ -1,9 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Document;
@@ -24,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.event.MouseEvent;
 
 public class CBLTreeRightClickListener {
@@ -39,7 +37,56 @@ public class CBLTreeRightClickListener {
             handleCollection(project, e, clickedNode, (CBLCollectionNodeDescriptor) userObject, tree);
         } else if (userObject instanceof CBLFileNodeDescriptor) {
             handleDocument(project, e, clickedNode, (CBLFileNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof CBLIndexesNodeDescriptor) {
+            handleIndexes(project, e, clickedNode, (CBLIndexesNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof CBLIndexNodeDescriptor) {
+            handleIndex(project, e, clickedNode, (CBLIndexNodeDescriptor) userObject, tree);
         }
+    }
+
+    private static void handleIndex(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLIndexNodeDescriptor userObject, Tree tree) {
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+        AnAction deleteIndex = new AnAction("Delete Index") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+
+
+                int result = Messages.showYesNoDialog(
+                        "Are you sure that you want to delete the index \"" + userObject.getText() + "\"",
+                        "Delete Index", Messages.getQuestionIcon());
+
+                if (result != Messages.YES) {
+                    return;
+                }
+                try {
+                    CBLDataLoader.deleteIndex(userObject.getScope(), userObject.getCollection(), userObject.getText());
+                    tree.collapsePath(new TreePath(((DefaultMutableTreeNode) clickedNode.getParent()).getPath()));
+                    tree.expandPath(new TreePath(((DefaultMutableTreeNode) clickedNode.getParent()).getPath()));
+                } catch (Exception ex) {
+                    Log.error("Could not delete the index " + userObject.getText(), ex);
+                    Messages.showErrorDialog("Could not delete the index. Please check the logs for more.", "Couchbase Plugin Error");
+                }
+            }
+        };
+        actionGroup.add(deleteIndex);
+
+        showPopup(e, tree, actionGroup);
+    }
+
+    private static void handleIndexes(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLIndexesNodeDescriptor userObject, Tree tree) {
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+        AnAction createIndex = new AnAction("Create Index") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                CBLCreateIndexDialog dialog = new CBLCreateIndexDialog(project, clickedNode, tree);
+                dialog.show();
+            }
+        };
+        actionGroup.add(createIndex);
+
+        showPopup(e, tree, actionGroup);
     }
 
     private static void handleDocument(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLFileNodeDescriptor userObject, Tree tree) {
@@ -53,7 +100,7 @@ public class CBLTreeRightClickListener {
                 }
 
                 try {
-                    Document document =  ActiveCBLDatabase.getInstance().getDatabase().
+                    Document document = ActiveCBLDatabase.getInstance().getDatabase().
                             getScope(userObject.getScope())
                             .getCollection(userObject.getCollection()).getDocument(userObject.getId());
 
@@ -107,6 +154,7 @@ public class CBLTreeRightClickListener {
             }
         };
         actionGroup.add(createDocument);
+
 
         showPopup(e, tree, actionGroup);
     }

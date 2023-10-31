@@ -1,30 +1,17 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.client.core.error.DocumentNotFoundException;
-import com.couchbase.client.core.error.TimeoutException;
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.entity.CouchbaseCollection;
-import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
-import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.CBLDatabases;
 import com.couchbase.intellij.tree.cblite.storage.CBLDuplicateNewDatabaseNameException;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
-import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
+import com.couchbase.intellij.tree.node.NoResultsNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileTypes.FileType;
-import com.intellij.openapi.fileTypes.UserBinaryFileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
@@ -33,10 +20,8 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.couchbase.intellij.VirtualFileKeys.READ_ONLY;
 
 public class CBLDataLoader {
 
@@ -74,6 +59,60 @@ public class CBLDataLoader {
         return newdDb;
     }
 
+    public static void createIndex(String scope, String collection, String indexName, List<String> attributes) throws CouchbaseLiteException {
+        ValueIndexItem[] properties = attributes.stream().map(e -> ValueIndexItem.property(e))
+                .collect(Collectors.toList()).toArray(new ValueIndexItem[attributes.size()]);
+
+        ActiveCBLDatabase.getInstance().getDatabase().getScope(scope)
+                .getCollection(collection)
+                .createIndex(indexName, IndexBuilder.valueIndex(properties));
+
+    }
+
+    public static void deleteIndex(String scope, String collection, String indexName) throws CouchbaseLiteException {
+        ActiveCBLDatabase.getInstance().getDatabase().getScope(scope)
+                .getCollection(collection)
+                .deleteIndex(indexName);
+
+    }
+
+    public static void listIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
+
+        Object userObject = parentNode.getUserObject();
+        tree.setPaintBusy(true);
+
+        try {
+
+            if (userObject instanceof CBLIndexesNodeDescriptor) {
+                parentNode.removeAllChildren();
+                CBLIndexesNodeDescriptor indexNode = (CBLIndexesNodeDescriptor) parentNode.getUserObject();
+
+                Set<String> indexes = ActiveCBLDatabase.getInstance().getDatabase().getScope(indexNode.getScope())
+                        .getCollection(indexNode.getCollection())
+                        .getIndexes();
+
+                if (!indexes.isEmpty()) {
+                    for (String index : indexes) {
+                        DefaultMutableTreeNode idx = new DefaultMutableTreeNode(
+                                new CBLIndexNodeDescriptor(index, indexNode.getScope(), indexNode.getCollection()));
+                        parentNode.add(idx);
+                    }
+                } else {
+                    parentNode.add(new DefaultMutableTreeNode(
+                            new CBLEmptyNodeDescriptor("No Indexes found")));
+                }
+
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+            } else {
+                throw new IllegalStateException("Called listIndexes with a node that is not an instance of CBLIndexesNodeDescriptor");
+            }
+        } catch (Exception e) {
+            Log.error("An error occurred while listing the indexes", e);
+        } finally {
+            tree.setPaintBusy(false);
+        }
+    }
+
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
         tree.setPaintBusy(true);
@@ -86,13 +125,18 @@ public class CBLDataLoader {
                 if (newOffset == 0) {
                     //removed loading node
                     parentNode.removeAllChildren();
+                    DefaultMutableTreeNode indexesNode = new DefaultMutableTreeNode(
+                            new CBLIndexesNodeDescriptor(colNode.getScope(), colNode.getText()));
+                    indexesNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                    parentNode.add(indexesNode);
+
                 } else {
                     //removes "Load More" node
                     parentNode.remove(parentNode.getChildCount() - 1);
                 }
 
                 String query = "Select meta(couchbaseAlias).id as cbFileNameId  " +
-                        "from `"+colNode.getScope()+"`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id "
+                        "from `" + colNode.getScope() + "`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id "
                         + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                 Query thisQuery = ActiveCBLDatabase.getInstance().getDatabase().createQuery(query);
@@ -110,7 +154,7 @@ public class CBLDataLoader {
 
                     if (results.size() == 10) {
                         DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
-                                new CBLLoadMoreNodeDescriptor( colNode.getScope(), colNode.getText(), newOffset + 10));
+                                new CBLLoadMoreNodeDescriptor(colNode.getScope(), colNode.getText(), newOffset + 10));
                         parentNode.add(loadMoreNode);
                     }
                 } else if (newOffset == 0) {
@@ -139,7 +183,7 @@ public class CBLDataLoader {
             DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
             parent.add(scopeNode);
 
-            for( Collection col: database.getCollections(scope.getName())) {
+            for (Collection col : database.getCollections(scope.getName())) {
                 DefaultMutableTreeNode colNode = new DefaultMutableTreeNode(
                         new CBLCollectionNodeDescriptor(col.getName(), scope.getName()));
                 colNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
@@ -154,7 +198,7 @@ public class CBLDataLoader {
         CBLDatabases databases = CBLDatabaseStorage.getInstance().getValue();
 
         databases.setSavedDatabases(databases.getSavedDatabases().stream()
-                .filter(e-> !e.getId().equals(id))
+                .filter(e -> !e.getId().equals(id))
                 .collect(Collectors.toList()));
     }
 
@@ -170,7 +214,7 @@ public class CBLDataLoader {
         try {
             Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(node.getScope()).getCollection(node.getCollection()).getDocument(node.getId());
 
-            if(!isNew || document != null) {
+            if (!isNew || document != null) {
                 cas = document.getRevisionID();
             }
 
@@ -187,7 +231,7 @@ public class CBLDataLoader {
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
                 CBLDocumentVirtualFile virtualFile = new CBLDocumentVirtualFile(
-                        project, JsonFileType.INSTANCE,  node.getScope(), node.getCollection(), node.getId()
+                        project, JsonFileType.INSTANCE, node.getScope(), node.getCollection(), node.getId()
                 );
 
                 virtualFile.putUserData(VirtualFileKeys.CBL_CON_ID, ActiveCBLDatabase.getInstance().getDatabaseId());
