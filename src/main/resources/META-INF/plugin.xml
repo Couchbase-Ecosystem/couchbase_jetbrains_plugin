@@ -91,6 +91,14 @@
                   extensions="sqlpp"/>
         <fileEditorProvider implementation="com.couchbase.intellij.workbench.CustomSqlFileEditorProvider"/>
 
+        <fileType name="SQL++ Lite file"
+                  implementationClass="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileType"
+                  fieldName="INSTANCE"
+                  language="sqlppl"
+                  extensions="sqlppl"/>
+        <fileEditorProvider implementation="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileEditorProvider"/>
+
+
         <lang.parserDefinition
                 language="sqlpp"
                 implementationClass="org.intellij.sdk.language.SqlppParserDefinition"/>

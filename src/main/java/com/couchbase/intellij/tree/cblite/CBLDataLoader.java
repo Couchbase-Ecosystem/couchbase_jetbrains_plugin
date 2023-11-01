@@ -44,7 +44,7 @@ public class CBLDataLoader {
         CBLDatabases databases = CBLDatabaseStorage.getInstance().getValue();
 
         for (SavedCBLDatabase db : databases.getSavedDatabases()) {
-            if (db.equals(id)) {
+            if (db.getId().equals(id)) {
                 throw new CBLDuplicateNewDatabaseNameException();
             }
         }
