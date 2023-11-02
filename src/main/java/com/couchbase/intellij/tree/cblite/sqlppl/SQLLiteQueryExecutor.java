@@ -25,7 +25,7 @@ public class SQLLiteQueryExecutor {
     private static QueryResultToolWindowFactory resultWindow;
 
     public static void runQuery(String query, int historyIndex, Project project) {
-        
+
         if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("There is no active Couchbase Lite connection to execute this query.", "Couchbase Plugin"));
             return;
@@ -51,9 +51,8 @@ public class SQLLiteQueryExecutor {
                     results, null, null);
 
         } catch (Exception e) {
-            e.printStackTrace();
             CouchbaseQueryError err = new CouchbaseQueryError();
-            err.setMessage("Hey! You can not run mutations when your cluster is on read-only mode");
+            err.setMessage(e.getCause().getMessage());
             CouchbaseQueryResultError error = new CouchbaseQueryResultError();
             error.setErrors(List.of(err));
 
