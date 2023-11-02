@@ -34,6 +34,8 @@ public class SQLLiteQueryExecutor {
         long before = System.nanoTime();
         Query thisQuery =
                 ActiveCBLDatabase.getInstance().getDatabase().createQuery(query);
+
+
         long past = System.nanoTime();
         double timing = ((double) past - before) / 1_000_000;
 
