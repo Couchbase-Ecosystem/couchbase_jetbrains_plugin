@@ -8,8 +8,6 @@ import javax.swing.tree.DefaultTreeModel;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
-import com.couchbase.intellij.tree.cblite.dialog.CBLCreateScopeDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateScopedCollectionDialog;
 import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
@@ -18,6 +16,7 @@ import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Document;
+import com.couchbase.lite.Scope;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -71,49 +70,29 @@ public class CBLTreeRightClickListener {
             };
             actionGroup.add(menuItem);
 
-            
-
-                AnAction createScope = new AnAction("Create Scope") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        try {
-                            CBLCreateScopeDialog dialog = new CBLCreateScopeDialog(project, tree);
-                            dialog.show();
-                            clickedNode.removeAllChildren();
-                            CBLDataLoader.loadScopesAndCollections(clickedNode);
-                            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
-                        } catch (Exception ex) {
-                            Log.error(ex);
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the scope.",
-                                    "Couchbase Lite Plugin Error"));
-                        }
+            AnAction createCollection = new AnAction("Create Scoped Collection") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    try {
+                        CBLCreateScopedCollectionDialog dialog = new CBLCreateScopedCollectionDialog(project, tree);
+                        dialog.show();
+                        CBLDataLoader.loadScopesAndCollections(clickedNode);
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
+                    } catch (Exception ex) {
+                        Log.error(ex);
+                        SwingUtilities
+                                .invokeLater(() -> Messages.showErrorDialog("Could not create the scoped collection.",
+                                        "Couchbase Lite Plugin Error"));
                     }
-                };
-                actionGroup.add(createScope);
-                
-                AnAction createCollection = new AnAction("Create Scoped Collection") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        try {
-                            CBLCreateScopedCollectionDialog dialog = new CBLCreateScopedCollectionDialog(project, tree);
-                            dialog.show();
-                            clickedNode.removeAllChildren();
-                            CBLDataLoader.loadScopesAndCollections(clickedNode);
-                            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
-                        } catch (Exception ex) {
-                            Log.error(ex);
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the scoped collection.",
-                                    "Couchbase Lite Plugin Error"));
-                        }
-                    }
-                };
-                actionGroup.add(createCollection);
+                }
+            };
+            actionGroup.add(createCollection);
 
-            } else {
-                AnAction menuItem = new AnAction("Connect") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        CBLTreeHandler.connectToDatabase(project, userObject.getDatabase(), tree);
+        } else {
+            AnAction menuItem = new AnAction("Connect") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    CBLTreeHandler.connectToDatabase(project, userObject.getDatabase(), tree);
                 }
             };
             actionGroup.add(menuItem);
@@ -138,25 +117,6 @@ public class CBLTreeRightClickListener {
     private static void handleScope(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
             CBLScopeNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
-
-        AnAction createCollection = new AnAction("Create Collection") {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                try {
-                    CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog(project, tree,
-                            userObject.getText());
-                    dialog.show();
-                    clickedNode.removeAllChildren();
-                    CBLDataLoader.listCollections(clickedNode, userObject.getText());
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
-                } catch (Exception ex) {
-                    Log.error(ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the collection.",
-                            "Couchbase Lite Plugin Error"));
-                }
-            }
-        };
-        actionGroup.add(createCollection);
 
         AnAction deleteScope = new AnAction("Delete Scope") {
             @Override
@@ -221,15 +181,28 @@ public class CBLTreeRightClickListener {
                 }
 
                 try {
-                    ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(userObject.getText(),
-                            userObject.getScope());
-                    DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
-                    if (parentNode.getChildCount() == 0) {
-                        DefaultMutableTreeNode grandParentNode = (DefaultMutableTreeNode) parentNode.getParent();
-                        grandParentNode.removeAllChildren();
-                        CBLDataLoader.loadScopesAndCollections(grandParentNode);
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(grandParentNode);
+
+                    if (ActiveCBLDatabase.getInstance() != null
+                            && ActiveCBLDatabase.getInstance().getDatabase() != null) {
+                        ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(userObject.getText(),
+                                userObject.getScope());
+                        DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                        if (parentNode != null && tree.getModel() instanceof DefaultTreeModel) {
+                            Scope scope = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope());
+                            ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                            if ((scope == null) || (scope.getCollections().isEmpty())) {
+                                DefaultMutableTreeNode grandParentNode = (DefaultMutableTreeNode) parentNode
+                                        .getParent();
+                                if (grandParentNode != null) {
+                                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(parentNode);
+                                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(grandParentNode);
+                                }
+                            } else {
+                                parentNode.removeAllChildren();
+                                CBLDataLoader.listCollections(parentNode, userObject.getScope());
+                                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                            }
+                        }
                     }
                 } catch (Exception ex) {
                     Log.error(ex);

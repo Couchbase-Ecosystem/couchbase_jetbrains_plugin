@@ -6,6 +6,7 @@ build/
 
 
 ### IntelliJ IDEA ###
+.idea/sonarlint/
 .idea/gradle.xml
 .idea/modules.xml
 .idea/jarRepositories.xml

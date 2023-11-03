@@ -74,24 +74,29 @@ public class CBLDataLoader {
         return newdDb;
     }
 
-    public static void listScopes(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
+    public static void listScopes(DefaultMutableTreeNode parentNode) throws CouchbaseLiteException {
+
+        parentNode.removeAllChildren();
+
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
         for (Scope scope : database.getScopes()) {
             DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
-            parent.add(scopeNode);
+            parentNode.add(scopeNode);
         }
     }
     
-    public static void listCollections(DefaultMutableTreeNode parent, String scopeName) throws CouchbaseLiteException {
+    public static void listCollections(DefaultMutableTreeNode parentNode, String scopeName) throws CouchbaseLiteException {
+
+        parentNode.removeAllChildren();
+
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
         for (Collection collection : database.getCollections(scopeName)) {
             DefaultMutableTreeNode collectionNode = new DefaultMutableTreeNode(
                 new CBLCollectionNodeDescriptor(collection.getName(), scopeName));
             collectionNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-            parent.add(collectionNode);
+            parentNode.add(collectionNode);
         }
-    }
-    
+    }    
 
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
@@ -152,17 +157,19 @@ public class CBLDataLoader {
 
     public static void loadScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
 
-        Database database = ActiveCBLDatabase.getInstance().getDatabase();
+        parent.removeAllChildren();
 
+        Database database = ActiveCBLDatabase.getInstance().getDatabase();
+    
         for (Scope scope : database.getScopes()) {
             DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
             parent.add(scopeNode);
-
+    
             for( Collection col: database.getCollections(scope.getName())) {
                 DefaultMutableTreeNode colNode = new DefaultMutableTreeNode(
                         new CBLCollectionNodeDescriptor(col.getName(), scope.getName()));
                 colNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-
+    
                 scopeNode.add(colNode);
             }
         }
