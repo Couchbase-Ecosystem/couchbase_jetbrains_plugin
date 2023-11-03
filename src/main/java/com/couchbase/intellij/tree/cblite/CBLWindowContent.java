@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.tree.CouchbaseWindowContent;
+import com.couchbase.intellij.tree.cblite.logger.CBLPluginLogger;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
@@ -9,6 +10,7 @@ import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.couchbase.intellij.tree.node.NodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLite;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.MaintenanceType;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
@@ -54,6 +56,7 @@ public class CBLWindowContent extends JPanel {
     public CBLWindowContent(Project project) {
         this.project = project;
         CouchbaseLite.init();
+        Database.log.setCustom(new CBLPluginLogger());
         setLayout(new BorderLayout());
         add(createTopToolbar(), BorderLayout.NORTH);
 
