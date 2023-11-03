@@ -71,6 +71,7 @@ public class ImportCBLDatabaseDialog extends DialogWrapper {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0.4;
+        gbc.fill = GridBagConstraints.NONE;
         panel.add(TemplateUtil.createComponentWithBalloon(new JLabel("Database's Location:"),"Path to where the Couchbase Lite database is located"), gbc);
 
         gbc.fill = GridBagConstraints.HORIZONTAL;

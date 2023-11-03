@@ -1,11 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.client.java.kv.ExistsResult;
-import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
-import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -130,7 +125,7 @@ public class CBLOpenDocumentDialog extends DialogWrapper {
                 }
             } catch (CouchbaseLiteException e) {
                 errorLabel.setText("An error occurred while trying to load the document");
-                Log.error("Failed to load document with id "+textField.getText(), e);
+                Log.error("Failed to load document with id " + textField.getText(), e);
                 return;
             }
         }

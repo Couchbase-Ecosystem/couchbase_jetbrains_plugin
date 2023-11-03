@@ -1,26 +1,30 @@
 package com.couchbase.intellij.tree.cblite;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.tree.CouchbaseWindowContent;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
-import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.tree.node.NodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
+import com.couchbase.lite.CouchbaseLite;
+import com.couchbase.lite.MaintenanceType;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.progress.PerformInBackgroundOption;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.actionSystem.*;
 
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
@@ -33,15 +37,15 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import com.couchbase.lite.CouchbaseLite;
 
 public class CBLWindowContent extends JPanel {
 
     private Project project;
+
+    private static int workbenchCounter = 0;
 
     private static Tree tree;
 
@@ -109,6 +113,7 @@ public class CBLWindowContent extends JPanel {
             public void treeExpanded(TreeExpansionEvent event) {
                 CBLTreeExpandListener.handle(tree, event);
             }
+
             @Override
             public void treeCollapsed(TreeExpansionEvent event) {
                 // No action needed
@@ -125,6 +130,7 @@ public class CBLWindowContent extends JPanel {
             }
         }
     }
+
     public static DefaultTreeModel getTreeModel() {
 
         java.util.List<SavedCBLDatabase> savedDBs = null;
@@ -140,42 +146,14 @@ public class CBLWindowContent extends JPanel {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
 
 
-
         Map<String, SavedCBLDatabase> map = savedDBs.stream()
-                .collect(Collectors.toMap(SavedCBLDatabase::getId, e->e));
+                .collect(Collectors.toMap(SavedCBLDatabase::getId, e -> e));
 
         Map<String, SavedCBLDatabase> sortedClusters = new TreeMap<>(map);
         for (Map.Entry<String, SavedCBLDatabase> entry : sortedClusters.entrySet()) {
             DefaultMutableTreeNode adminLocal = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor(entry.getValue(), false));
             root.add(adminLocal);
         }
-//        return new DefaultTreeModel(root);
-//
-//
-//        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-//
-//        try {
-//            DatabaseConfiguration config = new DatabaseConfiguration();
-//            config.setDirectory("/Users/denisrosa/Downloads/pbwarehouses.cblite2");
-//
-//            Database database = new Database("db", config);
-//
-//            System.out.println("+++++++++++++++abrindo database scopes "+database.getScopes());
-//            for (Scope scope : database.getScopes()) {
-//                System.out.println("========="+scope.getName());
-//            }
-//
-//            database.close();
-//        }catch (Exception e ) {
-//            e.printStackTrace();
-//        }
-
-        //TODO: Load from storage
-//        DefaultMutableTreeNode activeDatabase = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor("database1", true));
-//        root.add(activeDatabase);
-//
-//        DefaultMutableTreeNode inactiveDatabase = new DefaultMutableTreeNode(new CBLDatabaseNodeDescriptor("database2", false));
-//        root.add(inactiveDatabase);
 
         return new DefaultTreeModel(root);
     }
@@ -187,7 +165,8 @@ public class CBLWindowContent extends JPanel {
         AnAction createNewDatabase = new AnAction("Create New CBLite Database") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                // Add connection action code here
+                CBLCreateDatabaseDialog dialog = new CBLCreateDatabaseDialog(project, null, tree);
+                dialog.show();
             }
         };
         createNewDatabase.getTemplatePresentation().setIcon(AllIcons.General.Add);
@@ -200,9 +179,135 @@ public class CBLWindowContent extends JPanel {
         };
         importDatabase.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/open_database.svg", CBLWindowContent.class));
 
+        AnAction newWorkbench = new AnAction("New SQL++ Lite Workbench") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    try {
+                        Project project = e.getProject();
+                        workbenchCounter++;
+                        String fileName = "workbench" + workbenchCounter + ".sqlppl";
+                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlppl"), "");
+                        // Open the file in the editor
+                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                        fileEditorManager.openFile(virtualFile, true);
+                    } catch (Exception ex) {
+                        Log.error(ex);
+                        ex.printStackTrace();
+                    }
+                });
+            }
+        };
+
+        newWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_query.svg", CouchbaseWindowContent.class));
+
+
+        AnAction optimizeDatabase = new AnAction("Run Database Optimize") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new Task.ConditionalModal(project, String.format("Running Database Optimize for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        try {
+                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                                return;
+                            }
+                            ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.OPTIMIZE);
+                        } catch (Exception ex) {
+                            Log.error(ex);
+                        }
+                    }
+                }.queue();
+            }
+        };
+
+        optimizeDatabase.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/optimize.svg", CouchbaseWindowContent.class));
+
+
+        AnAction fullOptimize = new AnAction("Run Database Full-Optimize") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new Task.ConditionalModal(project, String.format("Running Database Full Optimize for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        try {
+                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                                return;
+                            }
+                            ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.FULL_OPTIMIZE);
+                        } catch (Exception ex) {
+                            Log.error(ex);
+                        }
+                    }
+                }.queue();
+            }
+        };
+
+        fullOptimize.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/full_optimize.svg", CouchbaseWindowContent.class));
+
+
+        AnAction compact = new AnAction("Run Database Compact") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new Task.ConditionalModal(project, String.format("Running Database Compact for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        try {
+                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                                return;
+                            }
+                            ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
+                        } catch (Exception ex) {
+                            Log.error(ex);
+                        }
+                    }
+                }.queue();
+            }
+        };
+
+        compact.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/database_compact.svg", CouchbaseWindowContent.class));
+
+
+        AnAction integrityCheck = new AnAction("Run Database Integrity Check") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new Task.ConditionalModal(project, String.format("Running Database Integrity Check for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        try {
+                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                                return;
+                            }
+                            ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.INTEGRITY_CHECK);
+                        } catch (Exception ex) {
+                            Log.error(ex);
+                        }
+                    }
+                }.queue();
+            }
+        };
+
+        integrityCheck.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/integrity_check.svg", CouchbaseWindowContent.class));
+
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(createNewDatabase);
         leftActionGroup.add(importDatabase);
+        leftActionGroup.addSeparator();
+        leftActionGroup.add(newWorkbench);
+        leftActionGroup.addSeparator();
+        leftActionGroup.add(optimizeDatabase);
+        leftActionGroup.add(fullOptimize);
+        leftActionGroup.add(compact);
+        leftActionGroup.add(integrityCheck);
+
 
         ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
         leftActionToolbar.setTargetComponent(this);
