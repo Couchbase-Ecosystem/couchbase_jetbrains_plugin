@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
+import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -10,10 +11,13 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
@@ -91,6 +95,42 @@ public class CBLTreeRightClickListener {
 
     private static void handleDocument(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLFileNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+
+        AnAction openDocument = new AnAction("View Metadata") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                String metadata = CBLDataLoader.getDocMetadata(userObject.getScope(), userObject.getCollection(), userObject.getId());
+
+                if (metadata != null) {
+                    VirtualFile virtualFile = new LightVirtualFile("(read-only) " + userObject.getId() + "_meta.json", FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                    DocumentFormatter.formatFile(project, virtualFile);
+                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                    fileEditorManager.openFile(virtualFile, true);
+                }
+            }
+        };
+        actionGroup.add(openDocument);
+
+        actionGroup.addSeparator();
+
+
+        AnAction setDocumentExpiration = new AnAction("Set Document Expiration") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+
+                DocumentExpirationDialog dialog = null;
+                try {
+                    dialog = new DocumentExpirationDialog(userObject.getScope(), userObject.getCollection(), userObject.getId());
+                } catch (CouchbaseLiteException ex) {
+                    Log.error("An error occurred while loading the document expiration dialog", ex);
+                }
+                dialog.show();
+            }
+        };
+        actionGroup.add(setDocumentExpiration);
+
+
         AnAction deleteDocument = new AnAction("Delete Document") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
