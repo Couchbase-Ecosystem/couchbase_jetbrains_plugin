@@ -7,7 +7,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static generated.GeneratedTypes.*;
+import static generated.cblite.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
@@ -17,6 +17,7 @@ public class OffsetClauseImpl extends SqlppPSIWrapper implements OffsetClause {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitOffsetClause(this);
   }
@@ -29,8 +30,8 @@ public class OffsetClauseImpl extends SqlppPSIWrapper implements OffsetClause {
 
   @Override
   @NotNull
-  public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
+  public Expression getExpression() {
+    return findNotNullChildByClass(Expression.class);
   }
 
 }

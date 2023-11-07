@@ -7,7 +7,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static generated.GeneratedTypes.*;
+import static generated.cblite.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
@@ -17,6 +17,7 @@ public class GroupByClauseImpl extends SqlppPSIWrapper implements GroupByClause 
     super(node);
   }
 
+  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitGroupByClause(this);
   }
@@ -29,20 +30,8 @@ public class GroupByClauseImpl extends SqlppPSIWrapper implements GroupByClause 
 
   @Override
   @NotNull
-  public List<GroupTerm> getGroupTermList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, GroupTerm.class);
-  }
-
-  @Override
-  @Nullable
-  public HavingClause getHavingClause() {
-    return findChildByClass(HavingClause.class);
-  }
-
-  @Override
-  @Nullable
-  public LettingClause getLettingClause() {
-    return findChildByClass(LettingClause.class);
+  public List<Expression> getExpressionList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expression.class);
   }
 
 }

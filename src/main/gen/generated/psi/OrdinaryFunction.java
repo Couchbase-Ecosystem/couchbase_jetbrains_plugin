@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface OrdinaryFunction extends PsiElement {
 
   @NotNull
-  List<Expr> getExprList();
-
-  @NotNull
   FunctionName getFunctionName();
 
 }

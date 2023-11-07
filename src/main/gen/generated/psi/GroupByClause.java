@@ -8,12 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface GroupByClause extends PsiElement {
 
   @NotNull
-  List<GroupTerm> getGroupTermList();
-
-  @Nullable
-  HavingClause getHavingClause();
-
-  @Nullable
-  LettingClause getLettingClause();
+  List<Expression> getExpressionList();
 
 }

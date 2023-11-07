@@ -7,7 +7,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static generated.GeneratedTypes.*;
+import static generated.cblite.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
@@ -17,6 +17,7 @@ public class FunctionCallImpl extends SqlppPSIWrapper implements FunctionCall {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitFunctionCall(this);
   }
@@ -29,12 +30,6 @@ public class FunctionCallImpl extends SqlppPSIWrapper implements FunctionCall {
 
   @Override
   @Nullable
-  public AggregateFunction getAggregateFunction() {
-    return findChildByClass(AggregateFunction.class);
-  }
-
-  @Override
-  @Nullable
   public BuiltinFunction getBuiltinFunction() {
     return findChildByClass(BuiltinFunction.class);
   }
@@ -43,18 +38,6 @@ public class FunctionCallImpl extends SqlppPSIWrapper implements FunctionCall {
   @Nullable
   public OrdinaryFunction getOrdinaryFunction() {
     return findChildByClass(OrdinaryFunction.class);
-  }
-
-  @Override
-  @Nullable
-  public Path getPath() {
-    return findChildByClass(Path.class);
-  }
-
-  @Override
-  @Nullable
-  public WindowFunction getWindowFunction() {
-    return findChildByClass(WindowFunction.class);
   }
 
 }

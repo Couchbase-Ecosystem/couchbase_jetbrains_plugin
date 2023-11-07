@@ -7,7 +7,7 @@ import com.intellij.psi.TokenType;
 
 %%
 
-%class SqlppLexer
+%class SqlppLiteLexer
 %implements FlexLexer
 %unicode
 %function advance
@@ -53,234 +53,67 @@ Backtick = "`"
 
 <YYINITIAL> {
 
-      "ADVISE" { return GeneratedTypes.ADVISE; }
       "ALL" { return GeneratedTypes.ALL; }
-      "ALTER" { return GeneratedTypes.ALTER; }
-      "ANALYZE" { return GeneratedTypes.ANALYZE; }
       "AND" { return GeneratedTypes.AND; }
       "ANY" { return GeneratedTypes.ANY; }
-      "ARRAY" { return GeneratedTypes.ARRAY; }
       "AS" { return GeneratedTypes.AS; }
       "ASC" { return GeneratedTypes.ASC; }
-      "AT" { return GeneratedTypes.AT; }
 
-      "BEGIN" { return GeneratedTypes.BEGIN; }
       "BETWEEN" { return GeneratedTypes.BETWEEN; }
-//      "BINARY" { return GeneratedTypes.BINARY; }
-//      "BOOLEAN" { return GeneratedTypes.BOOLEAN; }
-//      "BREAK" { return GeneratedTypes.BREAK; }
-//      "BUCKET" { return GeneratedTypes.BUCKET; }
-      "BUILD" { return GeneratedTypes.BUILD; }
       "BY" { return GeneratedTypes.BY; }
 
       "CASE" { return GeneratedTypes.CASE; }
-//      "CLUSTER" { return GeneratedTypes.CLUSTER; }
-//      "COLLATE" { return GeneratedTypes.COLLATE; }
-      "COLLECTION" { return GeneratedTypes.COLLECTION; }
-      "COMMIT" { return GeneratedTypes.COMMIT; }
-      "COMMITTED" { return GeneratedTypes.COMMITTED; }
-//      "CONNECT" { return GeneratedTypes.CONNECT; }
-//      "CONTINUE" { return GeneratedTypes.CONTINUE; }
-//      "CORRELATED" { return GeneratedTypes.CORRELATED; }
-//      "COVER" { return GeneratedTypes.COVER; }
-      "CREATE" { return GeneratedTypes.CREATE; }
-      "CURRENT" { return GeneratedTypes.CURRENT; }
 
-//      "DATABASE" { return GeneratedTypes.DATABASE; }
-//      "DATASET" { return GeneratedTypes.DATASET; }
-//      "DATASTORE" { return GeneratedTypes.DATASTORE; }
-//      "DECLARE" { return GeneratedTypes.DECLARE; }
-//      "DECREMENT" { return GeneratedTypes.DECREMENT; }
-      "DELETE" { return GeneratedTypes.DELETE; }
-//      "DERIVED" { return GeneratedTypes.DERIVED; }
       "DESC" { return GeneratedTypes.DESC; }
-//      "DESCRIBE" { return GeneratedTypes.DESCRIBE; }
       "DIACRITICS" { return GeneratedTypes.DIACRITICS; }
       "DISTINCT" { return GeneratedTypes.DISTINCT; }
-//      "DO" { return GeneratedTypes.DO; }
-      "DROP" { return GeneratedTypes.DROP; }
 
-//      "EACH" { return GeneratedTypes.EACH; }
-      "ELEMENT" { return GeneratedTypes.ELEMENT; }
       "ELSE" { return GeneratedTypes.ELSE; }
       "END" { return GeneratedTypes.END; }
-//      "EVERY" { return GeneratedTypes.EVERY; }
-      "EXCEPT" { return GeneratedTypes.EXCEPT; }
-      "EXCLUDE" { return GeneratedTypes.EXCLUDE; }
-      "EXECUTE" { return GeneratedTypes.EXECUTE; }
       "EXISTS" { return GeneratedTypes.EXISTS; }
-      "EXPLAIN" { return GeneratedTypes.EXPLAIN; }
 
       "FALSE" { return GeneratedTypes.FALSE; }
-//      "FETCH" { return GeneratedTypes.FETCH; }
-      "FILTER" { return GeneratedTypes.FILTER; }
-      "FIRST" { return GeneratedTypes.FIRST; }
-      "FLATTEN" { return GeneratedTypes.FLATTEN; }
-//      "FLUSH" { return GeneratedTypes.FLUSH; }
-      "FOLLOWING" { return GeneratedTypes.FOLLOWING; }
-      "FOR" { return GeneratedTypes.FOR; }
-//      "FORCE" { return GeneratedTypes.FORCE; }
       "FROM" { return GeneratedTypes.FROM; }
-      "FTS" { return GeneratedTypes.FTS; }
-      "FUNCTION" { return GeneratedTypes.FUNCTION; }
 
-//      "GOLANG" { return GeneratedTypes.GOLANG; }
-      "GRANT" { return GeneratedTypes.GRANT; }
       "GROUP" { return GeneratedTypes.GROUP; }
-      "GROUPS" { return GeneratedTypes.GROUPS; }
-      "GSI" { return GeneratedTypes.GSI; }
 
-      "HASH" { return GeneratedTypes.HASH; }
       "HAVING" { return GeneratedTypes.HAVING; }
 
-      "IF" { return GeneratedTypes.IF; }
-      "ISOLATION" { return GeneratedTypes.ISOLATION; }
-      "IGNORE" { return GeneratedTypes.IGNORE; }
-//      "ILIKE" { return GeneratedTypes.ILIKE; }
       "IN" { return GeneratedTypes.IN; }
-      "INCLUDE" { return GeneratedTypes.INCLUDE; }
-//      "INCREMENT" { return GeneratedTypes.INCREMENT; }
-      "INDEX" { return GeneratedTypes.INDEX; }
-      "INFER" { return GeneratedTypes.INFER; }
-      "INLINE" { return GeneratedTypes.INLINE; }
       "INNER" { return GeneratedTypes.INNER; }
-      "INSERT" { return GeneratedTypes.INSERT; }
-      "INTERSECT" { return GeneratedTypes.INTERSECT; }
-      "INTO" { return GeneratedTypes.INTO; }
       "IS" { return GeneratedTypes.IS; }
 
-      "JAVASCRIPT" { return GeneratedTypes.JAVASCRIPT; }
       "JOIN" { return GeneratedTypes.JOIN; }
 
-      "KEY" { return GeneratedTypes.KEY; }
-      "KEYS" { return GeneratedTypes.KEYS; }
-      "KEYSPACE" { return GeneratedTypes.KEYSPACE; }
-//      "KNOWN" { return GeneratedTypes.KNOWN; }
-
-      "LANGUAGE" { return GeneratedTypes.LANGUAGE; }
-      "LAST" { return GeneratedTypes.LAST; }
       "LEFT" { return GeneratedTypes.LEFT; }
-      "LET" { return GeneratedTypes.LET; }
-      "LETTING" { return GeneratedTypes.LETTING; }
-      "LEVEL" { return GeneratedTypes.LEVEL; }
       "LIKE" { return GeneratedTypes.LIKE; }
       "LIMIT" { return GeneratedTypes.LIMIT; }
-//      "LSM" { return GeneratedTypes.LSM; }
 
-//      "MAP" { return GeneratedTypes.MAP; }
-//      "MAPPING" { return GeneratedTypes.MAPPING; }
-      "MATCHED" { return GeneratedTypes.MATCHED; }
-//      "MATERIALIZED" { return GeneratedTypes.MATERIALIZED; }
-      "MERGE" { return GeneratedTypes.MERGE; }
-//      "MINUS" { return GeneratedTypes.MINUS; }
       "MISSING" { return GeneratedTypes.MISSING; }
 
-//      "NAMESPACE" { return GeneratedTypes.NAMESPACE; }
-      "NEST" { return GeneratedTypes.NEST; }
-      "NL" { return GeneratedTypes.NL; }
-      "NO" { return GeneratedTypes.NO; }
       "NOUNICODE" { return GeneratedTypes.NOUNICODE; }
       "NOCASE" { return GeneratedTypes.NOCASE; }
       "NODIACRITICS" { return GeneratedTypes.NODIACRITICS; }
       "NOT" { return GeneratedTypes.NOT; }
-//      "NTH_VALUE" { return GeneratedTypes.NTH_VALUE; }
       "NULL" { return GeneratedTypes.NULL; }
-      "NULLS" { return GeneratedTypes.NULLS; }
-//      "NUMBER" { return GeneratedTypes.NUMBER; }
 
-//      "OBJECT" { return GeneratedTypes.OBJECT; }
       "OFFSET" { return GeneratedTypes.OFFSET; }
       "ON" { return GeneratedTypes.ON; }
-//      "OPTION" { return GeneratedTypes.OPTION; }
-      "OPTIONS" { return GeneratedTypes.OPTIONS; }
       "OR" { return GeneratedTypes.OR; }
       "ORDER" { return GeneratedTypes.ORDER; }
-      "OTHERS" { return GeneratedTypes.OTHERS; }
       "OUTER" { return GeneratedTypes.OUTER; }
-      "OVER" { return GeneratedTypes.OVER; }
-//      "PARSE" { return GeneratedTypes.PARSE; }
-      "PARTITION" { return GeneratedTypes.PARTITION; }
-//      "PASSWORD" { return GeneratedTypes.PASSWORD; }
-      "PATH" { return GeneratedTypes.PATH; }
-//      "POOL" { return GeneratedTypes.POOL; }
-      "PRECEDING" { return GeneratedTypes.PRECEDING; }
-//      "PREPARE" { return GeneratedTypes.PREPARE; }
-      "PRIMARY" { return GeneratedTypes.PRIMARY; }
-//      "PRIVATE" { return GeneratedTypes.PRIVATE; }
-//      "PRIVILEGE" { return GeneratedTypes.PRIVILEGE; }
-      "PROBE" { return GeneratedTypes.PROBE; }
-//      "PROCEDURE" { return GeneratedTypes.PROCEDURE; }
-//      "PUBLIC" { return GeneratedTypes.PUBLIC; }
-
-      "RANGE" { return GeneratedTypes.RANGE; }
-      "RAW" { return GeneratedTypes.RAW; }
-//      "REALM" { return GeneratedTypes.REALM; }
-//      "REDUCE" { return GeneratedTypes.REDUCE; }
-//      "RENAME" { return GeneratedTypes.RENAME; }
-      "RESPECT" { return GeneratedTypes.RESPECT; }
-//      "RETURN" { return GeneratedTypes.RETURN; }
-      "RETURNING" { return GeneratedTypes.RETURNING; }
-      "REVOKE" { return GeneratedTypes.REVOKE; }
-      "RIGHT" { return GeneratedTypes.RIGHT; }
-      "ROLE" { return GeneratedTypes.ROLE; }
-      "ROLLBACK" { return GeneratedTypes.ROLLBACK; }
-      "ROW" { return GeneratedTypes.ROW; }
-      "ROWS" { return GeneratedTypes.ROWS; }
 
       "SATISFIES" { return GeneratedTypes.SATISFIES; }
-      "SAVEPOINT" { return GeneratedTypes.SAVEPOINT; }
-//      "SCHEMA" { return GeneratedTypes.SCHEMA; }
-      "SCOPE" { return GeneratedTypes.SCOPE; }
       "SELECT" { return GeneratedTypes.SELECT; }
-      "SELF" { return GeneratedTypes.SELF; }
-//      "SEMI" { return GeneratedTypes.SEMI; }
-      "SET" { return GeneratedTypes.SET; }
-//      "SHOW" { return GeneratedTypes.SHOW; }
       "SOME" { return GeneratedTypes.SOME; }
-      "START" { return GeneratedTypes.START; }
-      "STATISTICS" { return GeneratedTypes.STATISTICS; }
-//      "STRING" { return GeneratedTypes.TYPE_STRING; }
-//      "SYSTEM" { return GeneratedTypes.SYSTEM; }
 
       "THEN" { return GeneratedTypes.THEN; }
-      "TIES" { return GeneratedTypes.TIES; }
-      "TO" { return GeneratedTypes.TO; }
-      "TRAN" { return GeneratedTypes.TRAN; }
-      "TRANSACTION" { return GeneratedTypes.TRANSACTION; }
-//      "TRIGGER" { return GeneratedTypes.TRIGGER; }
       "TRUE" { return GeneratedTypes.TRUE; }
-//      "TRUNCATE" { return GeneratedTypes.TRUNCATE; }
 
-      "UNBOUNDED" { return GeneratedTypes.UNBOUNDED; }
-//      "UNDER" { return GeneratedTypes.UNDER; }
-      "UNION" { return GeneratedTypes.UNION; }
-//      "UNIQUE" { return GeneratedTypes.UNIQUE; }
-//      "UNKNOWN" { return GeneratedTypes.UNKNOWN; }
-      "UNNEST" { return GeneratedTypes.UNNEST; }
-      "UNSET" { return GeneratedTypes.UNSET; }
-      "UPDATE" { return GeneratedTypes.UPDATE; }
-      "UPSERT" { return GeneratedTypes.UPSERT; }
-      "USE" { return GeneratedTypes.USE; }
-      "USER" { return GeneratedTypes.USER; }
-      "USING" { return GeneratedTypes.USING; }
-
-//      "VALIDATE" { return GeneratedTypes.VALIDATE; }
-      "VALUE" { return GeneratedTypes.VALUE; }
       "VALUED" { return GeneratedTypes.VALUED; }
-      "VALUES" { return GeneratedTypes.VALUES; }
-//      "VIA" { return GeneratedTypes.VIA; }
-//      "VIEW" { return GeneratedTypes.VIEW; }
 
       "WHEN" { return GeneratedTypes.WHEN; }
       "WHERE" { return GeneratedTypes.WHERE; }
-//      "WHILE" { return GeneratedTypes.WHILE; }
-      "WINDOW" { return GeneratedTypes.WINDOW; }
-      "WITH" { return GeneratedTypes.WITH; }
-      "WITHIN" { return GeneratedTypes.WITHIN; }
-      "WORK" { return GeneratedTypes.WORK; }
-
-//      "XOR" { return GeneratedTypes.XOR; }
-
 
       {PLUS} { return GeneratedTypes.PLUS; }
       {SEMICOLON} { return GeneratedTypes.SEMICOLON; }
@@ -288,7 +121,6 @@ Backtick = "`"
       "-" { return GeneratedTypes.MINUS_SIGN; }
       "/" { return GeneratedTypes.SLASH; }
       "%" { return GeneratedTypes.PERCENT; }
-//      "^" { return GeneratedTypes.CARET; }
       "==" { return GeneratedTypes.DOUBLE_EQUAL; }
       "<" { return GeneratedTypes.LESSTHAN; }
       ">" { return GeneratedTypes.MORETHAN; }
@@ -498,8 +330,6 @@ Backtick = "`"
       {DOT} { return GeneratedTypes.DOT; }
       {OPEN_PAREN} { return GeneratedTypes.LPAREN; }
       {CLOSE_PAREN} { return GeneratedTypes.RPAREN; }
-      {OPEN_CURLY} { return GeneratedTypes.LBRACE; }
-      {CLOSE_CURLY} { return GeneratedTypes.RBRACE; }
       {SLASH} { return GeneratedTypes.SLASH; }
       {QUOTE} { yybegin(SingleQuotedString); return GeneratedTypes.QUOTE; }
       {DQUOTE} { yybegin(DoubleQuotedString); return GeneratedTypes.DQUOTE; }

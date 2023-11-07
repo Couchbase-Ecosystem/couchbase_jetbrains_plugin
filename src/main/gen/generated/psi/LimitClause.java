@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface LimitClause extends PsiElement {
 
   @NotNull
-  Expr getExpr();
+  Expression getExpression();
 
 }

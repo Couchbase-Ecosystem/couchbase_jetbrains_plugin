@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface FromClause extends PsiElement {
 
   @NotNull
-  FromTerms getFromTerms();
+  Alias getAlias();
+
+  @NotNull
+  IdentifierRef getIdentifierRef();
 
 }

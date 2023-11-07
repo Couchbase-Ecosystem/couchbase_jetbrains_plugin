@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface BuiltinFunction extends PsiElement {
 
-  @NotNull
-  List<Expr> getExprList();
-
 }
