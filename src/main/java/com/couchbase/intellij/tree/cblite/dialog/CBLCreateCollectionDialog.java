@@ -19,7 +19,7 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
-public class CBLCreateScopedCollectionDialog extends DialogWrapper {
+public class CBLCreateCollectionDialog extends DialogWrapper {
     private JPanel panel;
     private JBTextField scopeField;
     private JBTextField collectionField;
@@ -27,13 +27,13 @@ public class CBLCreateScopedCollectionDialog extends DialogWrapper {
     private Project project;
     private Tree tree;
 
-    public CBLCreateScopedCollectionDialog(Project project, Tree tree) {
+    public CBLCreateCollectionDialog(Project project, Tree tree) {
         super(true);
         this.project = project;
         this.tree = tree;
 
         init();
-        setTitle("New Scoped Collection");
+        setTitle("New Collection");
         setResizable(true);
         getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
     }
@@ -85,9 +85,9 @@ public class CBLCreateScopedCollectionDialog extends DialogWrapper {
         String collectionName = collectionField.getText();
         String scopeName = scopeField.getText();
 
-        String collectionValidationError = isValidCollectionName(collectionName);
-        String scopeValidationError = isValidScopeName(scopeName);
-
+        String collectionValidationError = isValidName(collectionName, "Collection");
+        String scopeValidationError = isValidName(scopeName, "Scope");
+        
         if (collectionValidationError != null) {
             errorLabel.setText(collectionValidationError);
             collectionField.setBorder(new LineBorder(Color.decode("#FF4444")));
@@ -117,31 +117,19 @@ public class CBLCreateScopedCollectionDialog extends DialogWrapper {
         super.doOKAction();
     }
 
-    public static String isValidCollectionName(String collectionName) {
-        if (collectionName == null || collectionName.trim().isEmpty()) {
-            return "Collection name cannot be empty";
+    public static String isValidName(String name, String type) {
+        if (name == null || name.trim().isEmpty()) {
+            return type + " name cannot be empty";
         }
-        int maxCollectionNameLength = 30;
-        if (collectionName.length() > maxCollectionNameLength) {
-            return "Collection name cannot be more than 30 characters";
-        }
-        String regex = "^[A-Za-z0-9_.-]+$";
-        if (!collectionName.matches(regex)) {
-            return "Collection name contains invalid characters";
-        }
-        return null;
-    }
-
-    public static String isValidScopeName(String scopeName) {
-        if (scopeName == null || scopeName.trim().isEmpty()) {
-            return "Scope name cannot be empty";
-        }
-        if (scopeName.length() > 30) {
-            return "Scope name cannot be more than 30 characters";
+        if (name.length() > 251) {
+            return type + " name cannot be more than 251 characters";
         }
         String regex = "^[A-Za-z0-9_.-]+$";
-        if (!scopeName.matches(regex)) {
-            return "Scope name contains invalid characters";
+        if (!name.matches(regex)) {
+            return type + " name contains invalid characters";
+        }
+        if (name.startsWith("_") || name.startsWith("%")) {
+            return type + " name cannot start with _ or %";
         }
         return null;
     }

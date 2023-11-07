@@ -58,17 +58,6 @@ public class CBLDataLoader {
 
         return newdDb;
     }
-
-    public static void listScopes(DefaultMutableTreeNode parentNode) throws CouchbaseLiteException {
-
-        parentNode.removeAllChildren();
-
-        Database database = ActiveCBLDatabase.getInstance().getDatabase();
-        for (Scope scope : database.getScopes()) {
-            DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
-            parentNode.add(scopeNode);
-        }
-    }
     
     public static void listCollections(DefaultMutableTreeNode parentNode, String scopeName) throws CouchbaseLiteException {
 
