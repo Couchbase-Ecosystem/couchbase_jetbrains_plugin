@@ -9,7 +9,7 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static generated.cblite.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
-import generated.psi.*;
+import generated.psi.cblite.*;
 
 public class OpPrec8Impl extends SqlppPSIWrapper implements OpPrec8 {
 
@@ -17,7 +17,6 @@ public class OpPrec8Impl extends SqlppPSIWrapper implements OpPrec8 {
     super(node);
   }
 
-  @Override
   public void accept(@NotNull Visitor visitor) {
     visitor.visitOpPrec8(this);
   }

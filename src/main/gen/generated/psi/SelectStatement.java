@@ -8,15 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface SelectStatement extends PsiElement {
 
   @Nullable
-  FromClause getFromClause();
-
-  @Nullable
-  GroupByClause getGroupByClause();
-
-  @Nullable
-  HavingClause getHavingClause();
-
-  @Nullable
   LimitClause getLimitClause();
 
   @Nullable
@@ -26,9 +17,9 @@ public interface SelectStatement extends PsiElement {
   OrderByClause getOrderByClause();
 
   @NotNull
-  SelectResults getSelectResults();
+  List<SelectTerm> getSelectTermList();
 
-  @Nullable
-  WhereClause getWhereClause();
+  @NotNull
+  List<SetOp> getSetOpList();
 
 }

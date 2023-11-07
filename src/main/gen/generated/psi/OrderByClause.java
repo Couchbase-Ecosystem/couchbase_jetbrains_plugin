@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface OrderByClause extends PsiElement {
 
   @NotNull
-  List<OrderingClause> getOrderingClauseList();
+  List<OrderingTerm> getOrderingTermList();
 
 }

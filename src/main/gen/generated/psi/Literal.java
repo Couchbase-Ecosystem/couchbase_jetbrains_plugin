@@ -8,9 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface Literal extends PsiElement {
 
   @Nullable
-  BooleanLiteral getBooleanLiteral();
+  Bool getBool();
 
   @Nullable
-  StringLiteral getStringLiteral();
+  Str getStr();
 
 }

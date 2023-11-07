@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface HavingClause extends PsiElement {
 
   @NotNull
-  Expression getExpression();
+  Cond getCond();
 
 }

@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface OffsetClause extends PsiElement {
 
   @NotNull
-  Expression getExpression();
+  Expr getExpr();
 
 }

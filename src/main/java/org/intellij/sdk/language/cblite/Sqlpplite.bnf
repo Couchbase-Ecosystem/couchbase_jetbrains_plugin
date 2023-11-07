@@ -5,8 +5,9 @@
 
 
   elementTypeHolderClass="generated.cblite.GeneratedTypes"
-  elementTypeClass="org.intellij.sdk.language.psi.SqlppElementType"
-  tokenTypeClass="org.intellij.sdk.language.psi.SqlppTokenType"
+  elementTypeClass="org.intellij.sdk.language.cblite.psi.SqlppLiteElementType"
+  tokenTypeClass="org.intellij.sdk.language.cblite.psi.SqlppLiteTokenType"
+  psiPackage="generated.psi.cblite"
 }
 
 /*

@@ -8,9 +8,18 @@ import com.intellij.psi.PsiElement;
 public interface FunctionCall extends PsiElement {
 
   @Nullable
+  AggregateFunction getAggregateFunction();
+
+  @Nullable
   BuiltinFunction getBuiltinFunction();
 
   @Nullable
   OrdinaryFunction getOrdinaryFunction();
+
+  @Nullable
+  Path getPath();
+
+  @Nullable
+  WindowFunction getWindowFunction();
 
 }
