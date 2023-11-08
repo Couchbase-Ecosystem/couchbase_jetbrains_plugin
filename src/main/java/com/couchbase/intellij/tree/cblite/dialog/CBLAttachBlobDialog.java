@@ -11,16 +11,14 @@ import javax.swing.JTextField;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Blob;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.MutableDocument;
-import com.couchbase.lite.Scope;
-
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -28,18 +26,16 @@ import com.intellij.openapi.vfs.VirtualFile;
 
 public class CBLAttachBlobDialog extends DialogWrapper {
     private final Project project;
-    private final Scope scope;
     private final Collection collection;
     private final Document document;
     private JComboBox<FileType> fileTypeComboBox;
     private TextFieldWithBrowseButton fileField;
     private JTextField blobFieldTextField;
 
-    public CBLAttachBlobDialog(Project project, Scope scope, Collection collection, Document document) {
+    public CBLAttachBlobDialog(Project project, Collection collection, Document document) {
         super(project);
         setTitle("Attach Blob to Document");
         this.project = project;
-        this.scope = scope;
         this.collection = collection;
         this.document = document;
         init();

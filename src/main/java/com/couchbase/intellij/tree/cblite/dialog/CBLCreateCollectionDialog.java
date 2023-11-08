@@ -6,31 +6,25 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 
+import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.LineBorder;
-import javax.swing.BorderFactory;
 
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
-import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 public class CBLCreateCollectionDialog extends DialogWrapper {
-    private JPanel panel;
     private JBTextField scopeField;
     private JBTextField collectionField;
     private JLabel errorLabel;
-    private Project project;
-    private Tree tree;
+    private static final Color ERROR_COLOR = Color.decode("#FF4444");
 
-    public CBLCreateCollectionDialog(Project project, Tree tree) {
+    public CBLCreateCollectionDialog() {
         super(true);
-        this.project = project;
-        this.tree = tree;
 
         init();
         setTitle("New Collection");
@@ -38,19 +32,15 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
         getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
     }
 
-    // ...
-
     @Override
     protected JComponent createCenterPanel() {
-        errorLabel = new JLabel("");
-        errorLabel.setForeground(Color.decode("#FF4444"));
         JLabel scopeLabel = new JLabel("Scope Name:");
         scopeField = new JBTextField(30);
 
         JLabel collectionLabel = new JLabel("Collection Name:");
         collectionField = new JBTextField(30);
 
-        panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new BorderLayout());
         JPanel formPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
         gc.anchor = GridBagConstraints.WEST;
@@ -75,6 +65,9 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
         formPanel.add(collectionField, gc);
 
         panel.add(formPanel, BorderLayout.NORTH);
+
+        errorLabel = new JLabel("");
+        errorLabel.setForeground(ERROR_COLOR);
         panel.add(errorLabel, BorderLayout.SOUTH);
 
         return panel;
@@ -90,14 +83,14 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
         
         if (collectionValidationError != null) {
             errorLabel.setText(collectionValidationError);
-            collectionField.setBorder(new LineBorder(Color.decode("#FF4444")));
+            collectionField.setBorder(new LineBorder(ERROR_COLOR));
         } else {
             collectionField.setBorder(BorderFactory.createEmptyBorder());
         }
 
         if (scopeValidationError != null) {
             errorLabel.setText(errorLabel.getText() + " " + scopeValidationError);
-            scopeField.setBorder(new LineBorder(Color.decode("#FF4444")));
+            scopeField.setBorder(new LineBorder(ERROR_COLOR));
         } else {
             scopeField.setBorder(BorderFactory.createEmptyBorder());
         }
@@ -110,7 +103,7 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
             ActiveCBLDatabase.getInstance().getDatabase().createCollection(collectionName, scopeName);
         } catch (Exception e) {
             errorLabel.setText("Error creating collection: " + e.getMessage());
-            collectionField.setBorder(new LineBorder(Color.decode("#FF4444")));
+            collectionField.setBorder(new LineBorder(ERROR_COLOR));
             return;
         }
 

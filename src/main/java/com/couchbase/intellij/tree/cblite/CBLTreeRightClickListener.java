@@ -24,13 +24,11 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.DataSource;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.MaintenanceType;
-import com.couchbase.lite.Meta;
 import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryBuilder;
 import com.couchbase.lite.Result;
 import com.couchbase.lite.ResultSet;
 import com.couchbase.lite.Scope;
-import com.couchbase.lite.SelectResult;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -142,7 +140,7 @@ public class CBLTreeRightClickListener {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     try {
-                        CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog(project, tree);
+                        CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog();
                         dialog.show();
                         CBLDataLoader.loadScopesAndCollections(clickedNode);
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
@@ -336,7 +334,7 @@ public class CBLTreeRightClickListener {
                     Scope scope = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope());
                     Collection collection = scope.getCollection(userObject.getCollection());
                     Document document = collection.getDocument(userObject.getId());
-                    CBLAttachBlobDialog dialog = new CBLAttachBlobDialog(project, scope, collection, document);
+                    CBLAttachBlobDialog dialog = new CBLAttachBlobDialog(project, collection, document);
                     dialog.show();
                     if (dialog.showAndGet()) {
                         boolean hasBlob = documentHasBlob(document);
@@ -345,11 +343,9 @@ public class CBLTreeRightClickListener {
                             ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
                         }
                         DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                        if (parentNode != null) {
-                            parentNode.removeAllChildren();
-                            CBLDataLoader.listDocuments(parentNode, tree, 0);
-                            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
-                        }
+                        parentNode.removeAllChildren();
+                        CBLDataLoader.listDocuments(parentNode, tree, 0);
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
