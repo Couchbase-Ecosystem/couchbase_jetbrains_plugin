@@ -63,33 +63,28 @@ public class CBLDataLoader {
 
         return newdDb;
     }
-    
+
     public static void listCollections(DefaultMutableTreeNode parentNode, String scopeName) throws CouchbaseLiteException {
 
         parentNode.removeAllChildren();
 
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
         for (Collection collection : database.getCollections(scopeName)) {
-            DefaultMutableTreeNode collectionNode = new DefaultMutableTreeNode(
-                new CBLCollectionNodeDescriptor(collection.getName(), scopeName));
+            DefaultMutableTreeNode collectionNode = new DefaultMutableTreeNode(new CBLCollectionNodeDescriptor(collection.getName(), scopeName));
             collectionNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
             parentNode.add(collectionNode);
         }
-    }    
-    public static void createIndex(String scope, String collection, String indexName, List<String> attributes) throws CouchbaseLiteException {
-        ValueIndexItem[] properties = attributes.stream().map(e -> ValueIndexItem.property(e))
-                .collect(Collectors.toList()).toArray(new ValueIndexItem[attributes.size()]);
+    }
 
-        ActiveCBLDatabase.getInstance().getDatabase().getScope(scope)
-                .getCollection(collection)
-                .createIndex(indexName, IndexBuilder.valueIndex(properties));
+    public static void createIndex(String scope, String collection, String indexName, List<String> attributes) throws CouchbaseLiteException {
+        ValueIndexItem[] properties = attributes.stream().map(e -> ValueIndexItem.property(e)).collect(Collectors.toList()).toArray(new ValueIndexItem[attributes.size()]);
+
+        ActiveCBLDatabase.getInstance().getDatabase().getScope(scope).getCollection(collection).createIndex(indexName, IndexBuilder.valueIndex(properties));
 
     }
 
     public static void deleteIndex(String scope, String collection, String indexName) throws CouchbaseLiteException {
-        ActiveCBLDatabase.getInstance().getDatabase().getScope(scope)
-                .getCollection(collection)
-                .deleteIndex(indexName);
+        ActiveCBLDatabase.getInstance().getDatabase().getScope(scope).getCollection(collection).deleteIndex(indexName);
 
     }
 
@@ -97,9 +92,7 @@ public class CBLDataLoader {
     public static void setDocumentExpiration(String scope, String collection, String docId, Date date) {
 
         try {
-            Collection col = ActiveCBLDatabase.getInstance().getDatabase()
-                    .getScope(scope)
-                    .getCollection(collection);
+            Collection col = ActiveCBLDatabase.getInstance().getDatabase().getScope(scope).getCollection(collection);
             col.setDocumentExpiration(docId, date);
 
         } catch (Exception e) {
@@ -114,19 +107,13 @@ public class CBLDataLoader {
 
         try {
 
-            Document document = ActiveCBLDatabase.getInstance().getDatabase()
-                    .getScope(scope)
-                    .getCollection(collection)
-                    .getDocument(docId);
+            Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(scope).getCollection(collection).getDocument(docId);
 
             JSONObject metadata = new JSONObject();
 
             boolean isDeleted = document.toMap().containsKey("_deleted") && (boolean) document.toMap().get("_deleted");
 
-            Date expirationDate = ActiveCBLDatabase.getInstance().getDatabase()
-                    .getScope(scope)
-                    .getCollection(collection)
-                    .getDocumentExpiration(docId);
+            Date expirationDate = ActiveCBLDatabase.getInstance().getDatabase().getScope(scope).getCollection(collection).getDocumentExpiration(docId);
 
             metadata.put("_id", document.getId());
             metadata.put("_revisionID", document.getRevisionID());
@@ -158,19 +145,15 @@ public class CBLDataLoader {
                 parentNode.removeAllChildren();
                 CBLIndexesNodeDescriptor indexNode = (CBLIndexesNodeDescriptor) parentNode.getUserObject();
 
-                Set<String> indexes = ActiveCBLDatabase.getInstance().getDatabase().getScope(indexNode.getScope())
-                        .getCollection(indexNode.getCollection())
-                        .getIndexes();
+                Set<String> indexes = ActiveCBLDatabase.getInstance().getDatabase().getScope(indexNode.getScope()).getCollection(indexNode.getCollection()).getIndexes();
 
                 if (!indexes.isEmpty()) {
                     for (String index : indexes) {
-                        DefaultMutableTreeNode idx = new DefaultMutableTreeNode(
-                                new CBLIndexNodeDescriptor(index, indexNode.getScope(), indexNode.getCollection()));
+                        DefaultMutableTreeNode idx = new DefaultMutableTreeNode(new CBLIndexNodeDescriptor(index, indexNode.getScope(), indexNode.getCollection()));
                         parentNode.add(idx);
                     }
                 } else {
-                    parentNode.add(new DefaultMutableTreeNode(
-                            new CBLEmptyNodeDescriptor("No Indexes found")));
+                    parentNode.add(new DefaultMutableTreeNode(new CBLEmptyNodeDescriptor("No Indexes found")));
                 }
 
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
@@ -196,8 +179,7 @@ public class CBLDataLoader {
                 if (newOffset == 0) {
                     //removed loading node
                     parentNode.removeAllChildren();
-                    DefaultMutableTreeNode indexesNode = new DefaultMutableTreeNode(
-                            new CBLIndexesNodeDescriptor(colNode.getScope(), colNode.getText()));
+                    DefaultMutableTreeNode indexesNode = new DefaultMutableTreeNode(new CBLIndexesNodeDescriptor(colNode.getScope(), colNode.getText()));
                     indexesNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                     parentNode.add(indexesNode);
 
@@ -206,9 +188,7 @@ public class CBLDataLoader {
                     parentNode.remove(parentNode.getChildCount() - 1);
                 }
 
-                String query = "Select meta(couchbaseAlias).id as cbFileNameId  " +
-                        "from `" + colNode.getScope() + "`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id "
-                        + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
+                String query = "Select meta(couchbaseAlias).id as cbFileNameId  " + "from `" + colNode.getScope() + "`.`" + colNode.getText() + "` as couchbaseAlias  order by meta(couchbaseAlias).id " + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                 Query thisQuery = ActiveCBLDatabase.getInstance().getDatabase().createQuery(query);
                 List<Result> results = thisQuery.execute().allResults();
@@ -230,8 +210,7 @@ public class CBLDataLoader {
                     }
 
                     if (results.size() == 10) {
-                        DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(
-                                new CBLLoadMoreNodeDescriptor(colNode.getScope(), colNode.getText(), newOffset + 10));
+                        DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new CBLLoadMoreNodeDescriptor(colNode.getScope(), colNode.getText(), newOffset + 10));
                         parentNode.add(loadMoreNode);
                     }
                 } else if (newOffset == 0) {
@@ -251,23 +230,22 @@ public class CBLDataLoader {
         }
 
     }
-    
+
 
     public static void loadScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
 
         parent.removeAllChildren();
 
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
-    
+
         for (Scope scope : database.getScopes()) {
             DefaultMutableTreeNode scopeNode = new DefaultMutableTreeNode(new CBLScopeNodeDescriptor(scope.getName()));
             parent.add(scopeNode);
 
             for (Collection col : database.getCollections(scope.getName())) {
-                DefaultMutableTreeNode colNode = new DefaultMutableTreeNode(
-                        new CBLCollectionNodeDescriptor(col.getName(), scope.getName()));
+                DefaultMutableTreeNode colNode = new DefaultMutableTreeNode(new CBLCollectionNodeDescriptor(col.getName(), scope.getName()));
                 colNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-    
+
                 scopeNode.add(colNode);
             }
         }
@@ -278,30 +256,25 @@ public class CBLDataLoader {
             tree.setPaintBusy(true);
 
             CBLFileNodeDescriptor fileNode = (CBLFileNodeDescriptor) documentNode.getUserObject();
-            Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(fileNode.getScope())
-                    .getCollection(fileNode.getCollection()).getDocument(fileNode.getId());
+            Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(fileNode.getScope()).getCollection(fileNode.getCollection()).getDocument(fileNode.getId());
 
             // This could be run on a separate thread if fetching the blobs is a
             // long-running operation
             Map<String, Blob> blobs = CBLBlobHandler.getDocumentBlobsWithNames(document);
 
             // Once the blobs are loaded, update the tree on the Swing event dispatch thread
-           SwingUtilities.invokeLater(() -> {
+            SwingUtilities.invokeLater(() -> {
                 documentNode.removeAllChildren();
                 for (Map.Entry<String, Blob> entry : blobs.entrySet()) {
-                    DefaultMutableTreeNode blobNode = new DefaultMutableTreeNode(new CBLBlobNodeDescriptor(entry.getValue(),
-                            entry.getKey(), fileNode.getScope(), fileNode.getCollection(), fileNode.getId()));
+                    DefaultMutableTreeNode blobNode = new DefaultMutableTreeNode(new CBLBlobNodeDescriptor(entry.getValue(), entry.getKey(), fileNode.getScope(), fileNode.getCollection(), fileNode.getId()));
                     documentNode.add(blobNode);
                 }
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(documentNode);
                 tree.setPaintBusy(false);
-           });
+            });
         } catch (Exception e) {
             Log.error("An error occurred while trying to load the blobs", e);
-            SwingUtilities.invokeLater(
-                    () -> Messages.showInfoMessage("<html>Could not load the blobs for the document <strong>"
-                            + documentNode.getUserObject() + "</strong>. Please check the log for more.</html>",
-                            "Couchbase Plugin Error"));
+            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the blobs for the document <strong>" + documentNode.getUserObject() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
         }
     }
 
@@ -309,9 +282,7 @@ public class CBLDataLoader {
 
         CBLDatabases databases = CBLDatabaseStorage.getInstance().getValue();
 
-        databases.setSavedDatabases(databases.getSavedDatabases().stream()
-                .filter(e -> !e.getId().equals(id))
-                .collect(Collectors.toList()));
+        databases.setSavedDatabases(databases.getSavedDatabases().stream().filter(e -> !e.getId().equals(id)).collect(Collectors.toList()));
     }
 
 
@@ -342,9 +313,7 @@ public class CBLDataLoader {
         final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
-                CBLDocumentVirtualFile virtualFile = new CBLDocumentVirtualFile(
-                        project, JsonFileType.INSTANCE, node.getScope(), node.getCollection(), node.getId()
-                );
+                CBLDocumentVirtualFile virtualFile = new CBLDocumentVirtualFile(project, JsonFileType.INSTANCE, node.getScope(), node.getCollection(), node.getId());
 
                 virtualFile.putUserData(VirtualFileKeys.CBL_CON_ID, ActiveCBLDatabase.getInstance().getDatabaseId());
                 virtualFile.putUserData(VirtualFileKeys.SCOPE, node.getScope());

@@ -18,10 +18,10 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 
 public class CBLCreateCollectionDialog extends DialogWrapper {
+    private static final Color ERROR_COLOR = Color.decode("#FF4444");
     private JBTextField scopeField;
     private JBTextField collectionField;
     private JLabel errorLabel;
-    private static final Color ERROR_COLOR = Color.decode("#FF4444");
 
     public CBLCreateCollectionDialog() {
         super(true);
@@ -30,6 +30,23 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
         setTitle("New Collection");
         setResizable(true);
         getPeer().getWindow().setMinimumSize(new Dimension(400, 100));
+    }
+
+    public static String isValidName(String name, String type) {
+        if (name == null || name.trim().isEmpty()) {
+            return type + " name cannot be empty";
+        }
+        if (name.length() > 251) {
+            return type + " name cannot be more than 251 characters";
+        }
+        String regex = "^[A-Za-z0-9_.-]+$";
+        if (!name.matches(regex)) {
+            return type + " name contains invalid characters";
+        }
+        if (name.startsWith("_") || name.startsWith("%")) {
+            return type + " name cannot start with _ or %";
+        }
+        return null;
     }
 
     @Override
@@ -80,7 +97,7 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
 
         String collectionValidationError = isValidName(collectionName, "Collection");
         String scopeValidationError = isValidName(scopeName, "Scope");
-        
+
         if (collectionValidationError != null) {
             errorLabel.setText(collectionValidationError);
             collectionField.setBorder(new LineBorder(ERROR_COLOR));
@@ -108,22 +125,5 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
         }
 
         super.doOKAction();
-    }
-
-    public static String isValidName(String name, String type) {
-        if (name == null || name.trim().isEmpty()) {
-            return type + " name cannot be empty";
-        }
-        if (name.length() > 251) {
-            return type + " name cannot be more than 251 characters";
-        }
-        String regex = "^[A-Za-z0-9_.-]+$";
-        if (!name.matches(regex)) {
-            return type + " name contains invalid characters";
-        }
-        if (name.startsWith("_") || name.startsWith("%")) {
-            return type + " name cannot start with _ or %";
-        }
-        return null;
     }
 }

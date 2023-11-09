@@ -51,10 +51,10 @@ import com.intellij.ui.treeStructure.Tree;
 
 public class CBLTreeRightClickListener {
 
+    private static final String COUCHBASE_LITE_PLUGIN_ERROR = "Couchbase Lite Plugin Error";
+
     private CBLTreeRightClickListener() {
     }
-
-    private static final String COUCHBASE_LITE_PLUGIN_ERROR = "Couchbase Lite Plugin Error";
 
     public static void handle(Tree tree, Project project, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
@@ -79,7 +79,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleIndex(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLIndexNodeDescriptor userObject, Tree tree) {
+                                    CBLIndexNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction deleteIndex = new AnAction("Delete Index") {
@@ -110,7 +110,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleIndexes(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLIndexesNodeDescriptor userObject, Tree tree) {
+                                      CBLIndexesNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction createIndex = new AnAction("Create Index") {
@@ -126,7 +126,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleDatabase(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLDatabaseNodeDescriptor userObject, Tree tree) {
+                                       CBLDatabaseNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         boolean isActive = userObject.getDatabase().getId().equals(ActiveCBLDatabase.getInstance().getDatabaseId());
@@ -192,7 +192,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleScope(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLScopeNodeDescriptor userObject, Tree tree) {
+                                    CBLScopeNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction deleteScope = new AnAction("Delete Scope") {
@@ -251,7 +251,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleCollection(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLCollectionNodeDescriptor userObject, Tree tree) {
+                                         CBLCollectionNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction openDocument = new AnAction("Open Document") {
@@ -338,7 +338,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleDocument(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLFileNodeDescriptor userObject, Tree tree) {
+                                       CBLFileNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction openDocument = new AnAction("View Metadata") {
@@ -464,7 +464,7 @@ public class CBLTreeRightClickListener {
     }
 
     private static void handleBlob(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
-            CBLBlobNodeDescriptor userObject, Tree tree) {
+                                   CBLBlobNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction openBlob = new AnAction("Open Blob") {

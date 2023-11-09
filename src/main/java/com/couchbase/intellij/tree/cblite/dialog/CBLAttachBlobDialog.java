@@ -27,6 +27,23 @@ import com.intellij.openapi.vfs.VirtualFile;
 
 import lombok.Getter;
 
+@Getter
+enum FileType {
+    AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"),
+    VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"),
+    IMAGE("Image", "jpeg|jpg|png|gif|bmp|svg|webp"),
+    TEXT("Text", "txt|doc|docx|pdf"),
+    DATA("Data", "csv|xls|xlsx|xml|json|sql");
+
+    private final String type;
+    private final String extension;
+
+    FileType(String type, String extension) {
+        this.type = type;
+        this.extension = extension;
+    }
+}
+
 public class CBLAttachBlobDialog extends DialogWrapper {
     private final Project project;
     private final Collection collection;
@@ -68,7 +85,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         panel.add(blobFieldLabel);
         panel.add(blobFieldTextField);
 
-        panel.add(errorLabel); 
+        panel.add(errorLabel);
 
         fileTypeComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -99,15 +116,15 @@ public class CBLAttachBlobDialog extends DialogWrapper {
             errorLabel.setText("No file selected.");
             return;
         } else {
-            errorLabel.setText(""); 
+            errorLabel.setText("");
         }
 
         long fileSizeInMB = selectedFile.getLength() / (1024 * 1024);
         if (fileSizeInMB > 20) {
-            errorLabel.setText("The selected file exceeds the 20 MB size limit."); 
+            errorLabel.setText("The selected file exceeds the 20 MB size limit.");
             return;
         } else {
-            errorLabel.setText(""); 
+            errorLabel.setText("");
         }
 
         String blobFieldName = blobFieldTextField.getText();
@@ -125,24 +142,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
             return;
         }
 
-        errorLabel.setText(""); 
+        errorLabel.setText("");
         super.doOKAction();
-    }
-}
-
-@Getter
-enum FileType {
-    AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"),
-    VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"),
-    IMAGE("Image", "jpeg|jpg|png|gif|bmp|svg|webp"),
-    TEXT("Text", "txt|doc|docx|pdf"),
-    DATA("Data", "csv|xls|xlsx|xml|json|sql");
-
-    private final String type;
-    private final String extension;
-
-    FileType(String type, String extension) {
-        this.type = type;
-        this.extension = extension;
     }
 }

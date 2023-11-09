@@ -11,7 +11,8 @@ import com.couchbase.intellij.workbench.Log;
 
 public class CBLTreeExpandListener {
 
-    private CBLTreeExpandListener() {}
+    private CBLTreeExpandListener() {
+    }
 
     public static void handle(Tree tree, TreeExpansionEvent event) {
         try {

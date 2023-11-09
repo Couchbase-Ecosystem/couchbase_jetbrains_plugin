@@ -57,7 +57,7 @@ public class CBLBlobHandler {
     public static Map<String, Blob> getDocumentBlobsWithNames(Document document) {
 
         Map<String, Blob> blobs = new HashMap<>();
-    
+
         // Check if ATTACHMENT_FIELD field exists and is a dictionary
         if (document.contains(ATTACHMENT_FIELD) && document.getDictionary(ATTACHMENT_FIELD) != null) {
             Dictionary attachments = document.getDictionary(ATTACHMENT_FIELD);
@@ -65,20 +65,19 @@ public class CBLBlobHandler {
                 blobs.put(key, attachments.getBlob(key));
             }
         }
-    
+
         // Check all fields in the document for a dictionary with "@type" : "blob"
         for (String key : document.getKeys()) {
             if (document.getBlob(key) != null) {
                 blobs.put(key, document.getBlob(key));
             }
         }
-    
+
         return blobs;
     }
-    
 
-    public static void removeBlobFromDocument(Collection collection, MutableDocument document, Blob blob)
-            throws CouchbaseLiteException {
+
+    public static void removeBlobFromDocument(Collection collection, MutableDocument document, Blob blob) throws CouchbaseLiteException {
         // Check if ATTACHMENT_FIELD field exists and is a dictionary
         if (document.contains(ATTACHMENT_FIELD) && document.getDictionary(ATTACHMENT_FIELD) != null) {
             MutableDictionary attachments = document.getDictionary(ATTACHMENT_FIELD).toMutable();
