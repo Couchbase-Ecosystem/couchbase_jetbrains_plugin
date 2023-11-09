@@ -64,7 +64,7 @@ public class CBLTreeHandler {
                 }
 
 
-                CBLDataLoader.loadScopesAndCollections(newActiveNode);
+                CBLDataLoader.listScopesAndCollections(newActiveNode);
 
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(rootNode);
                 ((DefaultTreeModel) tree.getModel()).reload();

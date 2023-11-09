@@ -153,7 +153,7 @@ public class CBLTreeRightClickListener {
                     try {
                         CBLCreateCollectionDialog dialog = new CBLCreateCollectionDialog();
                         dialog.show();
-                        CBLDataLoader.loadScopesAndCollections(clickedNode);
+                        CBLDataLoader.listScopesAndCollections(clickedNode);
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
                     } catch (Exception ex) {
                         Log.error(ex);

@@ -232,7 +232,7 @@ public class CBLDataLoader {
     }
 
 
-    public static void loadScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
+    public static void listScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
 
         parent.removeAllChildren();
 
