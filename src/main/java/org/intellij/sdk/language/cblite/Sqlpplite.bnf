@@ -1,0 +1,208 @@
+{
+
+  parserClass="generated.cblite.GeneratedParser"
+  extends="org.intellij.sdk.language.psi.SqlppPSIWrapper"
+
+
+  elementTypeHolderClass="generated.cblite.GeneratedTypes"
+  elementTypeClass="org.intellij.sdk.language.cblite.psi.SqlppLiteElementType"
+  tokenTypeClass="org.intellij.sdk.language.cblite.psi.SqlppLiteTokenType"
+  psiPackage="generated.psi.cblite"
+}
+
+/*
+ * Copyright 2003, Couchbase inc.
+ * Translated to BNF by Dmitrii Chechetkin from couchbase lite core N1QL PEG++ grammar:
+ * https://github.com/couchbase/couchbase-lite-core/blob/master/LiteCore/Query/N1QL_Parser/n1ql.leg
+ */
+
+script ::= n1ql-statement (COLON n1ql-statement)*
+
+n1ql-statement ::= select-statement | select-results
+
+/////// SELECT STATEMENT:
+
+select-statement ::=
+    SELECT (DISTINCT | ALL) select-results from-clause? where-clause?
+    (group-by-clause? having-clause?)? order-by-clause?
+    ((limit-clause offset-clause?) | (offset-clause limit-clause?))?
+
+select-results ::= select-expression (COMMA select-expression)*
+
+select-expression ::= expression (AS? alias) (join-expression)*
+
+from-clause ::= FROM identifier-ref (AS? alias)
+
+identifier-ref ::= IDENTIFIER | escaped-identifier
+
+escaped-identifier ::= BACKTICK IDENTIFIER BACKTICK
+
+join-expression ::= join-operator identifier-ref (ON expression)?
+
+join-operator ::= ( (LEFT OUTER?) | INNER | CROSS ) JOIN
+
+where-clause ::= WHERE expression
+
+group-by-clause ::= GROUP BY expression (COMMA expression)*
+
+having-clause ::= HAVING expression
+
+order-by-clause ::= ORDER BY ordering-clause (COMMA ordering-clause)*
+
+ordering-clause ::= expression order-operator?
+
+order-operator ::= (ASC | DESC)
+
+limit-clause ::= LIMIT expression
+
+offset-clause ::= OFFSET expression
+
+alias ::= identifier-ref
+
+
+//////// EXPRESSIONS:
+
+expression ::= expr9
+
+case-expression ::= CASE expression?
+    (WHEN expression THEN expression)+
+    (ELSE expression)? END
+
+any-every-expression ::= any-every-operator identifier-ref IN expression SATISFIES expression END
+
+any-every-operator ::= ((ANY | SOME) AND EVERY) | (ANY | SOME) | EVERY
+
+
+//////// BINARY (mostly) OPERATORS:
+
+
+// Every level of operator precedence needs its own grammar rule, to ensure that operations
+// are grouped correctly. The precedence levels here are taken from the SQLite documentation.
+// Level 8 is the lowest, level 0 the highest.
+
+post-op-prec_6 ::= (NOT NULL) | (IS NOT? NULL) | (IS NOT? MISSING) | (IS NOT? VALUED)
+
+expr9 ::= expr8 collate-suffix?
+
+expr8 ::= expr7 (op-prec_8 expr7)*
+
+expr7 ::= expr6 (op-prec_7 expr6)*
+
+expr6 ::= (expr5 post-op-prec_6) |
+    in-expression |
+    like-expression |
+    between-expression |
+    (expr5 (op-prec_6 expr5)*)
+
+expr5 ::= expr4 (op-prec_5 expr4)*
+
+expr4 ::= expr3 (op-prec_4 expr3)*
+
+expr3 ::= expr2 (op-prec_3 expr2)*
+
+expr2 ::= expr1 (op-prec_2 expr1)*
+
+expr1 ::= expr0 (op-prec_1 expr0)*
+
+like-expression ::= expr5 NOT? LIKE expr5
+
+between-expression ::= expr5 NOT? BETWEEN expr5 AND expr5
+
+op-prec_8 ::= OR
+
+op-prec_7 ::= AND
+
+op-prec_6 ::= (DOUBLE_EQUAL | EQUAL) |
+    (LESSTHAN_OR_MORETHAN | NOT_EQUAL) |
+    (IS NOT) |
+    IS
+
+op-prec_5 ::= LESSTHAN_OR_EQUAL | LESSTHAN | MORETHAN_OR_EQUAL | MORETHAN
+
+op-prec_4 ::= BINARY_SHIFT_LEFT | BINARY_SHIFT_RIGHT | AMPERSAND | PIPE
+op-prec_3 ::= MINUS_SIGN | PLUS
+op-prec_2 ::= ASTERISK | PERCENT | SLASH
+op-prec_1 ::= DOUBLE_PIPE
+
+
+//////// IN and NOT IN:
+
+in-expression ::= expr5 NOT? IN (sub-statement | paren-expressions | array-literal)
+
+sub-statement ::= LPAREN select-statement RPAREN
+
+
+//////// HIGHEST-PRIORITY EXPRESSIONS:
+
+expr0 ::= base-expression (DOT property-path)?
+
+collate-suffix ::= COLLATE (collation | (LPAREN collation+ RPAREN))
+
+collation ::= (NOUNICODE | NOCASE | NODIACRITICS | UNICODE | CASE | DIACRITICS)
+
+base-expression ::= literal |
+    array-literal |
+    dict-literal |
+    (op-prefix base-expression) |
+    (EXISTS select-expression) |
+    case-expression |
+    any-every-expression |
+    identifier-ref |
+    function-call |
+    property |
+    (LPAREN expression RPAREN)
+
+op-prefix ::= MINUS_SIGN | PLUS | NOT
+
+////////// PROPERTIES:
+
+property ::= ASTERISK | alias | property-path
+
+property-path ::= identifier-ref ((DOT identifier-ref) | (LBRACKET INTGR RBRACKET))*
+
+////////// FUNCTIONS:
+
+function-call ::= builtin-function | ordinary-function
+
+function-name ::= identifier-ref
+
+ordinary-function ::= function-name LPAREN ( expr ( COMMA expr )* )? RPAREN
+
+builtin-function ::= FUNCS LPAREN ( expr ( COMMA expr )* )? RPAREN
+
+paren-expressions ::= LPAREN (expression (COMMA expression)*)? RPAREN
+
+
+////////// COMPOUND LITERALS:
+
+
+array-literal ::= LBRACKET (expression (COMMA expression)*)? RBRACKET
+
+dict-literal ::= OPEN_CURLY (dict-property (COMMA dict-property)*)?
+
+dict-property ::= string-literal SEMICOLON expression
+
+//////////// LITERALS:
+
+literal ::= NBR | INTGR | boolean-literal | string-literal | NULL | MISSING
+
+boolean-literal ::= TRUE | FALSE
+
+
+string-literal ::= double-quoted-string | single-quoted-string
+
+double-quoted-string ::= DQUOTE double-quoted-string-character* DQUOTE
+
+single-quoted-string ::= QUOTE single-quoted-string-character* QUOTE
+
+double-quoted-string-character ::= (
+                                        ESCAPE_SEQUENCE
+                                        | ESCAPED_DQUOTE
+                                       | STRING_CHAR
+                                   )
+
+single-quoted-string-character ::= (
+                                        ESCAPE_SEQUENCE
+                                        | ESCAPED_QUOTE
+                                        | STRING_CHAR
+                                   )

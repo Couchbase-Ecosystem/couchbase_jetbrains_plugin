@@ -44,20 +44,20 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
     public static final TextAttributesKey SYNTAX_ERROR =
             createTextAttributesKey("SQLPP_SYNTAX_ERROR", HighlighterColors.BAD_CHARACTER);
 
-    private static final TextAttributesKey[] BAD_CHAR_KEYS = new TextAttributesKey[]{BAD_CHARACTER};
-    private static final TextAttributesKey[] SEPARATOR_KEYS = new TextAttributesKey[]{SEPARATOR};
-    private static final TextAttributesKey[] KEY_KEYS = new TextAttributesKey[]{KEY};
-    private static final TextAttributesKey[] VALUE_KEYS = new TextAttributesKey[]{VALUE};
-    private static final TextAttributesKey[] COMMENT_KEYS = new TextAttributesKey[]{COMMENT};
+    public static final TextAttributesKey[] BAD_CHAR_KEYS = new TextAttributesKey[]{BAD_CHARACTER};
+    public static final TextAttributesKey[] SEPARATOR_KEYS = new TextAttributesKey[]{SEPARATOR};
+    public static final TextAttributesKey[] KEY_KEYS = new TextAttributesKey[]{KEY};
+    public static final TextAttributesKey[] VALUE_KEYS = new TextAttributesKey[]{VALUE};
+    public static final TextAttributesKey[] COMMENT_KEYS = new TextAttributesKey[]{COMMENT};
 
-    private static final TextAttributesKey[] NUMBER_KEYS = new TextAttributesKey[]{NUMBER};
-    private static final TextAttributesKey[] ESCAPED_IDENTIFIER_KEYS = new TextAttributesKey[]{ESCAPED_IDENTIFIER};
+    public static final TextAttributesKey[] NUMBER_KEYS = new TextAttributesKey[]{NUMBER};
+    public static final TextAttributesKey[] ESCAPED_IDENTIFIER_KEYS = new TextAttributesKey[]{ESCAPED_IDENTIFIER};
 
-    private static final TextAttributesKey[] FUNCTION_KEYS = new TextAttributesKey[]{FUNCTION};
+    public static final TextAttributesKey[] FUNCTION_KEYS = new TextAttributesKey[]{FUNCTION};
 
-    private static final TextAttributesKey[] STRING_KEYS = new TextAttributesKey[]{STRING};
-    private static final TextAttributesKey[] EMPTY_KEYS = new TextAttributesKey[0];
-    private static final TextAttributesKey[] SYNTAX_ERRORS = new TextAttributesKey[]{SYNTAX_ERROR};
+    public static final TextAttributesKey[] STRING_KEYS = new TextAttributesKey[]{STRING};
+    public static final TextAttributesKey[] EMPTY_KEYS = new TextAttributesKey[0];
+    public static final TextAttributesKey[] SYNTAX_ERRORS = new TextAttributesKey[]{SYNTAX_ERROR};
     @NotNull
     @Override
     public Lexer getHighlightingLexer() {
