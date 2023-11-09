@@ -12,6 +12,7 @@ import javax.swing.tree.TreePath;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.tree.cblite.dialog.CBLAttachBlobDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
 import com.couchbase.intellij.tree.cblite.nodes.CBLBlobNodeDescriptor;
@@ -35,6 +36,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -42,12 +44,15 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 
 public class CBLTreeRightClickListener {
 
-    private CBLTreeRightClickListener() {}
+    private CBLTreeRightClickListener() {
+    }
 
     private static final String COUCHBASE_LITE_PLUGIN_ERROR = "Couchbase Lite Plugin Error";
 
@@ -210,8 +215,10 @@ public class CBLTreeRightClickListener {
                                 DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
                                 CBLCollectionNodeDescriptor collectionNode = (CBLCollectionNodeDescriptor) childNode
                                         .getUserObject();
-                                Collection collection = Objects.requireNonNull(ActiveCBLDatabase.getInstance().getDatabase()
-                                        .getScope(userObject.getText())).getCollection(collectionNode.getText());
+                                Collection collection = Objects
+                                        .requireNonNull(ActiveCBLDatabase.getInstance().getDatabase()
+                                                .getScope(userObject.getText()))
+                                        .getCollection(collectionNode.getText());
                                 anyDocumentHadBlob = CBLBlobHandler.collectionHasBlob(collection);
                                 ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(collectionNode.getText(),
                                         userObject.getText());
@@ -334,6 +341,41 @@ public class CBLTreeRightClickListener {
             CBLFileNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
+        AnAction openDocument = new AnAction("View Metadata") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                String metadata = CBLDataLoader.getDocMetadata(userObject.getScope(), userObject.getCollection(),
+                        userObject.getId());
+
+                if (metadata != null) {
+                    VirtualFile virtualFile = new LightVirtualFile("(read-only) " + userObject.getId() + "_meta.json",
+                            FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                    DocumentFormatter.formatFile(project, virtualFile);
+                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                    fileEditorManager.openFile(virtualFile, true);
+                }
+            }
+        };
+        actionGroup.add(openDocument);
+
+        actionGroup.addSeparator();
+
+        AnAction setDocumentExpiration = new AnAction("Set Document Expiration") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+
+                DocumentExpirationDialog dialog = null;
+                try {
+                    dialog = new DocumentExpirationDialog(userObject.getScope(), userObject.getCollection(),
+                            userObject.getId());
+                } catch (CouchbaseLiteException ex) {
+                    Log.error("An error occurred while loading the document expiration dialog", ex);
+                }
+                dialog.show();
+            }
+        };
+        actionGroup.add(setDocumentExpiration);
+
         AnAction attachBlob = new AnAction("Attach Blob") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -352,8 +394,9 @@ public class CBLTreeRightClickListener {
                 } catch (Exception ex) {
                     Log.error("An error occurred while trying to attach a blob to the document " + userObject.getId(),
                             ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not attach the blob. Please check the logs for more.",
-                            "Couchbase Plugin Error"));
+                    SwingUtilities.invokeLater(
+                            () -> Messages.showErrorDialog("Could not attach the blob. Please check the logs for more.",
+                                    "Couchbase Plugin Error"));
                 }
             }
         };
@@ -438,8 +481,8 @@ public class CBLTreeRightClickListener {
 
                     Desktop desktop = Desktop.getDesktop();
                     // TODO: Check if the blob is a file or a directory
-                    // if (blobFile.exists()) { 
-                        desktop.open(blobFile);
+                    // if (blobFile.exists()) {
+                    desktop.open(blobFile);
                     // }
                 } catch (Exception ex) {
                     ex.printStackTrace();

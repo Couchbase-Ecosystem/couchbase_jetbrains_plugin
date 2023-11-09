@@ -17,10 +17,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.treeStructure.Tree;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,6 +91,60 @@ public class CBLDataLoader {
                 .getCollection(collection)
                 .deleteIndex(indexName);
 
+    }
+
+
+    public static void setDocumentExpiration(String scope, String collection, String docId, Date date) {
+
+        try {
+            Collection col = ActiveCBLDatabase.getInstance().getDatabase()
+                    .getScope(scope)
+                    .getCollection(collection);
+            col.setDocumentExpiration(docId, date);
+
+        } catch (Exception e) {
+            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("An error ocurred while setting the expiration date for the document " + docId + ". Check the logs for more.", "Couchbase Plugin Error"));
+            Log.error("Failed to set the expiration for document " + docId, e);
+        }
+
+    }
+
+
+    public static String getDocMetadata(String scope, String collection, String docId) {
+
+        try {
+
+            Document document = ActiveCBLDatabase.getInstance().getDatabase()
+                    .getScope(scope)
+                    .getCollection(collection)
+                    .getDocument(docId);
+
+            JSONObject metadata = new JSONObject();
+
+            boolean isDeleted = document.toMap().containsKey("_deleted") && (boolean) document.toMap().get("_deleted");
+
+            Date expirationDate = ActiveCBLDatabase.getInstance().getDatabase()
+                    .getScope(scope)
+                    .getCollection(collection)
+                    .getDocumentExpiration(docId);
+
+            metadata.put("_id", document.getId());
+            metadata.put("_revisionID", document.getRevisionID());
+            metadata.put("_deleted", isDeleted);
+            metadata.put("_sequence", document.getSequence());
+
+            if (expirationDate != null) {
+                metadata.put("_expiration", expirationDate.toString());
+            } else {
+                metadata.put("_expiration", JSONObject.NULL);
+            }
+
+            return metadata.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.error("Failed to load the metadata for document " + docId, e);
+            return null;
+        }
     }
 
     public static void listIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
