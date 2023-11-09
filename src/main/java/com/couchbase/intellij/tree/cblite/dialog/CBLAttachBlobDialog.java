@@ -1,7 +1,9 @@
 package com.couchbase.intellij.tree.cblite.dialog;
 
+import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.event.ItemEvent;
+import java.util.Objects;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -19,10 +21,11 @@ import com.couchbase.lite.MutableDocument;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+
+import lombok.Getter;
 
 public class CBLAttachBlobDialog extends DialogWrapper {
     private final Project project;
@@ -31,6 +34,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
     private JComboBox<FileType> fileTypeComboBox;
     private TextFieldWithBrowseButton fileField;
     private JTextField blobFieldTextField;
+    private JLabel errorLabel;
 
     public CBLAttachBlobDialog(Project project, Collection collection, Document document) {
         super(project);
@@ -38,8 +42,10 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         this.project = project;
         this.collection = collection;
         this.document = document;
+        errorLabel = new JLabel();
+        errorLabel.setForeground(Color.decode("#FF4444"));
         init();
-        setSize(1000, 200);
+        setSize(600, 200);
     }
 
     @Nullable
@@ -62,6 +68,8 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         panel.add(blobFieldLabel);
         panel.add(blobFieldTextField);
 
+        panel.add(errorLabel); 
+
         fileTypeComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 updateFileChooserDescriptor();
@@ -76,7 +84,8 @@ public class CBLAttachBlobDialog extends DialogWrapper {
 
         descriptor = new FileChooserDescriptor(true, false, false, false, false, false)
                 .withFileFilter(
-                        file -> file.getExtension() != null && file.getExtension().matches(selectedFileType.getExtension()));
+                        file -> file.getExtension() != null && file.getExtension()
+                                .matches(Objects.requireNonNull(selectedFileType).getExtension()));
 
         fileField.addBrowseFolderListener("Select File", null, project, descriptor);
     }
@@ -87,38 +96,41 @@ public class CBLAttachBlobDialog extends DialogWrapper {
                 : LocalFileSystem.getInstance().findFileByPath(fileField.getText());
 
         if (selectedFile == null) {
-            Messages.showMessageDialog(project, "No file selected.", "Error", Messages.getErrorIcon());
+            errorLabel.setText("No file selected.");
             return;
+        } else {
+            errorLabel.setText(""); 
         }
 
-        // Check if the file size exceeds 20 MB
         long fileSizeInMB = selectedFile.getLength() / (1024 * 1024);
         if (fileSizeInMB > 20) {
-            Messages.showMessageDialog(project, "The selected file exceeds the 20 MB size limit.", "Error",
-                    Messages.getErrorIcon());
+            errorLabel.setText("The selected file exceeds the 20 MB size limit."); 
             return;
+        } else {
+            errorLabel.setText(""); 
         }
 
         String blobFieldName = blobFieldTextField.getText();
 
         try {
             MutableDocument mutableDocument = document.toMutable();
-            Blob blob = new Blob(selectedFile.getExtension(), selectedFile.contentsToByteArray());
+            Blob blob = new Blob(Objects.requireNonNull(selectedFile.getExtension()),
+                    selectedFile.contentsToByteArray());
             mutableDocument.setBlob(blobFieldName, blob);
             collection.save(mutableDocument);
 
         } catch (Exception e) {
             Log.error(e.getMessage());
-            Messages.showMessageDialog(project, "Error attaching blob to document: " + e.getMessage(), "Error",
-                    Messages.getErrorIcon());
+            errorLabel.setText("Error attaching blob to document: " + e.getMessage());
             return;
         }
 
+        errorLabel.setText(""); 
         super.doOKAction();
     }
-
 }
 
+@Getter
 enum FileType {
     AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"),
     VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"),
@@ -132,13 +144,5 @@ enum FileType {
     FileType(String type, String extension) {
         this.type = type;
         this.extension = extension;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getExtension() {
-        return extension;
     }
 }

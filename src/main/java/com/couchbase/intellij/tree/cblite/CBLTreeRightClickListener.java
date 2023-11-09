@@ -1,6 +1,8 @@
 package com.couchbase.intellij.tree.cblite;
 
+import java.awt.Desktop;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.Objects;
 
 import javax.swing.SwingUtilities;
@@ -12,22 +14,20 @@ import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.intellij.tree.cblite.dialog.CBLAttachBlobDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
+import com.couchbase.intellij.tree.cblite.nodes.CBLBlobNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLIndexNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLIndexesNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.CouchbaseLiteException;
-import com.couchbase.lite.DataSource;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.MaintenanceType;
-import com.couchbase.lite.Query;
-import com.couchbase.lite.QueryBuilder;
-import com.couchbase.lite.Result;
-import com.couchbase.lite.ResultSet;
+import com.couchbase.lite.MutableDocument;
 import com.couchbase.lite.Scope;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -47,6 +47,10 @@ import com.intellij.ui.treeStructure.Tree;
 
 public class CBLTreeRightClickListener {
 
+    private CBLTreeRightClickListener() {}
+
+    private static final String COUCHBASE_LITE_PLUGIN_ERROR = "Couchbase Lite Plugin Error";
+
     public static void handle(Tree tree, Project project, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
         int row = tree.getClosestRowForLocation(e.getX(), e.getY());
@@ -64,6 +68,8 @@ public class CBLTreeRightClickListener {
             handleIndexes(project, e, clickedNode, (CBLIndexesNodeDescriptor) userObject, tree);
         } else if (userObject instanceof CBLIndexNodeDescriptor) {
             handleIndex(project, e, clickedNode, (CBLIndexNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof CBLBlobNodeDescriptor) {
+            handleBlob(project, e, clickedNode, (CBLBlobNodeDescriptor) userObject, tree);
         }
     }
 
@@ -148,7 +154,7 @@ public class CBLTreeRightClickListener {
                         Log.error(ex);
                         SwingUtilities
                                 .invokeLater(() -> Messages.showErrorDialog("Could not create the collection.",
-                                        "Couchbase Lite Plugin Error"));
+                                        COUCHBASE_LITE_PLUGIN_ERROR));
                     }
                 }
             };
@@ -172,7 +178,7 @@ public class CBLTreeRightClickListener {
                 } catch (CouchbaseLiteException ex) {
                     Log.error(ex);
                     SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the connection.",
-                            "Couchbase Lite Plugin Error"));
+                            COUCHBASE_LITE_PLUGIN_ERROR));
                 }
             }
         };
@@ -193,41 +199,37 @@ public class CBLTreeRightClickListener {
                     return;
                 }
 
+                DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+
                 // Create a background task for deleting the scope
-                Task.Backgroundable task = new Task.Backgroundable(project, "Deleting Scope", true) {
+                Task.Backgroundable task = new Task.Backgroundable(project, "Deleting scope", true) {
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            boolean anyDocumentHadBlob = false;
+                            boolean anyDocumentHadBlob;
                             for (int i = 0; i < clickedNode.getChildCount(); i++) {
                                 DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
                                 CBLCollectionNodeDescriptor collectionNode = (CBLCollectionNodeDescriptor) childNode
                                         .getUserObject();
-                                Collection collection = ActiveCBLDatabase.getInstance().getDatabase()
-                                        .getScope(userObject.getText()).getCollection(collectionNode.getText());
-                                Query query = QueryBuilder.select().from(DataSource.collection(collection));
-                                ResultSet queryResults = query.execute();
-                                for (Result queryResult : queryResults) {
-                                    Document doc = collection.getDocument(queryResult.getString("_id"));
-                                    if (documentHasBlob(doc)) {
-                                        anyDocumentHadBlob = true;
-                                        break;
-                                    }
-                                }
+                                Collection collection = Objects.requireNonNull(ActiveCBLDatabase.getInstance().getDatabase()
+                                        .getScope(userObject.getText())).getCollection(collectionNode.getText());
+                                anyDocumentHadBlob = CBLBlobHandler.collectionHasBlob(collection);
                                 ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(collectionNode.getText(),
                                         userObject.getText());
+                                // After deleting the scope, perform maintenance with COMPACT type if any
+                                // document had a blob
+                                if (anyDocumentHadBlob) {
+                                    Log.info("Performing maintenance with COMPACT type after deleting the scope "
+                                            + userObject.getText());
+                                    ActiveCBLDatabase.getInstance().getDatabase()
+                                            .performMaintenance(MaintenanceType.COMPACT);
+                                }
                             }
-                            // After deleting the scope, perform maintenance with COMPACT type if any
-                            // document had a blob
-                            if (anyDocumentHadBlob) {
-                                Log.debug("Performing maintenance with COMPACT type after deleting the scope "
-                                        + userObject.getText());
-                                ActiveCBLDatabase.getInstance().getDatabase()
-                                        .performMaintenance(MaintenanceType.COMPACT);
-                            }
+                            ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                         } catch (Exception ex) {
                             Log.error(ex);
                             SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the scope.",
-                                    "Couchbase Lite Plugin Error"));
+                                    COUCHBASE_LITE_PLUGIN_ERROR));
                         }
                     }
                 };
@@ -274,48 +276,53 @@ public class CBLTreeRightClickListener {
                     return;
                 }
 
-                try {
-                    boolean anyDocumentHadBlob = false;
-                    Collection collection = ActiveCBLDatabase.getInstance().getDatabase()
-                            .getScope(userObject.getScope()).getCollection(userObject.getText());
-                    Query query = QueryBuilder.select().from(DataSource.collection(collection));
-                    ResultSet queryResults = query.execute();
-                    for (Result queryResult : queryResults) {
-                        Document doc = collection.getDocument(Objects.requireNonNull(queryResult.getString("_id")));
-                        if (documentHasBlob(doc)) {
-                            anyDocumentHadBlob = true;
-                            break;
+                Task.Backgroundable deleteCollectionTask = new Task.Backgroundable(project, "Deleting collection") {
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        try {
+                            Collection collection = Objects.requireNonNull(ActiveCBLDatabase.getInstance().getDatabase()
+                                    .getScope(userObject.getScope())).getCollection(userObject.getText());
+                            boolean anyDocumentHadBlob = CBLBlobHandler.collectionHasBlob(collection);
+                            ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(userObject.getText(),
+                                    userObject.getScope());
+                            if (anyDocumentHadBlob) {
+                                Log.info("Performing maintenance with COMPACT type after deleting the collection "
+                                        + userObject.getText());
+                                ActiveCBLDatabase.getInstance().getDatabase()
+                                        .performMaintenance(MaintenanceType.COMPACT);
+                            }
+                            DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                            Scope scope = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope());
+                            SwingUtilities.invokeLater(() -> {
+                                ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                                // If the scope has no collections after deleting the collection, remove the
+                                // scope
+                                try {
+                                    if ((scope == null) || (scope.getCollections().isEmpty())) {
+                                        DefaultMutableTreeNode grandParentNode = (DefaultMutableTreeNode) parentNode
+                                                .getParent();
+                                        ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(parentNode);
+                                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(grandParentNode);
+                                    } else {
+                                        parentNode.removeAllChildren();
+                                        CBLDataLoader.listCollections(parentNode, userObject.getScope());
+                                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                                    }
+                                } catch (CouchbaseLiteException e) {
+                                    Log.error(e);
+                                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
+                                            "Could not delete the scope after deleting the collection.",
+                                            COUCHBASE_LITE_PLUGIN_ERROR));
+                                }
+                            });
+                        } catch (Exception ex) {
+                            Log.error(ex);
+                            SwingUtilities
+                                    .invokeLater(() -> Messages.showErrorDialog("Could not delete the collection.",
+                                            COUCHBASE_LITE_PLUGIN_ERROR));
                         }
                     }
-                    ActiveCBLDatabase.getInstance().getDatabase().deleteCollection(userObject.getText(),
-                            userObject.getScope());
-                    if (anyDocumentHadBlob) {
-                        Log.debug("Performing maintenance with COMPACT type after deleting the collection "
-                                + userObject.getText());
-                        ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
-                    }
-                    DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                    Scope scope = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope());
-                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
-
-                    // If the scope has no collections after deleting the collection, remove the
-                    // scope
-                    if ((scope == null) || (scope.getCollections().isEmpty())) {
-                        DefaultMutableTreeNode grandParentNode = (DefaultMutableTreeNode) parentNode
-                                .getParent();
-                        ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(parentNode);
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(grandParentNode);
-
-                    } else {
-                        parentNode.removeAllChildren();
-                        CBLDataLoader.listCollections(parentNode, userObject.getScope());
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                    }
-                } catch (Exception ex) {
-                    Log.error(ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the collection.",
-                            "Couchbase Lite Plugin Error"));
-                }
+                };
+                deleteCollectionTask.queue();
             }
         };
         actionGroup.add(deleteCollection);
@@ -332,23 +339,21 @@ public class CBLTreeRightClickListener {
             public void actionPerformed(@NotNull AnActionEvent e) {
                 try {
                     Scope scope = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope());
-                    Collection collection = scope.getCollection(userObject.getCollection());
+                    Collection collection = Objects.requireNonNull(scope).getCollection(userObject.getCollection());
+                    assert collection != null;
                     Document document = collection.getDocument(userObject.getId());
                     CBLAttachBlobDialog dialog = new CBLAttachBlobDialog(project, collection, document);
-                    dialog.show();
                     if (dialog.showAndGet()) {
-                        boolean hasBlob = documentHasBlob(document);
-                        if (hasBlob) {
-                            Log.debug("The document " + userObject.getId() + " already has a blob");
-                            ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
-                        }
                         DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
                         parentNode.removeAllChildren();
                         CBLDataLoader.listDocuments(parentNode, tree, 0);
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     }
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Log.error("An error occurred while trying to attach a blob to the document " + userObject.getId(),
+                            ex);
+                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not attach the blob. Please check the logs for more.",
+                            "Couchbase Plugin Error"));
                 }
             }
         };
@@ -363,62 +368,136 @@ public class CBLTreeRightClickListener {
                     return;
                 }
 
-                try {
-                    Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope())
-                            .getCollection(userObject.getCollection()).getDocument(userObject.getId());
-
-                    boolean hasBlob = documentHasBlob(document);
-                    ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope())
-                            .getCollection(userObject.getCollection()).delete(document);
-
-                    // If the document has a blob, perform maintenance with COMPACT type
-                    if (hasBlob) {
-                        Log.debug("Performing maintenance with COMPACT type after deleting the document "
-                                + userObject.getId());
-                        ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
-                    }
-
-                    if (userObject.getVirtualFile() != null) {
+                Task.Backgroundable deleteDocumentTask = new Task.Backgroundable(project, "Deleting document") {
+                    public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                            fileEditorManager.closeFile(userObject.getVirtualFile());
+                            Document document = ActiveCBLDatabase.getInstance().getDatabase()
+                                    .getScope(userObject.getScope())
+                                    .getCollection(userObject.getCollection()).getDocument(userObject.getId());
+
+                            boolean documentHasBlob = CBLBlobHandler.documentHasBlob(document);
+                            ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope())
+                                    .getCollection(userObject.getCollection()).delete(document);
+
+                            if (documentHasBlob) {
+                                Log.info("Performing maintenance with COMPACT type after deleting the document "
+                                        + userObject.getId());
+                                ActiveCBLDatabase.getInstance().getDatabase()
+                                        .performMaintenance(MaintenanceType.COMPACT);
+                            }
+
+                            if (userObject.getVirtualFile() != null) {
+                                try {
+                                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                                    fileEditorManager.closeFile(userObject.getVirtualFile());
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                    Log.debug("Could not close the file", ex);
+                                }
+                            }
+
+                            DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                            SwingUtilities.invokeLater(() -> {
+                                if (parentNode != null) {
+                                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                                }
+                                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                            });
                         } catch (Exception ex) {
-                            ex.printStackTrace();
-                            Log.debug("Could not close the file", ex);
+                            Log.error("An error occurred while trying to delete the document " + userObject.getId(),
+                                    ex);
+                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
+                                    "Could not delete the document. Please check the logs for more.",
+                                    "Couchbase Plugin Error"));
                         }
                     }
+                };
+                deleteDocumentTask.queue();
+            }
+        };
+        actionGroup.add(deleteDocument);
 
-                    DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                    if (parentNode != null) {
-                        ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+        showPopup(e, tree, actionGroup);
+    }
+
+    private static void handleBlob(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode,
+            CBLBlobNodeDescriptor userObject, Tree tree) {
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+        AnAction openBlob = new AnAction("Open Blob") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                try {
+                    // Assuming blob is a file on disk
+                    File blobFile = new File(userObject.getDigest());
+
+                    if (!Desktop.isDesktopSupported()) {
+                        Log.error("Desktop is not supported");
+                        return;
                     }
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+
+                    Desktop desktop = Desktop.getDesktop();
+                    // TODO: Check if the blob is a file or a directory
+                    // if (blobFile.exists()) { 
+                        desktop.open(blobFile);
+                    // }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    Log.error("An error occurred while trying to delete the document " + userObject.getId(), ex);
-                    Messages.showErrorDialog("Could not delete the document. Please check the logs for more.",
+                    Log.error("An error occurred while trying to open the blob " + userObject.getDigest(), ex);
+                    Messages.showErrorDialog("Could not open the blob. Please check the logs for more.",
                             "Couchbase Plugin Error");
                 }
             }
         };
-        actionGroup.add(deleteDocument);
-        showPopup(e, tree, actionGroup);
-    }
+        actionGroup.add(openBlob);
 
-    private static boolean documentHasBlob(Document document) {
-        // Check if "_attachments" field exists and is a dictionary
-        if (document.contains("_attachments") && document.getDictionary("_attachments") != null) {
-            return true;
-        }
+        AnAction deleteBlob = new AnAction("Delete Blob") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the blob <strong>"
+                        + userObject.getDigest() + "</strong>?</html>", "Delete Blob", Messages.getQuestionIcon());
+                if (result != Messages.YES) {
+                    return;
+                }
+                try {
+                    DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                    DefaultMutableTreeNode grandParentNode = (DefaultMutableTreeNode) parentNode.getParent();
 
-        // Check all fields in the document for a dictionary with "@type" : "blob"
-        for (String key : document.getKeys()) {
-            if (document.getBlob(key) != null) {
-                return true;
+                    Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope())
+                            .getCollection(userObject.getCollection()).getDocument(userObject.getDocument());
+                    MutableDocument mutableDocument = document.toMutable();
+                    Collection collection = ActiveCBLDatabase.getInstance().getDatabase()
+                            .getScope(userObject.getScope())
+                            .getCollection(userObject.getCollection());
+                    CBLBlobHandler.removeBlobFromDocument(collection, mutableDocument, userObject.getBlob());
+                    Task.Backgroundable deleteBlobTask = new Task.Backgroundable(project, "Deleting blob", true) {
+                        public void run(@NotNull ProgressIndicator indicator) {
+                            try {
+                                Log.info("Performing maintenance with COMPACT type after deleting the blob "
+                                        + userObject.getDigest());
+                                ActiveCBLDatabase.getInstance().getDatabase()
+                                        .performMaintenance(MaintenanceType.COMPACT);
+                            } catch (Exception ex) {
+                                Log.error("An error occurred while trying to delete the blob " + userObject.getDigest(),
+                                        ex);
+                                SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
+                                        "Could not delete the blob. Please check the logs for more.",
+                                        COUCHBASE_LITE_PLUGIN_ERROR));
+                            }
+                        }
+                    };
+                    deleteBlobTask.queue();
+                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(grandParentNode);
+                } catch (Exception ex) {
+                    Log.error("An error occurred while trying to delete the blob " + userObject.getDigest(), ex);
+                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
+                            "Could not delete the blob. Please check the logs for more.", COUCHBASE_LITE_PLUGIN_ERROR));
+                }
             }
-        }
-
-        return false;
+        };
+        actionGroup.add(deleteBlob);
+        showPopup(e, tree, actionGroup);
     }
 
     private static void showPopup(MouseEvent e, Tree tree, DefaultActionGroup actionGroup) {

@@ -10,16 +10,19 @@ import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
 import com.couchbase.intellij.tree.node.NoResultsNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
+import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -161,6 +164,12 @@ public class CBLDataLoader {
 
                         CBLFileNodeDescriptor node = new CBLFileNodeDescriptor(fileName, colNode.getScope(), colNode.getText(), docId, null);
                         DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+
+                        Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(colNode.getScope()).getCollection(colNode.getText()).getDocument(docId);
+                        if (CBLBlobHandler.documentHasBlob(document)) {
+                            DefaultMutableTreeNode blobLoadingNode = new DefaultMutableTreeNode(new LoadingNodeDescriptor());
+                            jsonFileNode.add(blobLoadingNode);
+                        }
                         parentNode.add(jsonFileNode);
                     }
 
@@ -186,6 +195,7 @@ public class CBLDataLoader {
         }
 
     }
+    
 
     public static void loadScopesAndCollections(DefaultMutableTreeNode parent) throws CouchbaseLiteException {
 
@@ -204,6 +214,38 @@ public class CBLDataLoader {
     
                 scopeNode.add(colNode);
             }
+        }
+    }
+
+    public static void listBlobs(DefaultMutableTreeNode documentNode, Tree tree) {
+        try {
+            tree.setPaintBusy(true);
+
+            CBLFileNodeDescriptor fileNode = (CBLFileNodeDescriptor) documentNode.getUserObject();
+            Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(fileNode.getScope())
+                    .getCollection(fileNode.getCollection()).getDocument(fileNode.getId());
+
+            // This could be run on a separate thread if fetching the blobs is a
+            // long-running operation
+            Map<String, Blob> blobs = CBLBlobHandler.getDocumentBlobsWithNames(document);
+
+            // Once the blobs are loaded, update the tree on the Swing event dispatch thread
+           SwingUtilities.invokeLater(() -> {
+                documentNode.removeAllChildren();
+                for (Map.Entry<String, Blob> entry : blobs.entrySet()) {
+                    DefaultMutableTreeNode blobNode = new DefaultMutableTreeNode(new CBLBlobNodeDescriptor(entry.getValue(),
+                            entry.getKey(), fileNode.getScope(), fileNode.getCollection(), fileNode.getId()));
+                    documentNode.add(blobNode);
+                }
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(documentNode);
+                tree.setPaintBusy(false);
+           });
+        } catch (Exception e) {
+            Log.error("An error occurred while trying to load the blobs", e);
+            SwingUtilities.invokeLater(
+                    () -> Messages.showInfoMessage("<html>Could not load the blobs for the document <strong>"
+                            + documentNode.getUserObject() + "</strong>. Please check the log for more.</html>",
+                            "Couchbase Plugin Error"));
         }
     }
 
@@ -261,4 +303,5 @@ public class CBLDataLoader {
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
         }
     }
+
 }
