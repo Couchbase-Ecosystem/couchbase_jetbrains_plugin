@@ -11,6 +11,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.couchbase.intellij.workbench.Log;
@@ -132,7 +133,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
             errorMessage.append("No file selected.<br>");
         }
 
-        long fileSizeInMB = selectedFile.getLength() / (1024 * 1024);
+        long fileSizeInMB = Objects.requireNonNull(selectedFile).getLength() / (1024 * 1024);
         if (fileSizeInMB > 20) {
             errorMessage.append("The selected file exceeds the 20 MB size limit.<br>");
         }
@@ -145,20 +146,21 @@ public class CBLAttachBlobDialog extends DialogWrapper {
 
         FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
         if (selectedFile.getExtension() == null || !selectedFile.getExtension().matches(Objects.requireNonNull(selectedFileType).getExtension())) {
-            errorMessage.append("The selected file type does not match the chosen file type.<br>");
+            errorMessage.append("The selected file type does not match the chosen file type. Supported file types are: ").append(Objects.requireNonNull(selectedFileType).getExtension().replace("|", ", ")).append("<br>");
         }
 
-        if (errorMessage.length() > 0) {
-            errorLabel.setText("<html>" + errorMessage.toString() + "</html>");
+        if (!errorMessage.isEmpty()) {
+            errorLabel.setText("<html>" + errorMessage + "</html>");
             return;
         }
 
         try {
             MutableDocument mutableDocument = document.toMutable();
-            Blob blob = new Blob(Objects.requireNonNull(selectedFile.getExtension()), selectedFile.contentsToByteArray());
+            String contentType = getContentType(selectedFileType, selectedFile);
+            Blob blob = new Blob(contentType, selectedFile.contentsToByteArray());
             mutableDocument.setBlob(blobFieldName, blob);
             collection.save(mutableDocument);
-
+    
         } catch (Exception e) {
             Log.error(e.getMessage());
             errorLabel.setText("Error attaching blob to document: " + e.getMessage());
@@ -167,5 +169,19 @@ public class CBLAttachBlobDialog extends DialogWrapper {
 
         errorLabel.setText("");
         super.doOKAction();
+    }
+
+    @NotNull
+    private static String getContentType(FileType selectedFileType, VirtualFile selectedFile) {
+        String contentType;
+        switch (Objects.requireNonNull(selectedFileType)) {
+            case IMAGE -> contentType = "image/" + selectedFile.getExtension();
+            case AUDIO -> contentType = "audio/" + selectedFile.getExtension();
+            case VIDEO -> contentType = "video/" + selectedFile.getExtension();
+            case TEXT -> contentType = "text/" + selectedFile.getExtension();
+            case DATA -> contentType = "application/" + selectedFile.getExtension();
+            default -> throw new IllegalArgumentException("Unsupported file type: " + selectedFileType);
+        }
+        return contentType;
     }
 }

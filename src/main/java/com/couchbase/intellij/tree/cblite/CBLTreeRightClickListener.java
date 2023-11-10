@@ -1,8 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
-import java.awt.Desktop;
 import java.awt.event.MouseEvent;
-import java.io.File;
 import java.util.Objects;
 
 import javax.swing.SwingUtilities;
@@ -416,31 +414,13 @@ public class CBLTreeRightClickListener {
     private static void handleBlob(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CBLBlobNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
-        AnAction openBlob = new AnAction("Open Blob") {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                try {
-                    // Assuming blob is a file on disk
-                    File blobFile = new File(userObject.getDigest());
-
-                    if (!Desktop.isDesktopSupported()) {
-                        Log.error("Desktop is not supported");
-                        return;
-                    }
-
-                    Desktop desktop = Desktop.getDesktop();
-                    // TODO: Check if the blob is a file or a directory
-                    // if (blobFile.exists()) {
-                    desktop.open(blobFile);
-                    // }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    Log.error("An error occurred while trying to open the blob " + userObject.getDigest(), ex);
-                    Messages.showErrorDialog("Could not open the blob. Please check the logs for more.", "Couchbase Plugin Error");
-                }
-            }
-        };
-        actionGroup.add(openBlob);
+        // AnAction openBlob = new AnAction("Open Blob") {
+        // @Override
+        // public void actionPerformed(@NotNull AnActionEvent e) {
+        //     // TODO: Implement this
+        //  }
+        // };
+        // actionGroup.add(openBlob);
 
         AnAction deleteBlob = new AnAction("Delete Blob") {
             @Override
@@ -460,7 +440,7 @@ public class CBLTreeRightClickListener {
                     Task.Backgroundable deleteBlobTask = new Task.Backgroundable(project, "Deleting blob", true) {
                         public void run(@NotNull ProgressIndicator indicator) {
                             try {
-                                Log.info("Performing maintenance with COMPACT type after deleting the blob " + userObject.getDigest());
+                                Log.info("Performing maintenance with COMPACT type after deleting the blob " + userObject.getBlobName());
                                 ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
                             } catch (Exception ex) {
                                 Log.error("An error occurred while trying to delete the blob " + userObject.getDigest(), ex);
