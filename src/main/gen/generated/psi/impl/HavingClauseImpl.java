@@ -7,9 +7,9 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static generated.GeneratedTypes.*;
+import static generated.cblite.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
-import generated.psi.*;
+import generated.psi.cblite.*;
 
 public class HavingClauseImpl extends SqlppPSIWrapper implements HavingClause {
 
@@ -29,8 +29,8 @@ public class HavingClauseImpl extends SqlppPSIWrapper implements HavingClause {
 
   @Override
   @NotNull
-  public Cond getCond() {
-    return findNotNullChildByClass(Cond.class);
+  public Expression getExpression() {
+    return findNotNullChildByClass(Expression.class);
   }
 
 }

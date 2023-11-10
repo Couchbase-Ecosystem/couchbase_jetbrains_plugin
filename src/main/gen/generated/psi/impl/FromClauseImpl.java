@@ -7,9 +7,9 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static generated.GeneratedTypes.*;
+import static generated.cblite.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
-import generated.psi.*;
+import generated.psi.cblite.*;
 
 public class FromClauseImpl extends SqlppPSIWrapper implements FromClause {
 
@@ -29,8 +29,14 @@ public class FromClauseImpl extends SqlppPSIWrapper implements FromClause {
 
   @Override
   @NotNull
-  public FromTerms getFromTerms() {
-    return findNotNullChildByClass(FromTerms.class);
+  public Alias getAlias() {
+    return findNotNullChildByClass(Alias.class);
+  }
+
+  @Override
+  @NotNull
+  public IdentifierRef getIdentifierRef() {
+    return findNotNullChildByClass(IdentifierRef.class);
   }
 
 }
