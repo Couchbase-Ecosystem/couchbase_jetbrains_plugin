@@ -1,8 +1,8 @@
 package com.couchbase.intellij.tree.cblite.dialog;
 
 import java.awt.Color;
-import java.awt.GridLayout;
-import java.awt.event.ItemEvent;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.util.Objects;
 
 import javax.swing.JComboBox;
@@ -29,11 +29,7 @@ import lombok.Getter;
 
 @Getter
 enum FileType {
-    AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"),
-    VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"),
-    IMAGE("Image", "jpeg|jpg|png|gif|bmp|svg|webp"),
-    TEXT("Text", "txt|doc|docx|pdf"),
-    DATA("Data", "csv|xls|xlsx|xml|json|sql");
+    AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"), VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"), IMAGE("Image", "jpeg|jpg|png|gif|bmp|svg|webp"), TEXT("Text", "txt|doc|docx|pdf"), DATA("Data", "csv|xls|xlsx|xml|json|sql");
 
     private final String type;
     private final String extension;
@@ -59,80 +55,107 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         this.project = project;
         this.collection = collection;
         this.document = document;
-        errorLabel = new JLabel();
-        errorLabel.setForeground(Color.decode("#FF4444"));
+
         init();
         setSize(600, 200);
+    }
+
+    public static String isValidName(String name, String type) {
+        if (name == null || name.trim().isEmpty()) {
+            return type + " name cannot be empty";
+        }
+        if (name.length() > 251) {
+            return type + " name cannot be more than 251 characters";
+        }
+        String regex = "^[A-Za-z0-9_.-]+$";
+        if (!name.matches(regex)) {
+            return type + " name contains invalid characters";
+        }
+        if (name.startsWith("_") || name.startsWith("%")) {
+            return type + " name cannot start with _ or %";
+        }
+        return null;
     }
 
     @Nullable
     @Override
     protected JComponent createCenterPanel() {
-        JPanel panel = new JPanel(new GridLayout(4, 2));
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.weightx = 0.5;
 
         JLabel fileTypeLabel = new JLabel("Select file type:");
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        panel.add(fileTypeLabel, constraints);
+
         fileTypeComboBox = new JComboBox<>(FileType.values());
-        panel.add(fileTypeLabel);
-        panel.add(fileTypeComboBox);
+        constraints.gridx = 1;
+        panel.add(fileTypeComboBox, constraints);
 
         JLabel fileLabel = new JLabel("Select file:");
+        constraints.gridy = 1;
+        constraints.gridx = 0;
+        panel.add(fileLabel, constraints);
+
         fileField = new TextFieldWithBrowseButton();
-        panel.add(fileLabel);
-        panel.add(fileField);
+        constraints.gridx = 1;
+        panel.add(fileField, constraints);
 
         JLabel blobFieldLabel = new JLabel("Blob field name:");
+        constraints.gridy = 2;
+        constraints.gridx = 0;
+        panel.add(blobFieldLabel, constraints);
+
         blobFieldTextField = new JTextField();
-        panel.add(blobFieldLabel);
-        panel.add(blobFieldTextField);
+        constraints.gridx = 1;
+        panel.add(blobFieldTextField, constraints);
 
-        panel.add(errorLabel);
+        errorLabel = new JLabel();
+        errorLabel.setForeground(Color.decode("#FF4444"));
+        constraints.gridy = 3;
+        constraints.gridx = 0;
+        constraints.gridwidth = 2;
+        panel.add(errorLabel, constraints);
 
-        fileTypeComboBox.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                updateFileChooserDescriptor();
-            }
-        });
+        fileField.addBrowseFolderListener("Select File", null, project, new FileChooserDescriptor(true, false, false, false, false, false));
         return panel;
-    }
-
-    private void updateFileChooserDescriptor() {
-        FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
-        FileChooserDescriptor descriptor;
-
-        descriptor = new FileChooserDescriptor(true, false, false, false, false, false)
-                .withFileFilter(
-                        file -> file.getExtension() != null && file.getExtension()
-                                .matches(Objects.requireNonNull(selectedFileType).getExtension()));
-
-        fileField.addBrowseFolderListener("Select File", null, project, descriptor);
     }
 
     @Override
     protected void doOKAction() {
-        VirtualFile selectedFile = fileField.getText().isEmpty() ? null
-                : LocalFileSystem.getInstance().findFileByPath(fileField.getText());
+        StringBuilder errorMessage = new StringBuilder();
+        VirtualFile selectedFile = fileField.getText().isEmpty() ? null : LocalFileSystem.getInstance().findFileByPath(fileField.getText());
 
         if (selectedFile == null) {
-            errorLabel.setText("No file selected.");
-            return;
-        } else {
-            errorLabel.setText("");
+            errorMessage.append("No file selected.<br>");
         }
 
         long fileSizeInMB = selectedFile.getLength() / (1024 * 1024);
         if (fileSizeInMB > 20) {
-            errorLabel.setText("The selected file exceeds the 20 MB size limit.");
-            return;
-        } else {
-            errorLabel.setText("");
+            errorMessage.append("The selected file exceeds the 20 MB size limit.<br>");
         }
 
         String blobFieldName = blobFieldTextField.getText();
+        String validationError = isValidName(blobFieldName, "Blob");
+        if (validationError != null) {
+            errorMessage.append(validationError).append("<br>");
+        }
+
+        FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
+        if (selectedFile.getExtension() == null || !selectedFile.getExtension().matches(Objects.requireNonNull(selectedFileType).getExtension())) {
+            errorMessage.append("The selected file type does not match the chosen file type.<br>");
+        }
+
+        if (errorMessage.length() > 0) {
+            errorLabel.setText("<html>" + errorMessage.toString() + "</html>");
+            return;
+        }
 
         try {
             MutableDocument mutableDocument = document.toMutable();
-            Blob blob = new Blob(Objects.requireNonNull(selectedFile.getExtension()),
-                    selectedFile.contentsToByteArray());
+            Blob blob = new Blob(Objects.requireNonNull(selectedFile.getExtension()), selectedFile.contentsToByteArray());
             mutableDocument.setBlob(blobFieldName, blob);
             collection.save(mutableDocument);
 

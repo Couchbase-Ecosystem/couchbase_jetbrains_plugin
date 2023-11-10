@@ -15,7 +15,6 @@ import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.json.JSONObject;
 
@@ -270,13 +269,15 @@ public class CBLDataLoader {
                     documentNode.add(blobNode);
                 }
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(documentNode);
-                tree.setPaintBusy(false);
             });
         } catch (Exception e) {
             Log.error("An error occurred while trying to load the blobs", e);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the blobs for the document <strong>" + documentNode.getUserObject() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+        } finally {
+            tree.setPaintBusy(false);
         }
     }
+
 
     public static void deleteConnection(String id) {
 

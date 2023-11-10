@@ -16,6 +16,7 @@ import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+import com.couchbase.intellij.workbench.Log;
 
 public class CBLCreateCollectionDialog extends DialogWrapper {
     private static final Color ERROR_COLOR = Color.decode("#FF4444");
@@ -98,27 +99,34 @@ public class CBLCreateCollectionDialog extends DialogWrapper {
         String collectionValidationError = isValidName(collectionName, "Collection");
         String scopeValidationError = isValidName(scopeName, "Scope");
 
+        StringBuilder errorMessage = new StringBuilder();
+
         if (collectionValidationError != null) {
-            errorLabel.setText(collectionValidationError);
+            errorMessage.append(collectionValidationError);
             collectionField.setBorder(new LineBorder(ERROR_COLOR));
         } else {
             collectionField.setBorder(BorderFactory.createEmptyBorder());
         }
 
         if (scopeValidationError != null) {
-            errorLabel.setText(errorLabel.getText() + " " + scopeValidationError);
+            if (errorMessage.length() > 0) {
+                errorMessage.append("<br/>");
+            }
+            errorMessage.append(scopeValidationError);
             scopeField.setBorder(new LineBorder(ERROR_COLOR));
         } else {
             scopeField.setBorder(BorderFactory.createEmptyBorder());
         }
 
-        if (collectionValidationError != null || scopeValidationError != null) {
+        if (errorMessage.length() > 0) {
+            errorLabel.setText("<html>" + errorMessage.toString() + "</html>");
             return;
         }
 
         try {
             ActiveCBLDatabase.getInstance().getDatabase().createCollection(collectionName, scopeName);
         } catch (Exception e) {
+            Log.error("Error creating collection", e);
             errorLabel.setText("Error creating collection: " + e.getMessage());
             collectionField.setBorder(new LineBorder(ERROR_COLOR));
             return;
