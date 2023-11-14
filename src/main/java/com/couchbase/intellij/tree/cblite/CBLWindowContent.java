@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.tree.CouchbaseWindowContent;
+import com.couchbase.intellij.tree.cblite.dialog.CBLImportDialog;
 import com.couchbase.intellij.tree.cblite.logger.CBLPluginLogger;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
@@ -300,6 +301,16 @@ public class CBLWindowContent extends JPanel {
 
         integrityCheck.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/integrity_check.svg", CouchbaseWindowContent.class));
 
+        AnAction importCBLite = new AnAction("Import CBLite Data") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                CBLImportDialog dialog = new CBLImportDialog(project, tree);
+                dialog.show();
+            }
+        };
+        importCBLite.getTemplatePresentation()
+                .setIcon(IconLoader.getIcon("/assets/icons/import_database.svg", CBLWindowContent.class));
+
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(createNewDatabase);
         leftActionGroup.add(importDatabase);
@@ -310,6 +321,7 @@ public class CBLWindowContent extends JPanel {
         leftActionGroup.add(fullOptimize);
         leftActionGroup.add(compact);
         leftActionGroup.add(integrityCheck);
+        leftActionGroup.add(importCBLite);
 
 
         ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
