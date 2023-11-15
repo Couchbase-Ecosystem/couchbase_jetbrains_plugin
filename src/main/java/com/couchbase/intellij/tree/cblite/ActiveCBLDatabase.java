@@ -1,15 +1,21 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
+import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DatabaseConfiguration;
 import lombok.Getter;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ActiveCBLDatabase {
 
     private static ActiveCBLDatabase activeDatabase = new ActiveCBLDatabase();
+
+    private Map<String, Runnable> disconnectListeners = new HashMap<>();
 
     @Getter
     private Database database;
@@ -28,7 +34,7 @@ public class ActiveCBLDatabase {
     }
 
     public String getDatabaseId() {
-        if(savedDatabase == null) {
+        if (savedDatabase == null) {
             return null;
         }
         return savedDatabase.getId();
@@ -36,11 +42,28 @@ public class ActiveCBLDatabase {
 
 
     public void disconnect() throws CouchbaseLiteException {
-        if(database != null) {
+        if (database != null) {
             database.close();
             database = null;
             savedDatabase = null;
         }
+
+        for (Map.Entry<String, Runnable> run : disconnectListeners.entrySet()) {
+            try {
+                run.getValue().run();
+            } catch (Exception e) {
+                Log.debug("Error while calling disconnect listeners " + run.getKey() + e);
+            }
+        }
+        disconnectListeners = new HashMap<>();
+    }
+
+    public void addDisconnectListener(String key, Runnable listener) {
+        disconnectListeners.put(key, listener);
+    }
+
+    public void removeDisconnectListener(String key) {
+        disconnectListeners.remove(key);
     }
 
 

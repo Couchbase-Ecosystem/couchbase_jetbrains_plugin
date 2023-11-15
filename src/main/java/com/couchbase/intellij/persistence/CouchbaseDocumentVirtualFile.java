@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.io.*;
+import java.util.Objects;
 
 public class CouchbaseDocumentVirtualFile extends VirtualFile {
     private final String bucket;
@@ -190,5 +191,18 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     public Project getProject() {
         return project;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CouchbaseDocumentVirtualFile that = (CouchbaseDocumentVirtualFile) o;
+        return Objects.equals(bucket, that.bucket) && Objects.equals(scope, that.scope) && Objects.equals(collection, that.collection) && Objects.equals(id, that.id) && Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bucket, scope, collection, id, name);
     }
 }

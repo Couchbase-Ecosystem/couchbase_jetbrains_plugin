@@ -12,11 +12,14 @@ import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
-import com.couchbase.lite.Dictionary;
 import com.couchbase.lite.MutableDocument;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -28,9 +31,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
@@ -101,8 +102,9 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                     saveFile(collection, file, document);
                 }
             }
-        } if(file.getUserData(VirtualFileKeys.CBL_CON_ID) != null
-                &&  file.getUserData(VirtualFileKeys.CBL_CON_ID).equals(ActiveCBLDatabase.getInstance().getDatabaseId()) ) {
+        }
+        if (file.getUserData(VirtualFileKeys.CBL_CON_ID) != null
+                && file.getUserData(VirtualFileKeys.CBL_CON_ID).equals(ActiveCBLDatabase.getInstance().getDatabaseId())) {
 
             try {
 
@@ -112,7 +114,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                         .getDocument(file.getUserData(VirtualFileKeys.ID));
 
                 //this is a new document
-                if(doc == null) {
+                if (doc == null) {
                     saveCBLDocument(document, file);
                 } else {
 
@@ -131,7 +133,10 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                         } else if (result == 1) {
                             file.putUserData(VirtualFileKeys.CAS, doc.getRevisionID());
                             ApplicationManager.getApplication().runWriteAction(() -> {
-                                document.setText(doc.toJSON());
+
+                                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                                JsonElement jsonElement = JsonParser.parseString(Objects.requireNonNull(doc.toJSON()));
+                                document.setText(gson.toJson(jsonElement));
                                 DocumentFormatter.formatFile(getProject(file), file);
                             });
                             return false;

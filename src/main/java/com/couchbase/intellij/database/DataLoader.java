@@ -48,11 +48,9 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.VirtualFileKeys.READ_ONLY;
 
-@SuppressWarnings("ALL")
 public class DataLoader {
 
     public static void listBuckets(DefaultMutableTreeNode parentNode, Tree tree) {
@@ -141,7 +139,7 @@ public class DataLoader {
                     ScopeNodeDescriptor scopeDesc = (ScopeNodeDescriptor) userObject;
                     Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(scopeDesc.getBucket(), scopeDesc.getText());
 
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).collect(Collectors.toList());
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).toList();
                     scopeDesc.setCounter(formatCount(collections.size()));
                     if (!collections.isEmpty()) {
                         for (CollectionSpec spec : collections) {

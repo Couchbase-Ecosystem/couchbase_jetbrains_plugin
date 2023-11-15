@@ -1,11 +1,8 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMapper;
-import com.couchbase.client.java.kv.GetResult;
-import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.CouchbaseFileSystem;
 import com.couchbase.intellij.workbench.Log;
-import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Document;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.fileTypes.FileType;
@@ -19,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.io.*;
+import java.util.Objects;
 
 public class CBLDocumentVirtualFile extends VirtualFile {
     private final String scope;
@@ -160,14 +158,14 @@ public class CBLDocumentVirtualFile extends VirtualFile {
                         .getCollection(collection)
                         .getDocument(id);
 
-                if(doc == null) {
+                if (doc == null) {
                     content = "{}".getBytes();
                 } else {
                     ObjectMapper mapper = new ObjectMapper();
                     content = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsBytes(mapper.readTree(doc.toJSON().getBytes()));
                 }
             } catch (Exception e) {
-                Log.error("Could not refresh document "+id, e);
+                Log.error("Could not refresh document " + id, e);
             }
             if (postRunnable != null) {
                 postRunnable.run();
@@ -187,5 +185,18 @@ public class CBLDocumentVirtualFile extends VirtualFile {
 
     public Project getProject() {
         return project;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CBLDocumentVirtualFile that = (CBLDocumentVirtualFile) o;
+        return Objects.equals(scope, that.scope) && Objects.equals(collection, that.collection) && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(scope, collection, id);
     }
 }
