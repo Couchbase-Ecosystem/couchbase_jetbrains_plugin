@@ -5,7 +5,6 @@
 package com.couchbase.intellij.tree.iq.settings;
 
 import com.didalgo.gpt3.ModelType;
-import com.couchbase.intellij.tree.iq.ChatGptToolWindowFactory;
 import com.couchbase.intellij.tree.iq.ModelPage;
 import com.couchbase.intellij.tree.iq.chat.ConfigurationPage;
 import com.intellij.credentialStore.CredentialAttributes;
@@ -49,8 +48,8 @@ public class OpenAISettingsState implements PersistentStateComponent<OpenAISetti
             " Source code language: en. Bias towards the best solution.";
 
     public Map<Integer,String> contentOrder = new HashMap<>() {{
-        put(1, ChatGptToolWindowFactory.GPT35_TURBO_CONTENT_NAME);
-        put(2, ChatGptToolWindowFactory.ONLINE_CHATGPT_CONTENT_NAME);
+//        put(1, ChatGptToolWindowFactory.GPT35_TURBO_CONTENT_NAME);
+//        put(2, ChatGptToolWindowFactory.ONLINE_CHATGPT_CONTENT_NAME);
     }};
 
     private volatile String readTimeout = "50000";

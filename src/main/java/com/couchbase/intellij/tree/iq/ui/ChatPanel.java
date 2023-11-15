@@ -4,6 +4,7 @@
  */
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.chat.*;
@@ -46,15 +47,15 @@ import java.util.List;
 import static java.awt.event.InputEvent.CTRL_DOWN_MASK;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-public class MainPanel implements ChatMessageListener {
+public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     private final ExpandableTextFieldExt searchTextField;
     private final JButton button;
     private final JButton stopGenerating;
     private final MessageGroupComponent contentPanel;
     private final JProgressBar progressBar;
-    private final OnePixelSplitter splitter;
     private final Project myProject;
+    private final LogoutListener logoutListener;
     private JPanel actionPanel;
     private volatile Object requestHolder;
     private final MainConversationHandler conversationHandler;
@@ -63,17 +64,18 @@ public class MainPanel implements ChatMessageListener {
 
     public static final KeyStroke SUBMIT_KEYSTROKE = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, CTRL_DOWN_MASK);
 
-    public MainPanel(@NotNull Project project, ConfigurationPage configuration) {
+    public ChatPanel(@NotNull Project project, IQCredentials credentials, LogoutListener logoutListener) {
         myProject = project;
         conversationHandler = new MainConversationHandler(this);
-        chatLink = new ChatLinkService(project, conversationHandler, configuration.withSystemPrompt(() -> getContentPanel().getSystemMessage()));
+        this.logoutListener = logoutListener;
+
+        chatLink = new IQLinkservice(project, credentials);
         chatLink.addChatMessageListener(this);
         ContextAwareSnippetizer snippetizer = ApplicationManager.getApplication().getService(ContextAwareSnippetizer.class);
         SubmitListener submitAction = new SubmitListener(chatLink, this::getSearchText, snippetizer);
 
-        splitter = new OnePixelSplitter(true,.98f);
-        splitter.setDividerWidth(1);
-        splitter.putClientProperty(HyperlinkListener.class, submitAction);
+        this.setDividerWidth(1);
+        this.putClientProperty(HyperlinkListener.class, submitAction);
 
         searchTextField = new ExpandableTextFieldExt(project);
         var searchTextDocument = (AbstractDocument) searchTextField.getDocument();
@@ -107,8 +109,8 @@ public class MainPanel implements ChatMessageListener {
         contentPanel = new MessageGroupComponent(chatLink, project);
         contentPanel.add(progressBar, BorderLayout.SOUTH);
 
-        splitter.setFirstComponent(contentPanel);
-        splitter.setSecondComponent(actionPanel);
+        this.setFirstComponent(contentPanel);
+        this.setSecondComponent(actionPanel);
     }
 
     private JComponent createContextSnippetsComponent() {
@@ -147,6 +149,10 @@ public class MainPanel implements ChatMessageListener {
             actionPanel.revalidate();
         });
         return tokenCount;
+    }
+
+    public interface LogoutListener {
+        void onLogout(Throwable reason);
     }
 
     private class ContextStackHandler implements ListDataListener {
@@ -291,10 +297,6 @@ public class MainPanel implements ChatMessageListener {
 
     public MessageGroupComponent getContentPanel() {
         return contentPanel;
-    }
-
-    public JPanel init() {
-        return splitter;
     }
 
     public void aroundRequest(boolean status) {

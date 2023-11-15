@@ -14,16 +14,15 @@ import com.couchbase.intellij.tree.iq.core.ChatCompletionRequestProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 
 public class MainConversationHandler implements ConversationHandler {
 
     private static final Logger LOG = Logger.getInstance(MainConversationHandler.class);
 
-    private final MainPanel mainPanel;
+    private final ChatPanel chatPanel;
 
-    public MainConversationHandler(MainPanel mainPanel) {
-        this.mainPanel = mainPanel;
+    public MainConversationHandler(ChatPanel chatPanel) {
+        this.chatPanel = chatPanel;
     }
 
     @Override

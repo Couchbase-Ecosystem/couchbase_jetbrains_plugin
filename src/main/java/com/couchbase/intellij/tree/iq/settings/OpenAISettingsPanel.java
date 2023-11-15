@@ -5,7 +5,6 @@
 package com.couchbase.intellij.tree.iq.settings;
 
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
-import com.couchbase.intellij.tree.iq.ChatGptToolWindowFactory;
 import com.couchbase.intellij.tree.iq.ModelPage;
 import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.options.Configurable;
@@ -38,8 +37,9 @@ public class OpenAISettingsPanel implements Configurable {
     private JLabel contentOrderHelpLabel;
     private JPanel openaiAssistantTitledBorderBox;
     private final String[] comboboxItemsString = {
-            ChatGptToolWindowFactory.GPT35_TURBO_CONTENT_NAME,
-            ChatGptToolWindowFactory.ONLINE_CHATGPT_CONTENT_NAME};
+//            ChatGptToolWindowFactory.GPT35_TURBO_CONTENT_NAME,
+//            ChatGptToolWindowFactory.ONLINE_CHATGPT_CONTENT_NAME
+            };
     private boolean needRestart = false;
 
     public static final String CREATE_API_KEY = "https://api.openai.com/dashboard/user/api_keys";
