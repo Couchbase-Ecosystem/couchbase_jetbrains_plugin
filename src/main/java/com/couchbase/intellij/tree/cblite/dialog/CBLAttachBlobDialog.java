@@ -3,7 +3,8 @@ package com.couchbase.intellij.tree.cblite.dialog;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.util.Objects;
+import java.awt.event.*;
+import java.util.*;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -120,7 +121,33 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         constraints.gridwidth = 2;
         panel.add(errorLabel, constraints);
 
-        fileField.addBrowseFolderListener("Select File", null, project, new FileChooserDescriptor(true, false, false, false, false, false));
+        fileTypeComboBox.addItemListener(e -> {
+            fileTypeComboBox.removeItemListener(fileTypeComboBox.getItemListeners()[0]);
+            // ItemListener[] listeners = fileTypeComboBox.getItemListeners();
+
+            //  // Loop through the listeners and remove all except for the current listener
+            // for (ItemListener listener : listeners) {
+            //     if (listener != e.getItemSelectable()) {
+            //         fileTypeComboBox.removeItemListener(listener);
+            //     }
+            // }
+
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                FileType selectedFileType = (FileType) e.getItem();
+                FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false) {
+                    @Override
+                    public boolean isFileSelectable(VirtualFile file) {
+                        String[] extensions = Objects.requireNonNull(selectedFileType).getExtension().split("\\|");
+                        return Arrays.asList(extensions).contains(Objects.requireNonNull(file).getExtension());
+                    }
+                };
+                fileField.addBrowseFolderListener("Select File", null, project, descriptor);
+            }
+        });
+
+        // Hit the listener once to set the initial file chooser
+        fileTypeComboBox.getItemListeners()[0].itemStateChanged(new ItemEvent(fileTypeComboBox, ItemEvent.SELECTED, fileTypeComboBox.getSelectedItem(), ItemEvent.SELECTED));
+
         return panel;
     }
 
