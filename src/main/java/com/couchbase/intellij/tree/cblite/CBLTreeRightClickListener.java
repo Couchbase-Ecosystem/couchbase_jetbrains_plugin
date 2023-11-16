@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.tree.cblite.dialog.CBLAttachBlobDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
+import com.couchbase.intellij.tree.cblite.dialog.CBLImportDialog;
 import com.couchbase.intellij.tree.cblite.nodes.CBLBlobNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
@@ -152,6 +153,18 @@ public class CBLTreeRightClickListener {
                 }
             };
             actionGroup.add(createCollection);
+
+            DefaultActionGroup toolsAction = new DefaultActionGroup("Tools", true);
+
+            AnAction cblImport = new AnAction("Couchbase Lite Import") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    CBLImportDialog importDialog = new CBLImportDialog(project,tree);
+                    importDialog.show();
+                }
+            };
+            toolsAction.add(cblImport);
+            actionGroup.add(toolsAction);
 
         } else {
             AnAction menuItem = new AnAction("Connect") {

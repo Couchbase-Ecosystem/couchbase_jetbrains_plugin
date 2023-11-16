@@ -53,7 +53,7 @@ public class DocumentFilterDialog extends DialogWrapper {
         init();
     }
 
-    private static void showGotItTooltip(Component component, String tooltipText) {
+    public static void showGotItTooltip(Component component, String tooltipText) {
         Point screenPoint = component.getLocationOnScreen();
         Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
 
