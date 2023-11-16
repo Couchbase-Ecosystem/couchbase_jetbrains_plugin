@@ -13,6 +13,7 @@ import com.couchbase.lite.*;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
@@ -37,9 +38,12 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static utils.FileUtils.createFolder;
 
 public class CBLWindowContent extends JPanel {
 
@@ -51,9 +55,21 @@ public class CBLWindowContent extends JPanel {
 
     private static DefaultTreeModel treeModel;
 
-    public CBLWindowContent(Project project) {
+
+    private void initCbLite() throws Exception {
+        String path = PathManager.getConfigPath() + File.separator + "couchbase-intellij-plugin";
+        createFolder(path);
+        String rootDir = path + File.separator + "cblite";
+        createFolder(rootDir);
+        String temp = rootDir + File.separator + "cblite_temp";
+        createFolder(temp);
+        CouchbaseLite.init(false, new File(rootDir), new File(temp));
+    }
+
+    public CBLWindowContent(Project project) throws Exception {
         this.project = project;
-        CouchbaseLite.init();
+        initCbLite();
+
         //Database.log.setCustom(new CBLPluginLogger());
 
 

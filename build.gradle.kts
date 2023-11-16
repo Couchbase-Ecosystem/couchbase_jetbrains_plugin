@@ -54,8 +54,6 @@ dependencies {
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
-    implementation("com.couchbase.lite:couchbase-lite-java:3.1.1")
-
 }
 
 // Configure Gradle IntelliJ Plugin
