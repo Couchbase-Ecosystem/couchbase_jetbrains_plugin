@@ -373,14 +373,6 @@ public class CBLImportDialog extends DialogWrapper {
 
         });
 
-        // java.lang.NullPointerException: Cannot invoke
-        // "javax.swing.JTextArea.getDocument()" because "this.keyPreviewArea" is null
-        keyPreviewArea.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                // Update the key preview
-            }
-        });
 
     }
 }
