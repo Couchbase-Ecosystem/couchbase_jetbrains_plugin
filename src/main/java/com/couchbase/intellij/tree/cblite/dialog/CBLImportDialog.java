@@ -8,6 +8,10 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -20,6 +24,8 @@ import javax.swing.event.DocumentEvent;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.lite.Collection;
@@ -39,16 +45,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import java.util.*;
-
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.json.JsonArray;
 import utils.TemplateUtil;
-
-import com.couchbase.intellij.workbench.Log;
 
 public class CBLImportDialog extends DialogWrapper {
     private JTextField keyField;
@@ -215,26 +212,40 @@ public class CBLImportDialog extends DialogWrapper {
         JPanel keyPanel = new JPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = JBUI.insets(5);
+        c.weightx = 1.0;
+        c.insets = JBUI.insets(10);
 
+    
         keyField = new JTextField(25);
         keyPreviewArea = new JTextArea(10, 25);
         keyPreviewArea.setEditable(false);
-
-        c.gridy = 0;
+    
         c.gridx = 0;
-        keyPanel.add(new JLabel("Key:"), c);
+        c.gridy = 0;
+        c.gridwidth = 2;
+        keyPanel.add(new TitledSeparator("Key Naming"), c);
+        
+        c.gridy++;
+        c.gridwidth = 1;
+        keyPanel.add(new JLabel("Custom Expression:"), c);
+    
         c.gridx = 1;
         keyPanel.add(keyField, c);
-
-        c.gridy = 1;
+    
         c.gridx = 0;
+        c.gridy++;
+        c.gridwidth = 2;
         keyPanel.add(new JLabel("Projected Names:"), c);
-        c.gridx = 1;
+    
+        c.gridx = 0;
+        c.gridy++;
+        c.weighty = 1.0;
+        c.fill = GridBagConstraints.BOTH;
         keyPanel.add(new JScrollPane(keyPreviewArea), c);
-
+    
         return keyPanel;
     }
+    
 
     @Override
     protected JComponent createSouthPanel() {
