@@ -95,6 +95,10 @@
                 language="sqlpp"
                 implementationClass="org.intellij.sdk.language.SqlppParserDefinition"/>
 
+        <lang.syntaxHighlighterFactory
+                language="sqlpp"
+                implementationClass="org.intellij.sdk.language.SqlppSyntaxHighlighterFactory"/>
+
         <completion.contributor language="sqlpp"
                                 implementationClass="org.intellij.sdk.language.completion.SqlppCompletionContributor"/>
 
