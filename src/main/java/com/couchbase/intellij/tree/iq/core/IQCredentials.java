@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.core;
 
-import cn.hutool.core.lang.Opt;
+import com.couchbase.intellij.tree.iq.CapellaApiMethods;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
@@ -13,7 +14,8 @@ public class IQCredentials {
     private String login;
     private String password;
 
-    private CapellaAuthResponse auth;
+    private CapellaAuth auth;
+    private CapellaAuth authResponse;
 
     public IQCredentials(String login, String password) {
         this.login = login;
@@ -38,11 +40,31 @@ public class IQCredentials {
         );
     }
 
-    public int checkAuthStatus() {
-        return 500;
+    public String getLogin() {
+        if (login == null) {
+            login = getCredentials().map(Credentials::getUserName).orElse(null);
+        }
+        return login;
     }
 
-    public CapellaAuthResponse getAuth() {
-return null;
+    public String getPassword() {
+        if (password == null) {
+            password = getCredentials().map(Credentials::getPasswordAsString).orElse(null);
+        }
+        return password;
+    }
+
+    public boolean checkAuthStatus() {
+        try {
+            authResponse = CapellaApiMethods.login(getLogin(), getPassword());
+            return authResponse != null;
+        } catch (Exception e) {
+            Log.error("Failed to authenticate with Capella", e);
+            return false;
+        }
+    }
+
+    public CapellaAuth getAuth() {
+        return authResponse;
     }
 }

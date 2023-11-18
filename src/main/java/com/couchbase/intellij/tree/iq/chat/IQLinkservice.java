@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.iq.chat;
 
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.text.TextContent;
+import com.couchbase.intellij.tree.iq.ui.context.stack.DefaultInputContext;
 import com.intellij.openapi.project.Project;
 
 import java.util.List;
@@ -15,6 +16,8 @@ public class IQLinkservice extends AbstractChatLink {
     public IQLinkservice(Project project, IQCredentials credentials) {
         this.project = project;
         this.credentials = credentials;
+        this.inputContext = new DefaultInputContext();
+        this.conversationContext = new IQLinkState();
     }
 
     @Override
@@ -24,12 +27,12 @@ public class IQLinkservice extends AbstractChatLink {
 
     @Override
     public InputContext getInputContext() {
-        return null;
+        return inputContext;
     }
 
     @Override
     public ConversationContext getConversationContext() {
-        return null;
+        return conversationContext;
     }
 
     @Override

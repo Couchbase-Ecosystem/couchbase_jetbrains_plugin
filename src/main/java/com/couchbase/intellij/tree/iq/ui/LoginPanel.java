@@ -13,7 +13,6 @@ import java.net.URISyntaxException;
 
 public class LoginPanel extends JPanel {
 
-
     private final Listener listener;
 
     public LoginPanel(Listener loginListener) {
@@ -122,7 +121,7 @@ public class LoginPanel extends JPanel {
 
     private boolean doLogin(String login, String password, boolean store) {
         IQCredentials credentials = new IQCredentials(login, password);
-        if (credentials.checkAuthStatus() == 200) {
+        if (credentials.checkAuthStatus()) {
             if (store) {
                 credentials.store();
             }
