@@ -1,16 +1,16 @@
-package com.couchbase.intellij.tools.dialog;
+package com.couchbase.intellij.tools;
 
-import com.couchbase.intellij.tools.CBTools;
-
-import javax.swing.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-class CBImportCommandBuilder {
+public class CBImportCommandBuilder {
 
-    protected static final String JSON_FILE_FORMAT = "json";
-    protected static final String CSV_FILE_FORMAT = "csv";
+    public static final String JSON_FILE_FORMAT = "json";
+    public static final String CSV_FILE_FORMAT = "csv";
     private final List<String> commandList = new ArrayList<>();
+
 
     public CBImportCommandBuilder(String fileFormat, String clusterURL, String username, String password) {
         commandList.add(CBTools.getTool(CBTools.Type.CB_IMPORT).getPath());
@@ -59,37 +59,15 @@ class CBImportCommandBuilder {
         return this;
     }
 
-    public CBImportCommandBuilder setScopeCollectionExp(ButtonModel targetLocationGroupSelection, String defaultExp,
-                                                        String collectionExp, String dynamicExp) {
-        String scopeCollectionExpFlag = "--scope-collection-exp";
-
-        if (targetLocationGroupSelection == defaultScopeAndCollectionRadio.getModel()) {
-            commandList.add(scopeCollectionExpFlag);
-            commandList.add(defaultExp);
-        } else if (targetLocationGroupSelection == targetCollectionRadio.getModel()) {
-            commandList.add(scopeCollectionExpFlag);
-            commandList.add(collectionExp);
-        } else if (targetLocationGroupSelection == dynamicScopeAndCollectionRadio.getModel()) {
-            commandList.add(scopeCollectionExpFlag);
-            commandList.add(dynamicExp);
-        }
+    public CBImportCommandBuilder setScopeCollectionExp(String colExp) {
+        commandList.add("--scope-collection-exp");
+        commandList.add(colExp);
         return this;
     }
 
-    public CBImportCommandBuilder setGenerateKey(ButtonModel keyGroupSelection, String uuidKey,
-                                                 String fieldValueKey, String customExpressionKey) {
-        String generateKeyFlag = "--generate-key";
-
-        if (keyGroupSelection == generateUUIDRadio.getModel()) {
-            commandList.add(generateKeyFlag);
-            commandList.add(uuidKey);
-        } else if (keyGroupSelection == useFieldValueRadio.getModel()) {
-            commandList.add(generateKeyFlag);
-            commandList.add(fieldValueKey);
-        } else if (keyGroupSelection == customExpressionRadio.getModel()) {
-            commandList.add(generateKeyFlag);
-            commandList.add(customExpressionKey);
-        }
+    public CBImportCommandBuilder setGenerateKey(String key) {
+        commandList.add("--generate-key");
+        commandList.add(key);
         return this;
     }
 
@@ -118,9 +96,10 @@ class CBImportCommandBuilder {
     }
 
     public CBImportCommandBuilder setIgnoreFields(String fields) {
-        if (fields != null && !fields.isEmpty()) {
+        if (!fields.isEmpty()) {
+            String filteredFields = Arrays.stream(fields.split(",")).map(e -> e.trim()).collect(Collectors.joining(","));
             commandList.add("--ignore-fields");
-            commandList.add(fields);
+            commandList.add(filteredFields);
         }
         return this;
     }
@@ -143,7 +122,7 @@ class CBImportCommandBuilder {
         return this;
     }
 
-    public List<String> constructCommand() {
+    public List<String> build() {
         return commandList;
     }
 }

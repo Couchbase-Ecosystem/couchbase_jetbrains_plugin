@@ -298,8 +298,8 @@ public class TreeRightClickListener {
 
                         String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-                    NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
-                    entityCreationDialog.show();
+                        NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
+                        entityCreationDialog.show();
 
                         if (entityCreationDialog.isOK()) {
                             String scopeName = entityCreationDialog.getEntityName();
@@ -327,14 +327,16 @@ public class TreeRightClickListener {
                             return;
                         }
 
-                        ActiveCluster.ReconnectOnDisconnect.set(true);
+                        //TODO: Under investigation why ReconnectOnDisconnect should be here.
+                        //ActiveCluster.ReconnectOnDisconnect.set(true);
                         ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
-                        ActiveCluster.ReconnectOnDisconnect.set(false);
+                        //ActiveCluster.ReconnectOnDisconnect.set(false);
                         // Refresh buckets
                         TreePath treePath = new TreePath(clickedNode.getPath());
                         tree.collapsePath(treePath.getParentPath());
                         tree.expandPath(treePath.getParentPath());
                     } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> Messages.showInfoMessage("An error occurred while creating the bucket. Check the Log tab for more.", "Couchbase Plugin Error"));
                         Log.error("Bucket deletion failed ", ex);
                     }
                 }
