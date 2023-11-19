@@ -4,11 +4,14 @@ import com.couchbase.intellij.tree.NewConnectionDialog;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.TitledSeparator;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,6 +22,29 @@ import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
 public class TemplateUtil {
+
+    public static void showGotItTooltip(Component component, String tooltipText) {
+        Point screenPoint = component.getLocationOnScreen();
+        Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
+        JLabel label = new JLabel(tooltipText);
+        label.setBorder(JBUI.Borders.empty(2));
+        JBScrollPane scroll = new JBScrollPane(label);
+        scroll.setOpaque(false);
+        scroll.setBorder(null);
+        scroll.getViewport().setOpaque(false);
+
+        Balloon balloon = JBPopupFactory.getInstance()
+                .createBalloonBuilder(scroll)
+                .setFillColor(UIUtil.getToolTipBackground())
+                .setBorderColor(JBColor.GRAY)
+                .setAnimationCycle(200)
+                .setCloseButtonEnabled(true)
+                .setHideOnClickOutside(true)
+                .setHideOnKeyOutside(true)
+                .createBalloon();
+
+        balloon.show(new RelativePoint(tooltipPoint), Balloon.Position.above);
+    }
 
     public static JPanel createKeyValuePanel(String[] keys, String[] values, int cols) {
         JPanel finalPanel = new JPanel(new GridBagLayout());

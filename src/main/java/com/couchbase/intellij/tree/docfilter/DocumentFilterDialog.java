@@ -11,18 +11,14 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.ui.popup.Balloon;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.UIUtil;
 import org.intellij.sdk.language.SQLPPFileType;
 import org.jetbrains.annotations.Nullable;
 import utils.ColorHelper;
+import utils.TemplateUtil;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -53,22 +49,6 @@ public class DocumentFilterDialog extends DialogWrapper {
         init();
     }
 
-    private static void showGotItTooltip(Component component, String tooltipText) {
-        Point screenPoint = component.getLocationOnScreen();
-        Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
-
-        Balloon balloon = JBPopupFactory.getInstance()
-                .createBalloonBuilder(new JLabel(tooltipText))
-                .setFillColor(UIUtil.getToolTipBackground())
-                .setBorderColor(JBColor.GRAY)
-                .setAnimationCycle(200)
-                .setCloseButtonEnabled(true)
-                .setHideOnClickOutside(true)
-                .setHideOnKeyOutside(true)
-                .createBalloon();
-
-        balloon.show(new RelativePoint(tooltipPoint), Balloon.Position.above);
-    }
 
     public static String addLineBreaks(String input) {
         StringBuilder output = new StringBuilder();
@@ -105,7 +85,7 @@ public class DocumentFilterDialog extends DialogWrapper {
                         "<strong>Ex:</strong> country = <span style='color:" + fontStringColor + "'>'United States'</span><br>" +
                         "<ul> <li>If you don't provide an <span style='color:" + fontKeywordColor + "'>ORDER BY</span>, the documents will be sorted by the document's id.</li>" +
                         "<li>Your filter should not include a <span style='color:" + fontKeywordColor + "'>LIMIT</span> or <span style='color:" + fontKeywordColor + "'>OFFSET</span></div></html>";
-                showGotItTooltip(e.getComponent(), content);
+                TemplateUtil.showGotItTooltip(e.getComponent(), content);
             }
         });
 

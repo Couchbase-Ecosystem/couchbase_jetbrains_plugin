@@ -68,6 +68,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private JPanel queryStatsPanel;
     private Project project;
 
+    private TabInfo explainTab;
+
 
     public QueryResultToolWindowFactory() {
         instance = this;
@@ -160,26 +162,29 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         editorSettings.setIndentGuidesShown(true);
 
 
-        htmlPanel = new HtmlPanel();
         latestExplain = getEmptyExplain();
-        htmlPanel.loadHTML(latestExplain);
-
-
-        JPanel explainPanel = new JPanel(new BorderLayout());
-        explainPanel.add(htmlPanel, BorderLayout.CENTER);
-        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
 
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
-        resultTabs.addTab(explainTab);
+
+        try {
+            htmlPanel = new HtmlPanel();
+            htmlPanel.loadHTML(latestExplain);
+            JPanel explainPanel = new JPanel(new BorderLayout());
+            explainPanel.add(htmlPanel, BorderLayout.CENTER);
+            explainTab = new TabInfo(explainPanel).setText("Explain");
+            resultTabs.addTab(explainTab);
+        } catch (Exception e) {
+            Log.error("Failed to load the explain tab. Double check if the JRE that you are running your IDE has support for JCEF. https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef");
+        }
 
         //NOTE: This is an workaround as the explain tends to render awkwardly when it is not on focus
         resultTabs.addListener(new TabsListener() {
             @Override
             public void selectionChanged(TabInfo oldSelection, TabInfo newSelection) {
-                if (newSelection == explainTab) {
+                if (explainTab != null && newSelection == explainTab) {
                     htmlPanel.loadHTML(latestExplain);
                 }
             }
@@ -330,7 +335,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 });
 
                 latestExplain = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
-                htmlPanel.loadHTML(latestExplain);
+
+                //IMPORTANT: Android Studio doesn't have JCEF support by default. So the explain tab might not be initialized on it.
+                if (htmlPanel != null) {
+                    htmlPanel.loadHTML(latestExplain);
+                }
 
                 queryStatsPanel.revalidate();
 
