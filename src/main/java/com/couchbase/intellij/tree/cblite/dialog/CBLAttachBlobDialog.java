@@ -3,7 +3,8 @@ package com.couchbase.intellij.tree.cblite.dialog;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.util.Objects;
+import java.awt.event.*;
+import java.util.*;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -30,7 +31,11 @@ import lombok.Getter;
 
 @Getter
 enum FileType {
-    AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"), VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"), IMAGE("Image", "jpeg|jpg|png|gif|bmp|svg|webp"), TEXT("Text", "txt|doc|docx|pdf"), DATA("Data", "csv|xls|xlsx|xml|json|sql");
+    AUDIO("Audio", "mp3|wav|aac|flac|ogg|wma"),
+    VIDEO("Video", "mp4|avi|mov|flv|wmv|mkv"),
+    IMAGE("Image", "jpeg|jpg|png|gif|bmp|svg|webp"),
+    TEXT("Text", "txt|doc|docx|pdf"),
+    DATA("Data", "csv|xls|xlsx|xml|json|sql");
 
     private final String type;
     private final String extension;
@@ -120,14 +125,29 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         constraints.gridwidth = 2;
         panel.add(errorLabel, constraints);
 
-        fileField.addBrowseFolderListener("Select File", null, project, new FileChooserDescriptor(true, false, false, false, false, false));
+
+        fileField.addBrowseFolderListener("Select File", null, project,
+                new FileChooserDescriptor(true, false, false, false, false, false) {
+                    @Override
+                    public boolean isFileSelectable(VirtualFile file) {
+                        if (file.isDirectory()) {
+                            return true;
+                        }
+                        FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
+                        String[] extensions = Objects.requireNonNull(selectedFileType).getExtension().split("\\|");
+                        return Arrays.asList(extensions).contains(file.getExtension());
+                    }
+                });
+
+
         return panel;
     }
 
     @Override
     protected void doOKAction() {
         StringBuilder errorMessage = new StringBuilder();
-        VirtualFile selectedFile = fileField.getText().isEmpty() ? null : LocalFileSystem.getInstance().findFileByPath(fileField.getText());
+        VirtualFile selectedFile = fileField.getText().isEmpty() ? null
+                : LocalFileSystem.getInstance().findFileByPath(fileField.getText());
 
         if (selectedFile == null) {
             errorMessage.append("No file selected.<br>");
@@ -145,8 +165,11 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         }
 
         FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
-        if (selectedFile.getExtension() == null || !selectedFile.getExtension().matches(Objects.requireNonNull(selectedFileType).getExtension())) {
-            errorMessage.append("The selected file type does not match the chosen file type. Supported file types are: ").append(Objects.requireNonNull(selectedFileType).getExtension().replace("|", ", ")).append("<br>");
+        if (selectedFile.getExtension() == null
+                || !selectedFile.getExtension().matches(Objects.requireNonNull(selectedFileType).getExtension())) {
+            errorMessage
+                    .append("The selected file type does not match the chosen file type. Supported file types are: ")
+                    .append(Objects.requireNonNull(selectedFileType).getExtension().replace("|", ", ")).append("<br>");
         }
 
         if (!errorMessage.isEmpty()) {
@@ -160,7 +183,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
             Blob blob = new Blob(contentType, selectedFile.contentsToByteArray());
             mutableDocument.setBlob(blobFieldName, blob);
             collection.save(mutableDocument);
-    
+
         } catch (Exception e) {
             Log.error(e.getMessage());
             errorLabel.setText("Error attaching blob to document: " + e.getMessage());
