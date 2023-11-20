@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SQLPPLiteFileEditor implements FileEditor, TextEditor {
-    public static final String NO_QUERY_CONTEXT_SELECTED = "No Query Context Selected";
     private final EditorWrapper queryEditor;
     private final VirtualFile file;
     private final Project project;
@@ -156,7 +155,8 @@ public class SQLPPLiteFileEditor implements FileEditor, TextEditor {
 
 
         JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(historyPanel, BorderLayout.CENTER);
+        //TODO: Implement Query History
+        //rightPanel.add(historyPanel, BorderLayout.CENTER);
 
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.add(executeToolbar.getComponent(), BorderLayout.WEST);
