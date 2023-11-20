@@ -116,7 +116,7 @@ public class CBLWindowContent extends JPanel {
                         if (userObject instanceof CBLFileNodeDescriptor) {
                             CBLFileNodeDescriptor descriptor = (CBLFileNodeDescriptor) userObject;
 
-                            CBLDataLoader.loadDocument(project, descriptor, tree, false);
+                            CBLDataLoader.loadDocument(project, descriptor, tree);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);

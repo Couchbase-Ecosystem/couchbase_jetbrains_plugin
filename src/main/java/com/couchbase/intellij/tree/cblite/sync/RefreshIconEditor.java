@@ -24,13 +24,13 @@ public class RefreshIconEditor extends AbstractCellEditor implements TableCellEd
 
     public RefreshIconEditor(Project project, Tree tree, ListTableModel<JsonEntry> model) {
         this.model = model;
-        
+
         button.addActionListener(e -> {
             if (value != null && collectionName != null && scopeName != null) {
 
                 String fileName = value + ".json";
                 CBLFileNodeDescriptor descriptor = new CBLFileNodeDescriptor(fileName, scopeName, collectionName, value.toString(), null);
-                CBLDataLoader.loadDocument(project, descriptor, tree, true);
+                CBLDataLoader.loadDocument(project, descriptor, tree);
 
                 VirtualFile virtualFile = descriptor.getVirtualFile();
                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);

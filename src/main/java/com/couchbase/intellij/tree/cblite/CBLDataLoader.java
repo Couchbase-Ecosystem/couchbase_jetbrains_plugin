@@ -284,7 +284,7 @@ public class CBLDataLoader {
     }
 
 
-    public static void loadDocument(Project project, CBLFileNodeDescriptor node, Tree tree, boolean isNew) {
+    public static void loadDocument(Project project, CBLFileNodeDescriptor node, Tree tree) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
@@ -295,7 +295,7 @@ public class CBLDataLoader {
         try {
             Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(node.getScope()).getCollection(node.getCollection()).getDocument(node.getId());
 
-            if (!isNew || document != null) {
+            if (document != null) {
                 cas = document.getRevisionID();
             }
 

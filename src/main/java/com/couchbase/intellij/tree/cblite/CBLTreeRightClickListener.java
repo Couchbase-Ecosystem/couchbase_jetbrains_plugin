@@ -1,38 +1,18 @@
 package com.couchbase.intellij.tree.cblite;
 
-import java.awt.event.MouseEvent;
-import java.util.Objects;
-
-import javax.swing.SwingUtilities;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
-
-import org.jetbrains.annotations.NotNull;
-
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.tree.cblite.dialog.CBLAttachBlobDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
-import com.couchbase.intellij.tree.cblite.nodes.CBLBlobNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLIndexNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLIndexesNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.couchbase.intellij.workbench.Log;
-import com.couchbase.lite.Collection;
-import com.couchbase.lite.CouchbaseLiteException;
-import com.couchbase.lite.Document;
-import com.couchbase.lite.MaintenanceType;
-import com.couchbase.lite.MutableDocument;
-import com.couchbase.lite.Scope;
+import com.couchbase.lite.*;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -46,6 +26,14 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
+import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
+import java.awt.event.MouseEvent;
+import java.util.Objects;
 
 public class CBLTreeRightClickListener {
 
@@ -233,7 +221,7 @@ public class CBLTreeRightClickListener {
         AnAction openDocument = new AnAction("Open Document") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                CBLOpenDocumentDialog dialog = new CBLOpenDocumentDialog(false, project, tree, userObject.getScope(), userObject.getText());
+                CBLOpenDocumentDialog dialog = new CBLOpenDocumentDialog(false, project, tree, clickedNode, userObject.getScope(), userObject.getText());
                 dialog.show();
             }
         };
@@ -242,7 +230,7 @@ public class CBLTreeRightClickListener {
         AnAction createDocument = new AnAction("Create Document") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                CBLOpenDocumentDialog dialog = new CBLOpenDocumentDialog(true, project, tree, userObject.getScope(), userObject.getText());
+                CBLOpenDocumentDialog dialog = new CBLOpenDocumentDialog(true, project, tree, clickedNode, userObject.getScope(), userObject.getText());
                 dialog.show();
             }
         };
@@ -367,43 +355,34 @@ public class CBLTreeRightClickListener {
                     return;
                 }
 
-                Task.Backgroundable deleteDocumentTask = new Task.Backgroundable(project, "Deleting document") {
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        try {
-                            Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).getCollection(userObject.getCollection()).getDocument(userObject.getId());
+                try {
 
-                            boolean documentHasBlob = CBLBlobHandler.documentHasBlob(document);
-                            ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).getCollection(userObject.getCollection()).delete(document);
-
-                            if (documentHasBlob) {
-                                Log.info("Performing maintenance with COMPACT type after deleting the document " + userObject.getId());
-                                ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
+                    if (userObject.getVirtualFile() != null) {
+                        ApplicationManager.getApplication().runWriteAction(() -> {
+                            try {
+                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                                fileEditorManager.closeFile(userObject.getVirtualFile());
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                Log.debug("Could not close the file", ex);
                             }
-
-                            if (userObject.getVirtualFile() != null) {
-                                try {
-                                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                                    fileEditorManager.closeFile(userObject.getVirtualFile());
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                    Log.debug("Could not close the file", ex);
-                                }
-                            }
-
-                            DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                            SwingUtilities.invokeLater(() -> {
-                                if (parentNode != null) {
-                                    ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
-                                }
-                                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                            });
-                        } catch (Exception ex) {
-                            Log.error("An error occurred while trying to delete the document " + userObject.getId(), ex);
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error"));
-                        }
+                        });
                     }
-                };
-                deleteDocumentTask.queue();
+
+                    Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).getCollection(userObject.getCollection()).getDocument(userObject.getId());
+                    ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).getCollection(userObject.getCollection()).delete(document);
+
+                    DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                    SwingUtilities.invokeLater(() -> {
+                        if (parentNode != null) {
+                            ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                        }
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    });
+                } catch (Exception ex) {
+                    Log.error("An error occurred while trying to delete the document " + userObject.getId(), ex);
+                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error"));
+                }
             }
         };
         actionGroup.add(deleteDocument);
