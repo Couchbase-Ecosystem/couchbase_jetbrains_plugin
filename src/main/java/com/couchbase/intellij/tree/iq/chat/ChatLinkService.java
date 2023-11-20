@@ -66,9 +66,11 @@ public class ChatLinkService extends AbstractChatLink {
             listener.exchangeStarting(event);
             conversationHandler.push(conversationContext, event, listener);
         } catch (ChatExchangeAbortException ex) {
+            ex.printStackTrace();
             listener.exchangeCancelled(event.cancelled());
             getConversationContext().setLastPostedCodeFragments(List.of());
         } catch (Throwable x) {
+            x.printStackTrace();
             listener.exchangeFailed(event.failed(x));
             getConversationContext().setLastPostedCodeFragments(List.of());
         }

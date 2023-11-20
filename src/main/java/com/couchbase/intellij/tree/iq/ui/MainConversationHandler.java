@@ -4,8 +4,7 @@
  */
 package com.couchbase.intellij.tree.iq.ui;
 
-
-//import com.couchbase.intellij.tree.iq.ChatGPTHandler;
+import com.couchbase.intellij.tree.iq.chat.ChatGptHandler;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageListener;
 import com.couchbase.intellij.tree.iq.chat.ConversationContext;
@@ -14,6 +13,7 @@ import com.couchbase.intellij.tree.iq.core.ChatCompletionRequestProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainConversationHandler implements ConversationHandler {
 
@@ -33,11 +33,9 @@ public class MainConversationHandler implements ConversationHandler {
         var chatCompletionRequest = chatCompletionRequestProvider.chatCompletionRequest(ctx, userMessage)
                 .build();
 
-//        return application.getService(ChatGPTHandler.class)
-//                .handle(ctx, event.initiating(chatCompletionRequest), listener)
-//                .subscribeOn(Schedulers.io())
-//                .subscribe();
-
-        return null;
+        return application.getService(ChatGptHandler.class)
+                .handle(ctx, event.initiating(chatCompletionRequest), listener)
+                .subscribeOn(Schedulers.io())
+                .subscribe();
     }
 }

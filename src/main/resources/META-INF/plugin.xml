@@ -70,6 +70,17 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.chat.ChatGptHandler"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceFactory"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceProviderRegistry"/>
+        <applicationService serviceInterface="com.couchbase.intellij.tree.iq.ui.ContextAwareSnippetizer"
+                serviceImplementation="com.couchbase.intellij.tree.iq.ui.TextEditorSelectionAwareSnippetizer"/>
+        <applicationService serviceInterface="com.couchbase.intellij.tree.iq.chat.ChatMessageComposer"
+                            serviceImplementation="com.couchbase.intellij.tree.iq.chat.DefaultChatMessageComposer"/>
+
+        <projectService serviceInterface="com.couchbase.intellij.tree.iq.core.TextSubstitutor"
+                        serviceImplementation="com.couchbase.intellij.tree.iq.core.StandardTextSubstitutor"/>
 
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>

@@ -5,6 +5,7 @@
 package com.couchbase.intellij.tree.iq;
 
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
+import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.ui.LoginPanel;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.tree.iq.ui.OrgSelectionPanel;
@@ -17,6 +18,7 @@ import javax.swing.*;
 import java.io.IOException;
 
 public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, OrgSelectionPanel.Listener {
+    private static final String IQ_URL = "https://api.dev.nonprod-project-avengers.com/v2/organizations/%s/integrations/iq/";
     private final Project project;
     private IQCredentials credentials = new IQCredentials();
 
@@ -51,6 +53,14 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     @Override
     public void onOrgSelected(CapellaOrganization organization) {
         this.removeAll();
-        this.add(new ChatPanel(project, credentials, organization, this));
+        final String iqUrl = String.format(IQ_URL, organization.getId());
+        OpenAISettingsState.OpenAIConfig iqGptConfig = new OpenAISettingsState.OpenAIConfig();
+        OpenAISettingsState.getInstance().setGpt4Config(iqGptConfig);
+        iqGptConfig.setApiKey(credentials.getAuth().getJwt());
+        iqGptConfig.setEnableStreamResponse(false);
+        iqGptConfig.setModelName("gpt-4");
+        iqGptConfig.setApiEndpointUrl(iqUrl);
+        iqGptConfig.setEnableCustomApiEndpointUrl(true);
+        this.add(new ChatPanel(project, iqGptConfig, this));
     }
 }

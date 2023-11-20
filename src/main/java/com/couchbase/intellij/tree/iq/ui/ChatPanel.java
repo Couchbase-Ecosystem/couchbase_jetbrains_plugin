@@ -57,7 +57,6 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     private final JProgressBar progressBar;
     private final Project myProject;
     private final LogoutListener logoutListener;
-    private final CapellaOrganization organization;
     private JPanel actionPanel;
     private volatile Object requestHolder;
     private final MainConversationHandler conversationHandler;
@@ -66,13 +65,12 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     public static final KeyStroke SUBMIT_KEYSTROKE = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, CTRL_DOWN_MASK);
 
-    public ChatPanel(@NotNull Project project, IQCredentials credentials, CapellaOrganization organization, LogoutListener logoutListener) {
+    public ChatPanel(@NotNull Project project, ConfigurationPage aiConfig, LogoutListener logoutListener) {
         myProject = project;
-        this.organization = organization;
         conversationHandler = new MainConversationHandler(this);
         this.logoutListener = logoutListener;
 
-        chatLink = new IQLinkservice(project, credentials);
+        chatLink = new ChatLinkService(project, conversationHandler, aiConfig);
         chatLink.addChatMessageListener(this);
         ContextAwareSnippetizer snippetizer = ApplicationManager.getApplication().getService(ContextAwareSnippetizer.class);
         SubmitListener submitAction = new SubmitListener(chatLink, this::getSearchText, snippetizer);
