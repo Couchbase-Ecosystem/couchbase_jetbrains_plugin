@@ -107,8 +107,12 @@ public class OpenDocumentDialog extends DialogWrapper {
             gc.gridy = 1;
             gc.gridx = 1;
             gc.weightx = 1;
-            if (DataLoader.stubsAvailable(bucket, scope, collection)) {
-                formPanel.add(generateStub, gc);
+            try {
+                if (DataLoader.stubsAvailable(bucket, scope, collection)) {
+                    formPanel.add(generateStub, gc);
+                }
+            } catch (Exception e) {
+                Log.debug("Stubs not available for collection " + collection);
             }
         }
 

@@ -16,10 +16,7 @@ import com.couchbase.lite.MutableDocument;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -157,6 +154,17 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
     }
 
     private static void saveCBLDocument(@NotNull Document document, VirtualFile file) throws CouchbaseLiteException {
+
+
+        try {
+            JsonParser.parseString(document.getText());
+        } catch (JsonSyntaxException e) {
+            Messages.showErrorDialog("<html>The Document <strong>"
+                    + file.getUserData(VirtualFileKeys.ID)
+                    + "</strong> can't be saved as it is not a valid JSON</html>", "Couchbase Plugin Error");
+            return;
+        }
+
         MutableDocument newDoc = new MutableDocument(file.getUserData(VirtualFileKeys.ID));
         newDoc.setJSON(document.getText());
 
