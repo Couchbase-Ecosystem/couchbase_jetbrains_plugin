@@ -42,5 +42,18 @@ public class FileExporter {
         }
     }
 
+    protected static void exportResultToSQLPP(@NotNull Project project, String content) {
+        FileSaverDescriptor fsd = new FileSaverDescriptor("Save SQL++ File", "Choose where you want to save the file:");
+        VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project).save(("cb_query_export-" + TimeUtils.getCurrentDateTime() + ".sqlpp"));
+        if (wrapper != null) {
+            File file = wrapper.getFile();
+            try (FileWriter fileWriter = new FileWriter(file)) {
+                fileWriter.write(content);
+                Messages.showInfoMessage("File saved successfully.", "File Saved");
+            } catch (Exception e) {
+                Messages.showErrorDialog(e.getMessage(), "Error Saving the File");
+            }
+        }
+    }
 
 }

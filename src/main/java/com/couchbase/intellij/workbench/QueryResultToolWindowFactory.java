@@ -21,6 +21,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -45,6 +46,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String rttToolTip = "Round-Trip Time (RTT) is the total time taken to send a request and receive a response from the server";
@@ -67,6 +69,10 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
     private Project project;
+    private JPopupMenu popupMenu;
+
+
+    private TabInfo explainTab;
 
 
     public QueryResultToolWindowFactory() {
@@ -122,14 +128,15 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         topPanel.add(resultStats, BorderLayout.WEST);
 
-        JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu = new JPopupMenu();
         JMenuItem jsonMenuItem = new JMenuItem("JSON");
         JMenuItem csvMenuItem = new JMenuItem("CSV");
+
         popupMenu.add(csvMenuItem);
         popupMenu.add(jsonMenuItem);
 
-        csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
 
+        csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
         jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
@@ -160,26 +167,29 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         editorSettings.setIndentGuidesShown(true);
 
 
-        htmlPanel = new HtmlPanel();
         latestExplain = getEmptyExplain();
-        htmlPanel.loadHTML(latestExplain);
-
-
-        JPanel explainPanel = new JPanel(new BorderLayout());
-        explainPanel.add(htmlPanel, BorderLayout.CENTER);
-        TabInfo explainTab = new TabInfo(explainPanel).setText("Explain");
 
 
         JBTabs resultTabs = new JBTabsImpl(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
-        resultTabs.addTab(explainTab);
+
+        try {
+            htmlPanel = new HtmlPanel();
+            htmlPanel.loadHTML(latestExplain);
+            JPanel explainPanel = new JPanel(new BorderLayout());
+            explainPanel.add(htmlPanel, BorderLayout.CENTER);
+            explainTab = new TabInfo(explainPanel).setText("Explain");
+            resultTabs.addTab(explainTab);
+        } catch (Exception e) {
+            Log.error("Failed to load the explain tab. Double check if the JRE that you are running your IDE has support for JCEF. https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef");
+        }
 
         //NOTE: This is an workaround as the explain tends to render awkwardly when it is not on focus
         resultTabs.addListener(new TabsListener() {
             @Override
             public void selectionChanged(TabInfo oldSelection, TabInfo newSelection) {
-                if (newSelection == explainTab) {
+                if (explainTab != null && newSelection == explainTab) {
                     htmlPanel.loadHTML(latestExplain);
                 }
             }
@@ -217,6 +227,19 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                     queryResultTab.revalidate();
                 }
             });
+        });
+    }
+
+    private void addSQLPPMenuItemListener(JMenuItem menuItem, String title, Supplier<String> sqlppSupplier) {
+        menuItem.addActionListener(actionEvent -> {
+            String sqlppContent = sqlppSupplier.get();
+            if (sqlppContent != null) {
+                if (sqlppContent.startsWith("The query result should")) {
+                    Messages.showErrorDialog(sqlppContent, "Error Exporting to SQL++ " + title);
+                } else {
+                    FileExporter.exportResultToSQLPP(project, sqlppContent);
+                }
+            }
         });
     }
 
@@ -312,7 +335,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return list;
     }
 
-    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain) {
+    public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain, boolean isQueryScript) {
         SwingUtilities.invokeLater(() -> {
             if (results != null && error == null || error.getErrors().isEmpty()) {
 
@@ -330,7 +353,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 });
 
                 latestExplain = (explain == null ? getEmptyExplain() : ExplainContent.getContent(explain));
-                htmlPanel.loadHTML(latestExplain);
+
+                //IMPORTANT: Android Studio doesn't have JCEF support by default. So the explain tab might not be initialized on it.
+                if (htmlPanel != null) {
+                    htmlPanel.loadHTML(latestExplain);
+                }
 
                 queryStatsPanel.revalidate();
 
@@ -347,6 +374,77 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 }
 
                 model.updateData(convertedResults);
+
+
+                if (!isQueryScript) {
+                    boolean sqlppUpsertMenuItemExists = false;
+                    boolean sqlppInsertMenuItemExists = false;
+                    boolean sqlppUpdateMenuItemExists = false;
+
+                    for (Component component : popupMenu.getComponents()) {
+                        if (component instanceof JMenuItem) {
+                            JMenuItem menuItem = (JMenuItem) component;
+                            if (menuItem.getText().equals("SQL++ UPSERT")) {
+                                sqlppUpsertMenuItemExists = true;
+                            } else if (menuItem.getText().equals("SQL++ INSERT")) {
+                                sqlppInsertMenuItemExists = true;
+                            } else if (menuItem.getText().equals("SQL++ UPDATE")) {
+                                sqlppUpdateMenuItemExists = true;
+                            }
+                        }
+                    }
+
+                    // If SQLPP items do not exist, add them after a divider
+                    if (!sqlppUpsertMenuItemExists || !sqlppInsertMenuItemExists || !sqlppUpdateMenuItemExists) {
+                        boolean dividerExists = false;
+                        for (Component component : popupMenu.getComponents()) {
+                            if (component instanceof JSeparator) {
+                                dividerExists = true;
+                                break;
+                            }
+                        }
+
+                        if (!dividerExists) {
+                            popupMenu.add(new JSeparator());
+                        }
+
+                        if (!sqlppUpsertMenuItemExists) {
+                            JMenuItem sqlppUpsertMenuItem = new JMenuItem("SQL++ UPSERT");
+                            popupMenu.add(sqlppUpsertMenuItem);
+                            addSQLPPMenuItemListener(sqlppUpsertMenuItem, "UPSERT", model::convertToSQLPPUpsert);
+                        }
+
+                        if (!sqlppInsertMenuItemExists) {
+                            JMenuItem sqlppInsertMenuItem = new JMenuItem("SQL++ INSERT");
+                            popupMenu.add(sqlppInsertMenuItem);
+                            addSQLPPMenuItemListener(sqlppInsertMenuItem, "INSERT", model::convertToSQLPPInsert);
+                        }
+
+                        if (!sqlppUpdateMenuItemExists) {
+                            JMenuItem sqlppUpdateMenuItem = new JMenuItem("SQL++ UPDATE");
+                            popupMenu.add(sqlppUpdateMenuItem);
+                            addSQLPPMenuItemListener(sqlppUpdateMenuItem, "UPDATE", model::convertToSQLPPUpdate);
+                        }
+                    }
+                } else {
+                    for (Component component : popupMenu.getComponents()) {
+                        if (component instanceof JMenuItem) {
+                            JMenuItem menuItem = (JMenuItem) component;
+                            if (menuItem.getText().equals("SQL++ UPSERT") ||
+                                    menuItem.getText().equals("SQL++ INSERT") ||
+                                    menuItem.getText().equals("SQL++ UPDATE")) {
+                                popupMenu.remove(menuItem);
+                            }
+
+                        }
+                        if (component instanceof JSeparator) {
+                            popupMenu.remove(component);
+                        }
+                    }
+                }
+
+                popupMenu.revalidate();
+                popupMenu.repaint();
 
             } else {
                 cachedResults = null;

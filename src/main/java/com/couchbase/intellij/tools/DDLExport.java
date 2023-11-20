@@ -52,7 +52,7 @@ public class DDLExport {
                 List<QueryIndex> result = DataLoader.listIndexes(bucket, scope, spec.name());
                 sb.append(result.stream().map(e -> IndexUtils.getIndexDefinition(e, true)).collect(Collectors.joining("; \n")));
 
-                if (result.size() > 1) {
+                if (result.size() >= 1) {
                     sb.append("; \n");
                 }
             }

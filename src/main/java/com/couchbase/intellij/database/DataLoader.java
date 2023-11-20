@@ -214,8 +214,7 @@ public class DataLoader {
                             if (fileType == FileNodeDescriptor.FileType.BINARY) {
                                 fileName = docId;
                             }
-                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId,
-                                    fileType, null);
+                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId, fileType, null);
                             DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                             parentNode.add(jsonFileNode);
                         }
@@ -264,8 +263,7 @@ public class DataLoader {
 
         if (!docIds.isEmpty()) {
             for (String id : docIds) {
-                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id,
-                        FileNodeDescriptor.FileType.UNKNOWN, null);
+                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id, FileNodeDescriptor.FileType.UNKNOWN, null);
                 DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                 parentNode.add(jsonFileNode);
             }
@@ -282,12 +280,7 @@ public class DataLoader {
     }
 
     public static boolean stubsAvailable(String bucket, String scope, String collection) {
-        return ActiveCluster.getInstance().getChild(bucket)
-                .flatMap(b -> b.getChild(scope))
-                .flatMap(s -> s.getChild(collection))
-                .map(col -> ((CouchbaseCollection) col).generateDocument())
-                .filter(Objects::nonNull)
-                .findAny().isPresent();
+        return ActiveCluster.getInstance().getChild(bucket).flatMap(b -> b.getChild(scope)).flatMap(s -> s.getChild(collection)).map(col -> ((CouchbaseCollection) col).generateDocument()).filter(Objects::nonNull).findAny().isPresent();
     }
 
     /**
@@ -297,7 +290,7 @@ public class DataLoader {
      * @param node    Node where the virtual file will be stored
      * @param tree    used to set the loading status
      */
-    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew, boolean generateStub) {
+    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
@@ -323,27 +316,10 @@ public class DataLoader {
             }
 
         } catch (DocumentNotFoundException dnf) {
-            //document was not found because the user wants to create a new one.
-            if (!isNew) {
-                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
-                tree.setPaintBusy(false);
-                return;
-            } else if (generateStub) {
-                docContent = ActiveCluster.getInstance().getChild(node.getBucket())
-                        .flatMap(bucket -> bucket.getChild(node.getScope()))
-                        .flatMap(scope -> scope.getChild(node.getCollection()))
-                        .map(col -> ((CouchbaseCollection) col).generateDocument())
-                        .filter(Objects::nonNull)
-                        .peek(o -> {
-                            if (o.containsKey("id")) {
-                                o.put("id", node.getId());
-                            } else if (o.containsKey("ID")) {
-                                o.put("ID", node.getId());
-                            }
-                        })
-                        .map(JsonObject::toString)
-                        .findFirst().orElse(docContent);
-            }
+            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
+            tree.setPaintBusy(false);
+            return;
+
         } catch (TimeoutException te) {
             te.printStackTrace();
             Log.error("Request to get the document " + node.getId() + " timed out.", te);
@@ -363,9 +339,7 @@ public class DataLoader {
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
                 final FileType type = isBinary ? UserBinaryFileType.INSTANCE : JsonFileType.INSTANCE;
-                CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(
-                        project, type, node.getBucket(), node.getScope(), node.getCollection(), node.getId()
-                );
+                CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(project, type, node.getBucket(), node.getScope(), node.getCollection(), node.getId());
 
                 virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
