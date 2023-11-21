@@ -11,9 +11,7 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -412,6 +410,7 @@ public class CBLImportDialog extends DialogWrapper {
         }
 
         String filePath = datasetField.getText();
+
         String selectedScope = (String) scopeComboBox.getSelectedItem();
         String selectedCollection = (String) collectionComboBox.getSelectedItem();
 
@@ -426,20 +425,55 @@ public class CBLImportDialog extends DialogWrapper {
             Collection collection = Objects.requireNonNull(scope)
                     .getCollection(Objects.requireNonNull(selectedCollection));
 
+            Set<String> docIds = new HashSet<>();
+
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonObject jsonObject = jsonArray.getObject(i);
 
                 String docId = generateDocumentId(jsonObject);
 
+                if (docIds.contains(docId)) {
+
+                    universalErrorLabel.setText("Duplicate document ID: " + docId);
+                    universalErrorLabel.setVisible(true);
+                    return;
+                }
+
+                docIds.add(docId);
+            }
+
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonObject jsonObject = jsonArray.getObject(i);
+
+                String docId = docIds.iterator().next();
+                docIds.remove(docId);
+
                 MutableDocument mutableDocument;
-                if (Objects.requireNonNull(collection).getDocument(Objects.requireNonNull(docId)) != null) {
+                if (Objects.requireNonNull(collection).getDocument(docId) != null) {
                     mutableDocument = Objects.requireNonNull(collection.getDocument(docId)).toMutable();
                 } else {
                     mutableDocument = new MutableDocument(docId);
                 }
 
                 for (String key : jsonObject.getNames()) {
-                    mutableDocument.setValue(key, jsonObject.get(key));
+                    Object value = jsonObject.get(key);
+                    if (value instanceof JsonArray) {
+                        List<Object> list = new ArrayList<>();
+                        JsonArray arrayValue = (JsonArray) value;
+                        for (int j = 0; j < arrayValue.size(); j++) {
+                            list.add(arrayValue.get(j));
+                        }
+                        mutableDocument.setValue(key, list);
+                    } else if (value instanceof JsonObject) {
+                        Map<String, Object> map = new HashMap<>();
+                        JsonObject objectValue = (JsonObject) value;
+                        for (String innerKey : objectValue.getNames()) {
+                            map.put(innerKey, objectValue.get(innerKey));
+                        }
+                        mutableDocument.setValue(key, map);
+                    } else {
+                        mutableDocument.setValue(key, value);
+                    }
                 }
 
                 collection.save(mutableDocument);
@@ -449,7 +483,8 @@ public class CBLImportDialog extends DialogWrapper {
         } catch (Exception e) {
             e.printStackTrace();
             Log.error("Error while importing data", e);
-            universalErrorLabel.setText("Error while importing data. Please check the logs for more details.");
+        } finally {
+            cache.clear();
         }
     }
 
