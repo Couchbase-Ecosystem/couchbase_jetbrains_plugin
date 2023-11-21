@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
+import utils.FileUtils;
 import utils.TemplateUtil;
 
 public class CBLImportDialog extends DialogWrapper {
@@ -112,9 +114,9 @@ public class CBLImportDialog extends DialogWrapper {
 
         JPanel contentPanel = new JPanel(new GridBagLayout());
 
-        JLabel listInfoLabel = new JLabel();
-        listInfoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
-        listInfoLabel.addMouseListener(new MouseAdapter() {
+        JLabel infoLabel = new JLabel();
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 String content = "<html><h2>List Format</h2><br>" +
@@ -129,17 +131,7 @@ public class CBLImportDialog extends DialogWrapper {
                         "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
                         "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
                         "]</p><br>" +
-                        "</html>";
-                DocumentFilterDialog.showGotItTooltip(e.getComponent(), content);
-            }
-        });
-
-        JLabel linesInfoLabel = new JLabel();
-        linesInfoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
-        linesInfoLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                String content = "<html><h2>Lines Format</h2><br>" +
+                        "<h2>Lines Format</h2><br>" +
                         "<p>The lines format specifies a file that contains one JSON document on every line in the file. This format is specified by setting the --format option to \"lines\". Below is an example of a file in lines format.</p><br>"
                         +
                         "<p>{\"key\": \"mykey1\", \"value\": \"myvalue1\"}<br>" +
@@ -151,17 +143,14 @@ public class CBLImportDialog extends DialogWrapper {
             }
         });
 
-        c.gridy++;
-        c.gridx = 0;
-        contentPanel.add(new JLabel("List Info:"), c);
-        c.gridx = 1;
-        contentPanel.add(listInfoLabel, c);
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        // c.gridy++;
-        c.gridx = 2;
-        contentPanel.add(new JLabel("Lines Info:"), c);
+        infoPanel.add(infoLabel);
+
+        c.gridy++;
+
         c.gridx = 3;
-        contentPanel.add(linesInfoLabel, c);
+        contentPanel.add(infoPanel, c);
 
         datasetFormPanel = new JPanel();
         datasetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
@@ -171,18 +160,18 @@ public class CBLImportDialog extends DialogWrapper {
                 "Select the Dataset:",
                 "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
         c.gridy++;
-        c.weightx = 0.3;
+        c.weightx = 0.1;
         c.gridx = 0;
         datasetFormPanel.add(datasetLabelHelpPanel, c);
 
         datasetField = new TextFieldWithBrowseButton();
-        c.weightx = 0.7;
+        c.weightx = 0.9;
         c.gridx = 1;
         datasetFormPanel.add(datasetField, c);
 
         c.gridy++;
-        c.gridwidth = 4;
         c.gridx = 0;
+        c.gridwidth = 4;
         contentPanel.add(datasetFormPanel, c);
 
         c.gridy++;
@@ -192,15 +181,23 @@ public class CBLImportDialog extends DialogWrapper {
         collectionComboBox = new ComboBox<>();
 
         c.gridy++;
+        c.weightx = 0.3;
         c.gridx = 0;
+        c.gridwidth = 1;
         contentPanel.add(new JLabel("Scope: "), c);
+        c.weightx = 0.7;
         c.gridx = 1;
+        c.gridwidth = 3;
         contentPanel.add(scopeComboBox, c);
 
         c.gridy++;
+        c.weightx = 0.3;
         c.gridx = 0;
+        c.gridwidth = 1;
         contentPanel.add(new JLabel("Collection: "), c);
+        c.weightx = 0.7;
         c.gridx = 1;
+        c.gridwidth = 3;
         contentPanel.add(collectionComboBox, c);
 
         datasetPanel.add(contentPanel, BorderLayout.NORTH);
@@ -215,37 +212,35 @@ public class CBLImportDialog extends DialogWrapper {
         c.weightx = 1.0;
         c.insets = JBUI.insets(10);
 
-    
         keyField = new JTextField(25);
         keyPreviewArea = new JTextArea(10, 25);
         keyPreviewArea.setEditable(false);
-    
+
         c.gridx = 0;
         c.gridy = 0;
         c.gridwidth = 2;
         keyPanel.add(new TitledSeparator("Key Naming"), c);
-        
+
         c.gridy++;
         c.gridwidth = 1;
         keyPanel.add(new JLabel("Custom Expression:"), c);
-    
+
         c.gridx = 1;
         keyPanel.add(keyField, c);
-    
+
         c.gridx = 0;
         c.gridy++;
         c.gridwidth = 2;
         keyPanel.add(new JLabel("Projected Names:"), c);
-    
+
         c.gridx = 0;
         c.gridy++;
         c.weighty = 1.0;
         c.fill = GridBagConstraints.BOTH;
         keyPanel.add(new JScrollPane(keyPreviewArea), c);
-    
+
         return keyPanel;
     }
-    
 
     @Override
     protected JComponent createSouthPanel() {
@@ -269,7 +264,9 @@ public class CBLImportDialog extends DialogWrapper {
             nextButton.setText((currentPage == LAST_PAGE) ? "Import" : "Next");
         });
 
-        prevButton.setEnabled(currentPage > 1);
+        prevButton.setEnabled(false);
+        nextButton.setEnabled(false);
+
         southPanel.add(prevButton);
         southPanel.add(nextButton);
 
@@ -286,11 +283,6 @@ public class CBLImportDialog extends DialogWrapper {
         cardLayout.previous(cardPanel);
     }
 
-    @Override
-    protected void doOKAction() {
-        // Perform the import operation
-    }
-
     private void addListeners() {
 
         datasetField.addBrowseFolderListener("Select a File", "Please select a JSON file", null,
@@ -304,26 +296,45 @@ public class CBLImportDialog extends DialogWrapper {
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
-                cache.clear(); // Clear the cache when the file path changes
+                cache.clear();
+                String filePath = datasetField.getText();
+                if (filePath.isEmpty() || !Files.exists(Paths.get(filePath))) {
+                    nextButton.setEnabled(false);
+                    universalErrorLabel.setText("Please select a valid JSON file.");
+                    universalErrorLabel.setVisible(true);
+                } else {
+                    String datasetText = datasetField.getText();
+                    String detectedCouchbaseJsonFormat = null;
+                    try {
+                        detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
+                        if (detectedCouchbaseJsonFormat == null) {
+                            nextButton.setEnabled(false);
+                            universalErrorLabel.setText(
+                                    "The selected file is not in a recognized format. Please select a JSON file in either 'lines' or 'list' format.");
+                            universalErrorLabel.setVisible(true);
+                        } else {
+                            nextButton.setEnabled(true);
+                            universalErrorLabel.setVisible(false);
+                        }
+
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                }
             }
         });
 
-        // Get the active database
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
 
-        // Iterate over all scopes in the database
         try {
             for (Scope scope : database.getScopes()) {
                 scopeComboBox.addItem(scope.getName());
             }
 
-            // Add an action listener to the scope combo box to update the collection combo
-            // box when the selected scope changes
             scopeComboBox.addActionListener(e -> {
                 String selectedScope = (String) scopeComboBox.getSelectedItem();
                 collectionComboBox.removeAllItems();
 
-                // Iterate over all collections in the selected scope
                 try {
                     for (Collection col : database.getCollections(selectedScope)) {
                         collectionComboBox.addItem(col.getName());
@@ -336,9 +347,7 @@ public class CBLImportDialog extends DialogWrapper {
             e1.printStackTrace();
         }
 
-        // Hit the action once
         scopeComboBox.getActionListeners()[0].actionPerformed(null);
-
         keyField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
@@ -365,9 +374,9 @@ public class CBLImportDialog extends DialogWrapper {
                             String[] keyParts = key.split("%");
                             for (int i = 0; i < keyParts.length; i++) {
                                 if (i % 2 == 0) {
-                                    projectedNames.append(keyParts[i]); // Append the part outside '%'
+                                    projectedNames.append(keyParts[i]);
                                 } else {
-                                    String keyPart = keyParts[i]; // Get the key part surrounded by '%'
+                                    String keyPart = keyParts[i];
                                     if (jsonObject.containsKey(keyPart)) {
                                         projectedNames.append(jsonObject.getString(keyPart));
                                     }
@@ -384,6 +393,10 @@ public class CBLImportDialog extends DialogWrapper {
 
         });
 
+    }
+
+    @Override
+    protected void doOKAction() {
 
     }
 }
