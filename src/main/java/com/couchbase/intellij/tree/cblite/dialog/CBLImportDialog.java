@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -29,9 +30,11 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
+import com.couchbase.lite.MutableDocument;
 import com.couchbase.lite.Scope;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
@@ -60,19 +63,13 @@ public class CBLImportDialog extends DialogWrapper {
     private JButton nextButton;
     private JButton prevButton;
 
-    private JPanel mainPanel;
-    private JPanel southPanel;
-    private JPanel datasetPanel;
-    private JPanel datasetFormPanel;
-    private JPanel datasetLabelHelpPanel;
-    private JPanel universalErrorPanel;
     private JBLabel universalErrorLabel;
 
     ComboBox<String> scopeComboBox;
     ComboBox<String> collectionComboBox;
 
     private static final int CACHE_SIZE = 6;
-    private List<JsonObject> cache = new ArrayList<>();
+    private final List<JsonObject> cache = new ArrayList<>();
 
     public CBLImportDialog(Project project, Tree tree) {
         super(project, true);
@@ -82,7 +79,7 @@ public class CBLImportDialog extends DialogWrapper {
 
     @Override
     protected JComponent createCenterPanel() {
-        mainPanel = new JPanel(new BorderLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
@@ -92,7 +89,7 @@ public class CBLImportDialog extends DialogWrapper {
 
         mainPanel.add(cardPanel, BorderLayout.CENTER);
 
-        universalErrorPanel = new JPanel();
+        JPanel universalErrorPanel = new JPanel();
         universalErrorPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         universalErrorLabel = new JBLabel();
         universalErrorLabel.setForeground(Color.decode("#FF4444"));
@@ -110,7 +107,7 @@ public class CBLImportDialog extends DialogWrapper {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = JBUI.insets(10);
 
-        datasetPanel = new JPanel(new BorderLayout());
+        JPanel datasetPanel = new JPanel(new BorderLayout());
 
         JPanel contentPanel = new JPanel(new GridBagLayout());
 
@@ -152,11 +149,11 @@ public class CBLImportDialog extends DialogWrapper {
         c.gridx = 3;
         contentPanel.add(infoPanel, c);
 
-        datasetFormPanel = new JPanel();
+        JPanel datasetFormPanel = new JPanel();
         datasetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
         datasetFormPanel.setLayout(new GridBagLayout());
 
-        datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp(
+        JPanel datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp(
                 "Select the Dataset:",
                 "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
         c.gridy++;
@@ -244,7 +241,7 @@ public class CBLImportDialog extends DialogWrapper {
 
     @Override
     protected JComponent createSouthPanel() {
-        southPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         final int LAST_PAGE = 2;
         nextButton = new JButton("Next");
         nextButton.addActionListener(e -> {
@@ -304,7 +301,7 @@ public class CBLImportDialog extends DialogWrapper {
                     universalErrorLabel.setVisible(true);
                 } else {
                     String datasetText = datasetField.getText();
-                    String detectedCouchbaseJsonFormat = null;
+                    String detectedCouchbaseJsonFormat;
                     try {
                         detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
                         if (detectedCouchbaseJsonFormat == null) {
@@ -319,6 +316,7 @@ public class CBLImportDialog extends DialogWrapper {
 
                     } catch (IOException e1) {
                         e1.printStackTrace();
+                        Log.error("Error while detecting dataset format", e1);
                     }
                 }
             }
@@ -341,10 +339,12 @@ public class CBLImportDialog extends DialogWrapper {
                     }
                 } catch (CouchbaseLiteException e1) {
                     e1.printStackTrace();
+                    Log.error("Error while getting collections", e1);
                 }
             });
         } catch (CouchbaseLiteException e1) {
             e1.printStackTrace();
+            Log.error("Error while getting scopes", e1);
         }
 
         scopeComboBox.getActionListeners()[0].actionPerformed(null);
@@ -384,13 +384,17 @@ public class CBLImportDialog extends DialogWrapper {
                             }
                             projectedNames.append("\n");
                         }
-                        keyPreviewArea.setText(projectedNames.toString());
+                        String projectedNamesStr = projectedNames.toString().trim();
+                        keyPreviewArea.setText(projectedNamesStr);
+                        nextButton.setEnabled(!projectedNamesStr.isEmpty());
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        Log.error("Error while reading file", ex);
                     }
+                } else {
+                    nextButton.setEnabled(false);
                 }
             }
-
         });
 
     }
@@ -398,5 +402,85 @@ public class CBLImportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
 
+        String keyPattern = keyField.getText();
+
+        if (keyPattern == null || keyPattern.trim().isEmpty()) {
+
+            universalErrorLabel.setText("The key field cannot be empty.");
+            universalErrorLabel.setVisible(true);
+            return;
+        }
+
+        String filePath = datasetField.getText();
+        String selectedScope = (String) scopeComboBox.getSelectedItem();
+        String selectedCollection = (String) collectionComboBox.getSelectedItem();
+
+        try {
+
+            String content = new String(Files.readAllBytes(Paths.get(filePath)));
+
+            JsonArray jsonArray = JsonArray.fromJson(content);
+
+            Database database = ActiveCBLDatabase.getInstance().getDatabase();
+            Scope scope = database.getScope(Objects.requireNonNull(selectedScope));
+            Collection collection = Objects.requireNonNull(scope)
+                    .getCollection(Objects.requireNonNull(selectedCollection));
+
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonObject jsonObject = jsonArray.getObject(i);
+
+                String docId = generateDocumentId(jsonObject);
+
+                MutableDocument mutableDocument;
+                if (Objects.requireNonNull(collection).getDocument(Objects.requireNonNull(docId)) != null) {
+                    mutableDocument = Objects.requireNonNull(collection.getDocument(docId)).toMutable();
+                } else {
+                    mutableDocument = new MutableDocument(docId);
+                }
+
+                for (String key : jsonObject.getNames()) {
+                    mutableDocument.setValue(key, jsonObject.get(key));
+                }
+
+                collection.save(mutableDocument);
+            }
+
+            super.doOKAction();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.error("Error while importing data", e);
+            universalErrorLabel.setText("Error while importing data. Please check the logs for more details.");
+        }
     }
+
+    private String generateDocumentId(JsonObject jsonObject) {
+        try {
+            String keyPattern = keyField.getText();
+            String[] keyParts = keyPattern.split("%");
+            StringBuilder docIdBuilder = new StringBuilder();
+
+            for (int i = 0; i < keyParts.length; i++) {
+                if (i % 2 == 0) {
+
+                    docIdBuilder.append(keyParts[i]);
+                } else {
+
+                    String keyPart = keyParts[i];
+                    if (jsonObject.containsKey(keyPart)) {
+
+                        docIdBuilder.append(jsonObject.getString(keyPart));
+                    }
+                }
+            }
+
+            return docIdBuilder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.error("Error while generating document id", e);
+            return null;
+        } finally {
+            cache.clear();
+        }
+    }
+
 }
