@@ -11,7 +11,13 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -103,7 +109,7 @@ public class CBLImportDialog extends DialogWrapper {
 
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = JBUI.insets(10);
+        c.insets = JBUI.insets(10, 0);
 
         JPanel datasetPanel = new JPanel(new BorderLayout());
 
@@ -147,29 +153,23 @@ public class CBLImportDialog extends DialogWrapper {
         c.gridx = 3;
         contentPanel.add(infoPanel, c);
 
-        JPanel datasetFormPanel = new JPanel();
-        datasetFormPanel.setBorder(JBUI.Borders.empty(0, 10));
-        datasetFormPanel.setLayout(new GridBagLayout());
-
         JPanel datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp(
                 "Select the Dataset:",
                 "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
         c.gridy++;
-        c.weightx = 0.1;
         c.gridx = 0;
-        datasetFormPanel.add(datasetLabelHelpPanel, c);
+        c.weightx = 1;
+        contentPanel.add(datasetLabelHelpPanel, c);
 
         datasetField = new TextFieldWithBrowseButton();
-        c.weightx = 0.9;
         c.gridx = 1;
-        datasetFormPanel.add(datasetField, c);
+        c.weightx = 1;
+        contentPanel.add(datasetField, c);
 
         c.gridy++;
         c.gridx = 0;
-        c.gridwidth = 4;
-        contentPanel.add(datasetFormPanel, c);
-
-        c.gridy++;
+        c.weightx = 1;
+        c.gridwidth = 2;
         contentPanel.add(new TitledSeparator("Target"), c);
 
         scopeComboBox = new ComboBox<>();
@@ -218,15 +218,18 @@ public class CBLImportDialog extends DialogWrapper {
 
         c.gridy++;
         c.gridwidth = 1;
-        keyPanel.add(new JLabel("Custom Expression:"), c);
 
+        JBLabel customExpressionLabel = new JBLabel("Custom expression:");
+        JPanel customExpressionLabelHelpPanel = TemplateUtil.getLabelWithHelp(customExpressionLabel,
+                "<html>Specify the custom expression to generate the document key. You can use the following variables: <ul><li><b>#UUID#</b> - Random UUID</li><li><b>%FIELDNAME%</b> - Value of the field specified above</li></ul></html>");
+        keyPanel.add(customExpressionLabelHelpPanel, c);
         c.gridx = 1;
         keyPanel.add(keyField, c);
 
         c.gridx = 0;
         c.gridy++;
         c.gridwidth = 2;
-        keyPanel.add(new JLabel("Projected Names:"), c);
+        keyPanel.add(new JLabel("Key Preview:"), c);
 
         c.gridx = 0;
         c.gridy++;
