@@ -36,6 +36,7 @@ import okhttp3.internal.http2.StreamResetException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Subscription;
+import retrofit2.HttpException;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkListener;
@@ -58,11 +59,13 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     private final JProgressBar progressBar;
     private final Project myProject;
     private final LogoutListener logoutListener;
+    private final SubmitListener submitAction;
     private JPanel actionPanel;
     private volatile Object requestHolder;
     private final MainConversationHandler conversationHandler;
     private ListStack contextStack;
     private final ChatLink chatLink;
+    private int messageRetryCount = 0;
 
     public static final KeyStroke SUBMIT_KEYSTROKE = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, CTRL_DOWN_MASK);
 
@@ -77,7 +80,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         chatLink = new ChatLinkService(project, conversationHandler, aiConfig);
         chatLink.addChatMessageListener(this);
         ContextAwareSnippetizer snippetizer = ApplicationManager.getApplication().getService(ContextAwareSnippetizer.class);
-        SubmitListener submitAction = new SubmitListener(chatLink, this::getSearchText, snippetizer);
+        submitAction = new SubmitListener(chatLink, this::getSearchText, snippetizer);
 
         this.setDividerWidth(1);
         this.putClientProperty(HyperlinkListener.class, submitAction);
@@ -157,7 +160,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     }
 
     public interface LogoutListener {
-        void onLogout(Throwable reason);
+        boolean onLogout(Throwable reason);
     }
 
     private class ContextStackHandler implements ListDataListener {
@@ -243,6 +246,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     @Override
     public void responseArrived(ChatMessageEvent.ResponseArrived event) {
+        messageRetryCount = 0;
         setContent(event.getResponseChoices());
         SwingUtilities.invokeLater(() -> {
             aroundRequest(false);
@@ -256,6 +260,24 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     @Override
     public void exchangeFailed(ChatMessageEvent.Failed event) {
+        if (event.getCause() != null && event.getCause() instanceof HttpException) {
+            HttpException err = (HttpException) event.getCause();
+            if (err.code() == 401) {
+                if (messageRetryCount == 0) {
+                    if (!logoutListener.onLogout(err)) {
+                        SwingUtilities.invokeLater(() -> {
+                            messageRetryCount = 1;
+                            contentPanel.removeLastMessage();
+                            submitAction.submitPrompt(event.getUserMessage().getContent());
+                        });
+                        return;
+                    }
+                } else {
+                    logoutListener.onLogout(null);
+                    return;
+                }
+            }
+        }
         if (answer != null) {
             answer.setErrorContent(getErrorMessage(event.getCause()));
         }
@@ -271,7 +293,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     @Override
     public void exchangeCancelled(ChatMessageEvent.Cancelled event) {
-
+        messageRetryCount = 0;
     }
 
     public void responseArrivalFailed(ChatMessageEvent.Failed event) {

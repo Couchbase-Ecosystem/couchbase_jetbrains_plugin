@@ -54,7 +54,7 @@ public class CouchbaseIQServiceProvider implements OpenAiServiceProvider {
         OkHttpClient client = OpenAiService.defaultClient(token, timeout)
                 .newBuilder()
                 //.addInterceptor(loggingInterceptor)
-                .addInterceptor(new IQAuthenticationInterceptor(token))
+                .addInterceptor(new IQAuthenticationInterceptor())
                 .build();
 
         client.newBuilder();

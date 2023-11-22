@@ -15,6 +15,7 @@ import com.intellij.ui.dsl.gridLayout.GridLayout;
 import kotlinx.html.I;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import retrofit2.HttpException;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,6 +26,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     private final Project project;
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
+    private OpenAISettingsState.OpenAIConfig iqGptConfig;
 
     public IQWindowContent(@NotNull Project project) {
         setLayout(new GridBagLayout());
@@ -52,11 +54,19 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     }
 
     @Override
-    public void onLogout(@Nullable Throwable reason) {
+    public boolean onLogout(@Nullable Throwable reason) {
+        if (reason instanceof HttpException && ((HttpException) reason).code() == 401) {
+            if (credentials.checkAuthStatus()) {
+                iqGptConfig.setApiKey(credentials.getAuth().getJwt());
+                return false;
+            }
+        }
+
         this.removeAll();
         credentials.clear();
         this.add(new LoginPanel(this));
         this.updateUI();
+        return true;
     }
 
     @Override
@@ -65,7 +75,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.updateUI();
         SwingUtilities.invokeLater(() -> {
             final String iqUrl = String.format(IQ_URL, organization.getId());
-            OpenAISettingsState.OpenAIConfig iqGptConfig = new OpenAISettingsState.OpenAIConfig();
+            iqGptConfig = new OpenAISettingsState.OpenAIConfig();
             OpenAISettingsState.getInstance().setGpt4Config(iqGptConfig);
             OpenAISettingsState.getInstance().setEnableInitialMessage(false);
             iqGptConfig.setApiKey(credentials.getAuth().getJwt());

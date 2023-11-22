@@ -243,4 +243,16 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     public String getSystemMessage() {
         return null;
     }
+
+    public void removeLastMessage() {
+        SwingUtilities.invokeLater(() -> {
+            myList.remove(myList.getComponentCount() - 1);
+            myList.remove(myList.getComponentCount() - 1);
+            updateLayout();
+            scrollToBottom();
+            invalidate();
+            validate();
+            repaint();
+        });
+    }
 }
