@@ -41,6 +41,9 @@ import com.couchbase.lite.Database;
 import com.couchbase.lite.MutableDocument;
 import com.couchbase.lite.Scope;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -57,6 +60,9 @@ import utils.FileUtils;
 import utils.TemplateUtil;
 
 public class CBLImportDialog extends DialogWrapper {
+    private Project project;
+    private Tree tree;
+
     private JTextField keyField;
     private JTextArea keyPreviewArea;
     private JPanel cardPanel;
@@ -77,6 +83,8 @@ public class CBLImportDialog extends DialogWrapper {
 
     public CBLImportDialog(Project project, Tree tree) {
         super(project, true);
+        this.project = project;
+        this.tree = tree;
         init();
         setTitle("CBLite Import");
     }
@@ -444,43 +452,54 @@ public class CBLImportDialog extends DialogWrapper {
 
                 docIds.add(docId);
             }
+            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing Data", false) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    try {
 
-            for (int i = 0; i < jsonArray.size(); i++) {
-                JsonObject jsonObject = jsonArray.getObject(i);
+                        for (int i = 0; i < jsonArray.size(); i++) {
+                            JsonObject jsonObject = jsonArray.getObject(i);
 
-                String docId = docIds.iterator().next();
-                docIds.remove(docId);
+                            String docId = docIds.iterator().next();
+                            docIds.remove(docId);
 
-                MutableDocument mutableDocument;
-                if (Objects.requireNonNull(collection).getDocument(docId) != null) {
-                    mutableDocument = Objects.requireNonNull(collection.getDocument(docId)).toMutable();
-                } else {
-                    mutableDocument = new MutableDocument(docId);
-                }
+                            MutableDocument mutableDocument;
+                            if (Objects.requireNonNull(collection).getDocument(docId) != null) {
+                                mutableDocument = Objects.requireNonNull(collection.getDocument(docId)).toMutable();
+                            } else {
+                                mutableDocument = new MutableDocument(docId);
+                            }
 
-                for (String key : jsonObject.getNames()) {
-                    Object value = jsonObject.get(key);
-                    if (value instanceof JsonArray) {
-                        List<Object> list = new ArrayList<>();
-                        JsonArray arrayValue = (JsonArray) value;
-                        for (int j = 0; j < arrayValue.size(); j++) {
-                            list.add(arrayValue.get(j));
+                            for (String key : jsonObject.getNames()) {
+                                Object value = jsonObject.get(key);
+                                if (value instanceof JsonArray) {
+                                    List<Object> list = new ArrayList<>();
+                                    JsonArray arrayValue = (JsonArray) value;
+                                    for (int j = 0; j < arrayValue.size(); j++) {
+                                        list.add(arrayValue.get(j));
+                                    }
+                                    mutableDocument.setValue(key, list);
+                                } else if (value instanceof JsonObject) {
+                                    Map<String, Object> map = new HashMap<>();
+                                    JsonObject objectValue = (JsonObject) value;
+                                    for (String innerKey : objectValue.getNames()) {
+                                        map.put(innerKey, objectValue.get(innerKey));
+                                    }
+                                    mutableDocument.setValue(key, map);
+                                } else {
+                                    mutableDocument.setValue(key, value);
+                                }
+                            }
+
+                            collection.save(mutableDocument);
+
                         }
-                        mutableDocument.setValue(key, list);
-                    } else if (value instanceof JsonObject) {
-                        Map<String, Object> map = new HashMap<>();
-                        JsonObject objectValue = (JsonObject) value;
-                        for (String innerKey : objectValue.getNames()) {
-                            map.put(innerKey, objectValue.get(innerKey));
-                        }
-                        mutableDocument.setValue(key, map);
-                    } else {
-                        mutableDocument.setValue(key, value);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Log.error("Error while importing data", e);
                     }
                 }
-
-                collection.save(mutableDocument);
-            }
+            });
 
             super.doOKAction();
         } catch (Exception e) {
