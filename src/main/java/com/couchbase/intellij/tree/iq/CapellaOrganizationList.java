@@ -14,6 +14,22 @@ public class CapellaOrganizationList {
         return data;
     }
 
+    public String[] getNames() {
+        return data.stream()
+                .map(CapellaOrganizationList.Entry::getData)
+                .map(CapellaOrganization::getName)
+                .toArray(String[]::new);
+    }
+
+    public int indexOf(CapellaOrganization organization) {
+        for (int i = 0; i < data.size(); i++) {
+            if (data.get(i).getData() == organization) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public static class Entry {
         private CapellaOrganization data;
 

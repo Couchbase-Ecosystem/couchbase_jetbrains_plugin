@@ -9,20 +9,25 @@ import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.ui.LoginPanel;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.tree.iq.ui.OrgSelectionPanel;
+import com.intellij.designer.LightFillLayout;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.dsl.gridLayout.GridLayout;
 import kotlinx.html.I;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 
 public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, OrgSelectionPanel.Listener {
     private static final String IQ_URL = "https://api.dev.nonprod-project-avengers.com/v2/organizations/%s/integrations/iq/";
     private final Project project;
     private IQCredentials credentials = new IQCredentials();
+    private CapellaOrganizationList organizationList;
 
     public IQWindowContent(@NotNull Project project) {
+        setLayout(new GridBagLayout());
         this.project = project;
 
         if (!credentials.getCredentials().isEmpty() && credentials.checkAuthStatus()) {
@@ -38,7 +43,9 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.credentials = credentials;
         this.removeAll();
         try {
-            this.add(new OrgSelectionPanel(project, credentials.getAuth(), this));
+            this.organizationList = CapellaApiMethods.loadOrganizations(credentials.getAuth());
+            this.add(new OrgSelectionPanel(project, organizationList, this));
+            this.updateUI();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -47,20 +54,28 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     @Override
     public void onLogout(@Nullable Throwable reason) {
         this.removeAll();
+        credentials.clear();
         this.add(new LoginPanel(this));
+        this.updateUI();
     }
 
     @Override
     public void onOrgSelected(CapellaOrganization organization) {
         this.removeAll();
-        final String iqUrl = String.format(IQ_URL, organization.getId());
-        OpenAISettingsState.OpenAIConfig iqGptConfig = new OpenAISettingsState.OpenAIConfig();
-        OpenAISettingsState.getInstance().setGpt4Config(iqGptConfig);
-        iqGptConfig.setApiKey(credentials.getAuth().getJwt());
-        iqGptConfig.setEnableStreamResponse(false);
-        iqGptConfig.setModelName("gpt-4");
-        iqGptConfig.setApiEndpointUrl(iqUrl);
-        iqGptConfig.setEnableCustomApiEndpointUrl(true);
-        this.add(new ChatPanel(project, iqGptConfig, this));
+        this.updateUI();
+        SwingUtilities.invokeLater(() -> {
+            final String iqUrl = String.format(IQ_URL, organization.getId());
+            OpenAISettingsState.OpenAIConfig iqGptConfig = new OpenAISettingsState.OpenAIConfig();
+            OpenAISettingsState.getInstance().setGpt4Config(iqGptConfig);
+            OpenAISettingsState.getInstance().setEnableInitialMessage(false);
+            iqGptConfig.setApiKey(credentials.getAuth().getJwt());
+            iqGptConfig.setEnableStreamResponse(false);
+            iqGptConfig.setModelName("gpt-4");
+            iqGptConfig.setApiEndpointUrl(iqUrl);
+            iqGptConfig.setEnableCustomApiEndpointUrl(true);
+            ChatPanel chatPanel = new ChatPanel(project, iqGptConfig, organizationList, organization, this, this);
+            this.add(chatPanel);
+            this.updateUI();
+        });
     }
 }

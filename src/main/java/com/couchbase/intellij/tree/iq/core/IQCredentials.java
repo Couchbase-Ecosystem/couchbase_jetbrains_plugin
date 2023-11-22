@@ -15,7 +15,6 @@ public class IQCredentials {
     private String password;
 
     private CapellaAuth auth;
-    private CapellaAuth authResponse;
 
     public IQCredentials(String login, String password) {
         this.login = login;
@@ -56,8 +55,8 @@ public class IQCredentials {
 
     public boolean checkAuthStatus() {
         try {
-            authResponse = CapellaApiMethods.login(getLogin(), getPassword());
-            return authResponse != null;
+            auth = CapellaApiMethods.login(getLogin(), getPassword());
+            return auth != null;
         } catch (Exception e) {
             Log.error("Failed to authenticate with Capella", e);
             return false;
@@ -65,6 +64,13 @@ public class IQCredentials {
     }
 
     public CapellaAuth getAuth() {
-        return authResponse;
+        return auth;
+    }
+
+    public void clear() {
+        PasswordSafe.getInstance().set(getCredentialsAttributes(), null);
+        login = null;
+        password = null;
+        auth = null;
     }
 }

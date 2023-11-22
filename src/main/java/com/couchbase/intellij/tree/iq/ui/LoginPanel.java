@@ -21,12 +21,17 @@ public class LoginPanel extends JPanel {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = JBUI.insets(10);
-        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.anchor = GridBagConstraints.PAGE_START;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 1;
 
-        JLabel title = new JLabel("Welcome to Couchbase IQ");
+        JTextArea title = new JTextArea("Welcome to Couchbase IQ");
+        title.setLineWrap(true);
+        title.setWrapStyleWord(true);
+        title.setEditable(false);
+        title.setBackground(null);
         title.setFont(new Font(
                 title.getFont().getName(),
                 Font.BOLD,
@@ -47,6 +52,10 @@ public class LoginPanel extends JPanel {
 
         gbc.gridy++;
         this.add(createLoginForm(), gbc);
+
+        gbc.gridy++;
+        gbc.weighty = 10;
+        this.add(new JPanel(), gbc);
     }
 
     private JPanel createLoginForm() {
@@ -58,46 +67,63 @@ public class LoginPanel extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 1;
         gbc.insets = JBUI.insets(5);
+        gbc.anchor = GridBagConstraints.EAST;
         JLabel usernameLabel = new JLabel("Username");
         loginForm.add(usernameLabel, gbc);
 
         gbc.gridx++;
+        gbc.weightx = 2;
         JTextField username = new JTextField();
         loginForm.add(username, gbc);
 
         gbc.gridy++;
         gbc.gridx = 0;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.EAST;
         JLabel passwordLabel = new JLabel("Password");
         loginForm.add(passwordLabel, gbc);
 
         gbc.gridx++;
+        gbc.weightx = 2;
         JPasswordField password = new JPasswordField();
         loginForm.add(password, gbc);
-
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.gridy++;
-        gbc.gridx = 0;
-        JLabel invalidLogin = new JLabel("Login failed.");
-        invalidLogin.setForeground(Color.RED);
-        invalidLogin.setVisible(false);
-        loginForm.add(invalidLogin);
 
         gbc.gridy++;
         JCheckBox saveLogin = new JCheckBox("Remember me");
         loginForm.add(saveLogin, gbc);
 
+        JLabel invalidLogin = new JLabel("Login failed.");
+
         gbc.gridy++;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
         JButton loginButton = new JButton("Sign in");
         loginForm.add(loginButton, gbc);
         loginButton.addActionListener(e -> {
             invalidLogin.setVisible(false);
-            if (!doLogin(username.getText(), new String(password.getPassword()), saveLogin.isSelected())) {
-                invalidLogin.setVisible(true);
-            }
+            loginButton.setEnabled(false);
+            loginButton.setText("Signing in...");
+            updateUI();
+            SwingUtilities.invokeLater(() -> {
+                if (!doLogin(username.getText(), new String(password.getPassword()), saveLogin.isSelected())) {
+                    loginButton.setText("Sign in");
+                    loginButton.setEnabled(true);
+                    invalidLogin.setVisible(true);
+                    updateUI();
+                }
+            });
         });
+
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridy++;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        invalidLogin.setForeground(Color.RED);
+        invalidLogin.setVisible(false);
+        loginForm.add(invalidLogin, gbc);
 
         gbc.gridy++;
         gbc.anchor = GridBagConstraints.SOUTHEAST;
@@ -133,5 +159,10 @@ public class LoginPanel extends JPanel {
 
     public interface Listener {
         void onLogin(IQCredentials credentials);
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return getParent().getSize();
     }
 }

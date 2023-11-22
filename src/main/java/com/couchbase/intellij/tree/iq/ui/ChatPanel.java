@@ -5,6 +5,7 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
+import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
@@ -65,7 +66,10 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     public static final KeyStroke SUBMIT_KEYSTROKE = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, CTRL_DOWN_MASK);
 
-    public ChatPanel(@NotNull Project project, ConfigurationPage aiConfig, LogoutListener logoutListener) {
+    public ChatPanel(@NotNull Project project, ConfigurationPage aiConfig, CapellaOrganizationList organizationList, CapellaOrganization organization, LogoutListener logoutListener, OrgSelectionPanel.Listener orgChangeListener) {
+        super(true, 0.99f);
+        setLayout(new BorderLayout());
+        setLackOfSpaceStrategy(LackOfSpaceStrategy.HONOR_THE_SECOND_MIN_SIZE);
         myProject = project;
         conversationHandler = new MainConversationHandler(this);
         this.logoutListener = logoutListener;
@@ -107,7 +111,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         actionPanel.add(createContextSnippetsComponent(), BorderLayout.NORTH);
         actionPanel.add(searchTextField, BorderLayout.CENTER);
         actionPanel.add(button, BorderLayout.EAST);
-        contentPanel = new MessageGroupComponent(chatLink, project);
+        contentPanel = new MessageGroupComponent(chatLink, project, organizationList, organization, orgChangeListener, logoutListener);
         contentPanel.add(progressBar, BorderLayout.SOUTH);
 
         this.setFirstComponent(contentPanel);
@@ -319,4 +323,8 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         this.requestHolder = eventSource;
     }
 
+    @Override
+    public Dimension getPreferredSize() {
+        return getParent().getSize();
+    }
 }

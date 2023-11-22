@@ -4,6 +4,8 @@
  */
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.intellij.tree.iq.CapellaOrganization;
+import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.SystemMessageHolder;
 import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
@@ -15,6 +17,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.NullableComponent;
 import com.intellij.ui.Gray;
 import com.intellij.ui.HideableTitledPanel;
@@ -29,10 +32,13 @@ import com.intellij.ui.components.panels.VerticalLayout;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import org.apache.maven.model.Organization;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -42,14 +48,18 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     private final JPanel myList = new JPanel(new VerticalLayout(0));
     private final JBScrollPane myScrollPane = new JBScrollPane(myList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                       ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    private final CapellaOrganization organization;
+    private final OrgSelectionPanel.Listener orgChangeListener;
     private int myScrollValue = 0;
-    private JBTextField systemRole;
+    private JComboBox<String> orgSelector;
     private final Project project;
     private final ChatLink chatLink;
 
-    public MessageGroupComponent(ChatLink chatLink, @NotNull Project project) {
+    public MessageGroupComponent(ChatLink chatLink, @NotNull Project project, CapellaOrganizationList organizationList, CapellaOrganization organization, OrgSelectionPanel.Listener orgChangeListener, ChatPanel.LogoutListener logoutListener) {
         this.chatLink = chatLink;
         this.project = project;
+        this.organization = organization;
+        this.orgChangeListener = orgChangeListener;
         setBorder(JBUI.Borders.empty());
         setLayout(new BorderLayout());
         setBackground(UIUtil.getListBackground());
@@ -63,44 +73,37 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
 
         if (true) {
             JPanel panel = new NonOpaquePanel(new GridLayout(0,1));
-            JPanel rolePanel = new NonOpaquePanel(new BorderLayout());
-            systemRole = new JBTextField();
-            OpenAISettingsState instance = OpenAISettingsState.getInstance();
-            systemRole.setText(instance.gpt35RoleText);
-            systemRole.setEnabled(false);
-            systemRole.addMouseListener(new MouseAdapter() {
+            JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
+            orgSelector = new ComboBox<>(organizationList.getNames());
+            orgSelector.setSelectedIndex(organizationList.indexOf(organization));
+            orgSelector.addActionListener(new ActionListener() {
                 @Override
-                public void mouseEntered(MouseEvent e) {
-                    systemRole.setEnabled(true);
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    systemRole.setEnabled(false);
+                public void actionPerformed(ActionEvent e) {
+                    SwingUtilities.invokeLater(() -> {
+                        CapellaOrganization selectedOrg = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
+                        if (selectedOrg != organization) {
+                            orgChangeListener.onOrgSelected(selectedOrg);
+                        }
+                    });
                 }
             });
-            rolePanel.add(systemRole, BorderLayout.CENTER);
+            orgPanel.add(orgSelector, BorderLayout.CENTER);
             DefaultActionGroup toolbarActions = new DefaultActionGroup();
-            toolbarActions.add(new AnAction(AllIcons.Actions.MenuSaveall) {
+            toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    instance.gpt35RoleText = systemRole.getText().isEmpty() ? BASE_PROMPT : systemRole.getText();
-                }
-            });
-            toolbarActions.add(new AnAction(AllIcons.Actions.Rollback) {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    systemRole.setText(BASE_PROMPT);
-                    instance.setGpt35RoleText(BASE_PROMPT);
+                    SwingUtilities.invokeLater(() -> {
+                        logoutListener.onLogout(null);
+                    });
                 }
             });
             ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
             actonPanel.setTargetComponent(this);
-            rolePanel.add(actonPanel,BorderLayout.EAST);
-            panel.add(rolePanel);
+            orgPanel.add(actonPanel,BorderLayout.EAST);
+            panel.add(orgPanel);
             panel.setBorder(JBUI.Borders.empty(0,8,10,0));
 
-            HideableTitledPanel cPanel = new HideableTitledPanel("System role: you can guide your assistant and define its behavior.", false);
+            HideableTitledPanel cPanel = new HideableTitledPanel(String.format("Current organization: %s", organization.getName()), false);
             cPanel.setContentComponent(panel);
             cPanel.setOn(false);
             cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
@@ -238,6 +241,6 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
 
     @Override
     public String getSystemMessage() {
-        return systemRole.getText();
+        return null;
     }
 }
