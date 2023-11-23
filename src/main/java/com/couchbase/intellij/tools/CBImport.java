@@ -11,6 +11,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import utils.FileUtils;
 
@@ -21,21 +22,21 @@ import static utils.ProcessUtils.printOutput;
 
 public class CBImport {
 
-    public static void complexBucketImport(
-            String bucket, String filePath, Project project, String fileFormat,
-            List<String> commandList) {
+    public static void fullImport(
+            String bucket, String filePath, Project project, CBImportCommandBuilder builder) {
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing data", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
-                indicator.setText("Importing data");
-                indicator.setText2("Importing data from " + filePath + " to bucket " + bucket);
+                indicator.setText("Importing data from " + filePath + " to bucket " + bucket);
 
                 try {
-                    ProcessBuilder processBuilder = new ProcessBuilder(commandList);
+                    ProcessBuilder processBuilder = new ProcessBuilder(builder.build());
 
-                    Log.debug("Command: " + processBuilder.command());
+
+                    Log.debug("CB_IMPORT Command: " + (StringUtils.join(processBuilder.command(), " ").replace(
+                            ActiveCluster.getInstance().getPassword(), "********")));
 
                     Process process = processBuilder.start();
                     printOutput(process, "Output from CB_IMPORT: ");

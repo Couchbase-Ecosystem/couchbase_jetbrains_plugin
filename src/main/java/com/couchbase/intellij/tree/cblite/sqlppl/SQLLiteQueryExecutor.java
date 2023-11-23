@@ -50,7 +50,7 @@ public class SQLLiteQueryExecutor {
             }
 
             getOutputWindow(project).updateQueryStats(Arrays.asList(timingString + " MS", "-", "-", "-", "-", "-"),
-                    results, null, null);
+                    results, null, null, true);
 
         } catch (Exception e) {
             CouchbaseQueryError err = new CouchbaseQueryError();
@@ -59,7 +59,7 @@ public class SQLLiteQueryExecutor {
             error.setErrors(List.of(err));
 
             getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-", "-"),
-                    null, error, null);
+                    null, error, null, false);
         }
 
     }

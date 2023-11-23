@@ -2,15 +2,11 @@ package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.tree.cblite.nodes.*;
-import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
-import com.couchbase.intellij.tree.cblite.storage.CBLDatabases;
-import com.couchbase.intellij.tree.cblite.storage.CBLDuplicateNewDatabaseNameException;
-import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
+import com.couchbase.intellij.tree.cblite.storage.*;
 import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
 import com.couchbase.intellij.tree.node.NoResultsNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
-import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
@@ -26,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 public class CBLDataLoader {
 
@@ -287,7 +284,7 @@ public class CBLDataLoader {
     }
 
 
-    public static void loadDocument(Project project, CBLFileNodeDescriptor node, Tree tree, boolean isNew) {
+    public static void loadDocument(Project project, CBLFileNodeDescriptor node, Tree tree) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
@@ -298,7 +295,7 @@ public class CBLDataLoader {
         try {
             Document document = ActiveCBLDatabase.getInstance().getDatabase().getScope(node.getScope()).getCollection(node.getCollection()).getDocument(node.getId());
 
-            if (!isNew || document != null) {
+            if (document != null) {
                 cas = document.getRevisionID();
             }
 
@@ -306,9 +303,8 @@ public class CBLDataLoader {
         } catch (CouchbaseLiteException e) {
             Log.error("Could not load the document " + node.getId() + ".", e);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
-            return;
-        } finally {
             tree.setPaintBusy(false);
+            return;
         }
 
         final String docCass = cas;
@@ -324,9 +320,10 @@ public class CBLDataLoader {
                 node.setVirtualFile(virtualFile);
             });
         } catch (Exception e) {
-            tree.setPaintBusy(false);
             Log.error("An error occurred while trying to load the file", e);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+        } finally {
+            tree.setPaintBusy(false);
         }
     }
 

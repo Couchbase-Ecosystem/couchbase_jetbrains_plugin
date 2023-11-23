@@ -1,21 +1,19 @@
 package com.couchbase.intellij.tree.cblite;
 
 import com.couchbase.intellij.tree.CouchbaseWindowContent;
-import com.couchbase.intellij.tree.cblite.dialog.CBLImportDialog;
-import com.couchbase.intellij.tree.cblite.logger.CBLPluginLogger;
 import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.nodes.CBLLoadMoreNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
+import com.couchbase.intellij.tree.cblite.sync.SyncGatewaySyncDialog;
 import com.couchbase.intellij.tree.node.NodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
-import com.couchbase.lite.CouchbaseLite;
-import com.couchbase.lite.Database;
-import com.couchbase.lite.MaintenanceType;
+import com.couchbase.lite.*;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
@@ -40,13 +38,16 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static utils.FileUtils.createFolder;
+
 public class CBLWindowContent extends JPanel {
 
-    private Project project;
+    private final Project project;
 
     private static int workbenchCounter = 0;
 
@@ -54,10 +55,27 @@ public class CBLWindowContent extends JPanel {
 
     private static DefaultTreeModel treeModel;
 
-    public CBLWindowContent(Project project) {
+
+    private void initCbLite() throws Exception {
+        String path = PathManager.getConfigPath() + File.separator + "couchbase-intellij-plugin";
+        createFolder(path);
+        String rootDir = path + File.separator + "cblite";
+        createFolder(rootDir);
+        String temp = rootDir + File.separator + "cblite_temp";
+        createFolder(temp);
+        CouchbaseLite.init(false, new File(rootDir), new File(temp));
+    }
+
+    public CBLWindowContent(Project project) throws Exception {
         this.project = project;
-        CouchbaseLite.init();
-        Database.log.setCustom(new CBLPluginLogger());
+        initCbLite();
+
+        //Database.log.setCustom(new CBLPluginLogger());
+
+
+        Database.log.getConsole().setDomains(LogDomain.ALL_DOMAINS);
+        Database.log.getConsole().setLevel(LogLevel.VERBOSE);
+
         setLayout(new BorderLayout());
         add(createTopToolbar(), BorderLayout.NORTH);
 
@@ -98,7 +116,7 @@ public class CBLWindowContent extends JPanel {
                         if (userObject instanceof CBLFileNodeDescriptor) {
                             CBLFileNodeDescriptor descriptor = (CBLFileNodeDescriptor) userObject;
 
-                            CBLDataLoader.loadDocument(project, descriptor, tree, false);
+                            CBLDataLoader.loadDocument(project, descriptor, tree);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -207,17 +225,20 @@ public class CBLWindowContent extends JPanel {
 
 
         AnAction optimizeDatabase = new AnAction("Run Database Optimize") {
+
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+
+                if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    return;
+                }
                 new Task.ConditionalModal(project, String.format("Running Database Optimize for ",
                         ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
-                                return;
-                            }
+
                             ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.OPTIMIZE);
                         } catch (Exception ex) {
                             Log.error(ex);
@@ -233,15 +254,16 @@ public class CBLWindowContent extends JPanel {
         AnAction fullOptimize = new AnAction("Run Database Full-Optimize") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+
+                if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    return;
+                }
                 new Task.ConditionalModal(project, String.format("Running Database Full Optimize for ",
                         ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
-                                return;
-                            }
                             ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.FULL_OPTIMIZE);
                         } catch (Exception ex) {
                             Log.error(ex);
@@ -257,15 +279,16 @@ public class CBLWindowContent extends JPanel {
         AnAction compact = new AnAction("Run Database Compact") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+
+                if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    return;
+                }
                 new Task.ConditionalModal(project, String.format("Running Database Compact for ",
                         ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
-                                return;
-                            }
                             ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
                         } catch (Exception ex) {
                             Log.error(ex);
@@ -281,15 +304,15 @@ public class CBLWindowContent extends JPanel {
         AnAction integrityCheck = new AnAction("Run Database Integrity Check") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    return;
+                }
                 new Task.ConditionalModal(project, String.format("Running Database Integrity Check for ",
                         ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
-                                return;
-                            }
                             ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.INTEGRITY_CHECK);
                         } catch (Exception ex) {
                             Log.error(ex);
@@ -302,6 +325,26 @@ public class CBLWindowContent extends JPanel {
         integrityCheck.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/integrity_check.svg", CouchbaseWindowContent.class));
 
 
+        AnAction syncDialog = new AnAction("Sync Gateway Replication") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
+                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    return;
+                }
+
+                try {
+                    SyncGatewaySyncDialog dialog = new SyncGatewaySyncDialog(project, tree);
+                    dialog.show();
+                } catch (Exception ex) {
+                    Log.error(ex);
+                    ex.printStackTrace();
+                }
+            }
+        };
+
+        syncDialog.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/sync.svg", CouchbaseWindowContent.class));
+
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         leftActionGroup.add(createNewDatabase);
         leftActionGroup.add(importDatabase);
@@ -312,6 +355,8 @@ public class CBLWindowContent extends JPanel {
         leftActionGroup.add(fullOptimize);
         leftActionGroup.add(compact);
         leftActionGroup.add(integrityCheck);
+        leftActionGroup.addSeparator();
+        leftActionGroup.add(syncDialog);
 
 
         ActionToolbar leftActionToolbar = ActionManager.getInstance().createActionToolbar("Explorer", leftActionGroup, true);
