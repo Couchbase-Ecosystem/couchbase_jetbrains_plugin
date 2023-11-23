@@ -3,9 +3,12 @@ package com.couchbase.intellij.tree.cblite.dialog;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -21,6 +24,7 @@ import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -48,13 +52,18 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.openapi.ui.popup.Balloon;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.TitledSeparator;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UIUtil;
 
 import utils.FileUtils;
 import utils.TemplateUtil;
@@ -148,7 +157,7 @@ public class CBLImportDialog extends DialogWrapper {
                         "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
                         "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
                         "</p></html>";
-                DocumentFilterDialog.showGotItTooltip(e.getComponent(), content);
+                showGotItTooltip(e.getComponent(), content);
             }
         });
 
@@ -216,6 +225,7 @@ public class CBLImportDialog extends DialogWrapper {
         c.insets = JBUI.insets(10);
 
         keyField = new JTextField(25);
+        keyField.setMinimumSize(getInitialSize());
         keyPreviewArea = new JTextArea(10, 25);
         keyPreviewArea.setEditable(false);
 
@@ -279,12 +289,44 @@ public class CBLImportDialog extends DialogWrapper {
         return southPanel;
     }
 
+    public static void showGotItTooltip(Component component, String tooltipText) {
+        Point screenPoint = component.getLocationOnScreen();
+        Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
+
+        JEditorPane editorPane = new JEditorPane();
+        editorPane.setContentType("text/html");
+        editorPane.setText("<html>" + tooltipText + "</html>");
+        editorPane.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(editorPane);
+        scrollPane.setPreferredSize(new Dimension(500, 300));
+        
+
+        Balloon balloon = JBPopupFactory.getInstance()
+                .createBalloonBuilder(scrollPane) 
+                .setFillColor(UIUtil.getToolTipBackground())
+                .setBorderColor(JBColor.GRAY)
+                .setAnimationCycle(200)
+                .setCloseButtonEnabled(true)
+                .setHideOnClickOutside(true)
+                .setHideOnKeyOutside(true)
+                .createBalloon();
+
+        balloon.show(new RelativePoint(tooltipPoint), Balloon.Position.above);
+    }
+
+    private void resetErrorMessages() {
+        universalErrorLabel.setText("");
+        universalErrorLabel.setVisible(false);
+    }
+    
     private void nextPage() {
+        resetErrorMessages();
         currentPage++;
         cardLayout.next(cardPanel);
     }
-
+    
     private void previousPage() {
+        resetErrorMessages();
         currentPage--;
         cardLayout.previous(cardPanel);
     }
@@ -445,7 +487,7 @@ public class CBLImportDialog extends DialogWrapper {
 
                 if (docIds.contains(docId)) {
 
-                    universalErrorLabel.setText("Duplicate document ID: " + docId);
+                    universalErrorLabel.setText("The keys that are generated are not unique. Please check the key pattern.");
                     universalErrorLabel.setVisible(true);
                     return;
                 }
