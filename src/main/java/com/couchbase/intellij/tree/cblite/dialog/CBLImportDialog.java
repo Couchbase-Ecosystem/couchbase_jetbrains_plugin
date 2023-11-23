@@ -3,12 +3,9 @@ package com.couchbase.intellij.tree.cblite.dialog;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -24,7 +21,6 @@ import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -52,48 +48,37 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
-import com.intellij.openapi.ui.popup.Balloon;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.DocumentAdapter;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.TitledSeparator;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.UIUtil;
 
+import utils.ColorHelper;
 import utils.FileUtils;
 import utils.TemplateUtil;
 
 public class CBLImportDialog extends DialogWrapper {
-    private Project project;
-    private Tree tree;
-
+    private static final int CACHE_SIZE = 6;
+    private final List<JsonObject> cache = new ArrayList<>();
+    ComboBox<String> scopeComboBox;
+    ComboBox<String> collectionComboBox;
+    private final Project project;
     private JTextField keyField;
     private JTextArea keyPreviewArea;
     private JPanel cardPanel;
     private CardLayout cardLayout;
     private int currentPage = 1;
     private TextFieldWithBrowseButton datasetField;
-
     private JButton nextButton;
     private JButton prevButton;
-
     private JBLabel universalErrorLabel;
-
-    ComboBox<String> scopeComboBox;
-    ComboBox<String> collectionComboBox;
-
-    private static final int CACHE_SIZE = 6;
-    private final List<JsonObject> cache = new ArrayList<>();
 
     public CBLImportDialog(Project project, Tree tree) {
         super(project, true);
         this.project = project;
-        this.tree = tree;
         init();
         setTitle("CBLite Import");
     }
@@ -132,37 +117,18 @@ public class CBLImportDialog extends DialogWrapper {
 
         JPanel contentPanel = new JPanel(new GridBagLayout());
 
+        String fontKeywordColor = ColorHelper.getKeywordColor();
         JLabel infoLabel = new JLabel();
         infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                String content = "<html><h2>List Format</h2><br>" +
-                        "<p>The list format specifies a file which contains a JSON list where each element in the list is a JSON document. The file may only contain a single list, but the list may be specified over multiple lines. This format is specified by setting the --format option to \"list\". Below is an example of a file in list format.</p><br>"
-                        +
-                        "<p>[<br>" +
-                        "{<br>" +
-                        "\"key\": \"mykey1\",<br>" +
-                        "\"value\": \"myvalue1\"<br>" +
-                        "},<br>" +
-                        "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
-                        "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
-                        "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
-                        "]</p><br>" +
-                        "<h2>Lines Format</h2><br>" +
-                        "<p>The lines format specifies a file that contains one JSON document on every line in the file. This format is specified by setting the --format option to \"lines\". Below is an example of a file in lines format.</p><br>"
-                        +
-                        "<p>{\"key\": \"mykey1\", \"value\": \"myvalue1\"}<br>" +
-                        "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
-                        "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
-                        "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
-                        "</p></html>";
-                showGotItTooltip(e.getComponent(), content);
+                String content = "<html><h2>JSON List</h2>\n" + "<div >" + "<pre>\n" + "The list format specifies a file which contains a JSON list where <br>each element in the list is a JSON document. The file may only <br>" + "contain a single list, but the list may be specified over multiple" + "<br>lines. Below is an example of a file in list format:</pre>\n" + "\n" + "<pre>\n" + "[\n" + "    { <span style='color:" + fontKeywordColor + "'>&quot;key&quot;</span>: &quot;mykey1&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: &quot;myvalue1&quot;},\n" + "    { <span style='color:" + fontKeywordColor + "'>&quot;key&quot;</span>: &quot;mykey2&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: &quot;myvalue2&quot;},\n" + "    { <span style='color:" + fontKeywordColor + "'>&quot;key&quot;</span>: &quot;mykey3&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: &quot;myvalue3&quot;},\n" + "        \n" + "]\n" + "</pre>\n" + "\n" + "<h2>JSON Lines</h2>\n" + "\n" + "<pre>\n" + "The lines format specifies a file that contains one JSON document " + "<br>on every line in the file. Below is an example of a file in lines<br>format:</pre>\n" + "\n" + "<pre>\n" + "{ <span style='color:" + fontKeywordColor + "'>&quot;key&quot;</span>: &quot;mykey1&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: &quot;myvalue1&quot;}<br/>" + "{ <span style='color:" + fontKeywordColor + "'>&quot;key&quot;</span>: &quot;mykey2&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: &quot;myvalue2&quot;}<br/>" + "{ <span style='color:" + fontKeywordColor + "'>&quot;key&quot;</span>: &quot;mykey3&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: &quot;myvalue3&quot;}" + "</pre>\n" + "</div>" + "</html>";
+
+                TemplateUtil.showGotItTooltip(e.getComponent(), content);
             }
         });
-
         JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-
         infoPanel.add(infoLabel);
 
         c.gridy++;
@@ -170,9 +136,7 @@ public class CBLImportDialog extends DialogWrapper {
         c.gridx = 3;
         contentPanel.add(infoPanel, c);
 
-        JPanel datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp(
-                "Select the Dataset:",
-                "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
+        JPanel datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp("Select the Dataset:", "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
         c.gridy++;
         c.gridx = 0;
         c.weightx = 1;
@@ -238,8 +202,7 @@ public class CBLImportDialog extends DialogWrapper {
         c.gridwidth = 1;
 
         JBLabel customExpressionLabel = new JBLabel("Custom expression:");
-        JPanel customExpressionLabelHelpPanel = TemplateUtil.getLabelWithHelp(customExpressionLabel,
-                "<html>Specify the custom expression to generate the document key. You can use the following variables: <ul><li><b>#UUID#</b> - Random UUID</li><li><b>%FIELDNAME%</b> - Value of the field specified above</li></ul></html>");
+        JPanel customExpressionLabelHelpPanel = TemplateUtil.getLabelWithHelp(customExpressionLabel, "<html>Specify the custom expression to generate the document key. You can use the following variables: <ul><li><b>#UUID#</b> - Random UUID</li><li><b>%FIELDNAME%</b> - Value of the field specified above</li></ul></html>");
         keyPanel.add(customExpressionLabelHelpPanel, c);
         c.gridx = 1;
         keyPanel.add(keyField, c);
@@ -289,42 +252,17 @@ public class CBLImportDialog extends DialogWrapper {
         return southPanel;
     }
 
-    public static void showGotItTooltip(Component component, String tooltipText) {
-        Point screenPoint = component.getLocationOnScreen();
-        Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
-
-        JEditorPane editorPane = new JEditorPane();
-        editorPane.setContentType("text/html");
-        editorPane.setText("<html>" + tooltipText + "</html>");
-        editorPane.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(editorPane);
-        scrollPane.setPreferredSize(new Dimension(500, 300));
-        
-
-        Balloon balloon = JBPopupFactory.getInstance()
-                .createBalloonBuilder(scrollPane) 
-                .setFillColor(UIUtil.getToolTipBackground())
-                .setBorderColor(JBColor.GRAY)
-                .setAnimationCycle(200)
-                .setCloseButtonEnabled(true)
-                .setHideOnClickOutside(true)
-                .setHideOnKeyOutside(true)
-                .createBalloon();
-
-        balloon.show(new RelativePoint(tooltipPoint), Balloon.Position.above);
-    }
-
     private void resetErrorMessages() {
         universalErrorLabel.setText("");
         universalErrorLabel.setVisible(false);
     }
-    
+
     private void nextPage() {
         resetErrorMessages();
         currentPage++;
         cardLayout.next(cardPanel);
     }
-    
+
     private void previousPage() {
         resetErrorMessages();
         currentPage--;
@@ -333,13 +271,12 @@ public class CBLImportDialog extends DialogWrapper {
 
     private void addListeners() {
 
-        datasetField.addBrowseFolderListener("Select a File", "Please select a JSON file", null,
-                new FileChooserDescriptor(true, false, false, false, false, false) {
-                    @Override
-                    public boolean isFileSelectable(VirtualFile file) {
-                        return "json".equalsIgnoreCase(file.getExtension());
-                    }
-                });
+        datasetField.addBrowseFolderListener("Select a File", "Please select a JSON file", null, new FileChooserDescriptor(true, false, false, false, false, false) {
+            @Override
+            public boolean isFileSelectable(VirtualFile file) {
+                return "json".equalsIgnoreCase(file.getExtension());
+            }
+        });
 
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
@@ -357,8 +294,7 @@ public class CBLImportDialog extends DialogWrapper {
                         detectedCouchbaseJsonFormat = FileUtils.detectDatasetFormat(datasetText);
                         if (detectedCouchbaseJsonFormat == null) {
                             nextButton.setEnabled(false);
-                            universalErrorLabel.setText(
-                                    "The selected file is not in a recognized format. Please select a JSON file in either 'lines' or 'list' format.");
+                            universalErrorLabel.setText("The selected file is not in a recognized format. Please select a JSON file in either 'lines' or 'list' format.");
                             universalErrorLabel.setVisible(true);
                         } else {
                             nextButton.setEnabled(true);
@@ -366,7 +302,6 @@ public class CBLImportDialog extends DialogWrapper {
                         }
 
                     } catch (IOException e1) {
-                        e1.printStackTrace();
                         Log.error("Error while detecting dataset format", e1);
                     }
                 }
@@ -389,12 +324,10 @@ public class CBLImportDialog extends DialogWrapper {
                         collectionComboBox.addItem(col.getName());
                     }
                 } catch (CouchbaseLiteException e1) {
-                    e1.printStackTrace();
                     Log.error("Error while getting collections", e1);
                 }
             });
         } catch (CouchbaseLiteException e1) {
-            e1.printStackTrace();
             Log.error("Error while getting scopes", e1);
         }
 
@@ -439,7 +372,6 @@ public class CBLImportDialog extends DialogWrapper {
                         keyPreviewArea.setText(projectedNamesStr);
                         nextButton.setEnabled(!projectedNamesStr.isEmpty());
                     } catch (Exception ex) {
-                        ex.printStackTrace();
                         Log.error("Error while reading file", ex);
                     }
                 } else {
@@ -475,8 +407,7 @@ public class CBLImportDialog extends DialogWrapper {
 
             Database database = ActiveCBLDatabase.getInstance().getDatabase();
             Scope scope = database.getScope(Objects.requireNonNull(selectedScope));
-            Collection collection = Objects.requireNonNull(scope)
-                    .getCollection(Objects.requireNonNull(selectedCollection));
+            Collection collection = Objects.requireNonNull(scope).getCollection(Objects.requireNonNull(selectedCollection));
 
             Set<String> docIds = new HashSet<>();
 
@@ -494,7 +425,7 @@ public class CBLImportDialog extends DialogWrapper {
 
                 docIds.add(docId);
             }
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing Data", false) {
+            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Importing data", false) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     try {
@@ -514,16 +445,14 @@ public class CBLImportDialog extends DialogWrapper {
 
                             for (String key : jsonObject.getNames()) {
                                 Object value = jsonObject.get(key);
-                                if (value instanceof JsonArray) {
+                                if (value instanceof JsonArray arrayValue) {
                                     List<Object> list = new ArrayList<>();
-                                    JsonArray arrayValue = (JsonArray) value;
                                     for (int j = 0; j < arrayValue.size(); j++) {
                                         list.add(arrayValue.get(j));
                                     }
                                     mutableDocument.setValue(key, list);
-                                } else if (value instanceof JsonObject) {
+                                } else if (value instanceof JsonObject objectValue) {
                                     Map<String, Object> map = new HashMap<>();
-                                    JsonObject objectValue = (JsonObject) value;
                                     for (String innerKey : objectValue.getNames()) {
                                         map.put(innerKey, objectValue.get(innerKey));
                                     }
@@ -537,7 +466,6 @@ public class CBLImportDialog extends DialogWrapper {
 
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
                         Log.error("Error while importing data", e);
                     }
                 }
@@ -545,7 +473,6 @@ public class CBLImportDialog extends DialogWrapper {
 
             super.doOKAction();
         } catch (Exception e) {
-            e.printStackTrace();
             Log.error("Error while importing data", e);
         } finally {
             cache.clear();
@@ -574,7 +501,6 @@ public class CBLImportDialog extends DialogWrapper {
 
             return docIdBuilder.toString();
         } catch (Exception e) {
-            e.printStackTrace();
             Log.error("Error while generating document id", e);
             return null;
         } finally {
