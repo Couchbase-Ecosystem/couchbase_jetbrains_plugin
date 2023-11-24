@@ -2,38 +2,63 @@ package com.couchbase.intellij.tree.cblite.dialog;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-import javax.swing.*;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 
 import com.couchbase.intellij.tools.dialog.JComboCheckBox;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.lite.Collection;
+import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.DataSource;
 import com.couchbase.lite.Database;
+import com.couchbase.lite.Dictionary;
+import com.couchbase.lite.Query;
+import com.couchbase.lite.QueryBuilder;
+import com.couchbase.lite.Result;
+import com.couchbase.lite.ResultSet;
 import com.couchbase.lite.Scope;
+import com.couchbase.lite.SelectResult;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
+
+import utils.TemplateUtil;
+
 
 public class CBLExportDialog extends DialogWrapper {
-    private Project project;
-    private Tree tree;
 
-    private TextFieldWithBrowseButton exportPathField;
     private JComboCheckBox scopeComboBox;
     private JComboCheckBox collectionComboBox;
     private JLabel errorLabel;
 
+    private TextFieldWithBrowseButton destinationField;
+    private JComboBox<String> outputFormatComboBox;
+
+    private JTextField scopeKeyField;
+    private JTextField collectionKeyField;
+    private JTextField documentKeyField;
+
     public CBLExportDialog(Project project, Tree tree) {
         super(project);
-        this.project = project;
-        this.tree = tree;
         init();
         setTitle("Export");
     }
@@ -50,6 +75,7 @@ public class CBLExportDialog extends DialogWrapper {
         c.gridwidth = 2;
         c.weightx = 1.0;
         c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = JBUI.insetsBottom(10);
         formPanel.add(new TitledSeparator("Target"), c);
 
         JLabel scopeLabel = new JLabel("Scope:");
@@ -57,7 +83,6 @@ public class CBLExportDialog extends DialogWrapper {
         c.gridx = 0;
         c.weightx = 0.0;
         c.gridwidth = 1;
-        c.fill = GridBagConstraints.NONE;
         c.anchor = GridBagConstraints.WEST;
         formPanel.add(scopeLabel, c);
 
@@ -70,7 +95,7 @@ public class CBLExportDialog extends DialogWrapper {
                 scopeComboBox.addItem(scopeName.getName());
             }
 
-            scopeComboBox.setItemListener(e -> SwingUtilities.invokeLater(() -> {
+            scopeComboBox.addActionListener(e -> SwingUtilities.invokeLater(() -> {
                 collectionComboBox.setEnabled(true);
                 collectionComboBox.removeAllItems();
                 List<String> selectedScopes = scopeComboBox.getSelectedItems();
@@ -92,77 +117,89 @@ public class CBLExportDialog extends DialogWrapper {
             errorLabel.setText(e.getMessage());
         }
 
-
         scopeComboBox.setHint("Select one or more scopes");
         c.gridx = 1;
         c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(scopeComboBox, c);
 
         JLabel collectionLabel = new JLabel("Collection:");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.0;
-        c.fill = GridBagConstraints.NONE;
         formPanel.add(collectionLabel, c);
 
         collectionComboBox.setEnabled(false);
         collectionComboBox.setHint("Select one or more collections");
+        Dimension minSize = new Dimension(150, 20);
+        collectionComboBox.setMinimumSize(minSize);
         c.gridx = 1;
         c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(collectionComboBox, c);
 
         JLabel scopeKeyLabel = new JLabel("Scope Key:");
+        JPanel scopeKeyPanel = TemplateUtil.getLabelWithHelp(scopeKeyLabel,
+                "<html>This filed will be used to store the name of the scope the document came from. It will be created on each JSON document.</html>");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.0;
-        c.fill = GridBagConstraints.NONE;
-        formPanel.add(scopeKeyLabel, c);
+        formPanel.add(scopeKeyPanel, c);
 
-        JTextField scopeKeyField = new JTextField();
+        scopeKeyField = new JTextField();
+        scopeKeyField.setText("cbms");
         c.gridx = 1;
         c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(scopeKeyField, c);
 
         JLabel collectionKeyLabel = new JLabel("Collection Key:");
+        JPanel collectionKeyPanel = TemplateUtil.getLabelWithHelp(collectionKeyLabel,
+                "<html>This filed will be used to store the name of the collection the document came from. It will be created on each JSON document.</html>");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.0;
-        c.fill = GridBagConstraints.NONE;
-        formPanel.add(collectionKeyLabel, c);
+        formPanel.add(collectionKeyPanel, c);
 
-        JTextField collectionKeyField = new JTextField();
+        collectionKeyField = new JTextField();
+        collectionKeyField.setText("cbmc");
         c.gridx = 1;
         c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(collectionKeyField, c);
+
+        JLabel documentKeyLabel = new JLabel("Document Key:");
+        JPanel documentKeyPanel = TemplateUtil.getLabelWithHelp(documentKeyLabel,
+                "<html>In Couchbase, the document's key is not "
+                        + "part of the body of the document. But when you are exporting the dataset, it is recommended to also include "
+                        + "the original keys. This property defines the name of the attribute in the final exported file that will contain the document's key.</html>");
+        c.gridx = 0;
+        c.gridy++;
+        c.weightx = 0.0;
+        formPanel.add(documentKeyPanel, c);
+
+        documentKeyField = new JTextField();
+        documentKeyField.setText("cbmid");
+        c.gridx = 1;
+        c.weightx = 1.0;
+        formPanel.add(documentKeyField, c);
 
         JLabel outputFormatLabel = new JLabel("Output Format:");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.0;
-        c.fill = GridBagConstraints.NONE;
         formPanel.add(outputFormatLabel, c);
 
-        JComboBox<String> outputFormatComboBox = new JComboBox<>(new String[] { "JSON Lines", "JSON List" });
+        outputFormatComboBox = new JComboBox<>(new String[] { "JSON Lines", "JSON List" });
         c.gridx = 1;
         c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(outputFormatComboBox, c);
 
         JLabel destinationLabel = new JLabel("Destination Folder:");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.0;
-        c.fill = GridBagConstraints.NONE;
         formPanel.add(destinationLabel, c);
 
-        TextFieldWithBrowseButton destinationField = new TextFieldWithBrowseButton();
+        destinationField = new TextFieldWithBrowseButton();
         c.gridx = 1;
         c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
         formPanel.add(destinationField, c);
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
@@ -179,16 +216,70 @@ public class CBLExportDialog extends DialogWrapper {
     @Override
     protected void doOKAction() {
 
-        List<String> selectedScopes = scopeComboBox.getSelectedItems();
         List<String> selectedCollections = collectionComboBox.getSelectedItems();
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
 
-        try {
+        String scopeKey = scopeKeyField.getText();
+        String collectionKey = collectionKeyField.getText();
+        String documentKey = documentKeyField.getText();
 
-        } catch (Exception e) {
+        try (FileWriter writer = new FileWriter(destinationField.getText() + "/export.json")) {
+            String outputFormat = (String) outputFormatComboBox.getSelectedItem();
+            boolean isListFormat = "JSON List".equals(outputFormat);
+
+            if (isListFormat) {
+                writer.write("[\n");
+            }
+            // Your existing code here
+
+            for (String collectionPath : selectedCollections) {
+                String[] parts = collectionPath.split("\\.");
+                String scopeName = parts[0];
+                String collectionName = parts[1];
+
+                Collection collection = database.getScope(scopeName).getCollection(collectionName);
+
+                Query query = QueryBuilder.select(SelectResult.all())
+                        .from(DataSource.collection(Objects.requireNonNull(collection)));
+
+                try (ResultSet resultSet = query.execute()) {
+                    for (Result result : resultSet) {
+                        String docId = result.getString("id");
+                        Dictionary content = result.getDictionary(collectionName);
+
+                        // Convert the content to a JSON string
+                        String json = Objects.requireNonNull(content).toJSON();
+
+                        // Convert the JSON string to a map
+                        Map<String, Object> map = new Gson().fromJson(json, new TypeToken<Map<String, Object>>() {
+                        }.getType());
+
+                        // Overwrite the scope, collection, and document key fields
+                        map.put(scopeKey, scopeName);
+                        map.put(collectionKey, collectionName);
+                        map.put(documentKey, docId);
+
+                        // Convert the map back to a JSON string
+                        json = new Gson().toJson(map);
+
+                        writer.write(json);
+
+                        writer.write(isListFormat ? ",\n" : "\n");
+                    }
+                }
+            }
+
+            if (isListFormat) {
+                writer.write("]\n");
+            }
+
+        } catch (IOException | CouchbaseLiteException e) {
+            // Handle the exception
             errorLabel.setText(e.getMessage());
             return;
         }
+
         super.doOKAction();
     }
+
 }
