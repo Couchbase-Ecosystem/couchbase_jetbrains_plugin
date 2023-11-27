@@ -34,6 +34,7 @@ import com.couchbase.lite.Scope;
 import com.couchbase.lite.SelectResult;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
@@ -42,7 +43,6 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import utils.TemplateUtil;
-
 
 public class CBLExportDialog extends DialogWrapper {
 
@@ -61,6 +61,9 @@ public class CBLExportDialog extends DialogWrapper {
         super(project);
         init();
         setTitle("Export");
+        getWindow().setMinimumSize(new Dimension(600, 380));
+        setResizable(true);
+        setOKButtonText("Export");
     }
 
     @Override
@@ -73,17 +76,16 @@ public class CBLExportDialog extends DialogWrapper {
         c.gridx = 0;
         c.gridy = 0;
         c.gridwidth = 2;
-        c.weightx = 1.0;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = JBUI.insetsBottom(10);
+        c.weightx = 0.7;
+        c.fill = GridBagConstraints.BOTH;
+        c.insets = JBUI.insets(5);
         formPanel.add(new TitledSeparator("Target"), c);
 
         JLabel scopeLabel = new JLabel("Scope:");
         c.gridy++;
         c.gridx = 0;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         c.gridwidth = 1;
-        c.anchor = GridBagConstraints.WEST;
         formPanel.add(scopeLabel, c);
 
         scopeComboBox = new JComboCheckBox();
@@ -95,9 +97,10 @@ public class CBLExportDialog extends DialogWrapper {
                 scopeComboBox.addItem(scopeName.getName());
             }
 
-            scopeComboBox.addActionListener(e -> SwingUtilities.invokeLater(() -> {
-                collectionComboBox.setEnabled(true);
+            scopeComboBox.setItemListener(e -> SwingUtilities.invokeLater(() -> {
+
                 collectionComboBox.removeAllItems();
+                collectionComboBox.setEnabled(true);
                 List<String> selectedScopes = scopeComboBox.getSelectedItems();
                 for (String selectedScope : selectedScopes) {
                     try {
@@ -109,8 +112,6 @@ public class CBLExportDialog extends DialogWrapper {
                         errorLabel.setText(exception.getMessage());
                     }
                 }
-                collectionComboBox.revalidate();
-                collectionComboBox.repaint();
             }));
 
         } catch (Exception e) {
@@ -118,22 +119,21 @@ public class CBLExportDialog extends DialogWrapper {
         }
 
         scopeComboBox.setHint("Select one or more scopes");
+        scopeComboBox.setSelectedItem(null);
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(scopeComboBox, c);
 
         JLabel collectionLabel = new JLabel("Collection:");
         c.gridx = 0;
         c.gridy++;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         formPanel.add(collectionLabel, c);
 
         collectionComboBox.setEnabled(false);
         collectionComboBox.setHint("Select one or more collections");
-        Dimension minSize = new Dimension(150, 20);
-        collectionComboBox.setMinimumSize(minSize);
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(collectionComboBox, c);
 
         JLabel scopeKeyLabel = new JLabel("Scope Key:");
@@ -141,13 +141,13 @@ public class CBLExportDialog extends DialogWrapper {
                 "<html>This filed will be used to store the name of the scope the document came from. It will be created on each JSON document.</html>");
         c.gridx = 0;
         c.gridy++;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         formPanel.add(scopeKeyPanel, c);
 
         scopeKeyField = new JTextField();
         scopeKeyField.setText("cbms");
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(scopeKeyField, c);
 
         JLabel collectionKeyLabel = new JLabel("Collection Key:");
@@ -155,13 +155,13 @@ public class CBLExportDialog extends DialogWrapper {
                 "<html>This filed will be used to store the name of the collection the document came from. It will be created on each JSON document.</html>");
         c.gridx = 0;
         c.gridy++;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         formPanel.add(collectionKeyPanel, c);
 
         collectionKeyField = new JTextField();
         collectionKeyField.setText("cbmc");
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(collectionKeyField, c);
 
         JLabel documentKeyLabel = new JLabel("Document Key:");
@@ -171,35 +171,38 @@ public class CBLExportDialog extends DialogWrapper {
                         + "the original keys. This property defines the name of the attribute in the final exported file that will contain the document's key.</html>");
         c.gridx = 0;
         c.gridy++;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         formPanel.add(documentKeyPanel, c);
 
         documentKeyField = new JTextField();
         documentKeyField.setText("cbmid");
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(documentKeyField, c);
 
         JLabel outputFormatLabel = new JLabel("Output Format:");
         c.gridx = 0;
         c.gridy++;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         formPanel.add(outputFormatLabel, c);
 
         outputFormatComboBox = new JComboBox<>(new String[] { "JSON Lines", "JSON List" });
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(outputFormatComboBox, c);
 
         JLabel destinationLabel = new JLabel("Destination Folder:");
         c.gridx = 0;
         c.gridy++;
-        c.weightx = 0.0;
+        c.weightx = 0.3;
         formPanel.add(destinationLabel, c);
 
         destinationField = new TextFieldWithBrowseButton();
+        destinationField.addBrowseFolderListener("Select Destination Folder", "Select Destination Folder", null,
+                FileChooserDescriptorFactory.createSingleFolderDescriptor());
+        destinationField.setText(System.getProperty("user.home"));
         c.gridx = 1;
-        c.weightx = 1.0;
+        c.weightx = 0.7;
         formPanel.add(destinationField, c);
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
