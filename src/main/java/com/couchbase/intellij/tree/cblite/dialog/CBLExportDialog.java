@@ -12,15 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 
 import com.couchbase.intellij.tools.dialog.JComboCheckBox;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
+import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.DataSource;
@@ -34,9 +33,12 @@ import com.couchbase.lite.Scope;
 import com.couchbase.lite.SelectResult;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.treeStructure.Tree;
@@ -51,11 +53,13 @@ public class CBLExportDialog extends DialogWrapper {
     private JLabel errorLabel;
 
     private TextFieldWithBrowseButton destinationField;
-    private JComboBox<String> outputFormatComboBox;
+    private ComboBox<String> outputFormatComboBox;
 
     private JTextField scopeKeyField;
     private JTextField collectionKeyField;
     private JTextField documentKeyField;
+
+    private static final String ALL_SCOPES = "All Scopes";
 
     public CBLExportDialog(Project project, Tree tree) {
         super(project);
@@ -92,18 +96,25 @@ public class CBLExportDialog extends DialogWrapper {
         collectionComboBox = new JComboCheckBox();
 
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
+
         try {
+            scopeComboBox.addItem(ALL_SCOPES);
             for (Scope scopeName : database.getScopes()) {
                 scopeComboBox.addItem(scopeName.getName());
             }
+        } catch (Exception e) {
+            errorLabel.setText(e.getMessage());
+        }
 
-            scopeComboBox.setItemListener(e -> SwingUtilities.invokeLater(() -> {
-
-                collectionComboBox.removeAllItems();
-                collectionComboBox.setEnabled(true);
-                List<String> selectedScopes = scopeComboBox.getSelectedItems();
-                for (String selectedScope : selectedScopes) {
+        scopeComboBox.setItemListener(e -> {
+            collectionComboBox.setEnabled(true);
+            collectionComboBox.removeAllItems();
+            for (String selectedScope : scopeComboBox.getSelectedItems()) {
+                if (ALL_SCOPES.equals(selectedScope)) {
+                    collectionComboBox.addItem("All Collections of " + ALL_SCOPES);
+                } else {
                     try {
+                        collectionComboBox.addItem("All Collections of " + selectedScope);
                         for (Collection collectionName : Objects.requireNonNull(database.getScope(selectedScope))
                                 .getCollections()) {
                             collectionComboBox.addItem(selectedScope + "." + collectionName.getName());
@@ -112,11 +123,8 @@ public class CBLExportDialog extends DialogWrapper {
                         errorLabel.setText(exception.getMessage());
                     }
                 }
-            }));
-
-        } catch (Exception e) {
-            errorLabel.setText(e.getMessage());
-        }
+            }
+        });
 
         scopeComboBox.setHint("Select one or more scopes");
         scopeComboBox.setSelectedItem(null);
@@ -186,7 +194,7 @@ public class CBLExportDialog extends DialogWrapper {
         c.weightx = 0.3;
         formPanel.add(outputFormatLabel, c);
 
-        outputFormatComboBox = new JComboBox<>(new String[] { "JSON Lines", "JSON List" });
+        outputFormatComboBox = new ComboBox<>(new String[] { "JSON Lines", "JSON List" });
         c.gridx = 1;
         c.weightx = 0.7;
         formPanel.add(outputFormatComboBox, c);
@@ -218,7 +226,6 @@ public class CBLExportDialog extends DialogWrapper {
 
     @Override
     protected void doOKAction() {
-
         List<String> selectedCollections = collectionComboBox.getSelectedItems();
         Database database = ActiveCBLDatabase.getInstance().getDatabase();
 
@@ -233,42 +240,24 @@ public class CBLExportDialog extends DialogWrapper {
             if (isListFormat) {
                 writer.write("[\n");
             }
-            // Your existing code here
 
             for (String collectionPath : selectedCollections) {
                 String[] parts = collectionPath.split("\\.");
                 String scopeName = parts[0];
-                String collectionName = parts[1];
+                String collectionName = parts.length > 1 ? parts[1] : null;
 
-                Collection collection = database.getScope(scopeName).getCollection(collectionName);
-
-                Query query = QueryBuilder.select(SelectResult.all())
-                        .from(DataSource.collection(Objects.requireNonNull(collection)));
-
-                try (ResultSet resultSet = query.execute()) {
-                    for (Result result : resultSet) {
-                        String docId = result.getString("id");
-                        Dictionary content = result.getDictionary(collectionName);
-
-                        // Convert the content to a JSON string
-                        String json = Objects.requireNonNull(content).toJSON();
-
-                        // Convert the JSON string to a map
-                        Map<String, Object> map = new Gson().fromJson(json, new TypeToken<Map<String, Object>>() {
-                        }.getType());
-
-                        // Overwrite the scope, collection, and document key fields
-                        map.put(scopeKey, scopeName);
-                        map.put(collectionKey, collectionName);
-                        map.put(documentKey, docId);
-
-                        // Convert the map back to a JSON string
-                        json = new Gson().toJson(map);
-
-                        writer.write(json);
-
-                        writer.write(isListFormat ? ",\n" : "\n");
+                if (collectionPath.equals("All Collections of All Scopes")) {
+                    for (Scope scope : database.getScopes()) {
+                        writeCollections(writer, database, scope.getName(), collectionName, scopeKey, collectionKey,
+                                documentKey, isListFormat);
                     }
+                } else if (collectionPath.startsWith("All Collections of ")) {
+                    String scope = collectionPath.substring("All Collections of ".length());
+                    writeCollections(writer, database, scope, collectionName, scopeKey, collectionKey, documentKey,
+                            isListFormat);
+                } else {
+                    writeCollections(writer, database, scopeName, collectionName, scopeKey, collectionKey, documentKey,
+                            isListFormat);
                 }
             }
 
@@ -276,13 +265,70 @@ public class CBLExportDialog extends DialogWrapper {
                 writer.write("]\n");
             }
 
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Log.info("Export completed successfully");
+                Messages.showInfoMessage("Export completed successfully", "Export");
+            });
+
         } catch (IOException | CouchbaseLiteException e) {
             // Handle the exception
             errorLabel.setText(e.getMessage());
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Log.error("Export failed", e);
+                Messages.showErrorDialog("Export failed: " + e.getMessage(), "Export");
+            });
             return;
         }
 
         super.doOKAction();
+    }
+
+        private void writeCollections(FileWriter writer, Database database, String scopeName, String collectionName,
+                String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
+                throws IOException, CouchbaseLiteException {
+            if (collectionName == null || "All Collections of ".concat(scopeName).equals(collectionName)) {
+                for (Collection collection : Objects.requireNonNull(database.getScope(scopeName)).getCollections()) {
+                    writeDocuments(writer, collection, scopeName, collection.getName(), scopeKey, collectionKey,
+                            documentKey, isListFormat);
+                }
+            } else {
+                Collection collection = Objects.requireNonNull(database.getScope(scopeName)).getCollection(collectionName);
+                writeDocuments(writer, collection, scopeName, collectionName, scopeKey, collectionKey, documentKey,
+                        isListFormat);
+            }
+        }
+
+    private void writeDocuments(FileWriter writer, Collection collection, String scopeName, String collectionName,
+            String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
+            throws IOException, CouchbaseLiteException {
+        Query query = QueryBuilder.select(SelectResult.all())
+                .from(DataSource.collection(collection));
+
+        try (ResultSet resultSet = query.execute()) {
+            for (Result result : resultSet) {
+                String docId = result.getString("id");
+                Dictionary content = result.getDictionary(collectionName);
+
+                // Convert the content to a JSON string
+                String json = Objects.requireNonNull(content).toJSON();
+
+                // Convert the JSON string to a map
+                Map<String, Object> map = new Gson().fromJson(json, new TypeToken<Map<String, Object>>() {
+                }.getType());
+
+                // Overwrite the scope, collection, and document key fields
+                map.put(scopeKey, scopeName);
+                map.put(collectionKey, collectionName);
+                map.put(documentKey, docId);
+
+                // Convert the map back to a JSON string
+                json = new Gson().toJson(map);
+
+                writer.write(json);
+
+                writer.write(isListFormat ? ",\n" : "\n");
+            }
+        }
     }
 
 }
