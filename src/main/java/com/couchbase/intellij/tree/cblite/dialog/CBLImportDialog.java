@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -40,6 +41,7 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.MutableDocument;
 import com.couchbase.lite.Scope;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -47,6 +49,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -63,9 +66,9 @@ import utils.TemplateUtil;
 public class CBLImportDialog extends DialogWrapper {
     private static final int CACHE_SIZE = 6;
     private final List<JsonObject> cache = new ArrayList<>();
+    private final Project project;
     ComboBox<String> scopeComboBox;
     ComboBox<String> collectionComboBox;
-    private final Project project;
     private JTextField keyField;
     private JTextArea keyPreviewArea;
     private JPanel cardPanel;
@@ -133,24 +136,24 @@ public class CBLImportDialog extends DialogWrapper {
 
         c.gridy++;
 
-        c.gridx = 3;
+        c.gridx = 1;
         contentPanel.add(infoPanel, c);
 
         JPanel datasetLabelHelpPanel = TemplateUtil.getLabelWithHelp("Select the Dataset:", "<html>Select the file containing the data to import. The file must be in either JSON or CSV format.</html>");
         c.gridy++;
         c.gridx = 0;
-        c.weightx = 1;
+        c.weightx = 0.3;
         contentPanel.add(datasetLabelHelpPanel, c);
 
         datasetField = new TextFieldWithBrowseButton();
         c.gridx = 1;
-        c.weightx = 1;
+        c.weightx = 0.7;
         contentPanel.add(datasetField, c);
 
         c.gridy++;
         c.gridx = 0;
         c.weightx = 1;
-        c.gridwidth = 2;
+        c.gridwidth = 3;
         contentPanel.add(new TitledSeparator("Target"), c);
 
         scopeComboBox = new ComboBox<>();
@@ -229,7 +232,7 @@ public class CBLImportDialog extends DialogWrapper {
         nextButton.addActionListener(e -> {
             if (currentPage < LAST_PAGE) {
                 nextPage();
-                prevButton.setEnabled(currentPage > 1);
+                prevButton.setEnabled(true);
                 nextButton.setText((currentPage == LAST_PAGE) ? "Import" : "Next");
             } else {
                 doOKAction();
@@ -240,6 +243,7 @@ public class CBLImportDialog extends DialogWrapper {
         prevButton.addActionListener(e -> {
             previousPage();
             prevButton.setEnabled(currentPage > 1);
+            nextButton.setEnabled(true);
             nextButton.setText((currentPage == LAST_PAGE) ? "Import" : "Next");
         });
 
@@ -337,6 +341,7 @@ public class CBLImportDialog extends DialogWrapper {
             protected void textChanged(@NotNull DocumentEvent e) {
                 String filePath = datasetField.getText();
                 String key = keyField.getText();
+                int monoIncr = 0;
                 if (!filePath.isEmpty() && key != null && !key.isEmpty()) {
                     try {
                         if (cache.isEmpty()) {
@@ -358,6 +363,14 @@ public class CBLImportDialog extends DialogWrapper {
                             String[] keyParts = key.split("%");
                             for (int i = 0; i < keyParts.length; i++) {
                                 if (i % 2 == 0) {
+
+                                    if (keyParts[i].contains("#UUID#")) {
+                                        keyParts[i] = keyParts[i].replace("#UUID#", UUID.randomUUID().toString());
+                                    }
+
+                                    if (keyParts[i].contains("#MONO_INCR#")) {
+                                        keyParts[i] = keyParts[i].replace("#MONO_INCR#", String.valueOf(monoIncr++));
+                                    }
                                     projectedNames.append(keyParts[i]);
                                 } else {
                                     String keyPart = keyParts[i];
@@ -375,6 +388,7 @@ public class CBLImportDialog extends DialogWrapper {
                         Log.error("Error while reading file", ex);
                     }
                 } else {
+                    keyPreviewArea.setText("");
                     nextButton.setEnabled(false);
                 }
             }
@@ -465,8 +479,16 @@ public class CBLImportDialog extends DialogWrapper {
                             collection.save(mutableDocument);
 
                         }
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            Messages.showInfoMessage("Data imported successfully", "Success");
+                            Log.info("Data imported successfully");
+                        });
                     } catch (Exception e) {
-                        Log.error("Error while importing data", e);
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            Messages.showErrorDialog("Error while importing data: " + e.getMessage(), "Error");
+                            Log.error("Error while importing data", e);
+                        });
                     }
                 }
             });
@@ -484,16 +506,22 @@ public class CBLImportDialog extends DialogWrapper {
             String keyPattern = keyField.getText();
             String[] keyParts = keyPattern.split("%");
             StringBuilder docIdBuilder = new StringBuilder();
+            int monoIncr = 0;
 
             for (int i = 0; i < keyParts.length; i++) {
                 if (i % 2 == 0) {
 
+                    if (keyParts[i].contains("#UUID#")) {
+                        keyParts[i] = keyParts[i].replace("#UUID#", UUID.randomUUID().toString());
+                    }
+
+                    if (keyParts[i].contains("#MONO_INCR#")) {
+                        keyParts[i] = keyParts[i].replace("#MONO_INCR#", String.valueOf(monoIncr++));
+                    }
                     docIdBuilder.append(keyParts[i]);
                 } else {
-
                     String keyPart = keyParts[i];
                     if (jsonObject.containsKey(keyPart)) {
-
                         docIdBuilder.append(jsonObject.getString(keyPart));
                     }
                 }
