@@ -17,6 +17,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import org.jetbrains.annotations.NotNull;
+
 import com.couchbase.intellij.tools.dialog.JComboCheckBox;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.workbench.Log;
@@ -35,6 +37,9 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -45,6 +50,8 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import utils.TemplateUtil;
+import utils.TimeUtils;
+import java.io.File;
 
 public class CBLExportDialog extends DialogWrapper {
 
@@ -64,7 +71,7 @@ public class CBLExportDialog extends DialogWrapper {
     public CBLExportDialog(Project project, Tree tree) {
         super(project);
         init();
-        setTitle("Export");
+        setTitle("Couchbase Lite Export");
         getWindow().setMinimumSize(new Dimension(600, 380));
         setResizable(true);
         setOKButtonText("Export");
@@ -206,7 +213,7 @@ public class CBLExportDialog extends DialogWrapper {
         formPanel.add(destinationLabel, c);
 
         destinationField = new TextFieldWithBrowseButton();
-        destinationField.addBrowseFolderListener("Select Destination Folder", "Select Destination Folder", null,
+        destinationField.addBrowseFolderListener("Select Destination Folder", "Select destination folder", null,
                 FileChooserDescriptorFactory.createSingleFolderDescriptor());
         destinationField.setText(System.getProperty("user.home"));
         c.gridx = 1;
@@ -233,70 +240,77 @@ public class CBLExportDialog extends DialogWrapper {
         String collectionKey = collectionKeyField.getText();
         String documentKey = documentKeyField.getText();
 
-        try (FileWriter writer = new FileWriter(destinationField.getText() + "/export.json")) {
-            String outputFormat = (String) outputFormatComboBox.getSelectedItem();
-            boolean isListFormat = "JSON List".equals(outputFormat);
+        String destinationFilePath = destinationField.getText() + File.separator + ActiveCBLDatabase.getInstance().getDatabase().getName() +"_cblexport_" + TimeUtils.getCurrentDateTime()
+            + ".json";
 
-            if (isListFormat) {
-                writer.write("[\n");
-            }
+        ProgressManager.getInstance().run(new Task.Backgroundable(null, "Exporting collections from '" + database.getName() + "' to '" + destinationFilePath + "'", false) {
+            public void run(@NotNull ProgressIndicator indicator) {
+                try (FileWriter writer = new FileWriter(destinationFilePath)) {
+                    String outputFormat = (String) outputFormatComboBox.getSelectedItem();
+                    boolean isListFormat = "JSON List".equals(outputFormat);
 
-            for (String collectionPath : selectedCollections) {
-                String[] parts = collectionPath.split("\\.");
-                String scopeName = parts[0];
-                String collectionName = parts.length > 1 ? parts[1] : null;
-
-                if (collectionPath.equals("All Collections of All Scopes")) {
-                    for (Scope scope : database.getScopes()) {
-                        writeCollections(writer, database, scope.getName(), collectionName, scopeKey, collectionKey,
-                                documentKey, isListFormat);
+                    if (isListFormat) {
+                        writer.write("[\n");
                     }
-                } else if (collectionPath.startsWith("All Collections of ")) {
-                    String scope = collectionPath.substring("All Collections of ".length());
-                    writeCollections(writer, database, scope, collectionName, scopeKey, collectionKey, documentKey,
-                            isListFormat);
-                } else {
-                    writeCollections(writer, database, scopeName, collectionName, scopeKey, collectionKey, documentKey,
-                            isListFormat);
+
+                    for (String collectionPath : selectedCollections) {
+                        String[] parts = collectionPath.split("\\.");
+                        String scopeName = parts[0];
+                        String collectionName = parts.length > 1 ? parts[1] : null;
+
+                        if (collectionPath.equals("All Collections of All Scopes")) {
+                            for (Scope scope : database.getScopes()) {
+                                writeCollections(writer, database, scope.getName(), collectionName, scopeKey,
+                                        collectionKey,
+                                        documentKey, isListFormat);
+                            }
+                        } else if (collectionPath.startsWith("All Collections of ")) {
+                            String scope = collectionPath.substring("All Collections of ".length());
+                            writeCollections(writer, database, scope, collectionName, scopeKey, collectionKey,
+                                    documentKey,
+                                    isListFormat);
+                        } else {
+                            writeCollections(writer, database, scopeName, collectionName, scopeKey, collectionKey,
+                                    documentKey,
+                                    isListFormat);
+                        }
+                    }
+
+                    if (isListFormat) {
+                        writer.write("]\n");
+                    }
+
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        Log.info("Export completed successfully");
+                        Messages.showInfoMessage("Export completed successfully", "Export");
+                    });
+
+                } catch (IOException | CouchbaseLiteException e) {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        Log.error("Export failed", e);
+                        Messages.showErrorDialog("Export failed: " + e.getMessage(), "Export");
+                    });
                 }
             }
-
-            if (isListFormat) {
-                writer.write("]\n");
-            }
-
-            ApplicationManager.getApplication().invokeLater(() -> {
-                Log.info("Export completed successfully");
-                Messages.showInfoMessage("Export completed successfully", "Export");
-            });
-
-        } catch (IOException | CouchbaseLiteException e) {
-            // Handle the exception
-            errorLabel.setText(e.getMessage());
-            ApplicationManager.getApplication().invokeLater(() -> {
-                Log.error("Export failed", e);
-                Messages.showErrorDialog("Export failed: " + e.getMessage(), "Export");
-            });
-            return;
-        }
+        });
 
         super.doOKAction();
     }
 
-        private void writeCollections(FileWriter writer, Database database, String scopeName, String collectionName,
-                String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
-                throws IOException, CouchbaseLiteException {
-            if (collectionName == null || "All Collections of ".concat(scopeName).equals(collectionName)) {
-                for (Collection collection : Objects.requireNonNull(database.getScope(scopeName)).getCollections()) {
-                    writeDocuments(writer, collection, scopeName, collection.getName(), scopeKey, collectionKey,
-                            documentKey, isListFormat);
-                }
-            } else {
-                Collection collection = Objects.requireNonNull(database.getScope(scopeName)).getCollection(collectionName);
-                writeDocuments(writer, collection, scopeName, collectionName, scopeKey, collectionKey, documentKey,
-                        isListFormat);
+    private void writeCollections(FileWriter writer, Database database, String scopeName, String collectionName,
+            String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
+            throws IOException, CouchbaseLiteException {
+        if (collectionName == null || "All Collections of ".concat(scopeName).equals(collectionName)) {
+            for (Collection collection : Objects.requireNonNull(database.getScope(scopeName)).getCollections()) {
+                writeDocuments(writer, collection, scopeName, collection.getName(), scopeKey, collectionKey,
+                        documentKey, isListFormat);
             }
+        } else {
+            Collection collection = Objects.requireNonNull(database.getScope(scopeName)).getCollection(collectionName);
+            writeDocuments(writer, collection, scopeName, collectionName, scopeKey, collectionKey, documentKey,
+                    isListFormat);
         }
+    }
 
     private void writeDocuments(FileWriter writer, Collection collection, String scopeName, String collectionName,
             String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
