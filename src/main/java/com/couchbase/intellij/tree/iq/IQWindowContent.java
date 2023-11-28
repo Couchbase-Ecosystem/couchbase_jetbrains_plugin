@@ -1,28 +1,29 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq;
 
+import com.couchbase.intellij.persistence.storage.IQStorage;
+import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
-import com.couchbase.intellij.tree.iq.ui.LoginPanel;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
-import com.couchbase.intellij.tree.iq.ui.OrgSelectionPanel;
-import com.intellij.designer.LightFillLayout;
+import com.couchbase.intellij.tree.iq.ui.LoginPanel;
+import com.couchbase.intellij.tree.iq.ui.action.editor.ActionsUtil;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.project.Project;
-import com.intellij.ui.dsl.gridLayout.GridLayout;
-import kotlinx.html.I;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import retrofit2.HttpException;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 
-public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, OrgSelectionPanel.Listener {
-    private static final String IQ_URL = "https://api.dev.nonprod-project-avengers.com/v2/organizations/%s/integrations/iq/";
+public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, ChatPanel.OrganizationListener {
+    private static final Logger LOGGER = LoggerFactory.getLogger(IQWindowContent.class);
+    private static final String IQ_URL = CapellaApiMethods.CAPELLA_DOMAIN + "/v2/organizations/%s/integrations/iq/";
     private final Project project;
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
@@ -46,10 +47,40 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.removeAll();
         try {
             this.organizationList = CapellaApiMethods.loadOrganizations(credentials.getAuth());
-            this.add(new OrgSelectionPanel(project, organizationList, this));
-            this.updateUI();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            if (organizationList.getData().isEmpty()) {
+                Notifications.Bus.notify(
+                        new Notification(
+                                ChatGptBundle.message("group.id"),
+                                "No Capella organizations found",
+                                "At least one organization is required to use Couchbase IQ. No organizations found.",
+                                NotificationType.ERROR
+                        )
+                );
+                onLogout(null);
+                return;
+            }
+
+            CapellaOrganization activeOrg = organizationList.getData().get(0).getData();
+            String orgId = IQStorage.getInstance().getState().getActiveOrganization();
+            if (orgId != null) {
+                activeOrg = organizationList.getData().stream()
+                        .filter(org -> orgId.equalsIgnoreCase(org.getData().getId()))
+                        .map(CapellaOrganizationList.Entry::getData)
+                        .findFirst()
+                        .orElse(activeOrg);
+            }
+            this.onOrgSelected(activeOrg);
+        } catch (Exception e) {
+            LOGGER.error("Failed to initialize IQ", e);
+            Notifications.Bus.notify(
+                    new Notification(
+                            ChatGptBundle.message("group.id"),
+                            "Something went wrong",
+                            "Failed to login, please try again later",
+                            NotificationType.ERROR
+                    )
+            );
+            onLogout(e);
         }
     }
 
@@ -63,8 +94,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         }
 
         this.removeAll();
-        credentials.clear();
-        this.add(new LoginPanel(this));
+        this.add(new LoginPanel(credentials, this));
         this.updateUI();
         return true;
     }
@@ -74,6 +104,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.removeAll();
         this.updateUI();
         SwingUtilities.invokeLater(() -> {
+            IQStorage.getInstance().getState().setActiveOrganization(organization.getId());
             final String iqUrl = String.format(IQ_URL, organization.getId());
             iqGptConfig = new OpenAISettingsState.OpenAIConfig();
             OpenAISettingsState.getInstance().setGpt4Config(iqGptConfig);
@@ -84,6 +115,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
             ChatPanel chatPanel = new ChatPanel(project, iqGptConfig, organizationList, organization, this, this);
+            ActionsUtil.refreshActions();
             this.add(chatPanel);
             this.updateUI();
         });

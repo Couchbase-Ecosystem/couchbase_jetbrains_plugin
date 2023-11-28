@@ -1,31 +1,19 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
-import com.couchbase.intellij.tree.iq.core.IQCredentials;
-import com.didalgo.gpt3.ModelType;
-import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.chat.*;
 import com.couchbase.intellij.tree.iq.core.ChatCompletionParser;
-import com.couchbase.intellij.tree.iq.settings.OpenAISettingsPanel;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.text.TextContent;
 import com.couchbase.intellij.tree.iq.text.TextFragment;
-import com.couchbase.intellij.tree.iq.ui.action.tool.SettingsAction;
 import com.couchbase.intellij.tree.iq.ui.context.stack.ListStack;
 import com.couchbase.intellij.tree.iq.ui.context.stack.ListStackFactory;
 import com.couchbase.intellij.tree.iq.ui.context.stack.TextInputContextEntry;
 import com.couchbase.intellij.tree.iq.ui.listener.SubmitListener;
+import com.didalgo.gpt3.ModelType;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI;
-import com.intellij.notification.BrowseNotificationAction;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.OnePixelSplitter;
@@ -69,7 +57,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     public static final KeyStroke SUBMIT_KEYSTROKE = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, CTRL_DOWN_MASK);
 
-    public ChatPanel(@NotNull Project project, ConfigurationPage aiConfig, CapellaOrganizationList organizationList, CapellaOrganization organization, LogoutListener logoutListener, OrgSelectionPanel.Listener orgChangeListener) {
+    public ChatPanel(@NotNull Project project, ConfigurationPage aiConfig, CapellaOrganizationList organizationList, CapellaOrganization organization, LogoutListener logoutListener, OrganizationListener orgChangeListener) {
         super(true, 0.99f);
         setLayout(new BorderLayout());
         setLackOfSpaceStrategy(LackOfSpaceStrategy.HONOR_THE_SECOND_MIN_SIZE);
@@ -78,6 +66,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         this.logoutListener = logoutListener;
 
         chatLink = new ChatLinkService(project, conversationHandler, aiConfig);
+        project.putUserData(ChatLink.KEY, chatLink);
         chatLink.addChatMessageListener(this);
         ContextAwareSnippetizer snippetizer = ApplicationManager.getApplication().getService(ContextAwareSnippetizer.class);
         submitAction = new SubmitListener(chatLink, this::getSearchText, snippetizer);
@@ -163,6 +152,10 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         boolean onLogout(Throwable reason);
     }
 
+    public interface OrganizationListener {
+        void onOrgSelected(CapellaOrganization organization);
+    }
+
     private class ContextStackHandler implements ListDataListener {
 
         protected void onContentsChange() {
@@ -227,13 +220,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         OpenAISettingsState instance = OpenAISettingsState.getInstance();
         String page = getChatLink().getConversationContext().getModelPage();
         if (StringUtils.isEmpty(instance.getConfigurationPage(page).getApiKey())) {
-            Notification notification = new Notification(ChatGptBundle.message("group.id"),
-                    ChatGptBundle.message("notify.config.title"),
-                    ChatGptBundle.message("notify.config.text"),
-                    NotificationType.ERROR);
-            notification.addAction(new SettingsAction(ChatGptBundle.message("notify.config.action.config"), OpenAISettingsPanel.getTargetPanelClassForPage(page)));
-            notification.addAction(new BrowseNotificationAction(ChatGptBundle.message("notify.config.action.browse"), ChatGptBundle.message("notify.config.action.browse.url")));
-            Notifications.Bus.notify(notification);
+            logoutListener.onLogout(null);
             return false;
         }
         return true;

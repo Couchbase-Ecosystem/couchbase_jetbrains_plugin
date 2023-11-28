@@ -65,6 +65,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.settings.OpenAISettingsState"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.ClustersStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.IQStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
@@ -153,6 +154,10 @@
                 text="Couchbase Data Import"
                 description="Import data into your database from a file.">
         </action>
+
+        <group id="IQActions"
+               text="Capella IQ Actions"
+        />
 
     </actions>
 

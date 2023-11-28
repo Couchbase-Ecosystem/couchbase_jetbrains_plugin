@@ -1,12 +1,8 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.settings;
 
-import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ModelPage;
 import com.couchbase.intellij.tree.iq.chat.ConfigurationPage;
+import com.didalgo.gpt3.ModelType;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.ide.passwordSafe.PasswordSafe;
@@ -22,9 +18,7 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
@@ -46,11 +40,6 @@ public class OpenAISettingsState implements PersistentStateComponent<OpenAISetti
     public static final String BASE_PROMPT = "You are a professional software engineer." +
             " Follow these rules in each response: snarky & noir & lang:${{LANG}}." +
             " Source code language: en. Bias towards the best solution.";
-
-    public Map<Integer,String> contentOrder = new HashMap<>() {{
-//        put(1, ChatGptToolWindowFactory.GPT35_TURBO_CONTENT_NAME);
-//        put(2, ChatGptToolWindowFactory.ONLINE_CHATGPT_CONTENT_NAME);
-    }};
 
     private volatile String readTimeout = "50000";
     private volatile boolean enableAvatar = true;

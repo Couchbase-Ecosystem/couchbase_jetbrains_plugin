@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.didalgo.gpt3.ModelType;
@@ -93,7 +89,7 @@ public class MessageComponent extends JBPanel<MessageComponent> {
                 Notifications.Bus.notify(
                         new Notification(ChatGptBundle.message("group.id"),
                                 "Copied successfully",
-                                "ChatGPT " + (fromUser? "prompt":"reply") + " content has been successfully copied to the clipboard.",
+                                "IQ " + (fromUser? "prompt":"reply") + " content has been successfully copied to the clipboard.",
                                 NotificationType.INFORMATION));
             }
         });

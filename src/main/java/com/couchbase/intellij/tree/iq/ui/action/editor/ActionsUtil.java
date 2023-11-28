@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.ui.action.editor;
 
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
@@ -15,7 +11,7 @@ public class ActionsUtil {
 
     public static void refreshActions() {
         ActionManager actionManager = ActionManager.getInstance();
-        AnAction existingActionGroup = actionManager.getAction("ActionGroup2");
+        AnAction existingActionGroup = actionManager.getAction("IQActions");
         if (existingActionGroup instanceof DefaultActionGroup group) {
             group.removeAll();
             group.add(new TokenCountAction());

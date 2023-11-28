@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
@@ -49,13 +45,13 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     private final JBScrollPane myScrollPane = new JBScrollPane(myList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                       ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
     private final CapellaOrganization organization;
-    private final OrgSelectionPanel.Listener orgChangeListener;
+    private final ChatPanel.OrganizationListener orgChangeListener;
     private int myScrollValue = 0;
     private JComboBox<String> orgSelector;
     private final Project project;
     private final ChatLink chatLink;
 
-    public MessageGroupComponent(ChatLink chatLink, @NotNull Project project, CapellaOrganizationList organizationList, CapellaOrganization organization, OrgSelectionPanel.Listener orgChangeListener, ChatPanel.LogoutListener logoutListener) {
+    public MessageGroupComponent(ChatLink chatLink, @NotNull Project project, CapellaOrganizationList organizationList, CapellaOrganization organization, ChatPanel.OrganizationListener orgChangeListener, ChatPanel.LogoutListener logoutListener) {
         this.chatLink = chatLink;
         this.project = project;
         this.organization = organization;
@@ -89,21 +85,13 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             });
             orgPanel.add(orgSelector, BorderLayout.CENTER);
             DefaultActionGroup toolbarActions = new DefaultActionGroup();
-            toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    SwingUtilities.invokeLater(() -> {
-                        logoutListener.onLogout(null);
-                    });
-                }
-            });
             ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
             actonPanel.setTargetComponent(this);
             orgPanel.add(actonPanel,BorderLayout.EAST);
             panel.add(orgPanel);
             panel.setBorder(JBUI.Borders.empty(0,8,10,0));
 
-            HideableTitledPanel cPanel = new HideableTitledPanel(String.format("Current organization: %s", organization.getName()), false);
+            HideableTitledPanel cPanel = new HideableTitledPanel(String.format("Settings: %s", organization.getName()), false);
             cPanel.setContentComponent(panel);
             cPanel.setOn(false);
             cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
@@ -121,20 +109,27 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
 
         panel.add(myTitle, BorderLayout.WEST);
 
-        LinkLabel<String> newChat = new LinkLabel<>("New chat", null);
-        newChat.addMouseListener(new MouseAdapter() {
+        DefaultActionGroup chatActions = new DefaultActionGroup();
+        chatActions.add(new AnAction(() -> "New chat", AllIcons.General.Add) {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(@NotNull AnActionEvent e) {
                 myList.removeAll();
                 addAssistantTipsIfEnabled(false);
                 myList.updateUI();
                 chatLink.getConversationContext().clear();
             }
         });
-
-        newChat.setFont(JBFont.label());
-        newChat.setBorder(JBUI.Borders.emptyRight(20));
-        panel.add(newChat, BorderLayout.EAST);
+        chatActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    logoutListener.onLogout(null);
+                });
+            }
+        });
+        ActionToolbarImpl chatPanel = new ActionToolbarImpl("Chat Actions Toolbar", chatActions, true);
+        chatPanel.setTargetComponent(this);
+        panel.add(chatPanel, BorderLayout.EAST);
         mainPanel.add(panel, BorderLayout.NORTH);
 
         myList.setOpaque(true);

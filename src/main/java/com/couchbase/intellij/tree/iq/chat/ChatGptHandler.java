@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tree.iq.chat;
 
 import com.couchbase.intellij.tree.iq.OpenAIServiceHolder;
-import com.intellij.openapi.diagnostic.Logger;
 import com.theokanning.openai.completion.chat.*;
 import io.reactivex.Flowable;
 import io.reactivex.functions.Action;
@@ -13,8 +12,6 @@ import java.util.*;
 
 public class ChatGptHandler {
 
-    private static final Logger LOG = Logger.getInstance(ChatGptHandler.class);
-
     public Flowable<?> handle(ConversationContext ctx, ChatMessageEvent.Initiating event, ChatMessageListener listener) {
         var openAiService = OpenAIServiceHolder.getOpenAiService(ctx.getModelPage());
         var flowHandler = new ChatCompletionHandler(listener);
@@ -22,7 +19,6 @@ public class ChatGptHandler {
 
         if (Boolean.TRUE.equals(request.getStream())) {
             return openAiService.streamChatCompletion(request)
-                    //return streamTestChatCompletion(TEST_MARKDOWN)
                     .doOnSubscribe(flowHandler.onSubscribe(event))
                     .doOnError(flowHandler.onError())
                     .doOnComplete(flowHandler.onComplete(ctx))
