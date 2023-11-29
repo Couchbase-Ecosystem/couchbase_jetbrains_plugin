@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,6 +68,7 @@ public class CBLExportDialog extends DialogWrapper {
     private JTextField documentKeyField;
 
     private static final String ALL_SCOPES = "All Scopes";
+    private List<String> oldItems = new ArrayList<>();
 
     public CBLExportDialog(Project project, Tree tree) {
         super(project);
@@ -114,23 +116,40 @@ public class CBLExportDialog extends DialogWrapper {
         }
 
         scopeComboBox.setItemListener(e -> {
-            collectionComboBox.setEnabled(true);
-            collectionComboBox.removeAllItems();
+            // First, generate the new items
+            List<String> newItems = new ArrayList<>();
             for (String selectedScope : scopeComboBox.getSelectedItems()) {
                 if (ALL_SCOPES.equals(selectedScope)) {
-                    collectionComboBox.addItem("All Collections of " + ALL_SCOPES);
+                    newItems.add("All Collections of " + ALL_SCOPES);
                 } else {
                     try {
-                        collectionComboBox.addItem("All Collections of " + selectedScope);
+                        newItems.add("All Collections of " + selectedScope);
                         for (Collection collectionName : Objects.requireNonNull(database.getScope(selectedScope))
                                 .getCollections()) {
-                            collectionComboBox.addItem(selectedScope + "." + collectionName.getName());
+                            newItems.add(selectedScope + "." + collectionName.getName());
                         }
                     } catch (Exception exception) {
                         errorLabel.setText(exception.getMessage());
                     }
                 }
             }
+
+            // Then, remove old items
+            for (String item : oldItems) {
+                if (!newItems.contains(item)) {
+                    collectionComboBox.removeItem(item);
+                }
+            }
+
+            // Finally, add new items and update oldItems
+            for (String item : newItems) {
+                if (!oldItems.contains(item)) {
+                    collectionComboBox.addItem(item);
+                }
+            }
+            oldItems = newItems;
+
+            collectionComboBox.setEnabled(true);
         });
 
         scopeComboBox.setHint("Select one or more scopes");
@@ -240,10 +259,13 @@ public class CBLExportDialog extends DialogWrapper {
         String collectionKey = collectionKeyField.getText();
         String documentKey = documentKeyField.getText();
 
-        String destinationFilePath = destinationField.getText() + File.separator + ActiveCBLDatabase.getInstance().getDatabase().getName() +"_cblexport_" + TimeUtils.getCurrentDateTime()
-            + ".json";
+        String destinationFilePath = destinationField.getText() + File.separator
+                + ActiveCBLDatabase.getInstance().getDatabase().getName() + "_cblexport_"
+                + TimeUtils.getCurrentDateTime()
+                + ".json";
 
-        ProgressManager.getInstance().run(new Task.Backgroundable(null, "Exporting collections from '" + database.getName() + "' to '" + destinationFilePath + "'", false) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(null,
+                "Exporting collections from '" + database.getName() + "' to '" + destinationFilePath + "'", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try (FileWriter writer = new FileWriter(destinationFilePath)) {
                     String outputFormat = (String) outputFormatComboBox.getSelectedItem();
