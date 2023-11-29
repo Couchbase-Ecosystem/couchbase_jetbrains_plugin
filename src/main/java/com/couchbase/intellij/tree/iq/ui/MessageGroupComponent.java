@@ -85,13 +85,22 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             });
             orgPanel.add(orgSelector, BorderLayout.CENTER);
             DefaultActionGroup toolbarActions = new DefaultActionGroup();
+            toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    SwingUtilities.invokeLater(() -> {
+                        logoutListener.onLogout(null);
+                    });
+                }
+            });
+
             ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
             actonPanel.setTargetComponent(this);
             orgPanel.add(actonPanel,BorderLayout.EAST);
             panel.add(orgPanel);
             panel.setBorder(JBUI.Borders.empty(0,8,10,0));
 
-            HideableTitledPanel cPanel = new HideableTitledPanel(String.format("Settings: %s", organization.getName()), false);
+            HideableTitledPanel cPanel = new HideableTitledPanel("Settings", false);
             cPanel.setContentComponent(panel);
             cPanel.setOn(false);
             cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
@@ -110,7 +119,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         panel.add(myTitle, BorderLayout.WEST);
 
         DefaultActionGroup chatActions = new DefaultActionGroup();
-        chatActions.add(new AnAction(() -> "New chat", AllIcons.General.Add) {
+        chatActions.add(new AnAction(() -> "New chat", AllIcons.General.Remove) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 myList.removeAll();
@@ -119,14 +128,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 chatLink.getConversationContext().clear();
             }
         });
-        chatActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                SwingUtilities.invokeLater(() -> {
-                    logoutListener.onLogout(null);
-                });
-            }
-        });
+
         ActionToolbarImpl chatPanel = new ActionToolbarImpl("Chat Actions Toolbar", chatActions, true);
         chatPanel.setTargetComponent(this);
         panel.add(chatPanel, BorderLayout.EAST);
