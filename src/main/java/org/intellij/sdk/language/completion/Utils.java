@@ -18,6 +18,7 @@ import generated.GeneratedTypes;
 import generated.psi.Alias;
 import generated.psi.KeyspaceRef;
 import generated.psi.Statement;
+import generated.psi.impl.AliasImpl;
 import org.intellij.sdk.language.psi.SqlppTokenSets;
 import org.jetbrains.annotations.NotNull;
 
@@ -251,8 +252,8 @@ public class Utils {
         return element.getText();
     }
 
-    public static Collection<Alias> getAliases(PsiElement s) {
-        return PsiTreeUtil.collectElementsOfType(s, Alias.class);
+    public static Collection<AliasImpl> getAliases(PsiElement s) {
+        return PsiTreeUtil.collectElementsOfType(s, AliasImpl.class);
     }
 
     private static PsiElement ffToStatementEnd(PsiElement element) {
@@ -307,20 +308,20 @@ public class Utils {
                 .orElseGet(() -> Optional.ofNullable(PsiTreeUtil.getParentOfType(element, Statement.class)));
     }
 
-    public static Stream<Alias> findAlias(PsiElement element, String name) {
+    public static Stream<AliasImpl> findAlias(PsiElement element, String name) {
         return getStatement(element)
                 .stream()
                 .flatMap(s -> getAliases(s).stream())
                 .filter(a -> getAliasName(a).filter(n -> name == null || n.startsWith(name)).isPresent());
     }
 
-    public static Optional<String> getAliasName(Alias a) {
+    public static Optional<String> getAliasName(AliasImpl a) {
         return getPreviousSibling(a, s -> s instanceof PsiWhiteSpace)
                 .map(PsiElement::getNextSibling)
                 .map(Utils::getIdentifier);
     }
 
-    public static List<String> getAliasPath(Alias alias) {
+    public static List<String> getAliasPath(AliasImpl alias) {
         return getPreviousSibling(alias, e -> e.getNode().getElementType() == GeneratedTypes.AS)
                 .map(Optional::of)
                 .orElseGet(() -> getPreviousSibling(alias, e -> e instanceof PsiWhiteSpace))
