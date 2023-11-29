@@ -4,13 +4,7 @@ import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.tree.cblite.dialog.CBLAttachBlobDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLImportDialog;
-import com.couchbase.intellij.tree.cblite.nodes.CBLBlobNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLCollectionNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLIndexNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLIndexesNodeDescriptor;
-import com.couchbase.intellij.tree.cblite.nodes.CBLScopeNodeDescriptor;
+import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
@@ -153,7 +147,7 @@ public class CBLTreeRightClickListener {
             AnAction cblImport = new AnAction("Couchbase Lite Import") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    CBLImportDialog importDialog = new CBLImportDialog(project,tree);
+                    CBLImportDialog importDialog = new CBLImportDialog(project);
                     importDialog.show();
                 }
             };

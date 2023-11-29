@@ -1,46 +1,12 @@
 package com.couchbase.intellij.tree.cblite.dialog;
 
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.event.DocumentEvent;
-
-import org.jetbrains.annotations.NotNull;
-
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Collection;
-import com.couchbase.lite.CouchbaseLiteException;
-import com.couchbase.lite.Database;
-import com.couchbase.lite.MutableDocument;
-import com.couchbase.lite.Scope;
+import com.couchbase.lite.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -56,12 +22,22 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
-
+import org.jetbrains.annotations.NotNull;
 import utils.ColorHelper;
 import utils.FileUtils;
 import utils.TemplateUtil;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.*;
 
 public class CBLImportDialog extends DialogWrapper {
     private static final int CACHE_SIZE = 6;
@@ -79,7 +55,7 @@ public class CBLImportDialog extends DialogWrapper {
     private JButton prevButton;
     private JBLabel universalErrorLabel;
 
-    public CBLImportDialog(Project project, Tree tree) {
+    public CBLImportDialog(Project project) {
         super(project, true);
         this.project = project;
         init();
@@ -479,15 +455,15 @@ public class CBLImportDialog extends DialogWrapper {
                             collection.save(mutableDocument);
 
                         }
+                        Log.info("Data imported successfully");
 
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Messages.showInfoMessage("Data imported successfully", "Success");
-                            Log.info("Data imported successfully");
                         });
                     } catch (Exception e) {
+                        Log.error("Error while importing data", e);
                         ApplicationManager.getApplication().invokeLater(() -> {
                             Messages.showErrorDialog("Error while importing data: " + e.getMessage(), "Error");
-                            Log.error("Error while importing data", e);
                         });
                     }
                 }
