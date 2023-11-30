@@ -16,16 +16,19 @@ repositories {
     mavenLocal()
     mavenCentral()
     gradlePluginPortal()
+    maven { url = uri("https://mobile.maven.couchbase.com/maven2/dev/") }
 }
 
 dependencies {
     implementation("org.projectlombok:lombok:1.18.28")
+    implementation(files("lib/couchbase-lite-java-ee-3.1.3-7-release.jar"))
     annotationProcessor("org.projectlombok:lombok:1.18.30")
     compileOnly("org.projectlombok:lombok:1.18.30")
     implementation("com.couchbase.client:java-client:3.4.11")
     implementation("org.slf4j:slf4j-simple:2.0.7")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
     implementation("com.google.code.gson:gson:2.10.1")
+
 
     implementation("com.google.code.gson:gson:2.10.1")
 
@@ -51,7 +54,6 @@ dependencies {
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
-
 }
 
 // Configure Gradle IntelliJ Plugin

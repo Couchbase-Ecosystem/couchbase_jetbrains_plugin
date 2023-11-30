@@ -44,6 +44,12 @@ public class Log {
         }
     }
 
+    public static void warning(String message) {
+        if (logLevel >= 2) {
+            getLogger().print("\n" + message, ConsoleViewContentType.LOG_WARNING_OUTPUT);
+        }
+    }
+
     public static void debug(String message) {
         if (logLevel >= 3) {
             getLogger().print("\n" + message, ConsoleViewContentType.LOG_DEBUG_OUTPUT);

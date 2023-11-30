@@ -19,6 +19,13 @@ public class CollapsiblePanel extends JPanel {
 
     private Integer originalWidth;
 
+    public CollapsiblePanel(String title, JPanel content, boolean isExpanded) {
+        this(title, content);
+        if (isExpanded) {
+            toggleContent();
+        }
+    }
+
     public CollapsiblePanel(String title, JPanel content) {
         super(new BorderLayout());
 
