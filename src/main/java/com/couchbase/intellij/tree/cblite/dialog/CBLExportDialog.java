@@ -10,9 +10,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -56,18 +58,15 @@ import utils.TimeUtils;
 
 public class CBLExportDialog extends DialogWrapper {
 
+    private static final String ALL_SCOPES = "All Scopes";
     private JComboCheckBox scopeComboBox;
     private JComboCheckBox collectionComboBox;
     private JLabel errorLabel;
-
     private TextFieldWithBrowseButton destinationField;
     private ComboBox<String> outputFormatComboBox;
-
     private JTextField scopeKeyField;
     private JTextField collectionKeyField;
     private JTextField documentKeyField;
-
-    private static final String ALL_SCOPES = "All Scopes";
     private List<String> oldItems = new ArrayList<>();
 
     public CBLExportDialog(Project project, Tree tree) {
@@ -132,8 +131,7 @@ public class CBLExportDialog extends DialogWrapper {
                     } else {
                         try {
                             newItems.add("All Collections of " + selectedScope);
-                            for (Collection collectionName : Objects.requireNonNull(database.getScope(selectedScope))
-                                    .getCollections()) {
+                            for (Collection collectionName : Objects.requireNonNull(database.getScope(selectedScope)).getCollections()) {
                                 newItems.add(selectedScope + "." + collectionName.getName());
                             }
                         } catch (Exception exception) {
@@ -142,7 +140,8 @@ public class CBLExportDialog extends DialogWrapper {
                     }
                 }
 
-                // We need to arrange all the "All Collections of All Scopes" items to be at the top and "All Collections of <scope>" items to be next
+                // We need to arrange all the "All Collections of All Scopes" items to be at the
+                // top and "All Collections of <scope>" items to be next
                 newItems.sort((o1, o2) -> {
                     if (o1.startsWith("All Collections of ") && o2.startsWith("All Collections of ")) {
                         return o1.compareTo(o2);
@@ -185,8 +184,7 @@ public class CBLExportDialog extends DialogWrapper {
         formPanel.add(collectionComboBox, c);
 
         JLabel scopeKeyLabel = new JLabel("Scope Key:");
-        JPanel scopeKeyPanel = TemplateUtil.getLabelWithHelp(scopeKeyLabel,
-                "<html>This filed will be used to store the name of the scope the document came from. It will be created on each JSON document.</html>");
+        JPanel scopeKeyPanel = TemplateUtil.getLabelWithHelp(scopeKeyLabel, "<html>This filed will be used to store the name of the scope the document came from. It will be created on each JSON document.</html>");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.3;
@@ -199,8 +197,7 @@ public class CBLExportDialog extends DialogWrapper {
         formPanel.add(scopeKeyField, c);
 
         JLabel collectionKeyLabel = new JLabel("Collection Key:");
-        JPanel collectionKeyPanel = TemplateUtil.getLabelWithHelp(collectionKeyLabel,
-                "<html>This filed will be used to store the name of the collection the document came from. It will be created on each JSON document.</html>");
+        JPanel collectionKeyPanel = TemplateUtil.getLabelWithHelp(collectionKeyLabel, "<html>This filed will be used to store the name of the collection the document came from. It will be created on each JSON document.</html>");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.3;
@@ -213,10 +210,7 @@ public class CBLExportDialog extends DialogWrapper {
         formPanel.add(collectionKeyField, c);
 
         JLabel documentKeyLabel = new JLabel("Document Key:");
-        JPanel documentKeyPanel = TemplateUtil.getLabelWithHelp(documentKeyLabel,
-                "<html>In Couchbase, the document's key is not "
-                        + "part of the body of the document. But when you are exporting the dataset, it is recommended to also include "
-                        + "the original keys. This property defines the name of the attribute in the final exported file that will contain the document's key.</html>");
+        JPanel documentKeyPanel = TemplateUtil.getLabelWithHelp(documentKeyLabel, "<html>In Couchbase, the document's key is not " + "part of the body of the document. But when you are exporting the dataset, it is recommended to also include " + "the original keys. This property defines the name of the attribute in the final exported file that will contain the document's key.</html>");
         c.gridx = 0;
         c.gridy++;
         c.weightx = 0.3;
@@ -234,7 +228,7 @@ public class CBLExportDialog extends DialogWrapper {
         c.weightx = 0.3;
         formPanel.add(outputFormatLabel, c);
 
-        outputFormatComboBox = new ComboBox<>(new String[] { "JSON Lines", "JSON List" });
+        outputFormatComboBox = new ComboBox<>(new String[]{"JSON Lines", "JSON List"});
         c.gridx = 1;
         c.weightx = 0.7;
         formPanel.add(outputFormatComboBox, c);
@@ -246,8 +240,7 @@ public class CBLExportDialog extends DialogWrapper {
         formPanel.add(destinationLabel, c);
 
         destinationField = new TextFieldWithBrowseButton();
-        destinationField.addBrowseFolderListener("Select Destination Folder", "Select destination folder", null,
-                FileChooserDescriptorFactory.createSingleFolderDescriptor());
+        destinationField.addBrowseFolderListener("Select Destination Folder", "Select destination folder", null, FileChooserDescriptorFactory.createSingleFolderDescriptor());
         destinationField.setText(System.getProperty("user.home"));
         c.gridx = 1;
         c.weightx = 0.7;
@@ -273,13 +266,9 @@ public class CBLExportDialog extends DialogWrapper {
         String collectionKey = collectionKeyField.getText();
         String documentKey = documentKeyField.getText();
 
-        String destinationFilePath = destinationField.getText() + File.separator
-                + ActiveCBLDatabase.getInstance().getDatabase().getName() + "_cblexport_"
-                + TimeUtils.getCurrentDateTime()
-                + ".json";
+        String destinationFilePath = destinationField.getText() + File.separator + ActiveCBLDatabase.getInstance().getDatabase().getName() + "_cblexport_" + TimeUtils.getCurrentDateTime() + ".json";
 
-        ProgressManager.getInstance().run(new Task.Backgroundable(null,
-                "Exporting collections from '" + database.getName() + "' to '" + destinationFilePath + "'", false) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(null, "Exporting collections from '" + database.getName() + "' to '" + destinationFilePath + "'", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try (FileWriter writer = new FileWriter(destinationFilePath)) {
                     String outputFormat = (String) outputFormatComboBox.getSelectedItem();
@@ -289,6 +278,9 @@ public class CBLExportDialog extends DialogWrapper {
                         writer.write("[\n");
                     }
 
+                    // Create a set to keep track of exported collections
+                    Set<String> exportedCollections = new HashSet<>();
+
                     for (String collectionPath : selectedCollections) {
                         String[] parts = collectionPath.split("\\.");
                         String scopeName = parts[0];
@@ -296,19 +288,13 @@ public class CBLExportDialog extends DialogWrapper {
 
                         if (collectionPath.equals("All Collections of All Scopes")) {
                             for (Scope scope : database.getScopes()) {
-                                writeCollections(writer, database, scope.getName(), collectionName, scopeKey,
-                                        collectionKey,
-                                        documentKey, isListFormat);
+                                writeCollections(writer, database, scope.getName(), collectionName, scopeKey, collectionKey, documentKey, isListFormat, exportedCollections);
                             }
                         } else if (collectionPath.startsWith("All Collections of ")) {
                             String scope = collectionPath.substring("All Collections of ".length());
-                            writeCollections(writer, database, scope, collectionName, scopeKey, collectionKey,
-                                    documentKey,
-                                    isListFormat);
+                            writeCollections(writer, database, scope, collectionName, scopeKey, collectionKey, documentKey, isListFormat, exportedCollections);
                         } else {
-                            writeCollections(writer, database, scopeName, collectionName, scopeKey, collectionKey,
-                                    documentKey,
-                                    isListFormat);
+                            writeCollections(writer, database, scopeName, collectionName, scopeKey, collectionKey, documentKey, isListFormat, exportedCollections);
                         }
                     }
 
@@ -333,26 +319,25 @@ public class CBLExportDialog extends DialogWrapper {
         super.doOKAction();
     }
 
-    private void writeCollections(FileWriter writer, Database database, String scopeName, String collectionName,
-            String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
-            throws IOException, CouchbaseLiteException {
+    private void writeCollections(FileWriter writer, Database database, String scopeName, String collectionName, String scopeKey, String collectionKey, String documentKey, boolean isListFormat, Set<String> exportedCollections) throws IOException, CouchbaseLiteException {
         if (collectionName == null || "All Collections of ".concat(scopeName).equals(collectionName)) {
             for (Collection collection : Objects.requireNonNull(database.getScope(scopeName)).getCollections()) {
-                writeDocuments(writer, collection, scopeName, collection.getName(), scopeKey, collectionKey,
-                        documentKey, isListFormat);
+                if (!exportedCollections.contains(collection.getName())) {
+                    writeDocuments(writer, collection, scopeName, collection.getName(), scopeKey, collectionKey, documentKey, isListFormat);
+                    exportedCollections.add(collection.getName());
+                }
             }
         } else {
             Collection collection = Objects.requireNonNull(database.getScope(scopeName)).getCollection(collectionName);
-            writeDocuments(writer, collection, scopeName, collectionName, scopeKey, collectionKey, documentKey,
-                    isListFormat);
+            if (!exportedCollections.contains(collection.getName())) {
+                writeDocuments(writer, collection, scopeName, collectionName, scopeKey, collectionKey, documentKey, isListFormat);
+                exportedCollections.add(collection.getName());
+            }
         }
     }
 
-    private void writeDocuments(FileWriter writer, Collection collection, String scopeName, String collectionName,
-            String scopeKey, String collectionKey, String documentKey, boolean isListFormat)
-            throws IOException, CouchbaseLiteException {
-        Query query = QueryBuilder.select(SelectResult.all())
-                .from(DataSource.collection(collection));
+    private void writeDocuments(FileWriter writer, Collection collection, String scopeName, String collectionName, String scopeKey, String collectionKey, String documentKey, boolean isListFormat) throws IOException, CouchbaseLiteException {
+        Query query = QueryBuilder.select(SelectResult.all()).from(DataSource.collection(collection));
 
         try (ResultSet resultSet = query.execute()) {
             for (Result result : resultSet) {
