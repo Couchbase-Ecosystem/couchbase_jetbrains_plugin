@@ -392,4 +392,11 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     public boolean isCapella() {
         return savedCluster != null && savedCluster.getUrl().contains("cloud.couchbase.com");
     }
+
+    public void clearSchema() {
+        if (!this.schemaUpdating.get() && this.buckets != null) {
+            this.buckets.clear();
+            this.lastSchemaUpdate = 0;
+        }
+    }
 }

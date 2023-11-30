@@ -230,6 +230,17 @@ public class TreeRightClickListener {
                 settings.add(readWriteMode);
             }
 
+            AnAction clearCache = new AnAction("Clear Schema Cache") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    ActiveCluster cluster = ActiveCluster.getInstance();
+                    if (cluster != null) {
+                        cluster.clearSchema();
+                    }
+                }
+            };
+            settings.add(clearCache);
+
             if (ActiveCluster.getInstance().getColor() != null) {
                 AnAction clearConnectionColor = new AnAction("Clear") {
                     @Override
