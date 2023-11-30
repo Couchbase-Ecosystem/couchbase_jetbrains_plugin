@@ -67,7 +67,6 @@ public class CBLExportDialog extends DialogWrapper {
     private JTextField scopeKeyField;
     private JTextField collectionKeyField;
     private JTextField documentKeyField;
-    private List<String> oldItems = new ArrayList<>();
 
     public CBLExportDialog(Project project, Tree tree) {
         super(project);
@@ -158,8 +157,6 @@ public class CBLExportDialog extends DialogWrapper {
                 for (String item : newItems) {
                     collectionComboBox.addItem(item);
                 }
-
-                oldItems = newItems;
 
             }
 
@@ -329,7 +326,7 @@ public class CBLExportDialog extends DialogWrapper {
             }
         } else {
             Collection collection = Objects.requireNonNull(database.getScope(scopeName)).getCollection(collectionName);
-            if (!exportedCollections.contains(collection.getName())) {
+            if (!exportedCollections.contains(Objects.requireNonNull(collection).getName())) {
                 writeDocuments(writer, collection, scopeName, collectionName, scopeKey, collectionKey, documentKey, isListFormat);
                 exportedCollections.add(collection.getName());
             }
