@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,7 +53,6 @@ import com.intellij.util.ui.JBUI;
 
 import utils.TemplateUtil;
 import utils.TimeUtils;
-import java.io.File;
 
 public class CBLExportDialog extends DialogWrapper {
 
@@ -118,38 +118,52 @@ public class CBLExportDialog extends DialogWrapper {
         scopeComboBox.setItemListener(e -> {
             // First, generate the new items
             List<String> newItems = new ArrayList<>();
-            for (String selectedScope : scopeComboBox.getSelectedItems()) {
-                if (ALL_SCOPES.equals(selectedScope)) {
-                    newItems.add("All Collections of " + ALL_SCOPES);
-                } else {
-                    try {
-                        newItems.add("All Collections of " + selectedScope);
-                        for (Collection collectionName : Objects.requireNonNull(database.getScope(selectedScope))
-                                .getCollections()) {
-                            newItems.add(selectedScope + "." + collectionName.getName());
+            if (scopeComboBox.getSelectedItems().isEmpty()) {
+                scopeComboBox.setHint("Select one or more scopes");
+                collectionComboBox.setHint("Select one or more collections");
+                collectionComboBox.setEnabled(false);
+            } else {
+                collectionComboBox.setEnabled(true);
+                collectionComboBox.removeAllItems();
+
+                for (String selectedScope : scopeComboBox.getSelectedItems()) {
+                    if (ALL_SCOPES.equals(selectedScope)) {
+                        newItems.add("All Collections of " + ALL_SCOPES);
+                    } else {
+                        try {
+                            newItems.add("All Collections of " + selectedScope);
+                            for (Collection collectionName : Objects.requireNonNull(database.getScope(selectedScope))
+                                    .getCollections()) {
+                                newItems.add(selectedScope + "." + collectionName.getName());
+                            }
+                        } catch (Exception exception) {
+                            errorLabel.setText(exception.getMessage());
                         }
-                    } catch (Exception exception) {
-                        errorLabel.setText(exception.getMessage());
                     }
                 }
-            }
 
-            // Then, remove old items
-            for (String item : oldItems) {
-                if (!newItems.contains(item)) {
-                    collectionComboBox.removeItem(item);
-                }
-            }
+                // We need to arrange all the "All Collections of All Scopes" items to be at the top and "All Collections of <scope>" items to be next
+                newItems.sort((o1, o2) -> {
+                    if (o1.startsWith("All Collections of ") && o2.startsWith("All Collections of ")) {
+                        return o1.compareTo(o2);
+                    } else if (o1.startsWith("All Collections of ")) {
+                        return -1;
+                    } else if (o2.startsWith("All Collections of ")) {
+                        return 1;
+                    } else {
+                        return o1.compareTo(o2);
+                    }
+                });
 
-            // Finally, add new items and update oldItems
-            for (String item : newItems) {
-                if (!oldItems.contains(item)) {
+                // Finally, add new items and update oldItems
+                for (String item : newItems) {
                     collectionComboBox.addItem(item);
                 }
-            }
-            oldItems = newItems;
 
-            collectionComboBox.setEnabled(true);
+                oldItems = newItems;
+
+            }
+
         });
 
         scopeComboBox.setHint("Select one or more scopes");
