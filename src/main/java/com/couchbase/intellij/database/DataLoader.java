@@ -56,10 +56,11 @@ public class DataLoader {
     public static void listBuckets(DefaultMutableTreeNode parentNode, Tree tree) {
 
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
+                    tree.setPaintBusy(true);
                     Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
 
@@ -76,6 +77,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
+                    Log.info("listBuckets");
                     Log.error(e);
                     e.printStackTrace();
                 } finally {
@@ -89,11 +91,11 @@ public class DataLoader {
 
     public static void listScopes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
         if (userObject instanceof BucketNodeDescriptor) {
             BucketNodeDescriptor node = (BucketNodeDescriptor) userObject;
             CompletableFuture.runAsync(() -> {
                 try {
+                    tree.setPaintBusy(true);
                     String bucketName = node.getText();
                     List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections().getAllScopes();
                     parentNode.removeAllChildren();
@@ -131,9 +133,9 @@ public class DataLoader {
 
     public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
         if (userObject instanceof ScopeNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
+                tree.setPaintBusy(true);
                 try {
                     parentNode.removeAllChildren();
                     ScopeNodeDescriptor scopeDesc = (ScopeNodeDescriptor) userObject;
@@ -170,10 +172,11 @@ public class DataLoader {
 
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof CollectionNodeDescriptor) {
             CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) parentNode.getUserObject();
             try {
+                tree.setPaintBusy(true);
                 //When KV
                 if (!ActiveCluster.getInstance().hasQueryService()) {
                     if (newOffset == 0) {
@@ -317,24 +320,23 @@ public class DataLoader {
 
         } catch (DocumentNotFoundException dnf) {
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
-            tree.setPaintBusy(false);
             return;
 
         } catch (TimeoutException te) {
             te.printStackTrace();
             Log.error("Request to get the document " + node.getId() + " timed out.", te);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The request to get the document <strong>" + node.getId() + "</strong> timed out. Please try again or check your network connection.</html>", "Couchbase Plugin Error"));
-            tree.setPaintBusy(false);
+
             return;
         } catch (Exception e) {
             Log.error("Could not load the document " + node.getId() + ".", e);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
-            tree.setPaintBusy(false);
             return;
+        } finally {
+            tree.setPaintBusy(false);
         }
 
         final boolean isBinary = isDifferentFormat;
-        final String content = docContent;
         final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
@@ -363,10 +365,12 @@ public class DataLoader {
 
     public static void showSchema(DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof SchemaNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
+
                 try {
+                    tree.setPaintBusy(true);
                     parentNode.removeAllChildren();
 
                     CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject();
@@ -499,8 +503,9 @@ public class DataLoader {
 
     public static void listIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof IndexesNodeDescriptor) {
+            tree.setPaintBusy(true);
             IndexesNodeDescriptor idxs = (IndexesNodeDescriptor) userObject;
             parentNode.removeAllChildren();
 
@@ -520,6 +525,7 @@ public class DataLoader {
                 parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
             }
             ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+            tree.setPaintBusy(false);
         } else {
             throw new IllegalStateException("The expected parent was IndexesNodeDescriptor but got something else");
         }

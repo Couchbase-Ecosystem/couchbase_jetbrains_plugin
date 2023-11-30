@@ -5,7 +5,7 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 
-
+//import com.couchbase.intellij.tree.iq.ChatGPTHandler;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageListener;
 import com.couchbase.intellij.tree.iq.chat.ConversationContext;

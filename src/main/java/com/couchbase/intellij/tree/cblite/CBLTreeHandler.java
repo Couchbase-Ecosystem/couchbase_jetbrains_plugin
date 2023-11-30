@@ -27,8 +27,8 @@ public class CBLTreeHandler {
     }
 
     public static void connectToDatabase(Project project, SavedCBLDatabase savedDatabase, Tree tree) {
-        tree.setPaintBusy(true);
         SwingUtilities.invokeLater(() -> {
+            tree.setPaintBusy(true);
             DefaultMutableTreeNode rootNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
             Enumeration<TreeNode> children = rootNode.children();
             DefaultMutableTreeNode newActiveNode = null;
