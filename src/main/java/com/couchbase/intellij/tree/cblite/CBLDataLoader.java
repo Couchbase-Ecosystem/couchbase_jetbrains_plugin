@@ -165,9 +165,10 @@ public class CBLDataLoader {
 
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
 
         if (userObject instanceof CBLCollectionNodeDescriptor) {
+            tree.setPaintBusy(true);
 
             try {
                 CBLCollectionNodeDescriptor colNode = (CBLCollectionNodeDescriptor) parentNode.getUserObject();
@@ -222,6 +223,7 @@ public class CBLDataLoader {
             }
 
         } else {
+            tree.setPaintBusy(false);
             throw new IllegalStateException("The expected parent was CBLCollectionNodeDescriptor but got something else");
         }
 

@@ -121,7 +121,7 @@
                                 implementationClass="org.intellij.sdk.language.completion.cblite.SqlppLiteCompletionContributor"/>
     </extensions>
 
-    <resource-bundle>messages.ChatGptHandler</resource-bundle>
+    <resource-bundle>messages.ChatGptBundle</resource-bundle>
 
     <actions>
 

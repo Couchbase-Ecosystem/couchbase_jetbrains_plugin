@@ -28,8 +28,9 @@ public class TreeActionHandler {
     }
 
     public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener, Runnable disconnectListener) {
-        tree.setPaintBusy(true);
+
         SwingUtilities.invokeLater(() -> {
+            tree.setPaintBusy(true);
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
             Enumeration<TreeNode> children = selectedNode.children();
             DefaultMutableTreeNode newActiveNode = null;
