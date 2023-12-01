@@ -44,6 +44,7 @@ public class NewConnectionDialog extends DialogWrapper {
     private JBTextField connectionNameTextField;
     private JBTextField hostTextField;
     private JCheckBox enableSSLCheckBox;
+    private JCheckBox ldapAuthCheckbox;
     private JBTextField usernameTextField;
     private JPasswordField passwordField;
     private JButton testConnectionButton;
@@ -55,7 +56,7 @@ public class NewConnectionDialog extends DialogWrapper {
     private JPasswordField apiSecretField;
     private JPanel wrapperPanel;
 
-    private  DefaultMutableTreeNode clickedNode;
+    private DefaultMutableTreeNode clickedNode;
 
     public NewConnectionDialog(Project project, Tree tree, SavedCluster savedCluster, DefaultMutableTreeNode clickedNode) {
         super(false);
@@ -159,7 +160,6 @@ public class NewConnectionDialog extends DialogWrapper {
                 }
             } catch (Exception ex) {
                 Log.error(ex);
-                ex.printStackTrace();
                 showErrorLabel("<html>Connection failed.<br>Please double-check your credentials" + (defaultBucketTextField.getText().trim().isEmpty() ? " or inform a Bucket on <strong>Advanced Settings</strong> -> <strong>Troubleshooting</strong> to inspect your connection" : "") + "</html>");
                 saveButton.setEnabled(true);
                 messageLabel.setText("");
@@ -168,11 +168,15 @@ public class NewConnectionDialog extends DialogWrapper {
 
             try {
 
-                if(this.savedCluster != null) {
+                if (this.savedCluster != null) {
                     ConnectionNodeDescriptor userObject = (ConnectionNodeDescriptor) clickedNode.getUserObject();
                     TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
                 }
-                SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(), getBaseUrl(hostTextField.getText()), getQueryParams(hostTextField.getText()), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()), defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText());
+                SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(),
+                        getBaseUrl(hostTextField.getText()), getQueryParams(hostTextField.getText()),
+                        enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
+                        defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText(),
+                        ldapAuthCheckbox.isSelected());
                 messageLabel.setText("Connection was successful");
                 TreeActionHandler.connectToCluster(project, sc, tree, null);
                 close(DialogWrapper.CANCEL_EXIT_CODE);
@@ -184,7 +188,6 @@ public class NewConnectionDialog extends DialogWrapper {
                 showErrorLabel("The Couchbase cluster URL and username already exists.");
             } catch (Exception ex) {
                 Log.error(ex);
-                ex.printStackTrace();
                 messageLabel.setText("");
                 showErrorLabel("Could not save the database credentials");
             }
@@ -239,7 +242,9 @@ public class NewConnectionDialog extends DialogWrapper {
     }
 
     private boolean hasCorrectBucketConnection() {
-        Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(), enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()));
+        Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(),
+                enableSSLCheckBox.isSelected(), usernameTextField.getText(),
+                String.valueOf(passwordField.getPassword()), ldapAuthCheckbox.isSelected());
 
         if (!defaultBucketTextField.getText().trim().isEmpty()) {
             if (!buckets.contains(defaultBucketTextField.getText())) {
@@ -394,6 +399,7 @@ public class NewConnectionDialog extends DialogWrapper {
         hostTextField = new JBTextField(30);
         hostTextField.getEmptyText().setText("Your cluster URL");
         enableSSLCheckBox = new JCheckBox("Enable SSL");
+        ldapAuthCheckbox = new JCheckBox("LDAP Auth");
 
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -427,14 +433,21 @@ public class NewConnectionDialog extends DialogWrapper {
         gbc.gridy = 3;
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        firstPanel.add(TemplateUtil.createComponentWithBalloon(enableSSLCheckBox, "Check this if TLS is enabled in your cluster. If you specify 'couchbases://' protocol in your Connection String, this option will be checked automatically"), gbc);
 
+        JPanel checkboxPanel = new JPanel();
+        checkboxPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        checkboxPanel.add(TemplateUtil.createComponentWithBalloon(enableSSLCheckBox, "Check this if TLS is enabled in your cluster. If you specify 'couchbases://' protocol in your Connection String, this option will be checked automatically"));
+        JBPanel ldapPanel = TemplateUtil.createComponentWithBalloon(ldapAuthCheckbox, "Check this if your authentication uses LDAP");
+        ldapPanel.setBorder(JBUI.Borders.emptyLeft(10));
+        checkboxPanel.add(ldapPanel);
+        firstPanel.add(checkboxPanel, gbc);
         if (this.savedCluster != null) {
             connectionNameTextField.setText(this.savedCluster.getName());
             hostTextField.setText(this.savedCluster.getUrl());
             enableSSLCheckBox.setSelected(this.savedCluster.isSslEnable());
+            ldapAuthCheckbox.setSelected(this.savedCluster.getLDAP());
             cleanURL();
-            hostTextField.setText(hostTextField.getText()+ (savedCluster.getQueryParams()!=null?savedCluster.getQueryParams(): ""));
+            hostTextField.setText(hostTextField.getText() + (savedCluster.getQueryParams() != null ? savedCluster.getQueryParams() : ""));
         }
 
         return firstPanel;

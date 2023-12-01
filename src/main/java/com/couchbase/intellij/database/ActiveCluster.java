@@ -2,6 +2,7 @@ package com.couchbase.intellij.database;
 
 import com.couchbase.client.core.cnc.EventBus;
 import com.couchbase.client.core.cnc.events.endpoint.UnexpectedEndpointDisconnectedEvent;
+import com.couchbase.client.core.env.PasswordAuthenticator;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
@@ -98,9 +99,20 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 try {
                     String password = DataLoader.getClusterPassword(savedCluster);
 
+                    ClusterOptions options;
+                    if (!savedCluster.getLDAP()) {
+                        options = ClusterOptions.clusterOptions(savedCluster.getUsername(), password);
+                    } else {
+                        PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(savedCluster.getUsername())
+                                .password(password)
+                                .onlyEnablePlainSaslMechanism().build();
+
+                        options = ClusterOptions.clusterOptions(authenticator);
+                    }
+
                     Cluster cluster = Cluster.connect(savedCluster.getUrl()
-                                    +  (savedCluster.getQueryParams() ==null? "": savedCluster.getQueryParams() ),
-                            ClusterOptions.clusterOptions(savedCluster.getUsername(), password).environment(env -> {
+                                    + (savedCluster.getQueryParams() == null ? "" : savedCluster.getQueryParams()),
+                            options.environment(env -> {
                                 // env.applyProfile("wan-development");
                             }));
 
@@ -154,7 +166,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     //Notify Listeners that we connected to a new cluster.
                     //NOTE: Only singletons can register here, otherwise we will get a memory leak
                     CompletableFuture.runAsync(() -> {
-                        for(Runnable run: newConnectionListener) {
+                        for (Runnable run : newConnectionListener) {
                             try {
                                 run.run();
                             } catch (Exception e) {
