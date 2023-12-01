@@ -1,5 +1,6 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.core.env.PasswordAuthenticator;
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
@@ -418,11 +419,24 @@ public class DataLoader {
         return protocol + cluster;
     }
 
-    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password) {
+    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password, boolean ldap) {
 
         Cluster cluster = null;
         try {
-            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), ClusterOptions.clusterOptions(username, password).environment(env -> {
+
+            ClusterOptions options;
+
+            if (!ldap) {
+                options = ClusterOptions.clusterOptions(username, password);
+            } else {
+                PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(username)
+                        .password(password)
+                        .onlyEnablePlainSaslMechanism().build();
+
+                options = ClusterOptions.clusterOptions(authenticator);
+            }
+
+            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), options.environment(env -> {
                 //env.applyProfile("wan-development");
             }));
             cluster.waitUntilReady(Duration.ofSeconds(5));
@@ -437,7 +451,7 @@ public class DataLoader {
 
     }
 
-    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket) {
+    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket, Boolean ldap) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
@@ -447,6 +461,7 @@ public class DataLoader {
         sc.setUsername(username);
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
+        sc.setLDAP(ldap);
 
         Clusters clusters = ClustersStorage.getInstance().getValue();
 
