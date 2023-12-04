@@ -18,7 +18,6 @@ import com.intellij.ui.components.fields.ExtendableTextField;
 import com.intellij.util.Function;
 import com.intellij.util.ui.JBInsets;
 import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.SwingUndoUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -131,7 +130,8 @@ public class ExpandableTextFieldExt extends ExtendableTextField implements Expan
         area.setWrapStyleWord(true);
         area.setLineWrap(true);
 
-        SwingUndoUtil.addUndoRedoActions(area);
+        //commenting this due to compatibility issues with intellih 2022
+        //SwingUndoUtil.addUndoRedoActions(area);
 
         return area;
     }
@@ -164,7 +164,7 @@ public class ExpandableTextFieldExt extends ExtendableTextField implements Expan
 
     @NotNull
     protected List<Extension> createExtensions() {
-        return (support == null)? emptyList(): singletonList(support.createExpandExtension());
+        return (support == null) ? emptyList() : singletonList(support.createExpandExtension());
     }
 
     public String getTitle() {
@@ -199,8 +199,8 @@ public class ExpandableTextFieldExt extends ExtendableTextField implements Expan
     private static void copyCaretPosition(JTextComponent source, JTextComponent destination) {
         try {
             destination.setCaretPosition(source.getCaretPosition());
+        } catch (Exception ignored) {
         }
-        catch (Exception ignored) { }
     }
 
     private TextComponentEditor hostEditor;
@@ -232,7 +232,8 @@ public class ExpandableTextFieldExt extends ExtendableTextField implements Expan
         }
 
         @Override
-        public void removeUpdate(@NotNull DocumentEvent e) { }
+        public void removeUpdate(@NotNull DocumentEvent e) {
+        }
 
         @Override
         protected void textChanged(@NotNull DocumentEvent e) {
@@ -242,7 +243,8 @@ public class ExpandableTextFieldExt extends ExtendableTextField implements Expan
                     if (!expandable.isExpanded())
                         SwingUtilities.invokeLater(expandable::expand);
                 }
-            } catch (BadLocationException ignored) { }
+            } catch (BadLocationException ignored) {
+            }
         }
     }
 
