@@ -128,6 +128,7 @@ public class TemplateUtil {
         textArea.setColumns(60);
         textArea.setSize(textArea.getPreferredSize());
         JBScrollPane pane = new JBScrollPane(textArea);
+        pane.setBorder(null);
 
         questionMark.addMouseListener(new MouseAdapter() {
             Balloon balloonHint;
@@ -155,9 +156,9 @@ public class TemplateUtil {
 
         });
 
-        JBPanel panel = new JBPanel(new BorderLayout());
-        panel.add(component, BorderLayout.WEST);
-        panel.add(questionMark, BorderLayout.CENTER);
+        JBPanel panel = new JBPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        panel.add(component);
+        panel.add(questionMark);
 
         return panel;
     }

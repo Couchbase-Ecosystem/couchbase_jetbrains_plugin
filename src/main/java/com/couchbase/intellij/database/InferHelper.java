@@ -5,14 +5,19 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
+import com.couchbase.intellij.tree.node.SchemaDataArrayNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaDataNodeDescriptor;
+import com.couchbase.intellij.tree.node.SchemaDataObjectNodeDescriptor;
 import com.couchbase.intellij.tree.node.SchemaFlavorNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class InferHelper {
@@ -51,7 +56,7 @@ public class InferHelper {
                 }
             }
         } catch (Exception e) {
-            Log.debug("Could not infer the schema of the collection "+collectionName);
+            Log.debug("Could not infer the schema of the collection " + collectionName);
             return null;
         }
     }
@@ -71,7 +76,7 @@ public class InferHelper {
         String path = String.format("%s.%s.%s", bucket, scope, collection).toLowerCase();
         SavedCluster savedCluster = ActiveCluster.getInstance().getSavedCluster();
         if (savedCluster != null) {
-            if (savedCluster.getInferValuesUpdateTimes().get(path) ==null || System.currentTimeMillis() - savedCluster.getInferValuesUpdateTimes().get(path) >= period) {
+            if (savedCluster.getInferValuesUpdateTimes().get(path) == null || System.currentTimeMillis() - savedCluster.getInferValuesUpdateTimes().get(path) >= period) {
                 invalidateCache(bucket, scope, collection);
             }
         } else {
@@ -79,7 +84,7 @@ public class InferHelper {
         }
     }
 
-    public static void extractArray(DefaultMutableTreeNode parentNode, JsonArray array) {
+    public static void extractArray(DefaultMutableTreeNode parentNode, JsonArray array, String path) {
         for (int i = 0; i < array.size(); i++) {
             JsonObject inferSchemaRow = array.getObject(i);
 
@@ -90,7 +95,7 @@ public class InferHelper {
             JsonObject properties = inferSchemaRow.getObject("properties");
 
             if (properties != null) {
-                extractTypes(flavorNode, inferSchemaRow.getObject("properties"));
+                extractTypes(flavorNode, inferSchemaRow.getObject("properties"), path);
 
             } else {
                 JsonArray samples = inferSchemaRow.getArray("samples");
@@ -104,44 +109,57 @@ public class InferHelper {
         }
     }
 
-    public static void extractTypes(DefaultMutableTreeNode parentNode, JsonObject properties) {
+    public static void extractTypes(DefaultMutableTreeNode parentNode, JsonObject properties, String path) {
+
+        Map<String, String> relationships = RelationshipStorage.getInstance().getValue().getRelationships()
+                .getOrDefault(ActiveCluster.getInstance().getId(), new HashMap<>());
         for (String key : properties.getNames()) {
             JsonObject property = properties.getObject(key);
             String type = property.get("type").toString();
             //if it is an Object
             if (type.equals("object")) {
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key));
-                extractTypes(childNode, property.getObject("properties"));
+                String objPath = path + "." + key;
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataObjectNodeDescriptor(key, objPath));
+                extractTypes(childNode, property.getObject("properties"), objPath);
                 parentNode.add(childNode);
 
             } else if (type.equals("array")) {
                 try {
                     JsonObject items = property.getObject("items");
                     String itemTypeString = (String) items.get("type");
+                    String objPath = path + "." + key + "[*]";
                     if (itemTypeString != null) {
                         DefaultMutableTreeNode childNode;
                         if (itemTypeString.equals("object")) {
-                            childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, "array of objects", null));
-                            extractTypes(childNode, items.getObject("properties"));
+                            childNode = new DefaultMutableTreeNode(new SchemaDataArrayNodeDescriptor(key, "array of objects", null, objPath));
+                            extractTypes(childNode, items.getObject("properties"), objPath);
                         } else {
-                            childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, "array of " + itemTypeString + "s", null));
+                            childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key,
+                                    "array of " + itemTypeString + "s", null, objPath, relationships.get(objPath)));
                         }
                         parentNode.add(childNode);
                     } else {
-                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, type, null));
+                        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataArrayNodeDescriptor(key, type, null, objPath));
                         parentNode.add(childNode);
                     }
                 } catch (ClassCastException cce) {
                     JsonArray array = property.getArray("items");
-                    extractArray(parentNode, array);
+                    extractArray(parentNode, array, path);
                 }
             } else {
-                addLeaf(parentNode, key, property);
+                addLeaf(parentNode, key, property, path);
             }
         }
     }
 
-    private static void addLeaf(DefaultMutableTreeNode parentNode, String key, JsonObject property) {
+    private static void addLeaf(DefaultMutableTreeNode parentNode, String key, JsonObject property, String path) {
+        Map<String, String> relationships = RelationshipStorage.getInstance().getValue().getRelationships()
+                .get(ActiveCluster.getInstance().getId());
+
+        if (relationships == null) {
+            relationships = new HashMap<>();
+        }
+
         String type = property.get("type").toString();
         boolean containsNull = false;
         if (type.contains("[")) {
@@ -166,7 +184,9 @@ public class InferHelper {
             samples = samplesArray.toList().stream().map(e -> e == null ? "null" : e.toString()).collect(Collectors.joining(" , "));
         }
 
-        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new SchemaDataNodeDescriptor(key, type, samples));
+        String objPath = path + "." + key;
+        DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(
+                new SchemaDataNodeDescriptor(key, type, samples, objPath, relationships.get(objPath)));
         parentNode.add(childNode);
     }
 }

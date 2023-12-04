@@ -61,6 +61,9 @@ public class DataLoader {
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
+                    if (ActiveCluster.getInstance().get() == null) {
+                        return;
+                    }
                     tree.setPaintBusy(true);
                     Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
@@ -78,9 +81,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
-                    Log.info("listBuckets");
                     Log.error(e);
-                    e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
                 }
@@ -385,7 +386,7 @@ public class DataLoader {
                             JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
                             if (inferenceQueryResults != null) {
                                 JsonArray array = inferenceQueryResults.getArray("content");
-                                InferHelper.extractArray(parentNode, array);
+                                InferHelper.extractArray(parentNode, array, colNode.getBucket() + "." + colNode.getScope() + "." + colNode.getText());
                             } else {
                                 Log.debug("Could not infer the schema for " + colNode.getText());
                             }

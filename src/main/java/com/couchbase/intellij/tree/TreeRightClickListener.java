@@ -6,6 +6,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
@@ -53,6 +54,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
@@ -74,7 +76,45 @@ public class TreeRightClickListener {
             handleDocumentRightClick(project, e, clickedNode, (FileNodeDescriptor) userObject, tree);
         } else if (userObject instanceof IndexNodeDescriptor) {
             handleIndexRightClick(project, e, clickedNode, (IndexNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof SchemaDataNodeDescriptor) {
+            handleSchemaDataNodeDescriptorClick(project, e, clickedNode, (SchemaDataNodeDescriptor) userObject, tree);
         }
+    }
+
+    private static void handleSchemaDataNodeDescriptorClick(Project project, MouseEvent e,
+                                                            DefaultMutableTreeNode clickedNode,
+                                                            SchemaDataNodeDescriptor userObject, Tree tree) {
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+        Map<String, String> map = RelationshipStorage.getInstance().getValue().getRelationships()
+                .get(ActiveCluster.getInstance().getId());
+
+        if (map != null && map.containsKey(userObject.getPath())) {
+            AnAction clearRelationShip = new AnAction("Clear Relationship") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipStorage.getInstance().getValue().getRelationships()
+                            .get(ActiveCluster.getInstance().getId())
+                            .remove(userObject.getPath());
+
+                    userObject.setReference(null);
+                    tree.revalidate();
+                }
+            };
+            actionGroup.add(clearRelationShip);
+        } else {
+            AnAction relationShipDialog = new AnAction("Add Relationship") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipDialog dialog = new RelationshipDialog(userObject.getPath(), userObject, tree);
+                    dialog.show();
+                }
+            };
+            actionGroup.add(relationShipDialog);
+        }
+
+
+        showPopup(e, tree, actionGroup);
     }
 
     private static void handleConnectionRightClick(Project project, JPanel toolBarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
