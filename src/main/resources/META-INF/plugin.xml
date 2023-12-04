@@ -30,12 +30,11 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>You can now cancel queries</li>
-          <li>There are templates for select (sel), insert (ins), delete (del), and update (upd)</li>
+          <li>Support for Couchbase Lite and Sync Gateway</li>
         </ul>
         <h2>Bug Fixes</h2>
         <ul>
-          <li>Fixed an issue that was making autocomplete not work properly</li>
+          <li>Documents are now stored in memory to avoid disk permission issues.</li>
         </ul>
         ]]>
     </change-notes>

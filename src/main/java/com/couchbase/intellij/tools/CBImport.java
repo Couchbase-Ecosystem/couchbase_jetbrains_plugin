@@ -11,7 +11,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import utils.FileUtils;
 
@@ -35,7 +34,7 @@ public class CBImport {
                     ProcessBuilder processBuilder = new ProcessBuilder(builder.build());
 
 
-                    Log.debug("CB_IMPORT Command: " + (StringUtils.join(processBuilder.command(), " ").replace(
+                    Log.debug("CB_IMPORT Command: " + (String.join(" ", processBuilder.command()).replace(
                             ActiveCluster.getInstance().getPassword(), "********")));
 
                     Process process = processBuilder.start();
@@ -137,13 +136,11 @@ public class CBImport {
                                                 "An error occurred while trying to import the dataset",
                                                 "Simple Import Error"));
                                 Log.error(e);
-                                e.printStackTrace();
                             }
                         }
                     });
         } catch (Exception e) {
             Log.error(e);
-            e.printStackTrace();
         }
 
     }
