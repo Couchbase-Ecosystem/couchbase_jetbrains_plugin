@@ -72,6 +72,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
 
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"

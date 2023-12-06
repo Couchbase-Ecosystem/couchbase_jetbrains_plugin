@@ -19,6 +19,8 @@ import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
+import com.couchbase.intellij.tree.RelationshipSettingsManager;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
@@ -61,12 +63,22 @@ public class DataLoader {
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
+                    if (ActiveCluster.getInstance().get() == null) {
+                        return;
+                    }
                     tree.setPaintBusy(true);
                     Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
 
                     if (!buckets.isEmpty()) {
                         for (String bucket : buckets) {
+
+                            //NOTE: if the user has a travel-sample bucket and no relationships yet, we add the relationships
+                            //from travel-sample
+                            if ("travel-sample".equals(bucket) && RelationshipStorage.getInstance()
+                                    .getValue().getRelationships().get(ActiveCluster.getInstance().getId()) == null) {
+                                RelationshipSettingsManager.populateTravelSample();
+                            }
 
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket, ActiveCluster.getInstance().getId()));
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
@@ -78,9 +90,7 @@ public class DataLoader {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
-                    Log.info("listBuckets");
                     Log.error(e);
-                    e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
                 }
@@ -385,7 +395,7 @@ public class DataLoader {
                             JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
                             if (inferenceQueryResults != null) {
                                 JsonArray array = inferenceQueryResults.getArray("content");
-                                InferHelper.extractArray(parentNode, array);
+                                InferHelper.extractArray(parentNode, array, colNode.getBucket() + "." + colNode.getScope() + "." + colNode.getText());
                             } else {
                                 Log.debug("Could not infer the schema for " + colNode.getText());
                             }
