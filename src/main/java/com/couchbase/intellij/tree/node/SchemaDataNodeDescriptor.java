@@ -28,7 +28,7 @@ public class SchemaDataNodeDescriptor extends TooltipNodeDescriptor {
             return "";
         }
         String[] split = reference.split("\\.");
-        String prefix = split[0] + "." + split[1] + "." + split[2] + ".";
+        String prefix = split[0] + "." + split[1] + ".";
         return "<small>&nbsp;&nbsp;<span style='color: gray;'>→&nbsp;" + reference.replace(prefix, "") + "</span></small>";
     }
 

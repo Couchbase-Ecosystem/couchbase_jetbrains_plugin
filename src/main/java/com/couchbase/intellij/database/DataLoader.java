@@ -19,6 +19,8 @@ import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
+import com.couchbase.intellij.tree.RelationshipSettingsManager;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
@@ -70,6 +72,13 @@ public class DataLoader {
 
                     if (!buckets.isEmpty()) {
                         for (String bucket : buckets) {
+
+                            //NOTE: if the user has a travel-sample bucket and no relationships yet, we add the relationships
+                            //from travel-sample
+                            if ("travel-sample".equals(bucket) && RelationshipStorage.getInstance()
+                                    .getValue().getRelationships().get(ActiveCluster.getInstance().getId()) == null) {
+                                RelationshipSettingsManager.populateTravelSample();
+                            }
 
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket, ActiveCluster.getInstance().getId()));
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));

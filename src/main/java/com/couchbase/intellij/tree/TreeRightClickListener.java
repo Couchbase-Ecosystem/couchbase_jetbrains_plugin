@@ -293,7 +293,26 @@ public class TreeRightClickListener {
                 colors.add(clearConnectionColor);
             }
 
+            DefaultActionGroup relMapping = new DefaultActionGroup("Relationship Mapping", true);
+            AnAction exportRel = new AnAction("Export Relationships") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipSettingsManager.showExportDialog(project);
+                }
+            };
+            relMapping.add(exportRel);
+
+            AnAction importRel = new AnAction("Import Relationships") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipSettingsManager.showImportDialog(project, tree);
+                }
+            };
+            relMapping.add(importRel);
+
+
             settings.add(colors);
+            settings.add(relMapping);
             actionGroup.add(tools);
             actionGroup.add(settings);
         } else {

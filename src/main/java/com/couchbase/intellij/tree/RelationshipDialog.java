@@ -142,6 +142,19 @@ public class RelationshipDialog extends DialogWrapper {
         fieldCombo.setEnabled(false);
         formPanel.add(fieldCombo, c);
 
+        Color backgroundColor = UIManager.getColor("Panel.background");
+        String bgHex = String.format("#%02x%02x%02x", backgroundColor.getRed(), backgroundColor.getGreen(), backgroundColor.getBlue());
+
+        Color borderColor = UIManager.getColor("Panel.borderColor"); // Attempt to get theme border color
+        if (borderColor == null) {
+            borderColor = new Color(176, 176, 176); // Default border color (e.g., light gray)
+        }
+        String borderHex = String.format("#%02x%02x%02x", borderColor.getRed(), borderColor.getGreen(), borderColor.getBlue());
+
+        JLabel banner = new JLabel("<html><div style='padding: 10px; background-color: " + bgHex + "; border: 1px solid " + borderHex + ";'>This relationship mapping helps the IDE to give better autocomplete recommendations.<br> It won't add any constraints in Couchbase.</div></html>");
+
+        banner.setBorder(JBUI.Borders.empty(4, 0, 14, 0));
+        panel.add(banner, BorderLayout.NORTH);
         panel.add(formPanel, BorderLayout.CENTER);
 
         return panel;
