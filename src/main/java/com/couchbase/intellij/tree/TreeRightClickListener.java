@@ -514,8 +514,14 @@ public class TreeRightClickListener {
             AnAction erDiagram = new AnAction("View ER Diagram") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    MermaidERDiagramDialog dialog = new MermaidERDiagramDialog(bucketName, scopeName);
-                    dialog.show();
+                    try {
+                        MermaidERDiagramDialog dialog = new MermaidERDiagramDialog(bucketName, scopeName);
+                        dialog.show();
+                    } catch (Exception ex) {
+                        Log.error("Failed to load the ER Diagram. Double check if the JRE that you are running your IDE has support for JCEF." +
+                                " https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef", ex);
+
+                    }
                 }
             };
             actionGroup.add(erDiagram);
