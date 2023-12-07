@@ -508,6 +508,20 @@ public class TreeRightClickListener {
         };
         actionGroup.add(simpleExport);
 
+
+        if (ActiveCluster.getInstance().hasQueryService()) {
+            actionGroup.addSeparator();
+            AnAction erDiagram = new AnAction("View ER Diagram") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    MermaidERDiagramDialog dialog = new MermaidERDiagramDialog(bucketName, scopeName);
+                    dialog.show();
+                }
+            };
+            actionGroup.add(erDiagram);
+        }
+
+
         showPopup(e, tree, actionGroup);
     }
 

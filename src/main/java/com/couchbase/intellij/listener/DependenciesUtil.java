@@ -24,6 +24,8 @@ public class DependenciesUtil {
     public static final String CBIMPORT_EXPORT_VERSION = "7.2";
     public static final String EXPLAIN_VERSION = "1";
 
+    public static final String MERMAID_KEY = "mermaid";
+    public static final String MERMAID_VERSION = "1";
 
     private static void createFileWithProperties(File filePath) throws Exception {
         Properties properties = new Properties();

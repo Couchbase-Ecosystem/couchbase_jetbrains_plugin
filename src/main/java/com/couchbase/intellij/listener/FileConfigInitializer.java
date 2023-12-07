@@ -24,6 +24,7 @@ public class FileConfigInitializer {
 
         //initCBShell(configPath);
         initExplain(toolsPath, configPath);
+        initMermaid(toolsPath, configPath);
     }
 
 //NOTE: LEAVE THIS CODE COMMENTED FOR NOW
@@ -48,7 +49,7 @@ public class FileConfigInitializer {
 
         String path = configPath + File.separator + "explain";
 
-        if(!EXPLAIN_VERSION.equals(getPropertyValue(toolsPath, EXPLAIN_KEY))) {
+        if (!EXPLAIN_VERSION.equals(getPropertyValue(toolsPath, EXPLAIN_KEY))) {
             Log.info("A new version of Couchbase Explain is available. Removing local version and downloading the new one");
             DependenciesUtil.deleteFolder(path);
         }
@@ -75,5 +76,26 @@ public class FileConfigInitializer {
             }
             Files.copy(is, dest, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+
+    public static void initMermaid(String toolsPath, String configPath) throws Exception {
+        String path = configPath + File.separator + "mermaid";
+
+        if (!MERMAID_VERSION.equals(getPropertyValue(toolsPath, MERMAID_KEY))) {
+            Log.info("A new version of Mermaid is available. Removing local version and downloading the new one");
+            DependenciesUtil.deleteFolder(path);
+        }
+
+        Path dest = Paths.get(path);
+        if (!Files.exists(dest)) {
+            Log.debug("Copying mermaid files");
+            createFolder(path);
+            copyFile("/tools/mermaid.min.js", Paths.get(path + File.separator + "mermaid.min.js"));
+            DependenciesUtil.setPropertyValue(toolsPath, MERMAID_KEY, MERMAID_VERSION);
+        } else {
+            Log.debug("The script for mermaid is already copied to the config");
+        }
+        CBFolders.getInstance().setMermaidPath(path);
     }
 }
