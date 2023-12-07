@@ -133,6 +133,11 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     }
 
     @Test
+    public void testInFromTerms() {
+        assertCompletes("select * from ", "bucket-entity");
+    }
+
+    @Test
     public void testInExpr() {
         assertCompletes("select test, ", "bucket-entity");
     }

@@ -6,6 +6,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
 import com.couchbase.intellij.tools.CBExport;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBTools;
@@ -53,6 +54,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
@@ -74,7 +76,45 @@ public class TreeRightClickListener {
             handleDocumentRightClick(project, e, clickedNode, (FileNodeDescriptor) userObject, tree);
         } else if (userObject instanceof IndexNodeDescriptor) {
             handleIndexRightClick(project, e, clickedNode, (IndexNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof SchemaDataNodeDescriptor) {
+            handleSchemaDataNodeDescriptorClick(project, e, clickedNode, (SchemaDataNodeDescriptor) userObject, tree);
         }
+    }
+
+    private static void handleSchemaDataNodeDescriptorClick(Project project, MouseEvent e,
+                                                            DefaultMutableTreeNode clickedNode,
+                                                            SchemaDataNodeDescriptor userObject, Tree tree) {
+
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+        Map<String, String> map = RelationshipStorage.getInstance().getValue().getRelationships()
+                .get(ActiveCluster.getInstance().getId());
+
+        if (map != null && map.containsKey(userObject.getPath())) {
+            AnAction clearRelationShip = new AnAction("Clear Relationship") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipStorage.getInstance().getValue().getRelationships()
+                            .get(ActiveCluster.getInstance().getId())
+                            .remove(userObject.getPath());
+
+                    userObject.setReference(null);
+                    tree.revalidate();
+                }
+            };
+            actionGroup.add(clearRelationShip);
+        } else {
+            AnAction relationShipDialog = new AnAction("Add Relationship") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipDialog dialog = new RelationshipDialog(userObject.getPath(), userObject, tree);
+                    dialog.show();
+                }
+            };
+            actionGroup.add(relationShipDialog);
+        }
+
+
+        showPopup(e, tree, actionGroup);
     }
 
     private static void handleConnectionRightClick(Project project, JPanel toolBarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
@@ -230,6 +270,17 @@ public class TreeRightClickListener {
                 settings.add(readWriteMode);
             }
 
+            AnAction clearCache = new AnAction("Clear Schema Cache") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    ActiveCluster cluster = ActiveCluster.getInstance();
+                    if (cluster != null) {
+                        cluster.clearSchema();
+                    }
+                }
+            };
+            settings.add(clearCache);
+
             if (ActiveCluster.getInstance().getColor() != null) {
                 AnAction clearConnectionColor = new AnAction("Clear") {
                     @Override
@@ -242,7 +293,26 @@ public class TreeRightClickListener {
                 colors.add(clearConnectionColor);
             }
 
+            DefaultActionGroup relMapping = new DefaultActionGroup("Relationship Mapping", true);
+            AnAction exportRel = new AnAction("Export Relationships") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipSettingsManager.showExportDialog(project);
+                }
+            };
+            relMapping.add(exportRel);
+
+            AnAction importRel = new AnAction("Import Relationships") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    RelationshipSettingsManager.showImportDialog(project, tree);
+                }
+            };
+            relMapping.add(importRel);
+
+
             settings.add(colors);
+            settings.add(relMapping);
             actionGroup.add(tools);
             actionGroup.add(settings);
         } else {
@@ -298,8 +368,8 @@ public class TreeRightClickListener {
 
                         String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
-                    NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
-                    entityCreationDialog.show();
+                        NewScopeCreationDialog entityCreationDialog = new NewScopeCreationDialog(project, bucketName);
+                        entityCreationDialog.show();
 
                         if (entityCreationDialog.isOK()) {
                             String scopeName = entityCreationDialog.getEntityName();
@@ -327,14 +397,16 @@ public class TreeRightClickListener {
                             return;
                         }
 
-                        ActiveCluster.ReconnectOnDisconnect.set(true);
+                        //TODO: Under investigation why ReconnectOnDisconnect should be here.
+                        //ActiveCluster.ReconnectOnDisconnect.set(true);
                         ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
-                        ActiveCluster.ReconnectOnDisconnect.set(false);
+                        //ActiveCluster.ReconnectOnDisconnect.set(false);
                         // Refresh buckets
                         TreePath treePath = new TreePath(clickedNode.getPath());
                         tree.collapsePath(treePath.getParentPath());
                         tree.expandPath(treePath.getParentPath());
                     } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> Messages.showInfoMessage("An error occurred while creating the bucket. Check the Log tab for more.", "Couchbase Plugin Error"));
                         Log.error("Bucket deletion failed ", ex);
                     }
                 }
@@ -435,6 +507,26 @@ public class TreeRightClickListener {
             }
         };
         actionGroup.add(simpleExport);
+
+
+        if (ActiveCluster.getInstance().hasQueryService()) {
+            actionGroup.addSeparator();
+            AnAction erDiagram = new AnAction("View ER Diagram") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    try {
+                        MermaidERDiagramDialog dialog = new MermaidERDiagramDialog(bucketName, scopeName);
+                        dialog.show();
+                    } catch (Exception ex) {
+                        Log.error("Failed to load the ER Diagram. Double check if the JRE that you are running your IDE has support for JCEF." +
+                                " https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef", ex);
+
+                    }
+                }
+            };
+            actionGroup.add(erDiagram);
+        }
+
 
         showPopup(e, tree, actionGroup);
     }

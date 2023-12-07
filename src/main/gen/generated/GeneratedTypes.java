@@ -267,7 +267,6 @@ public interface GeneratedTypes {
   IElementType USE_HASH_TERM = new SqlppElementType("USE_HASH_TERM");
   IElementType USE_INDEX_CLAUSE = new SqlppElementType("USE_INDEX_CLAUSE");
   IElementType USE_INDEX_TERM = new SqlppElementType("USE_INDEX_TERM");
-  IElementType USE_KEYS = new SqlppElementType("USE_KEYS");
   IElementType USE_KEYS_CLAUSE = new SqlppElementType("USE_KEYS_CLAUSE");
   IElementType USE_KEYS_TERM = new SqlppElementType("USE_KEYS_TERM");
   IElementType USE_NL_HINT = new SqlppElementType("USE_NL_HINT");
@@ -315,7 +314,7 @@ public interface GeneratedTypes {
   IElementType CASE = new SqlppTokenType("CASE");
   IElementType COLLECTION = new SqlppTokenType("COLLECTION");
   IElementType COLON = new SqlppTokenType("COLON");
-  IElementType COMMA = new SqlppTokenType("comma");
+  IElementType COMMA = new SqlppTokenType("COMMA");
   IElementType COMMENT_CLOSE = new SqlppTokenType("COMMENT_CLOSE");
   IElementType COMMIT = new SqlppTokenType("COMMIT");
   IElementType COMMITTED = new SqlppTokenType("COMMITTED");
@@ -1262,9 +1261,6 @@ public interface GeneratedTypes {
       }
       else if (type == USE_INDEX_TERM) {
         return new UseIndexTermImpl(node);
-      }
-      else if (type == USE_KEYS) {
-        return new UseKeysImpl(node);
       }
       else if (type == USE_KEYS_CLAUSE) {
         return new UseKeysClauseImpl(node);

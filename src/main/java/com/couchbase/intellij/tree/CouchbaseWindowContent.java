@@ -87,7 +87,7 @@ public class CouchbaseWindowContent extends JPanel {
                                 descriptor.setVirtualFile(null);
                             }
 
-                            DataLoader.loadDocument(project, descriptor, tree, false, false);
+                            DataLoader.loadDocument(project, descriptor, tree);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -150,7 +150,7 @@ public class CouchbaseWindowContent extends JPanel {
                 SwingUtilities.invokeLater(() -> {
                     try {
                         toolBarBuilder.showGotItTooltip();
-                    }catch (Exception ex) {
+                    } catch (Exception ex) {
                         ex.printStackTrace();
                     }
                 });

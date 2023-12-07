@@ -1,5 +1,6 @@
 package com.couchbase.intellij.database;
 
+import com.couchbase.client.core.env.PasswordAuthenticator;
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
@@ -14,77 +15,70 @@ import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
-import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
-import com.couchbase.intellij.persistence.Clusters;
-import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
-import com.couchbase.intellij.persistence.SavedCluster;
+import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
+import com.couchbase.intellij.tree.RelationshipSettingsManager;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.fileTypes.UserBinaryFileType;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
 import utils.IndexUtils;
-import utils.OSUtil;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.VirtualFileKeys.READ_ONLY;
 
-@SuppressWarnings("ALL")
 public class DataLoader {
 
     public static void listBuckets(DefaultMutableTreeNode parentNode, Tree tree) {
 
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof ConnectionNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 try {
+                    if (ActiveCluster.getInstance().get() == null) {
+                        return;
+                    }
+                    tree.setPaintBusy(true);
                     Set<String> buckets = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
                     parentNode.removeAllChildren();
 
                     if (!buckets.isEmpty()) {
                         for (String bucket : buckets) {
+
+                            //NOTE: if the user has a travel-sample bucket and no relationships yet, we add the relationships
+                            //from travel-sample
+                            if ("travel-sample".equals(bucket) && RelationshipStorage.getInstance()
+                                    .getValue().getRelationships().get(ActiveCluster.getInstance().getId()) == null) {
+                                RelationshipSettingsManager.populateTravelSample();
+                            }
 
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new BucketNodeDescriptor(bucket, ActiveCluster.getInstance().getId()));
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
@@ -97,7 +91,6 @@ public class DataLoader {
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 } catch (Exception e) {
                     Log.error(e);
-                    e.printStackTrace();
                 } finally {
                     tree.setPaintBusy(false);
                 }
@@ -109,11 +102,11 @@ public class DataLoader {
 
     public static void listScopes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
         if (userObject instanceof BucketNodeDescriptor) {
             BucketNodeDescriptor node = (BucketNodeDescriptor) userObject;
             CompletableFuture.runAsync(() -> {
                 try {
+                    tree.setPaintBusy(true);
                     String bucketName = node.getText();
                     List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections().getAllScopes();
                     parentNode.removeAllChildren();
@@ -151,15 +144,15 @@ public class DataLoader {
 
     public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
         if (userObject instanceof ScopeNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
+                tree.setPaintBusy(true);
                 try {
                     parentNode.removeAllChildren();
                     ScopeNodeDescriptor scopeDesc = (ScopeNodeDescriptor) userObject;
                     Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(scopeDesc.getBucket(), scopeDesc.getText());
 
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).collect(Collectors.toList());
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).toList();
                     scopeDesc.setCounter(formatCount(collections.size()));
                     if (!collections.isEmpty()) {
                         for (CollectionSpec spec : collections) {
@@ -190,10 +183,11 @@ public class DataLoader {
 
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof CollectionNodeDescriptor) {
             CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) parentNode.getUserObject();
             try {
+                tree.setPaintBusy(true);
                 //When KV
                 if (!ActiveCluster.getInstance().hasQueryService()) {
                     if (newOffset == 0) {
@@ -234,8 +228,7 @@ public class DataLoader {
                             if (fileType == FileNodeDescriptor.FileType.BINARY) {
                                 fileName = docId;
                             }
-                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId,
-                                    fileType, null);
+                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId, fileType, null);
                             DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                             parentNode.add(jsonFileNode);
                         }
@@ -284,8 +277,7 @@ public class DataLoader {
 
         if (!docIds.isEmpty()) {
             for (String id : docIds) {
-                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id,
-                        FileNodeDescriptor.FileType.UNKNOWN, null);
+                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id, FileNodeDescriptor.FileType.UNKNOWN, null);
                 DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                 parentNode.add(jsonFileNode);
             }
@@ -301,6 +293,9 @@ public class DataLoader {
         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
     }
 
+    public static boolean stubsAvailable(String bucket, String scope, String collection) {
+        return ActiveCluster.getInstance().getChild(bucket).flatMap(b -> b.getChild(scope)).flatMap(s -> s.getChild(collection)).map(col -> ((CouchbaseCollection) col).generateDocument()).filter(Objects::nonNull).findAny().isPresent();
+    }
 
     /**
      * Creates the file before it is opened.
@@ -309,7 +304,7 @@ public class DataLoader {
      * @param node    Node where the virtual file will be stored
      * @param tree    used to set the loading status
      */
-    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree, boolean isNew, boolean generateStub) {
+    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree) {
         tree.setPaintBusy(true);
 
         if (node.getVirtualFile() != null) {
@@ -335,75 +330,30 @@ public class DataLoader {
             }
 
         } catch (DocumentNotFoundException dnf) {
-            //document was not found because the user wants to create a new one.
-            if (!isNew) {
-                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
-                tree.setPaintBusy(false);
-                return;
-            } else if (generateStub) {
-                docContent = ActiveCluster.getInstance().getChild(node.getBucket())
-                        .flatMap(bucket -> bucket.getChild(node.getScope()))
-                        .flatMap(scope -> scope.getChild(node.getCollection()))
-                        .map(col -> ((CouchbaseCollection) col).generateDocument())
-                        .filter(Objects::nonNull)
-                        .peek(o -> {
-                            if (o.containsKey("id")) {
-                                o.put("id", node.getId());
-                            } else if (o.containsKey("ID")) {
-                                o.put("ID", node.getId());
-                            }
-                        })
-                        .map(JsonObject::toString)
-                        .findFirst().orElse(docContent);
-            }
+            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
+            return;
+
         } catch (TimeoutException te) {
             te.printStackTrace();
             Log.error("Request to get the document " + node.getId() + " timed out.", te);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The request to get the document <strong>" + node.getId() + "</strong> timed out. Please try again or check your network connection.</html>", "Couchbase Plugin Error"));
-            tree.setPaintBusy(false);
+
             return;
         } catch (Exception e) {
             Log.error("Could not load the document " + node.getId() + ".", e);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
-            tree.setPaintBusy(false);
             return;
+        } finally {
+            tree.setPaintBusy(false);
         }
 
         final boolean isBinary = isDifferentFormat;
-        final String content = docContent;
         final String docCass = cas;
         try {
             ApplicationManager.getApplication().runWriteAction(() -> {
+                final FileType type = isBinary ? UserBinaryFileType.INSTANCE : JsonFileType.INSTANCE;
+                CouchbaseDocumentVirtualFile virtualFile = new CouchbaseDocumentVirtualFile(project, type, node.getBucket(), node.getScope(), node.getCollection(), node.getId());
 
-                PsiDirectory psiDirectory = findOrCreateFolder(project, ActiveCluster.getInstance().getId(), node.getBucket(), node.getScope(), node.getCollection());
-                String fileName = (isBinary ? ("(read-only)") : "") + node.getId() + (isBinary ? "" : ".json");
-
-                PsiFile psiFile = psiDirectory.findFile(fileName);
-                if (psiFile == null) {
-                    psiFile = Objects.requireNonNull(psiDirectory.getManager().findDirectory(psiDirectory.getVirtualFile())).createFile(fileName);
-                }
-
-                // Get the Document associated with the PsiFile
-                Document document = FileDocumentManager.getInstance().getDocument(psiFile.getVirtualFile());
-                if (document != null) {
-
-                    if (isBinary) {
-                        try {
-                            document.setText(content);
-                        } catch ( AssertionError e ) {
-                            Messages.showInfoMessage("Couchbase Plugin", "Cannot open this binary file via the plugin");
-                            return;
-                        }
-                    } else {
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        JsonElement jsonElement = JsonParser.parseString(content);
-                        document.setText(gson.toJson(jsonElement));
-                    }
-                }
-
-
-                // Retrieve the VirtualFile from the PsiFile
-                VirtualFile virtualFile = psiFile.getVirtualFile();
                 virtualFile.putUserData(VirtualFileKeys.CONN_ID, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.CLUSTER, ActiveCluster.getInstance().getId());
                 virtualFile.putUserData(VirtualFileKeys.BUCKET, node.getBucket());
@@ -426,10 +376,12 @@ public class DataLoader {
 
     public static void showSchema(DefaultMutableTreeNode parentNode, DefaultTreeModel treeModel, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof SchemaNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
+
                 try {
+                    tree.setPaintBusy(true);
                     parentNode.removeAllChildren();
 
                     CollectionNodeDescriptor colNode = (CollectionNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject();
@@ -443,7 +395,7 @@ public class DataLoader {
                             JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
                             if (inferenceQueryResults != null) {
                                 JsonArray array = inferenceQueryResults.getArray("content");
-                                InferHelper.extractArray(parentNode, array);
+                                InferHelper.extractArray(parentNode, array, colNode.getBucket() + "." + colNode.getScope() + "." + colNode.getText());
                             } else {
                                 Log.debug("Could not infer the schema for " + colNode.getText());
                             }
@@ -463,63 +415,6 @@ public class DataLoader {
         }
     }
 
-    private static PsiDirectory findOrCreateFolder(Project project, String conId, String bucket, String scope, String collection) {
-
-        String basePath = project.getBasePath();
-        assert basePath != null;
-        VirtualFile baseDirectory = LocalFileSystem.getInstance().findFileByPath(basePath);
-
-
-        try {
-            //if it is windows we create a hidden file, if it is linuxs/mac we add the . to the name of the file
-            if (OSUtil.isWindows()) {
-                createHiddenFolder("cbcache");
-            }
-
-            String dirPath = (OSUtil.isWindows() ? "" : ".") + "cbcache" + "/" + (OSUtil.isWindows() ? conId.replace(":", "_") : conId) + "/" + bucket + "/" + scope + "/" + collection;
-            VirtualFile directory = VfsUtil.createDirectoryIfMissing(baseDirectory, dirPath);
-            return PsiManager.getInstance(project).findDirectory(directory);
-
-        } catch (IOException e) {
-            Log.error(e);
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static void createHiddenFolder(String dir) throws IOException {
-        Path path = Paths.get(dir);
-        if (!Files.exists(path)) {
-            Files.createDirectories(path);
-            DosFileAttributeView dosAttributes = Files.getFileAttributeView(path, DosFileAttributeView.class);
-            dosAttributes.setHidden(true);
-        }
-    }
-
-
-    public static void cleanCache(Project project, String conId) {
-
-        String basePath = project.getBasePath();
-        assert basePath != null;
-
-        if (OSUtil.isWindows()) {
-            conId = conId.replace(":", "_");
-        }
-
-        try {
-            String dirPath = basePath + File.separator + (OSUtil.isWindows() ? "cbcache" : ".cbcache");
-
-            if (conId != null) {
-                dirPath += File.separator + conId;
-            }
-
-            cleanupFolder(dirPath);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.error("Could not clean up the cache directory", e);
-        }
-    }
-
     public static String adjustClusterProtocol(String cluster, boolean ssl) {
         if (cluster.startsWith("couchbase://") || cluster.startsWith("couchbases://")) {
             return cluster;
@@ -534,11 +429,24 @@ public class DataLoader {
         return protocol + cluster;
     }
 
-    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password) {
+    public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password, boolean ldap) {
 
         Cluster cluster = null;
         try {
-            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), ClusterOptions.clusterOptions(username, password).environment(env -> {
+
+            ClusterOptions options;
+
+            if (!ldap) {
+                options = ClusterOptions.clusterOptions(username, password);
+            } else {
+                PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(username)
+                        .password(password)
+                        .onlyEnablePlainSaslMechanism().build();
+
+                options = ClusterOptions.clusterOptions(authenticator);
+            }
+
+            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), options.environment(env -> {
                 //env.applyProfile("wan-development");
             }));
             cluster.waitUntilReady(Duration.ofSeconds(5));
@@ -553,7 +461,7 @@ public class DataLoader {
 
     }
 
-    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket) {
+    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket, Boolean ldap) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
@@ -563,6 +471,7 @@ public class DataLoader {
         sc.setUsername(username);
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
+        sc.setLDAP(ldap);
 
         Clusters clusters = ClustersStorage.getInstance().getValue();
 
@@ -619,8 +528,9 @@ public class DataLoader {
 
     public static void listIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        tree.setPaintBusy(true);
+
         if (userObject instanceof IndexesNodeDescriptor) {
+            tree.setPaintBusy(true);
             IndexesNodeDescriptor idxs = (IndexesNodeDescriptor) userObject;
             parentNode.removeAllChildren();
 
@@ -640,6 +550,7 @@ public class DataLoader {
                 parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
             }
             ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+            tree.setPaintBusy(false);
         } else {
             throw new IllegalStateException("The expected parent was IndexesNodeDescriptor but got something else");
         }
@@ -666,27 +577,6 @@ public class DataLoader {
             Log.error("Failed to load the metadata for document " + docId, e);
             return null;
         }
-    }
-
-    private static void cleanupFolder(String folderPath) {
-        File folder = new File(folderPath);
-
-        if (!folder.exists() || !folder.isDirectory()) {
-            return;
-        }
-
-        File[] files = folder.listFiles();
-
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    cleanupFolder(file.getAbsolutePath());
-                } else {
-                    file.delete();
-                }
-            }
-        }
-        folder.delete();
     }
 
     public static String formatCount(Integer num) {

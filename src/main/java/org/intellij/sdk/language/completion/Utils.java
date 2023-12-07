@@ -1,5 +1,6 @@
 package org.intellij.sdk.language.completion;
 
+import com.couchbase.client.core.projections.PathElement;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
@@ -11,11 +12,13 @@ import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.ui.TreeActions;
 import com.intellij.util.ProcessingContext;
 import generated.GeneratedTypes;
 import generated.psi.Alias;
 import generated.psi.KeyspaceRef;
 import generated.psi.Statement;
+import generated.psi.impl.AliasImpl;
 import org.intellij.sdk.language.psi.SqlppTokenSets;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,6 +55,28 @@ public class Utils {
             return !isAfterDot(element);
         }
     };
+
+    public static final PatternCondition<PsiElement> START_OF_STATEMENT = new PatternCondition<PsiElement>("At the start of the statement") {
+        @Override
+        public boolean accepts(@NotNull PsiElement psiElement, ProcessingContext context) {
+            boolean fileDetected = false;
+            PsiElement prevSibling = null;
+            if ((psiElement.getParent() instanceof PsiErrorElement && psiElement.getParent().getParent() instanceof PsiFile) ) {
+                prevSibling = psiElement.getParent().getPrevSibling();
+                fileDetected = true;
+            } else if (psiElement.getParent() instanceof PsiFile) {
+                prevSibling = psiElement.getPrevSibling();
+                fileDetected = true;
+            }
+
+            if (prevSibling instanceof PsiWhiteSpace) {
+                prevSibling = prevSibling.getPrevSibling();
+            }
+
+            return fileDetected && (prevSibling == null || prevSibling.getNode().getElementType() == GeneratedTypes.SEMICOLON);
+        }
+    };
+
     public static final PatternCondition<PsiElement> INCLUDE_FUNCTIONS = new PatternCondition<PsiElement>("include functions") {
         @Override
         public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
@@ -201,6 +226,15 @@ public class Utils {
             }
             element = element.getPrevSibling();
         }
+
+        // special case -- function return traversal
+        PsiElement parentPath = PsiTreeUtil.findFirstParent(element, psiElement -> psiElement.getNode().getElementType() == GeneratedTypes.PATH);
+        if (parentPath != null) {
+            PsiElement parentPathPrevSibling = parentPath.getPrevSibling();
+            if (parentPathPrevSibling != null && parentPathPrevSibling.getNode().getElementType() == GeneratedTypes.DOT) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -218,8 +252,8 @@ public class Utils {
         return element.getText();
     }
 
-    public static Collection<Alias> getAliases(PsiElement s) {
-        return PsiTreeUtil.collectElementsOfType(s, Alias.class);
+    public static Collection<AliasImpl> getAliases(PsiElement s) {
+        return PsiTreeUtil.collectElementsOfType(s, AliasImpl.class);
     }
 
     private static PsiElement ffToStatementEnd(PsiElement element) {
@@ -274,20 +308,20 @@ public class Utils {
                 .orElseGet(() -> Optional.ofNullable(PsiTreeUtil.getParentOfType(element, Statement.class)));
     }
 
-    public static Stream<Alias> findAlias(PsiElement element, String name) {
+    public static Stream<AliasImpl> findAlias(PsiElement element, String name) {
         return getStatement(element)
                 .stream()
                 .flatMap(s -> getAliases(s).stream())
                 .filter(a -> getAliasName(a).filter(n -> name == null || n.startsWith(name)).isPresent());
     }
 
-    public static Optional<String> getAliasName(Alias a) {
+    public static Optional<String> getAliasName(AliasImpl a) {
         return getPreviousSibling(a, s -> s instanceof PsiWhiteSpace)
                 .map(PsiElement::getNextSibling)
                 .map(Utils::getIdentifier);
     }
 
-    public static List<String> getAliasPath(Alias alias) {
+    public static List<String> getAliasPath(AliasImpl alias) {
         return getPreviousSibling(alias, e -> e.getNode().getElementType() == GeneratedTypes.AS)
                 .map(Optional::of)
                 .orElseGet(() -> getPreviousSibling(alias, e -> e instanceof PsiWhiteSpace))

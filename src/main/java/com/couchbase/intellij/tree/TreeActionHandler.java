@@ -2,15 +2,11 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
-import com.couchbase.intellij.listener.GitIgnore;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
-import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
-import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.Consumer;
@@ -24,7 +20,6 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import java.util.Enumeration;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class TreeActionHandler {
 
@@ -33,8 +28,9 @@ public class TreeActionHandler {
     }
 
     public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener, Runnable disconnectListener) {
-        tree.setPaintBusy(true);
+
         SwingUtilities.invokeLater(() -> {
+            tree.setPaintBusy(true);
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
             Enumeration<TreeNode> children = selectedNode.children();
             DefaultMutableTreeNode newActiveNode = null;
@@ -112,13 +108,6 @@ public class TreeActionHandler {
                         }
                     });
 
-                    try {
-                        GitIgnore.updateGitIgnore(project);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Log.error("Could not append cbcache/ folder to .gitignore", e);
-                    }
-
                     finalNewActiveNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                     selectedNode.add(finalNewActiveNode);
 
@@ -165,7 +154,6 @@ public class TreeActionHandler {
     public static void disconnectFromCluster(DefaultMutableTreeNode node, ConnectionNodeDescriptor con, Tree tree) {
         node.removeAllChildren();
         ((DefaultTreeModel) tree.getModel()).reload();
-        CompletableFuture.runAsync(() -> DataLoader.cleanCache(ProjectManager.getInstance().getOpenProjects()[0], con.getSavedCluster().getId()));
         if (con.isActive()) {
             con.setActive(false);
             ActiveCluster.getInstance().disconnect();

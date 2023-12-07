@@ -1,13 +1,16 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.ExistsResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBTextField;
@@ -17,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Objects;
 
 
 public class OpenDocumentDialog extends DialogWrapper {
@@ -103,7 +107,13 @@ public class OpenDocumentDialog extends DialogWrapper {
             gc.gridy = 1;
             gc.gridx = 1;
             gc.weightx = 1;
-            formPanel.add(generateStub, gc);
+            try {
+                if (DataLoader.stubsAvailable(bucket, scope, collection)) {
+                    formPanel.add(generateStub, gc);
+                }
+            } catch (Exception e) {
+                Log.debug("Stubs not available for collection " + collection);
+            }
         }
 
         panel.add(formPanel, BorderLayout.NORTH);
@@ -121,18 +131,54 @@ public class OpenDocumentDialog extends DialogWrapper {
             return;
         }
 
+        ExistsResult result = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).exists(textField.getText());
+
         if (!createDocument) {
-            ExistsResult result = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).exists(textField.getText());
             if (!result.exists()) {
                 errorLabel.setText("There is no document with the specified id.");
                 panel.revalidate();
                 return;
             }
+        } else {
+
+            //the use might have specified a document that already exists, in this case we just open the document
+            if (!result.exists()) {
+                String documentContent = "{}";
+                if (generateStub != null && generateStub.isSelected()) {
+                    try {
+                        documentContent = ActiveCluster.getInstance().getChild(bucket)
+                                .flatMap(bucket -> bucket.getChild(scope))
+                                .flatMap(scope -> scope.getChild(collection))
+                                .map(col -> ((CouchbaseCollection) col).generateDocument())
+                                .filter(Objects::nonNull)
+                                .peek(o -> {
+                                    if (o.containsKey("id")) {
+                                        o.put("id", textField.getText());
+                                    } else if (o.containsKey("ID")) {
+                                        o.put("ID", textField.getText());
+                                    }
+                                })
+                                .map(JsonObject::toString)
+                                .findFirst().orElse(documentContent);
+                    } catch (Exception e) {
+                        Log.debug("Failed to create the template for the document", e);
+                    }
+                }
+
+                try {
+                    ActiveCluster.getInstance().getCluster().bucket(bucket)
+                            .scope(scope).collection(collection)
+                            .insert(textField.getText(), JsonObject.fromJson(documentContent));
+                } catch (Exception e) {
+                    Log.error("Failed to create the document", e);
+                    Messages.showMessageDialog("An error occurred while creating the document", "Couchbase Plugin Error", Messages.getErrorIcon());
+                }
+            }
         }
 
         String fileName = textField.getText() + ".json";
         FileNodeDescriptor descriptor = new FileNodeDescriptor(fileName, bucket, scope, collection, textField.getText(), FileNodeDescriptor.FileType.JSON, null);
-        DataLoader.loadDocument(project, descriptor, tree, true, generateStub != null && generateStub.isSelected());
+        DataLoader.loadDocument(project, descriptor, tree);
 
         VirtualFile virtualFile = descriptor.getVirtualFile();
         if (virtualFile != null) {

@@ -30,12 +30,11 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>You can now cancel queries</li>
-          <li>There are templates for select (sel), insert (ins), delete (del), and update (upd)</li>
+          <li>Support for Couchbase Lite and Sync Gateway</li>
         </ul>
         <h2>Bug Fixes</h2>
         <ul>
-          <li>Fixed an issue that was making autocomplete not work properly</li>
+          <li>Documents are now stored in memory to avoid disk permission issues.</li>
         </ul>
         ]]>
     </change-notes>
@@ -68,11 +67,13 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.settings.OpenAISettingsState"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.ClustersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
-
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
 
         <toolWindow id="Couchbase" anchor="right" icon="/assets/icons/couchbase.svg"
                     factoryClass="com.couchbase.intellij.tree.CouchbaseWindowFactory"/>
@@ -101,8 +102,54 @@
         <completion.contributor language="sqlpp"
                                 implementationClass="org.intellij.sdk.language.completion.SqlppCompletionContributor"/>
 
+        <fileType name="SQL++ Lite file"
+                  implementationClass="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileType"
+                  fieldName="INSTANCE"
+                  language="sqlppl"
+                  extensions="sqlppl"/>
+        <fileEditorProvider implementation="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileEditorProvider"/>
 
+        <lang.syntaxHighlighterFactory
+                language="sqlppl"
+                implementationClass="org.intellij.sdk.language.cblite.SqlppLiteSyntaxHighlighterFactory"/>
+
+        <lang.parserDefinition
+                language="sqlppl"
+                implementationClass="org.intellij.sdk.language.cblite.SqlppLiteParserDefinition"/>
+
+        <completion.contributor language="sqlppl"
+                                implementationClass="org.intellij.sdk.language.completion.cblite.SqlppLiteCompletionContributor"/>
     </extensions>
+
+    <resource-bundle>messages.ChatGptBundle</resource-bundle>
+
+    <actions>
+
+        <action id="PillowFightAction"
+                class="com.couchbase.intellij.actions.PillowFightAction"
+                text="Couchbase Pillow Fight"
+                description="Start a Couchbase Pillow Fight operation for performance testing.">
+        </action>
+
+        <action id="DDLExport"
+                class="com.couchbase.intellij.actions.DDLExportAction"
+                text="Couchbase DDL Export"
+                description="Export the DDL (Data Definition Language) statements of your database.">
+        </action>
+
+        <action id="DataExport"
+                class="com.couchbase.intellij.actions.DataExportAction"
+                text="Couchbase Data Export"
+                description="Export data from your database to a file.">
+        </action>
+
+        <action id="DataImport"
+                class="com.couchbase.intellij.actions.DataImportAction"
+                text="Couchbase Data Import"
+                description="Import data into your database from a file.">
+        </action>
+
+    </actions>
 
 
 </idea-plugin>

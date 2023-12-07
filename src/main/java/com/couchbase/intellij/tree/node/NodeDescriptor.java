@@ -15,6 +15,10 @@ public abstract class NodeDescriptor {
         return text;
     }
 
+    public void setText(String text) {
+        this.text = text;
+    }
+
     public Icon getIcon() {
         return icon;
     }

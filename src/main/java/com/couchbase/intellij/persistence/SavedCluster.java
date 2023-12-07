@@ -19,11 +19,24 @@ public class SavedCluster {
     private String color;
 
     private boolean sslEnable;
+
+    private Boolean ldap;
     private String defaultBucket;
 
     private Boolean readOnly;
 
     private Long inferCachePeriod;
+
+    public Boolean getLDAP() {
+        if (ldap == null) {
+            return false;
+        }
+        return ldap;
+    }
+
+    public void setLDAP(Boolean LDAP) {
+        ldap = LDAP;
+    }
 
     public String getId() {
         return id;

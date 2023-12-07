@@ -946,7 +946,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FUNCS LPAREN ( expr ( comma expr )* )? RPAREN
+  // FUNCS LPAREN ( expr ( COMMA expr )* )? RPAREN
   public static boolean builtin_function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function")) return false;
     if (!nextTokenIs(b, FUNCS)) return false;
@@ -959,14 +959,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( expr ( comma expr )* )?
+  // ( expr ( COMMA expr )* )?
   private static boolean builtin_function_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2")) return false;
     builtin_function_2_0(b, l + 1);
     return true;
   }
 
-  // expr ( comma expr )*
+  // expr ( COMMA expr )*
   private static boolean builtin_function_2_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2_0")) return false;
     boolean r;
@@ -977,7 +977,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( comma expr )*
+  // ( COMMA expr )*
   private static boolean builtin_function_2_0_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2_0_1")) return false;
     while (true) {
@@ -988,7 +988,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // comma expr
+  // COMMA expr
   private static boolean builtin_function_2_0_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function_2_0_1_0")) return false;
     boolean r;
@@ -2821,19 +2821,49 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // builtin-function |
+  // (builtin-function |
   //                   ordinary-function |
   //                   aggregate-function |
-  //                   window-function
+  //                   window-function) ( DOT path )?
   public static boolean function_call(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "function_call")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, FUNCTION_CALL, "<function call>");
+    r = function_call_0(b, l + 1);
+    r = r && function_call_1(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // builtin-function |
+  //                   ordinary-function |
+  //                   aggregate-function |
+  //                   window-function
+  private static boolean function_call_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "function_call_0")) return false;
+    boolean r;
     r = builtin_function(b, l + 1);
     if (!r) r = ordinary_function(b, l + 1);
     if (!r) r = aggregate_function(b, l + 1);
     if (!r) r = window_function(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // ( DOT path )?
+  private static boolean function_call_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "function_call_1")) return false;
+    function_call_1_0(b, l + 1);
+    return true;
+  }
+
+  // DOT path
+  private static boolean function_call_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "function_call_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DOT);
+    r = r && path(b, l + 1);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -8018,7 +8048,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // UPDATE target-keyspace use-keys? set-clause? unset-clause?
+  // UPDATE target-keyspace use-keys-clause? set-clause? unset-clause?
   //             where-clause? limit-clause? returning-clause?
   public static boolean update_statement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "update_statement")) return false;
@@ -8037,10 +8067,10 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // use-keys?
+  // use-keys-clause?
   private static boolean update_statement_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "update_statement_2")) return false;
-    use_keys(b, l + 1);
+    use_keys_clause(b, l + 1);
     return true;
   }
 
@@ -8530,18 +8560,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, COMMA);
     r = r && index_ref(b, l + 1);
     exit_section_(b, m, null, r);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // str
-  public static boolean use_keys(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "use_keys")) return false;
-    if (!nextTokenIs(b, "<use keys>", DQUOTE, QUOTE)) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, USE_KEYS, "<use keys>");
-    r = str(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
     return r;
   }
 

@@ -2,7 +2,6 @@ package com.couchbase.intellij.listener;
 
 import com.couchbase.intellij.tools.CBFolders;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.application.PathManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,47 +11,57 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-import static utils.FileUtils.*;
+import static com.couchbase.intellij.listener.DependenciesUtil.*;
+import static utils.FileUtils.createFolder;
+import static utils.FileUtils.unzipFile;
 
 public class FileConfigInitializer {
 
 
-    public static void start() throws Exception {
-        String toolsPath = PathManager.getConfigPath() + File.separator + "couchbase-intellij-plugin";
-        createFolder(toolsPath);
-        toolsPath += File.separator + "config";
-        createFolder(toolsPath);
+    public static void start(String toolsPath) throws Exception {
+        String configPath = toolsPath + File.separator + "config";
+        createFolder(configPath);
 
-        initCBShell(toolsPath);
-        initExplain(toolsPath);
+        //initCBShell(configPath);
+        initExplain(toolsPath, configPath);
+        initMermaid(toolsPath, configPath);
     }
 
+//NOTE: LEAVE THIS CODE COMMENTED FOR NOW
+//    public static void initCBShell(String configPath) throws Exception {
+//        String path = configPath + File.separator + "cbshell";
+//        Path dest = Paths.get(path);
+//
+//        if (!Files.exists(dest)) {
+//            Log.debug("Copying CBShell autopass.sh script");
+//            createFolder(path);
+//            copyFile("/tools/cbshell.zip", Paths.get(configPath + File.separator + "cbshell.zip"));
+//            unzipFile(configPath + File.separator + "cbshell.zip", configPath);
+//            makeFilesExecutable(new File(path));
+//        } else {
+//            Log.debug("The script for cbshell is already copied to the config");
+//        }
+//
+//        CBFolders.getInstance().setCbShellPath(path);
+//    }
 
-    public static void initCBShell(String toolsPath) throws Exception {
-        String path = toolsPath + File.separator + "cbshell";
-        Path dest = Paths.get(path);
+    public static void initExplain(String toolsPath, String configPath) throws Exception {
 
-        if (!Files.exists(dest)) {
-            Log.debug("Copying CBShell autopass.sh script");
-            createFolder(path);
-            copyFile("/tools/cbshell.zip", Paths.get(toolsPath + File.separator + "cbshell.zip"));
-            unzipFile(toolsPath + File.separator + "cbshell.zip", toolsPath);
-            makeFilesExecutable(new File(path));
-        } else {
-            Log.debug("The script for cbshell is already copied to the config");
+        String path = configPath + File.separator + "explain";
+
+        if (!EXPLAIN_VERSION.equals(getPropertyValue(toolsPath, EXPLAIN_KEY))) {
+            Log.info("A new version of Couchbase Explain is available. Removing local version and downloading the new one");
+            DependenciesUtil.deleteFolder(path);
         }
 
-        CBFolders.getInstance().setCbShellPath(path);
-    }
 
-    public static void initExplain(String toolsPath) throws Exception {
-        String path = toolsPath + File.separator + "explain";
         Path dest = Paths.get(path);
         if (!Files.exists(dest)) {
             Log.debug("Copying explain files");
             createFolder(path);
-            copyFile("/tools/explain.zip", Paths.get(toolsPath + File.separator + "explain.zip"));
-            unzipFile(toolsPath + File.separator + "explain.zip", toolsPath);
+            copyFile("/tools/explain.zip", Paths.get(configPath + File.separator + "explain.zip"));
+            unzipFile(configPath + File.separator + "explain.zip", configPath);
+            DependenciesUtil.setPropertyValue(toolsPath, EXPLAIN_KEY, EXPLAIN_VERSION);
         } else {
             Log.debug("The script for explain is already copied to the config");
         }
@@ -67,5 +76,26 @@ public class FileConfigInitializer {
             }
             Files.copy(is, dest, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+
+    public static void initMermaid(String toolsPath, String configPath) throws Exception {
+        String path = configPath + File.separator + "mermaid";
+
+        if (!MERMAID_VERSION.equals(getPropertyValue(toolsPath, MERMAID_KEY))) {
+            Log.info("A new version of Mermaid is available. Removing local version and downloading the new one");
+            DependenciesUtil.deleteFolder(path);
+        }
+
+        Path dest = Paths.get(path);
+        if (!Files.exists(dest)) {
+            Log.debug("Copying mermaid files");
+            createFolder(path);
+            copyFile("/tools/mermaid.min.js", Paths.get(path + File.separator + "mermaid.min.js"));
+            DependenciesUtil.setPropertyValue(toolsPath, MERMAID_KEY, MERMAID_VERSION);
+        } else {
+            Log.debug("The script for mermaid is already copied to the config");
+        }
+        CBFolders.getInstance().setMermaidPath(path);
     }
 }

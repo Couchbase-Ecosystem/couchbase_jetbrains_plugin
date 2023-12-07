@@ -103,13 +103,35 @@ const makeD3TreeFromSimpleTree = (root, ele, options) => {
     return d.id || (d.id = ++i);
   });
 
+  document.getElementById("zoomInBtn").addEventListener("click", function () {
+    zoomIn();
+  });
+
+  document.getElementById("zoomOutBtn").addEventListener("click", function () {
+    zoomOut();
+  });
+
+  function zoomIn() {
+    const scale = 2;
+    select(document.getElementById("explain-plan"))
+      .transition()
+      .call(zoomer.scaleBy, scale);
+  }
+
+  function zoomOut() {
+    const scale = 0.5;
+    select(document.getElementById("explain-plan"))
+      .transition()
+      .call(zoomer.scaleBy, scale);
+  }
+
   // Enter any new nodes at the parent's previous position.
   const nodeEnter = node
     .enter()
     .append("svg:g")
     .attr("class", "wb-explain-node")
     .attr("transform", getRootTranslation(orientation))
-    .on("click", makeTooltip(event, ele));
+    .on("click", makeTooltip(ele));
 
   // *** node drop-shadows come from this filter ******************
   // filters go in defs element

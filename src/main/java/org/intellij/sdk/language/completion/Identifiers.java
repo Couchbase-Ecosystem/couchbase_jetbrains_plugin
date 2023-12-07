@@ -14,6 +14,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.util.ProcessingContext;
 import generated.GeneratedTypes;
+import generated.psi.FromTerms;
 import generated.psi.IdentifierRef;
 import generated.psi.impl.ExprImpl;
 import org.intellij.sdk.language.psi.SqlppFile;
@@ -125,6 +126,13 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                         .with(Utils.AFTER_FAILED_EXPR),
                 this
         );
+
+        // inside from terms
+        with.extend(
+                CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(FromTerms.class),
+                this
+        );
     }
 
     private static final BiPredicate<Integer, CouchbaseClusterEntity> passer = (depth, entity) -> depth <= 3;
@@ -194,9 +202,11 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
     }
 
     private boolean appendAliases(PsiElement element, ActiveCluster cluster, List<String> path, CompletionResultSet result) {
+        Log.debug("appending aliases");
         String name = path.size() > 0 ? path.get(0) : null;
         return 0 < Utils.findAlias(element, name).filter(alias -> {
             String aliasName = Utils.getAliasName(alias).get();
+            Log.debug("Alias: " + aliasName);
             if (aliasName.equals(name)) {
                 List<String> aliasPath = Utils.getAliasPath(alias);
                 if (aliasPath.size() == 1) {
