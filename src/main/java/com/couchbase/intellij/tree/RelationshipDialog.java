@@ -222,7 +222,7 @@ public class RelationshipDialog extends DialogWrapper {
                     .computeIfAbsent(ActiveCluster.getInstance().getId(), k -> new HashMap<>());
 
             String[] split = target.split("\\.");
-            String reference = split[0] + "." + split[1] + "." + split[2] + "." + fieldCombo.getSelectedItem().toString();
+            String reference = split[0] + "." + split[1] + "." + collectionCombo.getSelectedItem().toString() + "." + fieldCombo.getSelectedItem().toString();
             RelationshipStorage.getInstance().getValue().getRelationships()
                     .get(ActiveCluster.getInstance().getId())
                     .put(target, reference);

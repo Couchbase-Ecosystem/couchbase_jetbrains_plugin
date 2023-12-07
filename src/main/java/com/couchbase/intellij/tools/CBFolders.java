@@ -6,6 +6,8 @@ public class CBFolders {
     private String cbShellPath;
     private String explainPath;
 
+    private String mermaidPath;
+
     private CBFolders() {
     }
 
@@ -30,5 +32,13 @@ public class CBFolders {
 
     public void setExplainPath(String explainPath) {
         this.explainPath = explainPath;
+    }
+
+    public String getMermaidPath() {
+        return mermaidPath;
+    }
+
+    public void setMermaidPath(String mermaidPath) {
+        this.mermaidPath = mermaidPath;
     }
 }
