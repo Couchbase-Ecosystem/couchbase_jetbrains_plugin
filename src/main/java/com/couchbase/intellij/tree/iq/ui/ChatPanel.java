@@ -1,9 +1,12 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMapper;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.chat.*;
 import com.couchbase.intellij.tree.iq.core.ChatCompletionParser;
+import com.couchbase.intellij.tree.iq.intents.IntentProcessor;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.text.TextContent;
 import com.couchbase.intellij.tree.iq.text.TextFragment;
@@ -234,10 +237,20 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     @Override
     public void responseArrived(ChatMessageEvent.ResponseArrived event) {
         messageRetryCount = 0;
-        setContent(event.getResponseChoices());
-        SwingUtilities.invokeLater(() -> {
-            aroundRequest(false);
-        });
+        List<ChatMessage> response = event.getResponseChoices();
+        if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
+            IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
+            intentProcessor.process(chatLink, event.getUserMessage(), response.get(0).getContent());
+        } else {
+            setContent(event.getResponseChoices());
+            SwingUtilities.invokeLater(() -> {
+                aroundRequest(false);
+            });
+        }
+    }
+
+    private void processIntentResponse(String intentJson) {
+        JsonObject jo = JsonObject.fromJson(intentJson);
     }
 
     public void setContent(List<ChatMessage> content) {

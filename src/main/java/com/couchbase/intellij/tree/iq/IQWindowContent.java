@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq;
 
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
@@ -11,6 +12,7 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.project.Project;
+import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -20,6 +22,8 @@ import retrofit2.HttpException;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.stream.Collectors;
 
 public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, ChatPanel.OrganizationListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(IQWindowContent.class);
@@ -28,6 +32,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
     private OpenAISettingsState.OpenAIConfig iqGptConfig;
+    private String cachedPrompt;
 
     public IQWindowContent(@NotNull Project project) {
         setLayout(new GridBagLayout());
@@ -114,10 +119,29 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             iqGptConfig.setModelName("gpt-4");
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
-            ChatPanel chatPanel = new ChatPanel(project, iqGptConfig, organizationList, organization, this, this);
+            ChatPanel chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(this::systemPrompt), organizationList, organization, this, this);
             ActionsUtil.refreshActions();
             this.add(chatPanel);
             this.updateUI();
         });
+    }
+
+    public String systemPrompt() {
+        try {
+            if (cachedPrompt == null) {
+                InputStream is = IQWindowContent.class.getResourceAsStream("/iq/intent_prompt.txt");
+                cachedPrompt = IOUtils.toString(is);
+                String collections = ActiveCluster.getInstance().getChildren().stream()
+                        .flatMap(b -> b.getChildren().stream())
+                        .flatMap(s -> s.getChildren().stream())
+                        .map(c -> c.getName())
+                        .distinct()
+                        .collect(Collectors.joining(", "));
+                cachedPrompt = cachedPrompt.replaceAll("\\$\\{collections\\}", collections);
+            }
+            return cachedPrompt;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

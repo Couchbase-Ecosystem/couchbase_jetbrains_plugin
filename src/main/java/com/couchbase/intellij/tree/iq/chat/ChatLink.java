@@ -31,4 +31,6 @@ public interface ChatLink {
     default void regenerateResponse() {
 
     }
+
+    ChatMessageListener getListener();
 }

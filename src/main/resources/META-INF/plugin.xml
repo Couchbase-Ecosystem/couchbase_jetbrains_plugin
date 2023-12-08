@@ -73,6 +73,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.chat.ChatGptHandler"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.intents.IntentProcessor"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceFactory"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceProviderRegistry"/>
         <applicationService serviceInterface="com.couchbase.intellij.tree.iq.ui.ContextAwareSnippetizer"

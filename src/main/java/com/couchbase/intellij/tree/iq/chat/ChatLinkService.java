@@ -75,6 +75,11 @@ public class ChatLinkService extends AbstractChatLink {
         }
     }
 
+    @Override
+    public ChatMessageListener getListener() {
+        return this.chatMessageListeners.fire();
+    }
+
     private static List<? extends TextContent> mergeContext(List<? extends TextContent> textContents, InputContext inputContext) {
         if (inputContext.getEntries().isEmpty()) {
             return textContents;
