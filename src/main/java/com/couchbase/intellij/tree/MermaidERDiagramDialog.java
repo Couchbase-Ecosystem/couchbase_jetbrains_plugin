@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
@@ -12,6 +11,7 @@ import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.jcef.JBCefBrowser;
 import org.jetbrains.annotations.Nullable;
+import utils.JsonObjectUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,7 +19,6 @@ import java.io.File;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.TreeMap;
 
 
 public class MermaidERDiagramDialog extends DialogWrapper {
@@ -127,7 +126,7 @@ public class MermaidERDiagramDialog extends DialogWrapper {
                         .findFirst();
 
                 if (obj.isPresent()) {
-                    Map<String, String> map = generatePaths(obj.get(), "");
+                    Map<String, String> map = JsonObjectUtil.generatePaths(obj.get(), "");
 
                     StringBuilder sb = new StringBuilder(colSpec.name() + " { \n");
                     for (Map.Entry<String, String> entry : map.entrySet()) {
@@ -162,29 +161,4 @@ public class MermaidERDiagramDialog extends DialogWrapper {
         return chartDef.toString();
     }
 
-    private Map<String, String> generatePaths(JsonObject jsonObject, String prefix) {
-        Map<String, String> paths = new TreeMap<>();
-        jsonObject.getNames().forEach(key -> {
-            Object value = jsonObject.get(key);
-            String currentPath = prefix.isEmpty() ? key : prefix + "." + key;
-            if (value instanceof JsonObject) {
-                paths.putAll(generatePaths((JsonObject) value, currentPath));
-            } else if (value instanceof JsonArray) {
-                JsonArray array = (JsonArray) value;
-                if (!array.isEmpty()) {
-                    Object firstElement = array.get(0);
-                    if (firstElement instanceof JsonObject) {
-                        paths.putAll(generatePaths((JsonObject) firstElement, currentPath + "[*]"));
-                    } else {
-                        // For non-JsonObject array elements, add the path and type directly
-                        String elementType = firstElement.getClass().getSimpleName() + "[]";
-                        paths.put(currentPath + "[*]", elementType);
-                    }
-                }
-            } else {
-                paths.put(currentPath, value.getClass().getSimpleName());
-            }
-        });
-        return paths;
-    }
 }

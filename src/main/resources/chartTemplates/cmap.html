@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Map with JSON Data</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <style>
+        .leaflet-popup-content {
+            max-height: 100px; /* Set maximum height */
+            overflow-y: auto; /* Add vertical scrollbar if necessary */
+        }
+    </style>
+</head>
+<body>
+<div id="mapid" style="height: 400px;"></div>
+
+<script>
+    // Initialize map
+    var myMap = L.map('mapid').setView([51.505, -0.09], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(myMap);
+
+    // JSON data
+    var jsonData = JSON_DATA_TEMPLATE;
+
+    // Function to create a popup content string
+    function createPopupContent(landmark) {
+        return `
+                <strong>${landmark.name}</strong><br>
+                Address: ${landmark.address}<br>
+                City: ${landmark.city}<br>
+                Country: ${landmark.country}<br>
+                Activity: ${landmark.activity}<br>
+                Phone: ${landmark.phone}<br>
+                Hours: ${landmark.hours}<br>
+                <a href="${landmark.url}" target="_blank">Visit website</a><br>
+                <p>${landmark.content}</p>
+            `;
+    }
+
+    // Iterate over JSON data to create markers and popups
+    var markers = [];
+
+    // Iterate over JSON data to create markers and popups
+    jsonData.forEach(function (item) {
+        var landmark = item.landmark;
+        var marker = L.marker([GEO_LAT_TEMPLATE, GEO_LON_TEMPLATE]).addTo(myMap);
+        marker.bindPopup(createPopupContent(landmark));
+
+        // Show popup on hover
+        marker.on('mouseover', function (e) {
+            this.openPopup();
+        });
+        // marker.on('mouseout', function (e) {
+        //     this.closePopup();
+        // });
+
+        // Add the marker to the markers array
+        markers.push(marker);
+    });
+
+    var group = new L.featureGroup(markers);
+    myMap.fitBounds(group.getBounds());
+</script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html>-->
+<!--<head>-->
+<!--    <title>Interactive Map</title>-->
+<!--    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>-->
+<!--    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>-->
+<!--</head>-->
+<!--<body>-->
+<!--<div id="mapid" style="height: 400px;"></div>-->
+
+<!--<script>-->
+<!--    // Initialize map-->
+<!--    var myMap = L.map('mapid').setView([51.505, -0.09], 13);-->
+<!--    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {-->
+<!--        maxZoom: 19,-->
+<!--    }).addTo(myMap);-->
+
+<!--    // Add markers-->
+<!--    var marker = L.marker([51.5, -0.09]).addTo(myMap);-->
+<!--    marker.bindPopup("<b>Hello world!</b><br>I am a popup.");-->
+
+<!--    marker.on('mouseover', function (e) {-->
+<!--        this.openPopup();-->
+<!--    });-->
+<!--    marker.on('mouseout', function (e) {-->
+<!--        this.closePopup();-->
+<!--    });-->
+
+<!--    // Add more markers as needed-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->

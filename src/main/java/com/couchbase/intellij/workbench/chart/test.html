@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Map with JSON Data</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <style>
+        .leaflet-popup-content {
+            max-height: 100px; /* Set maximum height */
+            overflow-y: auto; /* Add vertical scrollbar if necessary */
+        }
+    </style>
+</head>
+<body>
+<div id="mapid" style="height: 400px;"></div>
+
+<script>
+    // Initialize map
+    var myMap = L.map('mapid').setView([51.505, -0.09], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(myMap);
+
+    // JSON data
+    var jsonData = [{
+        "landmark": {
+            "country": "United Kingdom",
+            "hours": "Tues - Fri 9.00am to 5.00pm, Sat - Sun 11.30am - 5.00pm",
+            "address": "Prince Arthur Road, ME4 4UG",
+            "activity": "see",
+            "city": "Gillingham",
+            "title": "Gillingham (Kent)",
+            "type": "landmark",
+            "url": "http://www.remuseum.org.uk",
+            "content": "Adult - £6.99 for an Adult ticket that allows you to come back for further visits within a year (children's and concessionary tickets also available). Museum on military engineering and the history of the British Empire. A quite extensive collection that takes about half a day to see. Of most interest to fans of British and military history or civil engineering. The outside collection of tank mounted bridges etc can be seen for free. There is also an extensive series of themed special event weekends, admission to which is included in the cost of the annual ticket.",
+            "geo": {"accuracy": "RANGE_INTERPOLATED", "lon": 0.53616, "lat": 51.39184},
+            "phone": "+44 1634 822839",
+            "name": "Royal Engineers Museum",
+            "id": 10019
+        }
+    }, {
+        "landmark": {
+            "image": null,
+            "country": "United Kingdom",
+            "hours": null,
+            "address": "4 High Street, ME7 1BB",
+            "activity": "eat",
+            "city": "Gillingham",
+            "alt": null,
+            "title": "Gillingham (Kent)",
+            "type": "landmark",
+            "tollfree": null,
+            "url": "http://www.thehollywoodbowl.co.uk",
+            "content": "A newly extended lively restaurant located in the high street, an American Hollywood style restaurant beautifully decorated with old photos and a great menu including burgers and ribs.",
+            "geo": {"accuracy": "RANGE_INTERPOLATED", "lon": 0.5427, "lat": 51.38937},
+            "directions": null,
+            "phone": null,
+            "price": null,
+            "name": "Hollywood Bowl",
+            "id": 10020,
+            "state": null,
+            "email": null
+        }
+    }, {
+        "landmark": {
+            "image": null,
+            "country": "United Kingdom",
+            "hours": null,
+            "address": "59-61 High Street, ME7 1BJ",
+            "activity": "eat",
+            "city": "Gillingham",
+            "alt": null,
+            "title": "Gillingham (Kent)",
+            "type": "landmark",
+            "tollfree": null,
+            "url": null,
+            "content": "Really popular oriental restaurant with a mixture foods including noodles, duck and other oriental staples.",
+            "geo": {"accuracy": "ROOFTOP", "lon": 0.54423, "lat": 51.38753},
+            "directions": null,
+            "phone": "+44 1634 856128",
+            "price": null,
+            "name": "Thai Won Mien",
+            "id": 10021,
+            "state": null,
+            "email": null
+        }
+    }];
+
+    // Function to create a popup content string
+    function createPopupContent(landmark) {
+        return `
+                <strong>${landmark.name}</strong><br>
+                Address: ${landmark.address}<br>
+                City: ${landmark.city}<br>
+                Country: ${landmark.country}<br>
+                Activity: ${landmark.activity}<br>
+                Phone: ${landmark.phone}<br>
+                Hours: ${landmark.hours}<br>
+                <a href="${landmark.url}" target="_blank">Visit website</a><br>
+                <p>${landmark.content}</p>
+            `;
+    }
+
+    // Iterate over JSON data to create markers and popups
+    var markers = [];
+
+    // Iterate over JSON data to create markers and popups
+    jsonData.forEach(function (item) {
+        var landmark = item.landmark;
+        var marker = L.marker([landmark.geo.lat, landmark.geo.lat]).addTo(myMap);
+        marker.bindPopup(createPopupContent(landmark));
+
+        // Show popup on hover
+        marker.on('mouseover', function (e) {
+            this.openPopup();
+        });
+        // marker.on('mouseout', function (e) {
+        //     this.closePopup();
+        // });
+
+        // Add the marker to the markers array
+        markers.push(marker);
+    });
+
+    var group = new L.featureGroup(markers);
+    myMap.fitBounds(group.getBounds());
+</script>
+</body>
+</html>
+
