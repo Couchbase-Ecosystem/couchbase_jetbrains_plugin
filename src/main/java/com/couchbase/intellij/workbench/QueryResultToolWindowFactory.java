@@ -194,7 +194,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         JPanel charts = new JPanel(new BorderLayout());
         chartsPanel = new ChartsPanel();
-        charts.add(chartsPanel.createChartPanel(), BorderLayout.CENTER);
+        charts.add(chartsPanel.createChartPanel(() -> cachedResults), BorderLayout.CENTER);
 
         chartsTab = new TabInfo(charts).setText("Charts");
         resultTabs.addTab(chartsTab);

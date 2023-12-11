@@ -2,6 +2,7 @@ package com.couchbase.intellij.workbench.chart;
 
 import com.couchbase.client.java.json.JsonObject;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.util.ui.JBUI;
 import utils.JsonObjectUtil;
 
 import javax.swing.*;
@@ -10,6 +11,7 @@ import java.awt.event.ItemEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class ChartsPanel {
 
@@ -22,8 +24,9 @@ public class ChartsPanel {
     private JPanel bodyChoice;
 
 
-    public JPanel createChartPanel() {
-        fieldsPanel = new JPanel(new FlowLayout());
+    public JPanel createChartPanel(Supplier<List<JsonObject>> result) {
+        fieldsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        fieldsPanel.setBorder(null);
         bodyPanel = new JPanel(new BorderLayout());
 
         String[] chartOptions = {"Line", "Bar", "Pie", "Donut", "Map"};
@@ -37,7 +40,7 @@ public class ChartsPanel {
                 }
 
                 if (bodyChoice != null) {
-                    bodyPanel.remove(bodyPanel);
+                    bodyPanel.remove(bodyChoice);
                 }
 
                 if ("Map".equals(e.getItem().toString())) {
@@ -45,21 +48,31 @@ public class ChartsPanel {
                     fieldsChoice = cbChart.getFieldsPanel();
                     fieldsPanel.add(fieldsChoice);
                     bodyChoice = cbChart.getMainPanel();
-                    bodyPanel.add(bodyChoice);
+                    bodyPanel.add(bodyChoice, BorderLayout.CENTER);
                 }
                 fieldsPanel.revalidate();
+                updateChart(result.get());
             }
         });
 
         chartCombobox.setSelectedItem(null);
+        fieldsChoice = new JPanel();
+        fieldsChoice.setBorder(JBUI.Borders.emptyTop(5));
+        fieldsPanel.add(fieldsChoice);
 
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        topPanel.add(new JLabel("Type"));
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        topPanel.setBorder(null);
+        JLabel typeLabel = new JLabel("Type");
+        typeLabel.setBorder(JBUI.Borders.emptyLeft(5));
+        topPanel.add(typeLabel);
         topPanel.add(chartCombobox);
+        topPanel.add(fieldsPanel);
 
-
-        fieldsPanel.add(topPanel, BorderLayout.NORTH);
-        return fieldsPanel;
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(bodyPanel, BorderLayout.CENTER);
+        mainPanel.setBorder(JBUI.Borders.emptyTop(5));
+        return mainPanel;
     }
 
     public void updateChart(List<JsonObject> results) {

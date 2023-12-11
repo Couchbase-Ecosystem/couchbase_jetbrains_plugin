@@ -4,8 +4,21 @@
     <title>Interactive Map with JSON Data</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #mapid {
+            width: 100%;
+            height: 100%;
+        }
+
         .leaflet-popup-content {
             max-height: 100px; /* Set maximum height */
             overflow-y: auto; /* Add vertical scrollbar if necessary */
@@ -13,7 +26,7 @@
     </style>
 </head>
 <body>
-<div id="mapid" style="height: 400px;"></div>
+<div id="mapid"></div>
 
 <script>
     // Initialize map
@@ -22,22 +35,43 @@
         maxZoom: 19,
     }).addTo(myMap);
 
+    var editableLayers = new L.FeatureGroup();
+    myMap.addLayer(editableLayers);
+
+    var drawControl = new L.Control.Draw({
+        draw: {
+            polygon: true,
+            polyline: false,
+            rectangle: false,
+            circle: true,
+            marker: false,
+            circlemarker: false
+        },
+        edit: {
+            featureGroup: editableLayers
+        }
+    });
+    myMap.addControl(drawControl);
+
     // JSON data
     var jsonData = JSON_DATA_TEMPLATE;
 
     // Function to create a popup content string
-    function createPopupContent(landmark) {
-        return `
-                <strong>${landmark.name}</strong><br>
-                Address: ${landmark.address}<br>
-                City: ${landmark.city}<br>
-                Country: ${landmark.country}<br>
-                Activity: ${landmark.activity}<br>
-                Phone: ${landmark.phone}<br>
-                Hours: ${landmark.hours}<br>
-                <a href="${landmark.url}" target="_blank">Visit website</a><br>
-                <p>${landmark.content}</p>
-            `;
+    function createPopupContent(jsonObj) {
+        function formatValue(value) {
+            if (Array.isArray(value)) {
+                return value.map(item => formatValue(item)).join('<br>');
+            } else if (typeof value === 'object' && value !== null) {
+                return createPopupContent(value); // Recursive call for nested objects
+            } else {
+                return String(value); // Convert non-string types to string
+            }
+        }
+
+        return Object.keys(jsonObj).map(key => {
+            const value = formatValue(jsonObj[key]);
+            return `<strong>${key}</strong>: ${value}`;
+        }).join('<br>');
     }
 
     // Iterate over JSON data to create markers and popups
@@ -63,40 +97,154 @@
 
     var group = new L.featureGroup(markers);
     myMap.fitBounds(group.getBounds());
+
+    // Handle the creation of shapes
+    myMap.on('draw:created', function (e) {
+        var type = e.layerType,
+            layer = e.layer;
+
+        if (type === 'polygon' || type === 'circle') {
+            // Add it to the map
+            drawControl.options.edit.featureGroup.addLayer(layer);
+        }
+    });
+
+    function addCircle(id, lat, lon, radius) {
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addCircle",
+                data: {id: id, lat: lat, lon: lon, radius: radius}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function addPolygon(id, latlng) {
+        var doubleArray = latlng[0].map(obj => [obj.lat, obj.lng]);
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addPolygon",
+                data: {id: id, latlng: doubleArray}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function removeCircle(id) {
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "removeCircle",
+                data: {id: id}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function removePolygon(id) {
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "removePolygon",
+                data: {id: id}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    var drawnItems = new L.featureGroup().addTo(myMap);
+    var shapesMap = {};
+
+    function generateCircleId(lat, lng, radius) {
+        return 'circle_' + lat + '_' + lng + '_' + radius;
+    }
+
+    function generatePolygonId(latlngs) {
+        return 'polygon_' + latlngs.map(function (latlng) {
+            return latlng.lat + '_' + latlng.lng;
+        }).join('__');
+    }
+
+
+    var existingCircles = GEO_CIRCLE_LIST;
+    var existingPolygons = GEO_POLYGON_LIST;
+    existingCircles.forEach(function (circleData) {
+        var circle = L.circle(circleData.center, {radius: circleData.radius}).addTo(editableLayers);
+        var circleId = generateCircleId(circleData.center[0], circleData.center[1], circleData.radius);
+        shapesMap[circleId] = {type: 'circle', circle: circle};
+    });
+
+    existingPolygons.forEach(function (polygonData) {
+        var polygon = L.polygon(polygonData.latlngs).addTo(editableLayers);
+        var convertedLatlngs = polygonData.latlngs.map(function (coord) {
+            return {lat: coord[0], lng: coord[1]};
+        });
+
+        var polygonId = generatePolygonId(convertedLatlngs);
+        shapesMap[polygonId] = {type: 'polygon', polygon: polygon};
+    });
+
+
+    myMap.on('draw:created', function (e) {
+        var type = e.layerType, layer = e.layer;
+        drawnItems.addLayer(layer);
+
+        if (type === 'circle') {
+            var center = layer.getLatLng();
+            var radius = layer.getRadius();
+            var circleId = generateCircleId(center.lat, center.lng, radius);
+            shapesMap[circleId] = {type: 'circle', center: center, radius: radius};
+            addCircle(circleId, center.lat, center.lng, radius);
+        } else if (type === 'polygon') {
+            var latlngs = layer.getLatLngs();
+            var polygonId = generatePolygonId(latlngs[0]);
+            shapesMap[polygonId] = {type: 'polygon', latlngs: latlngs};
+            addPolygon(polygonId, latlngs);
+        }
+    });
+
+    myMap.on('draw:deleted', function (e) {
+        var layers = e.layers;
+        layers.eachLayer(function (layer) {
+            var shapeId, shape;
+            if (layer instanceof L.Circle) {
+                var center = layer.getLatLng();
+                var radius = layer.getRadius();
+                shapeId = generateCircleId(center.lat, center.lng, radius);
+                shape = shapesMap[shapeId];
+                if (shape) {
+                    removeCircle(shapeId);
+                }
+            } else if (layer instanceof L.Polygon) {
+                var latlngs = layer.getLatLngs();
+                shapeId = generatePolygonId(latlngs[0]);
+                shape = shapesMap[shapeId];
+                if (shape) {
+                    removePolygon(shapeId);
+                }
+            }
+            delete shapesMap[shapeId];
+        });
+    });
+
 </script>
 </body>
 </html>
-
-
-<!--<!DOCTYPE html>-->
-<!--<html>-->
-<!--<head>-->
-<!--    <title>Interactive Map</title>-->
-<!--    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>-->
-<!--    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>-->
-<!--</head>-->
-<!--<body>-->
-<!--<div id="mapid" style="height: 400px;"></div>-->
-
-<!--<script>-->
-<!--    // Initialize map-->
-<!--    var myMap = L.map('mapid').setView([51.505, -0.09], 13);-->
-<!--    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {-->
-<!--        maxZoom: 19,-->
-<!--    }).addTo(myMap);-->
-
-<!--    // Add markers-->
-<!--    var marker = L.marker([51.5, -0.09]).addTo(myMap);-->
-<!--    marker.bindPopup("<b>Hello world!</b><br>I am a popup.");-->
-
-<!--    marker.on('mouseover', function (e) {-->
-<!--        this.openPopup();-->
-<!--    });-->
-<!--    marker.on('mouseout', function (e) {-->
-<!--        this.closePopup();-->
-<!--    });-->
-
-<!--    // Add more markers as needed-->
-<!--</script>-->
-<!--</body>-->
-<!--</html>-->
