@@ -130,10 +130,10 @@ public class MermaidERDiagramDialog extends DialogWrapper {
 
                     StringBuilder sb = new StringBuilder(colSpec.name() + " { \n");
                     for (Map.Entry<String, String> entry : map.entrySet()) {
-                        String key = entry.getKey().replaceAll("\\.", "__")
+                        String key = entry.getKey()
                                 .replaceAll("\\*", "")
                                 .replaceAll("\\s+", "_")
-                                .replaceAll("[^a-zA-Z0-9_\\[\\]]", "");
+                                .replaceAll("[^a-zA-Z0-9_\\.\\[\\]]", "");
                         sb.append(entry.getValue() + " " + key + "\n");
                     }
                     sb.append("}\n");

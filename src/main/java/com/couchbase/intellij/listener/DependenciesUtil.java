@@ -25,7 +25,7 @@ public class DependenciesUtil {
     public static final String EXPLAIN_VERSION = "1";
 
     public static final String MERMAID_KEY = "mermaid";
-    public static final String MERMAID_VERSION = "1";
+    public static final String MERMAID_VERSION = "2";
 
     private static void createFileWithProperties(File filePath) throws Exception {
         Properties properties = new Properties();
