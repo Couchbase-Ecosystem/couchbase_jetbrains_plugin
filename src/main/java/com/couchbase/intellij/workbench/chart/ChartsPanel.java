@@ -49,6 +49,8 @@ public class ChartsPanel {
                     cbChart = new PieDoughnutChart(PieDoughnutChart.Type.PIE);
                 } else if ("Doughnut".equals(e.getItem().toString())) {
                     cbChart = new PieDoughnutChart(PieDoughnutChart.Type.DOUGHNUT);
+                } else if ("Bar".equals(e.getItem().toString())) {
+                    cbChart = new BarChart();
                 }
 
                 fieldsChoice = cbChart.getFieldsPanel();

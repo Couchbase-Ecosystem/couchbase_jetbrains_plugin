@@ -3,13 +3,17 @@ package com.couchbase.intellij.workbench.chart;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.ui.ComboBox;
 
+import java.awt.event.ItemListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ChartUtil {
@@ -49,6 +53,26 @@ public class ChartUtil {
             }
         }
         return values;
+    }
+
+
+    public static List<String> filterOutAttributes(Map<String, String> fields, List<String> filterOutList) {
+        List<String> valOptions = new ArrayList<>();
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            if (!filterOutList.contains(entry.getValue())) {
+                valOptions.add(entry.getKey());
+            }
+        }
+        return valOptions;
+    }
+
+
+    public static void addItemsWithoutChangeListener(ComboBox comboBox, List<String> values, ItemListener itemListener) {
+        comboBox.removeItemListener(itemListener);
+        comboBox.removeAllItems();
+        values.forEach(e -> comboBox.addItem(e));
+        comboBox.addItemListener(itemListener);
+        comboBox.setSelectedItem(null);
     }
 
 }

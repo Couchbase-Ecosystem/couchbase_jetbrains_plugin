@@ -11,12 +11,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class PieDoughnutChart implements CbChart {
+public class BarChart implements CbChart {
 
     private ItemListener itemListener;
 
@@ -27,12 +26,6 @@ public class PieDoughnutChart implements CbChart {
 
     private List<JsonObject> results;
 
-    private Type type;
-
-    public PieDoughnutChart(Type type) {
-        this.type = type;
-    }
-
 
     @Override
     public void render(Map<String, String> fields, List<JsonObject> results) {
@@ -40,15 +33,9 @@ public class PieDoughnutChart implements CbChart {
         String oldLabelVal = labelsBox.getSelectedItem() == null ? null : labelsBox.getSelectedItem().toString();
         String oldValueVal = valuesBox.getSelectedItem() == null ? null : valuesBox.getSelectedItem().toString();
 
-        List<String> valOptions = ChartUtil.filterOutAttributes(fields, Arrays.asList("String", "Unknown"));
 
-        List<String> labelsOptions = new ArrayList<>();
-        for (Map.Entry<String, String> entry : fields.entrySet()) {
-            if ("String".equals(entry.getValue())) {
-                labelsBox.addItem(entry.getKey());
-                labelsOptions.add(entry.getKey());
-            }
-        }
+        List<String> valOptions = ChartUtil.filterOutAttributes(fields, Arrays.asList("String", "Unknown"));
+        List<String> labelsOptions = ChartUtil.filterOutAttributes(fields, Arrays.asList("Unknown"));
 
         ChartUtil.addItemsWithoutChangeListener(labelsBox, labelsOptions, itemListener);
         ChartUtil.addItemsWithoutChangeListener(valuesBox, valOptions, itemListener);
@@ -109,9 +96,8 @@ public class PieDoughnutChart implements CbChart {
             JsonArray labels = ChartUtil.getAttributeValues(results, labelsBox.getSelectedItem().toString());
 
 
-            String template = ChartUtil.loadResourceAsString("/chartTemplates/pie_doughnut.html");
+            String template = ChartUtil.loadResourceAsString("/chartTemplates/bar.html");
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
-                    .replace("CHART_TYPE", type == Type.PIE ? "pie" : "doughnut")
                     .replace("DATA_LABELS", labels.toString())
                     .replace("DATA_VALUES", values.toString())
                     .replace("ISDARK", String.valueOf(ColorHelper.isDarkTheme()));
@@ -123,12 +109,6 @@ public class PieDoughnutChart implements CbChart {
         } else {
             browser.loadHTML("");
         }
-    }
-
-
-    protected enum Type {
-        PIE,
-        DOUGHNUT
     }
 
 }
