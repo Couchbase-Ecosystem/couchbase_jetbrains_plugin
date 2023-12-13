@@ -29,7 +29,7 @@ public class ChartsPanel {
         fieldsPanel.setBorder(null);
         bodyPanel = new JPanel(new BorderLayout());
 
-        String[] chartOptions = {"Line", "Bar", "Pie", "Donut", "Map"};
+        String[] chartOptions = {"Line", "Bar", "Pie", "Doughnut", "Map"};
         chartCombobox = new ComboBox<>(chartOptions);
         chartCombobox.addItemListener(e -> {
 
@@ -45,11 +45,16 @@ public class ChartsPanel {
 
                 if ("Map".equals(e.getItem().toString())) {
                     cbChart = new MapCbChart();
-                    fieldsChoice = cbChart.getFieldsPanel();
-                    fieldsPanel.add(fieldsChoice);
-                    bodyChoice = cbChart.getMainPanel();
-                    bodyPanel.add(bodyChoice, BorderLayout.CENTER);
+                } else if ("Pie".equals(e.getItem().toString())) {
+                    cbChart = new PieDoughnutChart(PieDoughnutChart.Type.PIE);
+                } else if ("Doughnut".equals(e.getItem().toString())) {
+                    cbChart = new PieDoughnutChart(PieDoughnutChart.Type.DOUGHNUT);
                 }
+
+                fieldsChoice = cbChart.getFieldsPanel();
+                fieldsPanel.add(fieldsChoice);
+                bodyChoice = cbChart.getMainPanel();
+                bodyPanel.add(bodyChoice, BorderLayout.CENTER);
                 fieldsPanel.revalidate();
                 updateChart(result.get());
             }

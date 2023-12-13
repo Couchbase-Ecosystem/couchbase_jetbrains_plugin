@@ -25,15 +25,9 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class MapCbChart implements CbChart {
 
@@ -180,7 +174,7 @@ public class MapCbChart implements CbChart {
 
         if (latBox.getSelectedItem() != null
                 && lonBox.getSelectedItem() != null) {
-            String template = loadResourceAsString("/chartTemplates/cmap.html");
+            String template = ChartUtil.loadResourceAsString("/chartTemplates/cmap.html");
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
                     .replace("GEO_CIRCLE_LIST", circles)
                     .replace("GEO_POLYGON_LIST", polygons)
@@ -210,17 +204,6 @@ public class MapCbChart implements CbChart {
             }
         }
         return latlng;
-    }
-
-
-    private static String loadResourceAsString(String resourcePath) {
-        try (InputStream inputStream = MapCbChart.class.getResourceAsStream(resourcePath);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            return reader.lines().collect(Collectors.joining("\n"));
-        } catch (IOException | NullPointerException e) {
-            Log.error("An error occurred while loading the html for the map");
-            return null;
-        }
     }
 
 
