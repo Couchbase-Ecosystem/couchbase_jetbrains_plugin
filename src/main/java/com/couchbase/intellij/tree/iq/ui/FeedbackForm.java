@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.client.java.json.JsonObject;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBTextField;
@@ -10,10 +11,10 @@ import java.awt.*;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpRequest;
+import java.util.function.Consumer;
 
 public class FeedbackForm extends JBPanel<FeedbackForm> {
 
-    private static final String feedbackEndpoint = "https://nms548yy5b.execute-api.us-west-1.amazonaws.com/Prod/";
 
     private final JBTextField additionalInfo;
     private final JButton submit;
@@ -21,8 +22,19 @@ public class FeedbackForm extends JBPanel<FeedbackForm> {
     private final boolean liked;
     private boolean submitted;
 
-    public FeedbackForm(boolean liked) {
+    private final Consumer<String> sender;
+
+    public static FeedbackForm liked() {
+        return new FeedbackForm(true, null);
+    }
+
+    public static FeedbackForm disliked(Consumer<String> sender) {
+        return new FeedbackForm(false, sender);
+    }
+
+    private FeedbackForm(boolean liked, Consumer<String> sender) {
         this.liked = liked;
+        this.sender = sender;
         setDoubleBuffered(true);
         setOpaque(true);
         setBackground(new JBColor(0xEBEBEB, 0x2d2f30));
@@ -48,7 +60,7 @@ public class FeedbackForm extends JBPanel<FeedbackForm> {
             add(submit, BorderLayout.SOUTH);
         } else {
             message.setText("Thank you for the feedback!");
-            sendFeedback();
+            submitted = true;
         }
     }
 
@@ -57,10 +69,9 @@ public class FeedbackForm extends JBPanel<FeedbackForm> {
         submit.setEnabled(false);
         additionalInfo.setEditable(false);
 
-        HttpRequest request = HttpRequest.newBuilder(new URI(feedbackEndpoint))
-                .header("X-Secret", "c0uchbase_is_aw3some")
-                .method(Http.P)
-
+        if (sender != null) {
+            sender.accept(additionalInfo.getText());
+        }
     }
 
     public void submitIfHavent() {

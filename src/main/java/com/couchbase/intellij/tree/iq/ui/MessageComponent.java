@@ -1,6 +1,8 @@
 package com.couchbase.intellij.tree.iq.ui;
 
-import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.workbench.Log;
 import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.ChatGptIcons;
@@ -14,7 +16,6 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.ui.ColorUtil;
-import com.intellij.ui.IconManager;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
@@ -24,7 +25,6 @@ import com.intellij.util.ui.ExtendableHTMLViewFactory;
 import com.intellij.util.ui.HTMLEditorKitBuilder;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
-import org.apache.xmlbeans.impl.store.Cur;
 import org.jetbrains.annotations.NotNull;
 
 import javax.accessibility.AccessibleContext;
@@ -37,10 +37,17 @@ import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class MessageComponent extends JBPanel<MessageComponent> implements ChatPanel.ChatAwareMessageComponent {
 
+    private static final String feedbackEndpoint = "https://nms548yy5b.execute-api.us-west-1.amazonaws.com/Prod/";
     private static final Logger LOG = Logger.getInstance(MessageComponent.class);
 
     private final MessagePanel component = new MessagePanel();
@@ -58,10 +65,28 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
     private ChatPanel chat;
     private FeedbackForm feedbackForm;
 
+    private JsonObject logObject;
+
     public MessageComponent(ChatPanel chat, TextFragment text, ModelType model) {
         this.chat = chat;
         this.text = text;
         var fromUser = (model == null);
+        if (!fromUser) {
+            logObject = chat.getQuestion().getLogObject();
+            logObject.put("response", text.toString());
+            logObject.put("response_time", Math.round(System.currentTimeMillis() / 1000D));
+            postLogObject();
+        } else {
+            logObject = JsonObject.create();
+            logObject.put("id", UUID.randomUUID().toString());
+            logObject.put("origin", "jetbrains");
+            logObject.put("question", text.toString());
+            logObject.put("question_time", Math.round(System.currentTimeMillis() / 1000D));
+            if (chat.getQuestion() != null) {
+                logObject.put("previous_question", chat.getQuestion().getLogObject().getString("id"));
+            }
+            postLogObject();
+        }
         setDoubleBuffered(true);
         setOpaque(true);
         setBackground(fromUser ? new JBColor(0xF7F7F7, 0x3C3F41) : new JBColor(0xEBEBEB, 0x2d2f30));
@@ -110,10 +135,12 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
                         feedbackThumbupAction.setIcon(getThumbUpInvertedIcon());
                         feedbackThumbdownAction.setEnabled(false);
                         feedbackThumbupAction.setCursor(Cursor.getDefaultCursor());
-                        feedbackForm = new FeedbackForm(true);
+                        feedbackForm = FeedbackForm.liked();
                         add(feedbackForm, BorderLayout.SOUTH);
                         revalidate();
                         repaint();
+                        logObject.put("liked", true);
+                        postLogObject();
                     });
                 }
             }
@@ -128,10 +155,12 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
                         feedbackThumbdownAction.setIcon(getThumbDownInvertedIcon());
                         feedbackThumbupAction.setEnabled(false);
                         feedbackThumbdownAction.setCursor(Cursor.getDefaultCursor());
-                        feedbackForm = new FeedbackForm(false);
+                        feedbackForm = FeedbackForm.disliked(MessageComponent.this::updateLogWithFeedback);
                         add(feedbackForm, BorderLayout.SOUTH);
                         revalidate();
                         repaint();
+                        logObject.put("liked", false);
+                        postLogObject();
                     });
                 }
             }
@@ -155,6 +184,12 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         });
         actionPanel.add(copyAction);
         add(actionPanel, BorderLayout.EAST);
+    }
+
+    private void updateLogWithFeedback(String s) {
+        logObject.put("feedback", s);
+        logObject.put("feedback_time", Math.round(System.currentTimeMillis() / 1000D));
+        postLogObject();
     }
 
     private ImageIcon getThumbDownIcon() {
@@ -300,6 +335,9 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
             updateContentTimer.setRepeats(false);
             updateContentTimer.start();
         }
+        logObject.put("response", content.toString());
+        logObject.put("response_time", Math.round(System.currentTimeMillis() / 1000D));
+        postLogObject();
     }
 
     public void setErrorContent(String errorMessage) {
@@ -325,5 +363,48 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         if (feedbackForm != null) {
             feedbackForm.submitIfHavent();
         }
+    }
+
+    private JsonObject getLogObject() {
+        return logObject;
+    }
+
+    public void addIntentPrompt(String intentPrompt) {
+        JsonObject prompt = JsonObject.create();
+        prompt.put("prompt", intentPrompt);
+        prompt.put("timestamp", Math.round(System.currentTimeMillis() / 1000D));
+        logObject.put("intent_prompt", prompt);
+        postLogObject();
+    }
+
+    private void postLogObject() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(new URI(feedbackEndpoint))
+                    .header("X-Secret", "c0uchbase_is_aw3some")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(logObject.toBytes()))
+                    .build();
+
+            HttpClient.newHttpClient()
+                    .sendAsync(request, info -> {
+                        if (info.statusCode() > 299) {
+                            Log.error(String.format("failed to update log entry, response status: %d", info.statusCode()));
+                        }
+                        return HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8);
+                    })
+                    .handleAsync((response, error) -> {
+                        if (error != null) {
+                            Log.error(String.format("failed to update log entry %s", logObject.getString("id")), error);
+                        }
+                        return null;
+                    });
+        } catch (Exception e) {
+            Log.error(String.format("failed to update log entry %s", logObject.getString("id")));
+        }
+    }
+
+    public void addIntentResponse(JsonObject intents) {
+        intents.put("response_timestamp", Math.round(System.currentTimeMillis() / 1000D));
+        logObject.put("intents", intents);
+        postLogObject();
     }
 }

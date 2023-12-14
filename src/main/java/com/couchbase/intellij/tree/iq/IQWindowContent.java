@@ -119,6 +119,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             iqGptConfig.setModelName("gpt-4");
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
+            iqGptConfig.withSystemPrompt(this::systemPrompt);
             ChatPanel chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(this::systemPrompt), organizationList, organization, this, this);
             ActionsUtil.refreshActions();
             this.add(chatPanel);

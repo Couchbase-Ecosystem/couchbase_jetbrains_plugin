@@ -8,6 +8,7 @@ import com.couchbase.intellij.tree.iq.chat.ChatGptHandler;
 import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
 import com.couchbase.intellij.tree.iq.core.ChatCompletionRequestProvider;
+import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
@@ -25,8 +26,8 @@ public class IntentProcessor {
     private static String secondaryPrompt;
     private static String intentPrompt;
 
-    public Disposable process(ChatLink link, ChatMessage userMessage, String intentJson) {
-        JsonObject intents = JsonObject.fromJson(intentJson);
+    public Disposable process(ChatPanel chat, ChatMessage userMessage, JsonObject intents) {
+        final ChatLink link = chat.getChatLink();
         StringBuilder intentPrompt = new StringBuilder();
         if (ActiveCluster.getInstance() == null || ActiveCluster.getInstance().getCluster() == null) {
             intentPrompt.append("Respond once by only telling the user that, in order to fulfill their request, they first need to connect their IDE plugin to Couchbase cluster using the 'Explorer' tab. Do not provide any other suggestions how to perform requested action in this response.");
@@ -64,6 +65,8 @@ public class IntentProcessor {
                         .filter(message -> ChatMessageRole.SYSTEM.value().equals(message.getRole()))
                                 .collect(Collectors.toList()));
         chatCompletionRequest.getMessages().add(new ChatMessage(ChatMessageRole.SYSTEM.value(), intentPrompt.toString()));
+
+        chat.getQuestion().addIntentPrompt(intentPrompt.toString());
 
         ChatMessageEvent.Starting event = ChatMessageEvent.starting(link, userMessage);
         return application.getService(ChatGptHandler.class)

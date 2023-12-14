@@ -68,13 +68,13 @@ public class Log {
         getLogger().print("\n" + c.getSimpleName() + ":" + message + " error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
-    public static void error(Exception e) {
+    public static void error(Throwable e) {
 
         String exception = convertToString(e);
         getLogger().print("\n" + "error: " + exception, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
-    public static void error(String message, Exception e) {
+    public static void error(String message, Throwable e) {
         getLogger().print("\n" + message + " error: " + convertToString(e), ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
@@ -82,7 +82,7 @@ public class Log {
         getLogger().print("\n" + message, ConsoleViewContentType.LOG_ERROR_OUTPUT);
     }
 
-    private static String convertToString(Exception e) {
+    private static String convertToString(Throwable e) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         e.printStackTrace(pw);

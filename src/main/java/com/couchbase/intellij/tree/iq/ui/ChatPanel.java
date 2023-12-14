@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.chat.*;
@@ -150,9 +151,12 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         return tokenCount;
     }
 
-    public void addResponse(String s) {
-        MessageComponent response = new MessageComponent(this, TextFragment.of(s), null);
-        contentPanel.add(response);
+    public MessageComponent getQuestion() {
+        return question;
+    }
+
+    public MessageComponent getAnswer() {
+        return answer;
     }
 
     public interface LogoutListener {
@@ -253,7 +257,9 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         List<ChatMessage> response = event.getResponseChoices();
         if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
             IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
-            intentProcessor.process(chatLink, event.getUserMessage(), response.get(0).getContent());
+            JsonObject intents = JsonObject.fromJson(response.get(0).getContent());
+            getQuestion().addIntentResponse(intents);
+            intentProcessor.process(this, event.getUserMessage(), intents);
         } else {
             setContent(event.getResponseChoices());
             SwingUtilities.invokeLater(() -> {
