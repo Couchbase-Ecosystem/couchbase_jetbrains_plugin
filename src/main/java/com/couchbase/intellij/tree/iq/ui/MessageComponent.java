@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
 import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.ChatGptIcons;
@@ -13,6 +14,7 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.ui.ColorUtil;
+import com.intellij.ui.IconManager;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
@@ -22,6 +24,7 @@ import com.intellij.util.ui.ExtendableHTMLViewFactory;
 import com.intellij.util.ui.HTMLEditorKitBuilder;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import org.apache.xmlbeans.impl.store.Cur;
 import org.jetbrains.annotations.NotNull;
 
 import javax.accessibility.AccessibleContext;
@@ -36,15 +39,27 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class MessageComponent extends JBPanel<MessageComponent> {
+public class MessageComponent extends JBPanel<MessageComponent> implements ChatPanel.ChatAwareMessageComponent {
 
     private static final Logger LOG = Logger.getInstance(MessageComponent.class);
 
     private final MessagePanel component = new MessagePanel();
+    private final JLabel feedbackThumbupAction;
+    private final JLabel feedbackThumbdownAction;
 
     private volatile TextFragment text;
 
-    public MessageComponent(TextFragment text, ModelType model) {
+    private static ImageIcon thumbup;
+    private static ImageIcon thumbupInverted;
+    private static ImageIcon thumbdown;
+    private ImageIcon thumbdownInverted;
+    private static final int iconSize = 24;
+
+    private ChatPanel chat;
+    private FeedbackForm feedbackForm;
+
+    public MessageComponent(ChatPanel chat, TextFragment text, ModelType model) {
+        this.chat = chat;
         this.text = text;
         var fromUser = (model == null);
         setDoubleBuffered(true);
@@ -76,11 +91,56 @@ public class MessageComponent extends JBPanel<MessageComponent> {
         centerPanel.add(createContentComponent(text, fromUser));
         add(centerPanel, BorderLayout.CENTER);
 
-        JPanel actionPanel = new JPanel(new BorderLayout());
+        JPanel actionPanel = new JPanel(new GridBagLayout());
         actionPanel.setOpaque(false);
         actionPanel.setBorder(JBUI.Borders.empty(JBUI.scale(7), 0, 0, JBUI.scale(10)));
+        Cursor hand = new Cursor(Cursor.HAND_CURSOR);
+
+        feedbackThumbupAction = new JLabel(getThumbUpIcon());
+        feedbackThumbdownAction = new JLabel(getThumbDownIcon());
+        feedbackThumbupAction.setVisible(false);
+        feedbackThumbdownAction.setVisible(false);
+        feedbackThumbupAction.setCursor(hand);
+        feedbackThumbdownAction.setCursor(hand);
+        feedbackThumbupAction.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (feedbackForm == null) {
+                    SwingUtilities.invokeLater(() -> {
+                        feedbackThumbupAction.setIcon(getThumbUpInvertedIcon());
+                        feedbackThumbdownAction.setEnabled(false);
+                        feedbackThumbupAction.setCursor(Cursor.getDefaultCursor());
+                        feedbackForm = new FeedbackForm(true);
+                        add(feedbackForm, BorderLayout.SOUTH);
+                        revalidate();
+                        repaint();
+                    });
+                }
+            }
+        });
+        actionPanel.add(feedbackThumbupAction);
+
+        feedbackThumbdownAction.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (feedbackForm == null) {
+                    SwingUtilities.invokeLater(() -> {
+                        feedbackThumbdownAction.setIcon(getThumbDownInvertedIcon());
+                        feedbackThumbupAction.setEnabled(false);
+                        feedbackThumbdownAction.setCursor(Cursor.getDefaultCursor());
+                        feedbackForm = new FeedbackForm(false);
+                        add(feedbackForm, BorderLayout.SOUTH);
+                        revalidate();
+                        repaint();
+                    });
+                }
+            }
+        });
+        actionPanel.add(feedbackThumbdownAction);
+
         JLabel copyAction = new JLabel(AllIcons.Actions.Copy);
-        copyAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        copyAction.setBorder(JBUI.Borders.empty(2, 2));
+        copyAction.setCursor(hand);
         copyAction.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -93,8 +153,53 @@ public class MessageComponent extends JBPanel<MessageComponent> {
                                 NotificationType.INFORMATION));
             }
         });
-        actionPanel.add(copyAction, BorderLayout.NORTH);
+        actionPanel.add(copyAction);
         add(actionPanel, BorderLayout.EAST);
+    }
+
+    private ImageIcon getThumbDownIcon() {
+        if (thumbdown == null) {
+            ImageIcon loaded = new ImageIcon(MessageComponent.class.getResource("/icons/thumbdown.png"));
+            Image image = loaded.getImage();
+            thumbdown = new ImageIcon(image.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH));
+        }
+        return thumbdown;
+    }
+
+    private ImageIcon getThumbUpIcon() {
+        if (thumbup == null) {
+            ImageIcon loaded = new ImageIcon(MessageComponent.class.getResource("/icons/thumbup.png"));
+            Image image = loaded.getImage();
+            thumbup = new ImageIcon(image.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH));
+        }
+        return thumbup;
+    }
+
+    private ImageIcon getThumbDownInvertedIcon() {
+        if (thumbdownInverted == null) {
+            ImageIcon loaded = new ImageIcon(MessageComponent.class.getResource("/icons/thumbdown_inverted.png"));
+            Image image = loaded.getImage();
+            thumbdownInverted = new ImageIcon(image.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH));
+        }
+        return thumbdownInverted;
+    }
+    private ImageIcon getThumbUpInvertedIcon() {
+        if (thumbupInverted == null) {
+            ImageIcon loaded = new ImageIcon(MessageComponent.class.getResource("/icons/thumbup_inverted.png"));
+            Image image = loaded.getImage();
+            thumbupInverted = new ImageIcon(image.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH));
+        }
+        return thumbupInverted;
+    }
+
+    public void showFeedback() {
+        feedbackThumbupAction.setVisible(true);
+        feedbackThumbdownAction.setVisible(true);
+    }
+
+    public void hideFeedback() {
+        feedbackThumbupAction.setVisible(false);
+        feedbackThumbdownAction.setVisible(false);
     }
 
     public TextFragment getText() {
@@ -212,6 +317,13 @@ public class MessageComponent extends JBPanel<MessageComponent> {
         } catch (Exception e) {
             LOG.error("ChatGPT Exception in processing response: response: {}, error: {}", e, String.valueOf(message), e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onNextMessage() {
+        if (feedbackForm != null) {
+            feedbackForm.submitIfHavent();
         }
     }
 }

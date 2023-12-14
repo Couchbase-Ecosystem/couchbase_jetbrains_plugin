@@ -1,7 +1,5 @@
 package com.couchbase.intellij.tree.iq.ui;
 
-import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMapper;
-import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.chat.*;
@@ -20,6 +18,7 @@ import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.OnePixelSplitter;
+import com.intellij.ui.components.JBPanel;
 import com.intellij.util.ui.JBUI;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import io.reactivex.disposables.Disposable;
@@ -106,7 +105,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         actionPanel.add(createContextSnippetsComponent(), BorderLayout.NORTH);
         actionPanel.add(searchTextField, BorderLayout.CENTER);
         actionPanel.add(button, BorderLayout.EAST);
-        contentPanel = new MessageGroupComponent(chatLink, project, organizationList, organization, orgChangeListener, logoutListener);
+        contentPanel = new MessageGroupComponent(this, project, organizationList, organization, orgChangeListener, logoutListener);
         contentPanel.add(progressBar, BorderLayout.SOUTH);
 
         this.setFirstComponent(contentPanel);
@@ -149,6 +148,11 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
             actionPanel.revalidate();
         });
         return tokenCount;
+    }
+
+    public void addResponse(String s) {
+        MessageComponent response = new MessageComponent(this, TextFragment.of(s), null);
+        contentPanel.add(response);
     }
 
     public interface LogoutListener {
@@ -198,8 +202,8 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         }
 
         TextFragment userMessage = TextFragment.of(event.getUserMessage().getContent());
-        question = new MessageComponent(userMessage, null);
-        answer = new MessageComponent(TextFragment.of("Thinking..."), getModelType());
+        question = new MessageComponent(this, userMessage, null);
+        answer = new MessageComponent(this, TextFragment.of("Thinking..."), getModelType());
         SwingUtilities.invokeLater(() -> {
             setSearchText("");
             aroundRequest(true);
@@ -207,10 +211,15 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
             MessageGroupComponent contentPanel = getContentPanel();
             contentPanel.add(question);
             contentPanel.add(answer);
+            if (lastChatComponent instanceof ChatAwareMessageComponent) {
+                ((ChatAwareMessageComponent) lastChatComponent).onNextMessage();
+            }
+            lastChatComponent = answer;
         });
     }
 
     private volatile MessageComponent question, answer;
+    private volatile JBPanel<?> lastChatComponent;
 
     @Override
     public void exchangeStarted(ChatMessageEvent.Started event) {
@@ -236,6 +245,10 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
     @Override
     public void responseArrived(ChatMessageEvent.ResponseArrived event) {
+    }
+
+    @Override
+    public void responseCompleted(ChatMessageEvent.ResponseArrived event) {
         messageRetryCount = 0;
         List<ChatMessage> response = event.getResponseChoices();
         if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
@@ -249,13 +262,10 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         }
     }
 
-    private void processIntentResponse(String intentJson) {
-        JsonObject jo = JsonObject.fromJson(intentJson);
-    }
-
     public void setContent(List<ChatMessage> content) {
         TextFragment parseResult = ChatCompletionParser.parseGPT35TurboWithStream(content);
         answer.setContent(parseResult);
+        answer.showFeedback();
     }
 
     @Override
@@ -348,5 +358,18 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     @Override
     public Dimension getPreferredSize() {
         return getParent().getSize();
+    }
+
+    public void addMessageComponent(JBPanel<?> component) {
+        SwingUtilities.invokeLater(() -> {
+            contentPanel.add(component);
+            lastChatComponent = component;
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        });
+    }
+
+    public interface ChatAwareMessageComponent {
+        void onNextMessage();
     }
 }

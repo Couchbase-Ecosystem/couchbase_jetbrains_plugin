@@ -10,6 +10,8 @@ public interface ChatMessageListener {
 
     void responseArrived(ChatMessageEvent.ResponseArrived event);
 
+    void responseCompleted(ChatMessageEvent.ResponseArrived event);
+
     void exchangeFailed(ChatMessageEvent.Failed event);
 
     void exchangeCancelled(ChatMessageEvent.Cancelled event);

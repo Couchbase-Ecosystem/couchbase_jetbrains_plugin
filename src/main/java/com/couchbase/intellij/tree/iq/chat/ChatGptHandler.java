@@ -54,7 +54,7 @@ public class ChatGptHandler {
                 if (!assistantMessages.isEmpty()) {
                     ctx.addChatMessage(assistantMessages.get(0));
                 }
-                listener.responseArrived(event.responseArrived(assistantMessages));
+                listener.responseCompleted(event.responseArrived(assistantMessages));
             };
         }
 

@@ -3,7 +3,6 @@ package com.couchbase.intellij.tree.iq.ui;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.SystemMessageHolder;
-import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.text.TextFragment;
 import com.couchbase.intellij.tree.iq.util.ScrollingTools;
@@ -21,24 +20,17 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.components.JBTextField;
-import com.intellij.ui.components.labels.LinkLabel;
 import com.intellij.ui.components.panels.NonOpaquePanel;
 import com.intellij.ui.components.panels.VerticalLayout;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
-import org.apache.maven.model.Organization;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-
-import static com.couchbase.intellij.tree.iq.settings.OpenAISettingsState.BASE_PROMPT;
 
 public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implements NullableComponent, SystemMessageHolder {
     private final JPanel myList = new JPanel(new VerticalLayout(0));
@@ -49,10 +41,10 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     private int myScrollValue = 0;
     private JComboBox<String> orgSelector;
     private final Project project;
-    private final ChatLink chatLink;
+    private final ChatPanel chat;
 
-    public MessageGroupComponent(ChatLink chatLink, @NotNull Project project, CapellaOrganizationList organizationList, CapellaOrganization organization, ChatPanel.OrganizationListener orgChangeListener, ChatPanel.LogoutListener logoutListener) {
-        this.chatLink = chatLink;
+    public MessageGroupComponent(ChatPanel chat, @NotNull Project project, CapellaOrganizationList organizationList, CapellaOrganization organization, ChatPanel.OrganizationListener orgChangeListener, ChatPanel.LogoutListener logoutListener) {
+        this.chat = chat;
         this.project = project;
         this.organization = organization;
         this.orgChangeListener = orgChangeListener;
@@ -125,7 +117,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 myList.removeAll();
                 addAssistantTipsIfEnabled(false);
                 myList.updateUI();
-                chatLink.getConversationContext().clear();
+                chat.getChatLink().getConversationContext().clear();
             }
         });
 
@@ -171,8 +163,8 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     }
 
     protected MessageComponent createAssistantTips() {
-        var modelType = chatLink.getConversationContext().getModelType();
-        return new MessageComponent(TextFragment.of("""
+        var modelType = chat.getChatLink().getConversationContext().getModelType();
+        return new MessageComponent(chat, TextFragment.of("""
                 Hi, I'm your AI-powered annoying pair programmer. How can I assist you today?
                 
                 Here are some suggestions to get you started:
@@ -184,7 +176,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 """), modelType);
     }
 
-    public void add(MessageComponent messageComponent) {
+    public void add(JBPanel<?> messageComponent) {
         SwingUtilities.invokeLater(() -> {
             myList.add(messageComponent);
             updateLayout();
