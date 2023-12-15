@@ -88,20 +88,13 @@ public class ChatLinkState implements ConversationContext {
     public List<ChatMessage> getChatMessages(ModelType model, ChatMessage userMessage) {
         var chatMessages = new LinkedList<ChatMessage>();
 
-        // First add current system message
-        var systemMessage = getSystemPrompt().get();
-        if (!systemMessage.isBlank()) {
-            systemMessage = systemMessage.stripTrailing()
-                    + "\n\nCurrent IDE: " + ApplicationInfo.getInstance().getFullApplicationName()
-                    + "\nOS: " + System.getProperty("os.name");
-            chatMessages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
-        }
-        var hasSystemMessage = !chatMessages.isEmpty();
 
         // Add the rest of messages in the chat
         synchronized (this.chatMessages) {
             if (!this.chatMessages.isEmpty())
-                chatMessages.addAll(this.chatMessages);
+                this.chatMessages.stream()
+                        .filter(chatMessage -> !ChatMessageRole.SYSTEM.value().equals(chatMessage.getRole()))
+                                .forEach(chatMessages::add);
 
             // Substitute template placeholders
             substitutePlaceholders(chatMessages);
@@ -112,7 +105,16 @@ public class ChatLinkState implements ConversationContext {
             var chatFormatDescriptor = model.getChatFormatDescriptor();
             int removed = dropOldestMessagesToStayWithinTokenLimit(chatMessages, maxTokens, tokenizer, chatFormatDescriptor);
             while (removed-- > 0)
-                this.chatMessages.remove(hasSystemMessage ? 1 : 0);
+                this.chatMessages.remove(0);
+
+            // add the system prompt
+            var systemMessage = getSystemPrompt().get();
+            if (!systemMessage.isBlank()) {
+                systemMessage = systemMessage.stripTrailing()
+                        + "\n\nCurrent IDE: " + ApplicationInfo.getInstance().getFullApplicationName()
+                        + "\nOS: " + System.getProperty("os.name");
+                chatMessages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
+            }
 
             return chatMessages;
         }

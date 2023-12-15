@@ -13,6 +13,7 @@ import com.couchbase.intellij.tree.iq.ui.context.stack.ListStack;
 import com.couchbase.intellij.tree.iq.ui.context.stack.ListStackFactory;
 import com.couchbase.intellij.tree.iq.ui.context.stack.TextInputContextEntry;
 import com.couchbase.intellij.tree.iq.ui.listener.SubmitListener;
+import com.couchbase.intellij.workbench.Log;
 import com.didalgo.gpt3.ModelType;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaButtonUI;
@@ -255,6 +256,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     public void responseCompleted(ChatMessageEvent.ResponseArrived event) {
         messageRetryCount = 0;
         List<ChatMessage> response = event.getResponseChoices();
+        response.forEach(message -> Log.info(String.format("IQ response message: %s", message.toString())));
         if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
             IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
             JsonObject intents = JsonObject.fromJson(response.get(0).getContent());

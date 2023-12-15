@@ -105,4 +105,13 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
                 .findFirst()
                 .orElse(null);
     }
+
+    public JsonArray toJson() {
+        JsonArray result = JsonArray.create();
+        if (children != null) {
+            children.stream().map(CouchbaseDocumentFlavor::toJson)
+                    .forEach(result::add);
+        }
+        return result;
+    }
 }

@@ -3,12 +3,14 @@ package com.couchbase.intellij.tree.iq.intents;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
 import com.couchbase.intellij.tree.iq.chat.ChatGptHandler;
 import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.chat.ChatMessageEvent;
 import com.couchbase.intellij.tree.iq.core.ChatCompletionRequestProvider;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
@@ -29,7 +31,8 @@ public class IntentProcessor {
     public Disposable process(ChatPanel chat, ChatMessage userMessage, JsonObject intents) {
         final ChatLink link = chat.getChatLink();
         StringBuilder intentPrompt = new StringBuilder();
-        if (ActiveCluster.getInstance() == null || ActiveCluster.getInstance().getCluster() == null) {
+        ActiveCluster activeCluster = ActiveCluster.getInstance();
+        if (activeCluster == null || activeCluster.getCluster() == null) {
             intentPrompt.append("Respond once by only telling the user that, in order to fulfill their request, they first need to connect their IDE plugin to Couchbase cluster using the 'Explorer' tab. Do not provide any other suggestions how to perform requested action in this response.");
         } else if (intents.containsKey("actions")) {
             JsonArray detectedActions = intents.getArray("actions");
@@ -50,10 +53,33 @@ public class IntentProcessor {
             }
         }
 
-        if (intentPrompt.isEmpty()) {
-            intentPrompt.append(getSecondaryPrompt());
+        if (activeCluster != null) {
+            if (intents.containsKey("collections")) {
+                JsonArray collections = intents.getArray("collections");
+                for (int i = 0; i < collections.size(); i++) {
+                    String collectionName = collections.getString(i);
+                    JsonArray structures = JsonArray.create();
+                    activeCluster.getChildren().forEach(bucket -> {
+                        bucket.getChildren().forEach(scope -> {
+                            scope.getChildren().stream()
+                                    .filter(collection -> collectionName.equals(collection.getName()))
+                                    .map(CouchbaseCollection::toJson)
+                                    .forEach(structures::add);
+                        });
+                    });
+
+                    if (!structures.isEmpty()) {
+                        intentPrompt.append(String.format("The following is the list of possible document structures in collection '%s': %s\n", collectionName, structures.toString()));
+                    }
+                }
+            }
         }
 
+        if (intentPrompt.isEmpty()) {
+            intentPrompt.append(getSecondaryPrompt());
+        } else {
+            intentPrompt.append("Now answer the user's question given this additional information and then continue working according to the original system prompt");
+        }
         var application = ApplicationManager.getApplication();
         var chatCompletionRequestProvider = application.getService(ChatCompletionRequestProvider.class);
         var chatCompletionRequest = chatCompletionRequestProvider.chatCompletionRequest(link.getConversationContext(), userMessage)
@@ -66,6 +92,7 @@ public class IntentProcessor {
                                 .collect(Collectors.toList()));
         chatCompletionRequest.getMessages().add(new ChatMessage(ChatMessageRole.SYSTEM.value(), intentPrompt.toString()));
 
+        Log.info(String.format("IQ intent prompt: %s", intentPrompt.toString()));
         chat.getQuestion().addIntentPrompt(intentPrompt.toString());
 
         ChatMessageEvent.Starting event = ChatMessageEvent.starting(link, userMessage);
