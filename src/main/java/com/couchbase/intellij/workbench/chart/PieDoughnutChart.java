@@ -2,6 +2,7 @@ package com.couchbase.intellij.workbench.chart;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.tools.CBFolders;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.jcef.JBCefBrowser;
 import org.cef.handler.CefDisplayHandler;
@@ -86,6 +87,22 @@ public class PieDoughnutChart implements CbChart {
         topPanel.add(new JLabel("Values:"));
         topPanel.add(valuesBox);
 
+
+        String fontKeywordColor = ColorHelper.getKeywordColor();
+        topPanel.add(ChartUtil.getInfoLabel("<html>" +
+                "<h2>" + (type == Type.DOUGHNUT ? "Doughnut" : "Pie") + " Chart</h2><br>" +
+                "<strong>Labels:</strong>&nbsp;Must be a String<br>" +
+                "<strong>Values:</strong>&nbsp;Must be a Number<br><br>" +
+                "<strong>Ex:</strong>" +
+                "<pre>\n" +
+                "[<br>" +
+                "&nbsp;&nbsp;{ <span style='color:" + fontKeywordColor + "'>&quot;month&quot;</span>: &quot;Jan&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: 10}<br/>" +
+                "&nbsp;&nbsp;{ <span style='color:" + fontKeywordColor + "'>&quot;month&quot;</span>: &quot;Feb&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: 20}<br/>" +
+                "&nbsp;&nbsp;{ <span style='color:" + fontKeywordColor + "'>&quot;month&quot;</span>: &quot;Mar&quot;, <span style='color:" + fontKeywordColor + "'>&quot;value&quot;</span>: 30}<br/>" +
+                "]" +
+                "</pre>\n" +
+                "</html>"));
+
         return topPanel;
     }
 
@@ -112,6 +129,7 @@ public class PieDoughnutChart implements CbChart {
             String template = ChartUtil.loadResourceAsString("/chartTemplates/pie_doughnut.html");
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
                     .replace("CHART_TYPE", type == Type.PIE ? "pie" : "doughnut")
+                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
                     .replace("DATA_LABELS", labels.toString())
                     .replace("DATA_VALUES", values.toString())
                     .replace("ISDARK", String.valueOf(ColorHelper.isDarkTheme()));

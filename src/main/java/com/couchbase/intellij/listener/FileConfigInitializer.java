@@ -24,7 +24,7 @@ public class FileConfigInitializer {
 
         //initCBShell(configPath);
         initExplain(toolsPath, configPath);
-        initMermaid(toolsPath, configPath);
+        initJSDependencies(toolsPath, configPath);
     }
 
 //NOTE: LEAVE THIS CODE COMMENTED FOR NOW
@@ -79,23 +79,27 @@ public class FileConfigInitializer {
     }
 
 
-    public static void initMermaid(String toolsPath, String configPath) throws Exception {
-        String path = configPath + File.separator + "mermaid";
+    public static void initJSDependencies(String toolsPath, String configPath) throws Exception {
 
-        if (!MERMAID_VERSION.equals(getPropertyValue(toolsPath, MERMAID_KEY))) {
-            Log.info("A new version of Mermaid is available. Removing local version and downloading the new one");
+        String path = configPath + File.separator + "js_dependencies";
+
+        if (!JS_DEPENDENCIES_VERSION.equals(getPropertyValue(toolsPath, JS_DEPENDENCIES_KEY))) {
+            Log.info("A new version of Couchbase JS Dependencies is available. Removing local version and downloading the new one");
             DependenciesUtil.deleteFolder(path);
         }
 
+
         Path dest = Paths.get(path);
         if (!Files.exists(dest)) {
-            Log.debug("Copying mermaid files");
+            Log.debug("Copying js dependencies files");
             createFolder(path);
-            copyFile("/tools/mermaid.min.js", Paths.get(path + File.separator + "mermaid.min.js"));
-            DependenciesUtil.setPropertyValue(toolsPath, MERMAID_KEY, MERMAID_VERSION);
+            copyFile("/tools/js_dependencies.zip", Paths.get(path + File.separator + "js_dependencies.zip"));
+            unzipFile(path + File.separator + "js_dependencies.zip", path);
+            DependenciesUtil.setPropertyValue(toolsPath, JS_DEPENDENCIES_KEY, JS_DEPENDENCIES_VERSION);
         } else {
-            Log.debug("The script for mermaid is already copied to the config");
+            Log.debug("The script for explain is already copied to the config");
         }
-        CBFolders.getInstance().setMermaidPath(path);
+        CBFolders.getInstance().setJsDependenciesPath(path);
     }
+
 }

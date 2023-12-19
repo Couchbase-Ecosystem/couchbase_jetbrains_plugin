@@ -6,7 +6,7 @@ public class CBFolders {
     private String cbShellPath;
     private String explainPath;
 
-    private String mermaidPath;
+    private String jsDependenciesPath;
 
     private CBFolders() {
     }
@@ -34,11 +34,11 @@ public class CBFolders {
         this.explainPath = explainPath;
     }
 
-    public String getMermaidPath() {
-        return mermaidPath;
+    public String getJsDependenciesPath() {
+        return jsDependenciesPath;
     }
 
-    public void setMermaidPath(String mermaidPath) {
-        this.mermaidPath = mermaidPath;
+    public void setJsDependenciesPath(String jsDependenciesPath) {
+        this.jsDependenciesPath = jsDependenciesPath;
     }
 }

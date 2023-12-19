@@ -2,6 +2,7 @@ package com.couchbase.intellij.workbench.chart;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.tools.CBFolders;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.workbench.Log;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +19,7 @@ import org.cef.handler.CefMessageRouterHandlerAdapter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import utils.ColorHelper;
 
 import javax.swing.*;
 import java.awt.*;
@@ -112,11 +114,26 @@ public class MapCbChart implements CbChart {
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         topPanel.setBorder(null);
-        topPanel.add(new JLabel("Lat"));
+        topPanel.add(new JLabel("Lat:"));
         topPanel.add(latBox);
 
-        topPanel.add(new JLabel("Lon"));
+        topPanel.add(new JLabel("Lon:"));
         topPanel.add(lonBox);
+        String fontKeywordColor = ColorHelper.getKeywordColor();
+        topPanel.add(ChartUtil.getInfoLabel("<html>" +
+                "<h2>Map</h2><br>" +
+                "<strong>Lat:</strong>&nbsp;Must be Number<br>" +
+                "<strong>Lon:</strong>&nbsp;Must be a Number<br><br>" +
+                "<strong>Ex:</strong>" +
+                "<pre>\n" +
+                "[<br>" +
+                "&nbsp;&nbsp;{ <span style='color:" + fontKeywordColor + "'>&quot;myLatitude&quot;</span>: 48.137154, <span style='color:" + fontKeywordColor + "'>&quot;myLongitude&quot;</span>: 11.576124}<br/>" +
+                "&nbsp;&nbsp;{ <span style='color:" + fontKeywordColor + "'>&quot;myLatitude&quot;</span>: 51.509865, <span style='color:" + fontKeywordColor + "'>&quot;myLongitude&quot;</span>:  -0.118092}<br/>" +
+                "&nbsp;&nbsp;{ <span style='color:" + fontKeywordColor + "'>&quot;myLatitude&quot;</span>: -23.6667, <span style='color:" + fontKeywordColor + "'>&quot;myLongitude&quot;</span>: -46.5167}<br/>" +
+                "]" +
+                "</pre>\n" +
+                "</html>"));
+
 
         return topPanel;
     }
@@ -178,6 +195,7 @@ public class MapCbChart implements CbChart {
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
                     .replace("GEO_CIRCLE_LIST", circles)
                     .replace("GEO_POLYGON_LIST", polygons)
+                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
                     .replace("GEO_LAT_TEMPLATE", latBox.getSelectedItem().toString())
                     .replace("GEO_LON_TEMPLATE", lonBox.getSelectedItem().toString());
             browser.loadHTML(template);

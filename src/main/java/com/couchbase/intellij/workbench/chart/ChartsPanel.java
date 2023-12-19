@@ -51,6 +51,8 @@ public class ChartsPanel {
                     cbChart = new PieDoughnutChart(PieDoughnutChart.Type.DOUGHNUT);
                 } else if ("Bar".equals(e.getItem().toString())) {
                     cbChart = new BarChart();
+                } else if ("Line".equals(e.getItem().toString())) {
+                    cbChart = new LineChart();
                 }
 
                 fieldsChoice = cbChart.getFieldsPanel();
@@ -69,8 +71,8 @@ public class ChartsPanel {
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         topPanel.setBorder(null);
-        JLabel typeLabel = new JLabel("Type");
-        typeLabel.setBorder(JBUI.Borders.emptyLeft(5));
+        JLabel typeLabel = new JLabel("Type:");
+        typeLabel.setBorder(JBUI.Borders.empty(0, 5));
         topPanel.add(typeLabel);
         topPanel.add(chartCombobox);
         topPanel.add(fieldsPanel);

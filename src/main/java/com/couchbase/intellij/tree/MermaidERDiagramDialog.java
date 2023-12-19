@@ -42,7 +42,7 @@ public class MermaidERDiagramDialog extends DialogWrapper {
         String chart = generateChart();
         Log.debug(chart);
 
-        String scriptSrc = CBFolders.getInstance().getMermaidPath() + File.separator + "mermaid.min.js";
+        String scriptSrc = CBFolders.getInstance().getJsDependenciesPath() + File.separator + "mermaid.min.js";
 
         String htmlContent = "<html><body>" +
                 "<script src='" + scriptSrc + "'></script>" +

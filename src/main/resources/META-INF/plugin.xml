@@ -30,11 +30,7 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>Support for Couchbase Lite and Sync Gateway</li>
-        </ul>
-        <h2>Bug Fixes</h2>
-        <ul>
-          <li>Documents are now stored in memory to avoid disk permission issues.</li>
+          <li>Adding support for query charts and ER Diagram</li>
         </ul>
         ]]>
     </change-notes>

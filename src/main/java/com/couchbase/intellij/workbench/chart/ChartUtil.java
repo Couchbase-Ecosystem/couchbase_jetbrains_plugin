@@ -2,10 +2,16 @@ package com.couchbase.intellij.workbench.chart;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.util.IconLoader;
+import utils.TemplateUtil;
 
+import javax.swing.*;
 import java.awt.event.ItemListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,6 +79,20 @@ public class ChartUtil {
         values.forEach(e -> comboBox.addItem(e));
         comboBox.addItemListener(itemListener);
         comboBox.setSelectedItem(null);
+    }
+    
+
+    public static JLabel getInfoLabel(String content) {
+        JLabel infoLabel = new JLabel();
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information.svg", DocumentFilterDialog.class));
+        infoLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                TemplateUtil.showGotItTooltip(e.getComponent(), content);
+            }
+        });
+
+        return infoLabel;
     }
 
 }

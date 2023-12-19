@@ -16,12 +16,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class BarChart implements CbChart {
+public class LineChart implements CbChart {
 
     private ItemListener itemListener;
 
-    protected ComboBox<String> labelsBox;
-    protected ComboBox<String> valuesBox;
+    protected ComboBox<String> xBox;
+    protected ComboBox<String> yBox;
 
     private JBCefBrowser browser;
 
@@ -31,25 +31,25 @@ public class BarChart implements CbChart {
     @Override
     public void render(Map<String, String> fields, List<JsonObject> results) {
         this.results = results;
-        String oldLabelVal = labelsBox.getSelectedItem() == null ? null : labelsBox.getSelectedItem().toString();
-        String oldValueVal = valuesBox.getSelectedItem() == null ? null : valuesBox.getSelectedItem().toString();
+        String oldLabelVal = xBox.getSelectedItem() == null ? null : xBox.getSelectedItem().toString();
+        String oldValueVal = yBox.getSelectedItem() == null ? null : yBox.getSelectedItem().toString();
 
 
         List<String> valOptions = ChartUtil.filterOutAttributes(fields, Arrays.asList("String", "Unknown"));
-        List<String> labelsOptions = ChartUtil.filterOutAttributes(fields, Arrays.asList("Unknown"));
+        List<String> labelsOptions = ChartUtil.filterOutAttributes(fields, List.of("Unknown"));
 
-        ChartUtil.addItemsWithoutChangeListener(labelsBox, labelsOptions, itemListener);
-        ChartUtil.addItemsWithoutChangeListener(valuesBox, valOptions, itemListener);
+        ChartUtil.addItemsWithoutChangeListener(xBox, labelsOptions, itemListener);
+        ChartUtil.addItemsWithoutChangeListener(yBox, valOptions, itemListener);
 
         if (valOptions.contains(oldValueVal)) {
-            valuesBox.setSelectedItem(oldValueVal);
+            yBox.setSelectedItem(oldValueVal);
         }
 
         if (labelsOptions.contains(oldLabelVal)) {
-            labelsBox.setSelectedItem(oldLabelVal);
+            xBox.setSelectedItem(oldLabelVal);
         }
 
-        if (valuesBox.getSelectedItem() == null && labelsBox.getSelectedItem() == null) {
+        if (yBox.getSelectedItem() == null && xBox.getSelectedItem() == null) {
             browser.loadHTML("");
         }
     }
@@ -63,22 +63,22 @@ public class BarChart implements CbChart {
             }
         };
 
-        labelsBox = new ComboBox<>();
-        valuesBox = new ComboBox<>();
+        xBox = new ComboBox<>();
+        yBox = new ComboBox<>();
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         topPanel.setBorder(null);
-        topPanel.add(new JLabel("Labels:"));
-        topPanel.add(labelsBox);
+        topPanel.add(new JLabel("X Axis:"));
+        topPanel.add(xBox);
 
-        topPanel.add(new JLabel("Values:"));
-        topPanel.add(valuesBox);
+        topPanel.add(new JLabel("Y Axis:"));
+        topPanel.add(yBox);
 
         String fontKeywordColor = ColorHelper.getKeywordColor();
         topPanel.add(ChartUtil.getInfoLabel("<html>" +
-                "<h2>Bar Chart</h2><br>" +
-                "<strong>Labels:</strong>&nbsp;String or Number<br>" +
-                "<strong>Values:</strong>&nbsp;Must be a Number<br><br>" +
+                "<h2>Line Chart</h2><br>" +
+                "<strong>X Axis:</strong>&nbsp;String or Number<br>" +
+                "<strong>Y Axis:</strong>&nbsp;Must be a Number<br><br>" +
                 "<strong>Ex:</strong>" +
                 "<pre>\n" +
                 "[<br>" +
@@ -88,6 +88,7 @@ public class BarChart implements CbChart {
                 "]" +
                 "</pre>\n" +
                 "</html>"));
+
 
         return topPanel;
     }
@@ -104,18 +105,18 @@ public class BarChart implements CbChart {
     private void renderChart() {
 
 
-        if (valuesBox.getSelectedItem() != null
-                && labelsBox.getSelectedItem() != null) {
+        if (yBox.getSelectedItem() != null
+                && xBox.getSelectedItem() != null) {
 
 
-            JsonArray values = ChartUtil.getAttributeValues(results, valuesBox.getSelectedItem().toString());
-            JsonArray labels = ChartUtil.getAttributeValues(results, labelsBox.getSelectedItem().toString());
+            JsonArray values = ChartUtil.getAttributeValues(results, yBox.getSelectedItem().toString());
+            JsonArray labels = ChartUtil.getAttributeValues(results, xBox.getSelectedItem().toString());
 
 
-            String template = ChartUtil.loadResourceAsString("/chartTemplates/bar.html");
+            String template = ChartUtil.loadResourceAsString("/chartTemplates/lines.html");
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
-                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
                     .replace("DATA_LABELS", labels.toString())
+                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
                     .replace("DATA_VALUES", values.toString())
                     .replace("ISDARK", String.valueOf(ColorHelper.isDarkTheme()));
             browser.loadHTML(template);

@@ -221,42 +221,10 @@ public class ImportDialog extends DialogWrapper {
         d.gridx = 0;
         d.insets = JBUI.insets(5);
 
-        JPanel listHeadingPanel = TemplateUtil.getLabelWithHelp(
-                "Lists",
-                "<html>[<br>" +
-                        "{<br>" +
-                        "\"key\": \"mykey1\",<br>" +
-                        "\"value\": \"myvalue1\"<br>" +
-                        "},<br>" +
-                        "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
-                        "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
-                        "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
-                        "]</html>");
-        JLabel listDefinitionLabel = new JLabel(
-                "<html>The list format specifies a file which contains a JSON list where<br>" +
-                        "each element in the list is a JSON document. The file may only contain a<br>" +
-                        "single list, but the list may be specified over multiple lines. This format<br>" +
-                        "is specified by setting the --format option to \"list\". Below is an example<br>" +
-                        "of a file in list format.</html>");
-
-        JPanel linesHeadingPanel = TemplateUtil.getLabelWithHelp(
-                "Lines",
-                "<html>{\"key\": \"mykey1\", \"value\": \"myvalue1\"}<br>" +
-                        "{\"key\": \"mykey2\", \"value\": \"myvalue2\"}<br>" +
-                        "{\"key\": \"mykey3\", \"value\": \"myvalue3\"}<br>" +
-                        "{\"key\": \"mykey4\", \"value\": \"myvalue4\"}<br>" +
-                        "</html>");
-        JLabel linesDefinitionLabel = new JLabel(
-                "<html>The lines format specifies a file that contains one JSON document on<br>" +
-                        "every line in the file. This format is specified by setting the --format<br>" +
-                        "option to \"lines\". Below is an example of a file in lines format.</html>");
-
 
         JLabel infoLabel = new JLabel();
 
         String fontKeywordColor = ColorHelper.getKeywordColor();
-        String fontStringColor = ColorHelper.getStringColor();
-
         infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -310,12 +278,6 @@ public class ImportDialog extends DialogWrapper {
         helpPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
         helpPanel.add(infoLabel);
 
-//        contentPanel.add(listHeadingPanel, d);
-//        d.gridy++;
-//        contentPanel.add(listDefinitionLabel, d);
-//        d.gridy++;
-//        contentPanel.add(linesHeadingPanel, d);
-//        d.gridy++;
         contentPanel.add(helpPanel, d);
 
         datasetFormPanel = new JPanel();
