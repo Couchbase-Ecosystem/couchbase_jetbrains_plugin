@@ -32,7 +32,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
     private OpenAISettingsState.OpenAIConfig iqGptConfig;
-    private String cachedPrompt;
+    private static String cachedPrompt;
 
     public IQWindowContent(@NotNull Project project) {
         setLayout(new GridBagLayout());
@@ -119,15 +119,14 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             iqGptConfig.setModelName("gpt-4");
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
-            iqGptConfig.withSystemPrompt(this::systemPrompt);
-            ChatPanel chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(this::systemPrompt), organizationList, organization, this, this);
+            ChatPanel chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(IQWindowContent::systemPrompt), organizationList, organization, this, this);
             ActionsUtil.refreshActions();
             this.add(chatPanel);
             this.updateUI();
         });
     }
 
-    public String systemPrompt() {
+    public static String systemPrompt() {
         try {
             if (cachedPrompt == null) {
                 InputStream is = IQWindowContent.class.getResourceAsStream("/iq/intent_prompt.txt");
