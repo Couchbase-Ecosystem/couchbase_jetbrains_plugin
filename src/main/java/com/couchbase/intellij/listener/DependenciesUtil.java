@@ -24,8 +24,8 @@ public class DependenciesUtil {
     public static final String CBIMPORT_EXPORT_VERSION = "7.2";
     public static final String EXPLAIN_VERSION = "1";
 
-    public static final String MERMAID_KEY = "mermaid";
-    public static final String MERMAID_VERSION = "1";
+    public static final String JS_DEPENDENCIES_KEY = "js_dependencies";
+    public static final String JS_DEPENDENCIES_VERSION = "3";
 
     private static void createFileWithProperties(File filePath) throws Exception {
         Properties properties = new Properties();

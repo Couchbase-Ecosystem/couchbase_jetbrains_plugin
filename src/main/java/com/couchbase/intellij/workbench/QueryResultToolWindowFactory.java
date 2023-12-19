@@ -4,6 +4,7 @@ package com.couchbase.intellij.workbench;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.workbench.chart.ChartsPanel;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.couchbase.intellij.workbench.explain.HtmlPanel;
 import com.couchbase.intellij.workbench.result.JsonTableModel;
@@ -42,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,13 +68,22 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private EditorEx editor;
     private List<JLabel> queryStatsList;
     private List<JLabel> queryLabelsList;
-    private List<Map<String, Object>> cachedResults;
     private JPanel queryStatsPanel;
     private Project project;
     private JPopupMenu popupMenu;
 
+    private ChartsPanel chartsPanel;
+
 
     private TabInfo explainTab;
+
+    private TabInfo chartsTab;
+
+    private JMenuItem jsonMenuItem;
+
+    private JMenuItem csvMenuItem;
+
+    private List<JsonObject> cachedResults;
 
 
     public QueryResultToolWindowFactory() {
@@ -129,15 +140,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         topPanel.add(resultStats, BorderLayout.WEST);
 
         popupMenu = new JPopupMenu();
-        JMenuItem jsonMenuItem = new JMenuItem("JSON");
-        JMenuItem csvMenuItem = new JMenuItem("CSV");
+        jsonMenuItem = new JMenuItem("JSON");
+        csvMenuItem = new JMenuItem("CSV");
 
         popupMenu.add(csvMenuItem);
         popupMenu.add(jsonMenuItem);
-
-
-        csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
-        jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(cachedResults)));
 
         DefaultActionGroup executeGroup = new DefaultActionGroup();
         Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
@@ -185,12 +192,21 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             Log.error("Failed to load the explain tab. Double check if the JRE that you are running your IDE has support for JCEF. https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef");
         }
 
+        JPanel charts = new JPanel(new BorderLayout());
+        chartsPanel = new ChartsPanel();
+        charts.add(chartsPanel.createChartPanel(() -> cachedResults), BorderLayout.CENTER);
+
+        chartsTab = new TabInfo(charts).setText("Charts");
+        resultTabs.addTab(chartsTab);
+
         //NOTE: This is an workaround as the explain tends to render awkwardly when it is not on focus
         resultTabs.addListener(new TabsListener() {
             @Override
             public void selectionChanged(TabInfo oldSelection, TabInfo newSelection) {
                 if (explainTab != null && newSelection == explainTab) {
                     htmlPanel.loadHTML(latestExplain);
+                } else if (chartsTab != null && newSelection == chartsTab) {
+                    chartsPanel.updateChart(cachedResults);
                 }
             }
         });
@@ -336,6 +352,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     }
 
     public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain, boolean isQueryScript) {
+        this.cachedResults = results;
+
         SwingUtilities.invokeLater(() -> {
             if (results != null && error == null || error.getErrors().isEmpty()) {
 
@@ -345,7 +363,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 }
 
                 queryStatsPanel.setVisible(true);
-                cachedResults = convertedResults;
+
+                removeAllActionListeners(csvMenuItem);
+                removeAllActionListeners(jsonMenuItem);
+                csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
+                jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(convertedResults)));
+
 
                 statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
                 ApplicationManager.getApplication().runWriteAction(() -> {
@@ -375,6 +398,11 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
                 model.updateData(convertedResults);
 
+                try {
+                    chartsPanel.updateChart(results);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 if (!isQueryScript) {
                     boolean sqlppUpsertMenuItemExists = false;
@@ -473,5 +501,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Query cancelled\"}"));
         });
+    }
+
+    public static void removeAllActionListeners(JMenuItem menuItem) {
+        ActionListener[] listeners = menuItem.getActionListeners();
+        for (ActionListener listener : listeners) {
+            menuItem.removeActionListener(listener);
+        }
     }
 }

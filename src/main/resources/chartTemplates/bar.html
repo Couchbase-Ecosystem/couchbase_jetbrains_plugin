@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: auto;
+            height: 80vh;
+            width: 80vw;
+        }
+
+        canvas {
+            visibility: hidden;
+        }
+    </style>
+    <script src="JS_LIB_PATH/chart.js"></script>
+</head>
+<body>
+<div class="chart-container">
+    <canvas id="myChart"></canvas>
+</div>
+<script>
+
+    const colors = [
+        'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 206, 86)',
+        'rgb(75, 192, 192)', 'rgb(153, 102, 255)', 'rgb(255, 159, 64)',
+
+        '#FF6633', '#FFB399', '#FFFF99', '#00B3E6', '#E6B333',
+        '#3366E6', '#999966', '#99FF99', '#B34D4D', '#80B300',
+        '#809900', '#E6B3B3', '#6680B3', '#66991A', '#FF99E6',
+        '#CCFF1A', '#FF1A66', '#E6331A', '#33FFCC', '#66994D',
+        '#B366CC', '#4D8000', '#B33300', '#CC80CC', '#66664D',
+        '#991AFF', '#E666FF', '#4DB3FF', '#1AB399', '#E666B3',
+        '#33991A', '#CC9999', '#B3B31A', '#00E680', '#4D8066',
+        '#809980', '#E6FF80', '#1AFF33', '#999933', '#FF3380',
+        '#CCCC00', '#66E64D', '#4D80CC', '#9900B3', '#E64D66',
+        '#4DB380', '#FF4D4D', '#99E6E6', '#6666FF'
+    ];
+
+    function generateColorSequence(dataLength, colors) {
+        let colorSequence = [];
+        for (let i = 0; i < dataLength; i++) {
+            colorSequence.push(colors[i % colors.length]);
+        }
+        return colorSequence;
+    }
+
+    const labels = DATA_LABELS;
+    const dataValues = DATA_VALUES;
+    const backgroundColors = generateColorSequence(dataValues.length, colors);
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    const isDarkMode = ISDARK;
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'total',
+                    data: dataValues,
+                    backgroundColor: backgroundColors,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                        labels: {
+                            color: isDarkMode ? 'white' : 'black'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: isDarkMode ? 'white' : 'black'
+                        },
+                        grid: {
+                            color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: isDarkMode ? 'white' : 'black'
+                        },
+                        grid: {
+                            color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        setTimeout(() => {
+            ctx.canvas.style.visibility = 'visible';
+        }, 100);
+    });
+</script>
+</body>
+</html>
