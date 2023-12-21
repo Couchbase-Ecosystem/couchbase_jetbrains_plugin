@@ -1,7 +1,10 @@
 package com.couchbase.intellij.tree.iq.intents;
 
+import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.manager.query.GetAllQueryIndexesOptions;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
@@ -56,22 +59,8 @@ public class IntentProcessor {
         if (activeCluster != null) {
             if (intents.containsKey("collections")) {
                 JsonArray collections = intents.getArray("collections");
-                for (int i = 0; i < collections.size(); i++) {
-                    String collectionName = collections.getString(i);
-                    JsonArray structures = JsonArray.create();
-                    activeCluster.getChildren().forEach(bucket -> {
-                        bucket.getChildren().forEach(scope -> {
-                            scope.getChildren().stream()
-                                    .filter(collection -> collectionName.equals(collection.getName()))
-                                    .map(CouchbaseCollection::toJson)
-                                    .forEach(structures::add);
-                        });
-                    });
-
-                    if (!structures.isEmpty()) {
-                        intentPrompt.append(String.format("The following is the list of possible document structures in collection '%s': %s\n", collectionName, structures.toString()));
-                    }
-                }
+                appendCollectionSchema(collections, intentPrompt);
+                appendCollectionIndexes(collections, intentPrompt);
             }
         }
 
@@ -100,6 +89,63 @@ public class IntentProcessor {
                 .handle(link.getConversationContext(), event.initiating(chatCompletionRequest), link.getListener())
                 .subscribeOn(Schedulers.io())
                 .subscribe();
+    }
+
+    private void appendCollectionIndexes(JsonArray collections, StringBuilder intentPrompt) {
+        ActiveCluster activeCluster = ActiveCluster.getInstance();
+        if (activeCluster != null) {
+            Cluster cluster = activeCluster.getCluster();
+            if (cluster != null) {
+                for (int i = 0; i < collections.size(); i++) {
+                    String collectionName = collections.getString(i);
+                    JsonObject collecitonIndexes = JsonObject.create();
+                    if (collectionName != null && !collectionName.isBlank()) {
+                        activeCluster.getChildren().forEach(bucket -> {
+                            bucket.getChildren().forEach(scope -> {
+                                scope.getChildren().stream()
+                                        .filter(collection -> collectionName.equalsIgnoreCase(collection.getName()))
+                                        .forEach(collection -> {
+                                                    Collection c = cluster.bucket(bucket.getName()).scope(scope.getName()).collection(collectionName);
+                                                    c.queryIndexes().getAllIndexes().forEach(index -> {
+                                                        collecitonIndexes.put(index.name(), index.indexKey());
+                                                    });
+                                                    intentPrompt.append(String.format("The following is the list of indexes and included in them fields on collection '%s' in bucket '%s' and scope '%s': %s\n", collectionName, collecitonIndexes.toString(), bucket.getName(), scope.getName()));
+                                        });
+                            });
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    private void appendCollectionRelations(JsonArray collections, StringBuilder intentPrompt) {
+        ActiveCluster activeCluster = ActiveCluster.getInstance();
+        if (activeCluster != null) {
+            for (int i = 0; i < collections.size(); i++) {
+
+            }
+        }
+    }
+
+    private void appendCollectionSchema(JsonArray collections, StringBuilder intentPrompt) {
+        ActiveCluster activeCluster = ActiveCluster.getInstance();
+        if (activeCluster != null) {
+            for (int i = 0; i < collections.size(); i++) {
+                String collectionName = collections.getString(i);
+                JsonArray structures = JsonArray.create();
+                activeCluster.getChildren().forEach(bucket -> {
+                    bucket.getChildren().forEach(scope -> {
+                        scope.getChildren().stream()
+                                .filter(collection -> collectionName.equals(collection.getName()))
+                                .forEach(collection -> {
+                                    structures.add(collection.toJson());
+                                    intentPrompt.append(String.format("The following is the list of possible document structures inside collection '%s' in bucket '%s' and scope '%s': %s\n", collectionName, structures.toString(), bucket.getName(), scope.getName()));
+                                });
+                    });
+                });
+            }
+        }
     }
 
     private static String getSecondaryPrompt() {

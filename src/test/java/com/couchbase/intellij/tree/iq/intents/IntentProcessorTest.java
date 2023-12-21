@@ -19,6 +19,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -52,7 +53,7 @@ public class IntentProcessorTest extends BasePlatformTestCase {
         ctx = new TestConversationContext(iqGptConfig.withSystemPrompt(IQWindowContent::systemPrompt));
     }
 
-    private void send(String message, Consumer<ChatMessageEvent> listener) {
+    private void send(String message, Consumer<ChatMessageEvent.ResponseArrived> listener) throws InterruptedException {
         ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), message);
         ChatMessageEvent.Starting event = ChatMessageEvent.starting(this.link, userMessage);
         ChatCompletionRequestProvider ccrp = new ChatCompletionRequestProvider();
@@ -93,12 +94,13 @@ public class IntentProcessorTest extends BasePlatformTestCase {
             public void exchangeCancelled(ChatMessageEvent.Cancelled event) {
 
             }
-        });
+        }).blockingLast();
     }
 
     @Test
-    public void testJson() {
+    public void testJson() throws Exception {
         send("list all boolean fields in the airport collection", response -> {
+            assertEquals(1, response.getResponseChoices().size());
             assertTrue(response.getUserMessage().toString().startsWith("{"));
         });
     }
@@ -144,7 +146,7 @@ public class IntentProcessorTest extends BasePlatformTestCase {
 
         @Override
         public List<ChatMessage> getChatMessages(ModelType model, ChatMessage userMessage) {
-            return Collections.EMPTY_LIST;
+            return Arrays.asList(userMessage);
         }
     }
 }
