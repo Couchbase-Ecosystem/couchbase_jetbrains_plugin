@@ -7,6 +7,9 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.query.GetAllQueryIndexesOptions;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
+import com.couchbase.intellij.persistence.CollectionRelationships;
+import com.couchbase.intellij.persistence.storage.RelationshipStorage;
+import com.couchbase.intellij.tree.RelationshipSettingsManager;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
 import com.couchbase.intellij.tree.iq.chat.ChatGptHandler;
 import com.couchbase.intellij.tree.iq.chat.ChatLink;
@@ -20,11 +23,13 @@ import com.theokanning.openai.completion.chat.ChatMessageRole;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class IntentProcessor {
@@ -61,6 +66,7 @@ public class IntentProcessor {
                 JsonArray collections = intents.getArray("collections");
                 appendCollectionSchema(collections, intentPrompt);
                 appendCollectionIndexes(collections, intentPrompt);
+                appendCollectionRelations(collections, intentPrompt);
             }
         }
 
@@ -91,7 +97,7 @@ public class IntentProcessor {
                 .subscribe();
     }
 
-    private void appendCollectionIndexes(JsonArray collections, StringBuilder intentPrompt) {
+    private void appendCollectionIndexes(@NotNull JsonArray collections, @NotNull StringBuilder intentPrompt) {
         ActiveCluster activeCluster = ActiveCluster.getInstance();
         if (activeCluster != null) {
             Cluster cluster = activeCluster.getCluster();
@@ -119,16 +125,47 @@ public class IntentProcessor {
         }
     }
 
-    private void appendCollectionRelations(JsonArray collections, StringBuilder intentPrompt) {
+    private void appendCollectionRelations(@NotNull JsonArray collections, @NotNull StringBuilder intentPrompt) {
         ActiveCluster activeCluster = ActiveCluster.getInstance();
         if (activeCluster != null) {
-            for (int i = 0; i < collections.size(); i++) {
+            RelationshipStorage relationshipStorage = RelationshipStorage.getInstance();
+            if (relationshipStorage != null) {
+                CollectionRelationships relationshipHolder = relationshipStorage.getValue();
+                if (relationshipHolder != null) {
+                    Map<String, Map<String, String>> allRelationships = relationshipHolder.getRelationships();
+                    if (allRelationships != null) {
+                        Map<String, String> clusterRelationships = allRelationships.get(activeCluster.getId());
+                        if (clusterRelationships != null) {
+                            for (int i = 0; i < collections.size(); i++) {
+                                String collectionName = collections.getString(i);
+                                activeCluster.getChildren().forEach(bucket -> {
+                                    bucket.getChildren().forEach(scope -> {
+                                        scope.getChildren().stream()
+                                                .filter(collection -> collectionName.equals(collection.getName()))
+                                                .forEach(collection -> {
+                                                    String collectionRef = String.format("%s.%s.%s", bucket.getName(), scope.getName(), collection.getName());
+                                                    JsonObject collectionRelationships = JsonObject.create();
+                                                    clusterRelationships.entrySet().stream()
+                                                            .filter(e -> e.getKey().startsWith(collectionRef) || e.getValue().startsWith(collectionRef))
+                                                            .forEach(e -> {
+                                                                collectionRelationships.put(e.getKey(), e.getValue());
+                                                            });
 
+                                                    if (!collectionRelationships.isEmpty()) {
+                                                        intentPrompt.append(String.format("The following is the map of known relationships and references for fields in collection '%s' in bucket '%s' and scope '%s' where each value and key are dot-separated paths from a bucket to a field: %s", collectionName, bucket.getName(), scope.getName(), collectionRelationships));
+                                                    }
+                                                });
+                                    });
+                                });
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    private void appendCollectionSchema(JsonArray collections, StringBuilder intentPrompt) {
+    private void appendCollectionSchema(@NotNull JsonArray collections, @NotNull StringBuilder intentPrompt) {
         ActiveCluster activeCluster = ActiveCluster.getInstance();
         if (activeCluster != null) {
             for (int i = 0; i < collections.size(); i++) {
