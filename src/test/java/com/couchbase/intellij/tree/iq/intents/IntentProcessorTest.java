@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class IntentProcessorTest extends BasePlatformTestCase {
-    private static final String IQ_URL = CapellaApiMethods.CAPELLA_DOMAIN + "/v2/organizations/%s/integrations/iq/";
+    private static final String IQ_URL = System.getenv("CAPELLA_DOMAIN") + "/v2/organizations/%s/integrations/iq/";
 
     private static final ChatGptHandler handler = new ChatGptHandler();
     private static ConversationContext ctx;
@@ -37,7 +37,7 @@ public class IntentProcessorTest extends BasePlatformTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         IQCredentials credentials = new IQCredentials(System.getenv("IQ_ORG_LOGIN"), System.getenv("IQ_ORG_PASSWD"));
-        assertTrue("Please set IQ credentials using `IQ_ORG_ID`, `IQ_ORG_LOGIN`, and `IQ_ORG_PASSWD` envvars", credentials.checkAuthStatus());
+        assertTrue("Please set capella domain and IQ credentials using `CAPELLA_DOMAIN`, `IQ_ORG_ID`, `IQ_ORG_LOGIN`, and `IQ_ORG_PASSWD` envvars", credentials.checkAuthStatus());
         String orgId = System.getenv("IQ_ORG_ID");
         final String iqUrl = String.format(IQ_URL, orgId);
         OpenAISettingsState.OpenAIConfig iqGptConfig = new OpenAISettingsState.OpenAIConfig();

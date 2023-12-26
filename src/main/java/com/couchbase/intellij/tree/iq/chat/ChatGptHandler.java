@@ -68,7 +68,7 @@ public class ChatGptHandler {
 
         public Consumer<ChatCompletionResult> onNext() {
             return result -> {
-                if (!result.getChoices().isEmpty()) {
+                if (result != null && result.getChoices() != null && !result.getChoices().isEmpty()) {
                     listener.responseArrived(event.responseArrived(formResponse(result.getChoices())));
                 }
             };

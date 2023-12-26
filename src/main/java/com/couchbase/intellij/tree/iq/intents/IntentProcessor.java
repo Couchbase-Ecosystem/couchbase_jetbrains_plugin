@@ -102,7 +102,7 @@ public class IntentProcessor {
         if (activeCluster != null) {
             Cluster cluster = activeCluster.getCluster();
             if (cluster != null) {
-                for (int i = 0; i < collections.size(); i++) {
+                for (int i = 0; i < Math.min(collections.size(), 3); i++) {
                     String collectionName = collections.getString(i);
                     JsonObject collecitonIndexes = JsonObject.create();
                     if (collectionName != null && !collectionName.isBlank()) {
@@ -136,7 +136,7 @@ public class IntentProcessor {
                     if (allRelationships != null) {
                         Map<String, String> clusterRelationships = allRelationships.get(activeCluster.getId());
                         if (clusterRelationships != null) {
-                            for (int i = 0; i < collections.size(); i++) {
+                            for (int i = 0; i < Math.min(collections.size(), 3); i++) {
                                 String collectionName = collections.getString(i);
                                 activeCluster.getChildren().forEach(bucket -> {
                                     bucket.getChildren().forEach(scope -> {
@@ -152,7 +152,7 @@ public class IntentProcessor {
                                                             });
 
                                                     if (!collectionRelationships.isEmpty()) {
-                                                        intentPrompt.append(String.format("The following is the map of known relationships and references for fields in collection '%s' in bucket '%s' and scope '%s' where each value and key are dot-separated paths from a bucket to a field: %s", collectionName, bucket.getName(), scope.getName(), collectionRelationships));
+                                                        intentPrompt.append(String.format("The following is the map of known relationships and references for fields in collection '%s' in bucket '%s' and scope '%s': %s\n", collectionName, bucket.getName(), scope.getName(), collectionRelationships));
                                                     }
                                                 });
                                     });
@@ -168,7 +168,7 @@ public class IntentProcessor {
     private void appendCollectionSchema(@NotNull JsonArray collections, @NotNull StringBuilder intentPrompt) {
         ActiveCluster activeCluster = ActiveCluster.getInstance();
         if (activeCluster != null) {
-            for (int i = 0; i < collections.size(); i++) {
+            for (int i = 0; i < Math.min(collections.size(), 3); i++) {
                 String collectionName = collections.getString(i);
                 JsonArray structures = JsonArray.create();
                 activeCluster.getChildren().forEach(bucket -> {
