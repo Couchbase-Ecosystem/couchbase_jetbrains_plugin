@@ -2,7 +2,6 @@ package com.couchbase.intellij.tree.iq;
 
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.storage.IQStorage;
-import com.couchbase.intellij.tree.iq.chat.ChatLink;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
@@ -12,17 +11,19 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.project.Project;
+import lombok.Getter;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import retrofit2.HttpException;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, ChatPanel.OrganizationListener {
@@ -32,18 +33,40 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
     private OpenAISettingsState.OpenAIConfig iqGptConfig;
+    @Getter
+    private static String[] clusterContext;
     private static String cachedPrompt;
+    private static AtomicReference<IQWindowContent> instance = new AtomicReference<>();
+    @Getter
+    private ChatPanel chatPanel;
 
     public IQWindowContent(@NotNull Project project) {
         setLayout(new GridBagLayout());
         this.project = project;
+        instance.set(this);
+        // SQLPP highlighter in response code blocks marked as ```sqlpp
+//        AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+//        atmf.putMapping("text/sqlpp", SqlppTokenMaker.class.getCanonicalName());
 
         if (!credentials.getCredentials().isEmpty() && credentials.checkAuthStatus()) {
             onLogin(credentials);
         } else {
             onLogout(null);
         }
+    }
 
+    public static Optional<IQWindowContent> getInstance() {
+        return Optional.ofNullable(instance.get());
+    }
+
+    public static void setClusterContext(String bucket, String scope) {
+        clusterContext = new String[] {bucket, scope};
+        cachedPrompt = null;
+    }
+
+    public static void clearClusterContext() {
+        clusterContext = null;
+        cachedPrompt = null;
     }
 
     @Override
@@ -91,13 +114,6 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
 
     @Override
     public boolean onLogout(@Nullable Throwable reason) {
-        if (reason instanceof HttpException && ((HttpException) reason).code() == 401) {
-            if (credentials.checkAuthStatus()) {
-                iqGptConfig.setApiKey(credentials.getAuth().getJwt());
-                return false;
-            }
-        }
-
         this.removeAll();
         this.add(new LoginPanel(credentials, this));
         this.updateUI();
@@ -119,7 +135,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             iqGptConfig.setModelName("gpt-4");
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
-            ChatPanel chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(IQWindowContent::systemPrompt), organizationList, organization, this, this);
+            chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(IQWindowContent::systemPrompt), organizationList, organization, this, this);
             ActionsUtil.refreshActions();
             this.add(chatPanel);
             this.updateUI();
@@ -138,10 +154,14 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
                         .distinct()
                         .collect(Collectors.joining(", "));
                 cachedPrompt = cachedPrompt.replaceAll("\\$\\{collections\\}", collections);
+                if (clusterContext != null) {
+                    cachedPrompt = String.format("%s\n Use this couchbase cluster context to address all collections: `%s`.`%s`", cachedPrompt, clusterContext[0], clusterContext[1]);
+                }
             }
             return cachedPrompt;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
 }

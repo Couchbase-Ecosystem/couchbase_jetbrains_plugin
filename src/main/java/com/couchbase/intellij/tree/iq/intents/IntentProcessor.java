@@ -115,7 +115,7 @@ public class IntentProcessor {
                                                     c.queryIndexes().getAllIndexes().forEach(index -> {
                                                         collecitonIndexes.put(index.name(), index.indexKey());
                                                     });
-                                                    intentPrompt.append(String.format("The following is the list of indexes and included in them fields on collection '%s' in bucket '%s' and scope '%s': %s\n", collectionName, collecitonIndexes.toString(), bucket.getName(), scope.getName()));
+                                                    intentPrompt.append(String.format("Indexes on collection '%s.%s.%s': %s\n", bucket.getName(), scope.getName(), collectionName, collecitonIndexes.toString()));
                                         });
                             });
                         });
@@ -152,7 +152,7 @@ public class IntentProcessor {
                                                             });
 
                                                     if (!collectionRelationships.isEmpty()) {
-                                                        intentPrompt.append(String.format("The following is the map of known relationships and references for fields in collection '%s' in bucket '%s' and scope '%s': %s\n", collectionName, bucket.getName(), scope.getName(), collectionRelationships));
+                                                        intentPrompt.append(String.format("relationships for collection '%s.%s.%s': %s\n", bucket.getName(), scope.getName(), collectionName, collectionRelationships));
                                                     }
                                                 });
                                     });
@@ -177,7 +177,7 @@ public class IntentProcessor {
                                 .filter(collection -> collectionName.equals(collection.getName()))
                                 .forEach(collection -> {
                                     structures.add(collection.toJson());
-                                    intentPrompt.append(String.format("The following is the list of possible document structures inside collection '%s' in bucket '%s' and scope '%s': %s\n", collectionName, structures.toString(), bucket.getName(), scope.getName()));
+                                    intentPrompt.append(String.format("schema for collection `%s`.`%s`.`%s`: %s\n", bucket.getName(), scope.getName(), collectionName, structures.toString()));
                                 });
                     });
                 });

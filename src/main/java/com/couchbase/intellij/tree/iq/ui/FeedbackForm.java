@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.client.java.json.JsonObject;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBTextField;
@@ -24,15 +25,15 @@ public class FeedbackForm extends JBPanel<FeedbackForm> {
 
     private final Consumer<String> sender;
 
-    public static FeedbackForm liked() {
-        return new FeedbackForm(true, null);
+    public static FeedbackForm liked(Project project) {
+        return new FeedbackForm(project, true, null);
     }
 
-    public static FeedbackForm disliked(Consumer<String> sender) {
-        return new FeedbackForm(false, sender);
+    public static FeedbackForm disliked(Project project, Consumer<String> sender) {
+        return new FeedbackForm(project, false, sender);
     }
 
-    private FeedbackForm(boolean liked, Consumer<String> sender) {
+    private FeedbackForm(Project project, boolean liked, Consumer<String> sender) {
         this.liked = liked;
         this.sender = sender;
         setDoubleBuffered(true);
@@ -48,7 +49,7 @@ public class FeedbackForm extends JBPanel<FeedbackForm> {
             sendFeedback();
         });
 
-        MessagePanel message = new MessagePanel();
+        MessagePanel message = new MessagePanel(project);
         message.setEditable(false);
         message.setOpaque(true);
         message.setBackground(null);

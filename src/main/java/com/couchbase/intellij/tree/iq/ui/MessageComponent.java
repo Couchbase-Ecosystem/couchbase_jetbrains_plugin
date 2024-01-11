@@ -15,6 +15,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.ColorUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
@@ -50,7 +51,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
     private static final String feedbackEndpoint = "https://nms548yy5b.execute-api.us-west-1.amazonaws.com/Prod/";
     private static final Logger LOG = Logger.getInstance(MessageComponent.class);
 
-    private final MessagePanel component = new MessagePanel();
+    private final MessagePanel component;
     private final JLabel feedbackThumbupAction;
     private final JLabel feedbackThumbdownAction;
 
@@ -70,6 +71,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
     public MessageComponent(ChatPanel chat, TextFragment text, ModelType model) {
         this.chat = chat;
         this.text = text;
+        this.component =  new MessagePanel(chat.getProject());
         var fromUser = (model == null);
         if (!fromUser) {
             logObject = chat.getQuestion().getLogObject();
@@ -113,7 +115,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         JPanel centerPanel = new JPanel(new VerticalLayout(JBUI.scale(0)));
         centerPanel.setOpaque(false);
         centerPanel.setBorder(JBUI.Borders.emptyLeft(JBUI.scale(5)));
-        centerPanel.add(createContentComponent(text, fromUser));
+        centerPanel.add(createContentComponent(chat.getProject(), text, fromUser));
         add(centerPanel, BorderLayout.CENTER);
 
         JPanel actionPanel = new JPanel(new GridBagLayout());
@@ -135,7 +137,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
                         feedbackThumbupAction.setIcon(getThumbUpInvertedIcon());
                         feedbackThumbdownAction.setEnabled(false);
                         feedbackThumbupAction.setCursor(Cursor.getDefaultCursor());
-                        feedbackForm = FeedbackForm.liked();
+                        feedbackForm = FeedbackForm.liked(chat.getProject());
                         add(feedbackForm, BorderLayout.SOUTH);
                         revalidate();
                         repaint();
@@ -155,7 +157,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
                         feedbackThumbdownAction.setIcon(getThumbDownInvertedIcon());
                         feedbackThumbupAction.setEnabled(false);
                         feedbackThumbdownAction.setCursor(Cursor.getDefaultCursor());
-                        feedbackForm = FeedbackForm.disliked(MessageComponent.this::updateLogWithFeedback);
+                        feedbackForm = FeedbackForm.disliked(chat.getProject(), MessageComponent.this::updateLogWithFeedback);
                         add(feedbackForm, BorderLayout.SOUTH);
                         revalidate();
                         repaint();
@@ -282,14 +284,14 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         return buf.toString();
     }
 
-    public Component createContentComponent(TextFragment content, boolean fromUser) {
+    public Component createContentComponent(@NotNull Project project, TextFragment content, boolean fromUser) {
 
         component.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
         component.setContentType("text/html; charset=UTF-8");
         component.setOpaque(false);
         component.setBorder(null);
 
-        var editorKit = configureHtmlEditorKit2(component, false);
+        var editorKit = configureHtmlEditorKit2(project, component, false);
         if (fromUser)
             editorKit.getStyleSheet().addRule("body {white-space:pre-wrap}");
         component.putClientProperty(AccessibleContext.ACCESSIBLE_NAME_PROPERTY, getText().markdown());
@@ -305,9 +307,9 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         return component;
     }
 
-    public HTMLEditorKit configureHtmlEditorKit2(@NotNull JEditorPane editorPane, boolean notificationColor) {
+    public HTMLEditorKit configureHtmlEditorKit2(@NotNull Project project, @NotNull JEditorPane editorPane, boolean notificationColor) {
         HTMLEditorKit kit = new HTMLEditorKitBuilder()
-                .withViewFactoryExtensions((e, v) -> component.createView(e, v), ExtendableHTMLViewFactory.Extensions.WORD_WRAP)
+                .withViewFactoryExtensions((e, v) -> component.createView(project, e, v), ExtendableHTMLViewFactory.Extensions.WORD_WRAP)
                 .withFontResolver((defaultFont, attributeSet) -> {
                     if ("a".equalsIgnoreCase(String.valueOf(attributeSet.getAttribute(AttributeSet.NameAttribute))))
                         return UIUtil.getLabelFont();

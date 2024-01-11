@@ -24,7 +24,8 @@ public interface SqlppTokenSets {
           GeneratedTypes.RPAREN,
           GeneratedTypes.LBRACE,
           GeneratedTypes.RBRACE,
-          GeneratedTypes.SLASH
+          GeneratedTypes.SLASH,
+          GeneratedTypes.SEMICOLON
   );
 
   TokenSet LITERALS = TokenSet.create(
@@ -275,6 +276,16 @@ public interface SqlppTokenSets {
             GeneratedTypes.SCOPE_REF,
             GeneratedTypes.COLLECTION_REF,
             GeneratedTypes.IDENTIFIER_REF
+    );
+
+    TokenSet OPERATORS = TokenSet.create(
+            GeneratedTypes.EQUAL,
+            GeneratedTypes.PLUS,
+            GeneratedTypes.MINUS_SIGN,
+            GeneratedTypes.MORETHAN,
+            GeneratedTypes.MORETHAN_OR_EQUAL,
+            GeneratedTypes.LESSTHAN_OR_MORETHAN,
+            GeneratedTypes.LESSTHAN
     );
 }
 

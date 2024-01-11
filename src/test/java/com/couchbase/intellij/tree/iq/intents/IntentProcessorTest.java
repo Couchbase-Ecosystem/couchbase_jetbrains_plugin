@@ -15,6 +15,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -37,7 +38,7 @@ public class IntentProcessorTest extends BasePlatformTestCase {
     protected void setUp() throws Exception {
         super.setUp();
         IQCredentials credentials = new IQCredentials(System.getenv("IQ_ORG_LOGIN"), System.getenv("IQ_ORG_PASSWD"));
-        assertTrue("Please set capella domain and IQ credentials using `CAPELLA_DOMAIN`, `IQ_ORG_ID`, `IQ_ORG_LOGIN`, and `IQ_ORG_PASSWD` envvars", credentials.checkAuthStatus());
+        assertTrue("Please set capella domain and IQ credentials using `CAPELLA_DOMAIN`, `IQ_ORG_ID`, `IQ_ORG_LOGIN`, and `IQ_ORG_PASSWD` envvars", credentials.doLogin());
         String orgId = System.getenv("IQ_ORG_ID");
         final String iqUrl = String.format(IQ_URL, orgId);
         OpenAISettingsState.OpenAIConfig iqGptConfig = new OpenAISettingsState.OpenAIConfig();

@@ -99,22 +99,24 @@ public class ChatLinkState implements ConversationContext {
             // Substitute template placeholders
             substitutePlaceholders(chatMessages);
 
-            // Trim messages if exceeding token limit
-            int maxTokens = model.maxTokens();
-            var tokenizer = model.getTokenizer();
-            var chatFormatDescriptor = model.getChatFormatDescriptor();
-            int removed = dropOldestMessagesToStayWithinTokenLimit(chatMessages, maxTokens, tokenizer, chatFormatDescriptor);
-            while (removed-- > 0)
-                this.chatMessages.remove(0);
-
             // add the system prompt
             var systemMessage = getSystemPrompt().get();
             if (!systemMessage.isBlank()) {
                 systemMessage = systemMessage.stripTrailing()
                         + "\n\nCurrent IDE: " + ApplicationInfo.getInstance().getFullApplicationName()
                         + "\nOS: " + System.getProperty("os.name");
-                chatMessages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
+                chatMessages.add(0, new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
             }
+
+            // Trim messages if exceeding token limit
+            //int maxTokens = model.maxTokens();
+            // hard-coded as I couldn't find API to set it
+            int maxTokens = 4097;
+            var tokenizer = model.getTokenizer();
+            var chatFormatDescriptor = model.getChatFormatDescriptor();
+            int removed = dropOldestMessagesToStayWithinTokenLimit(chatMessages, maxTokens, tokenizer, chatFormatDescriptor);
+            while (removed-- > 0)
+                this.chatMessages.remove(0);
 
             return chatMessages;
         }

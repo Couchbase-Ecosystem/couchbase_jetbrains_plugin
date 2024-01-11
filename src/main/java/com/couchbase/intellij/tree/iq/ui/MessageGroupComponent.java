@@ -1,7 +1,9 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
+import com.couchbase.intellij.tree.iq.IQWindowContent;
 import com.couchbase.intellij.tree.iq.SystemMessageHolder;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.text.TextFragment;
@@ -14,6 +16,7 @@ import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.NullableComponent;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.Gray;
 import com.intellij.ui.HideableTitledPanel;
 import com.intellij.ui.JBColor;
@@ -25,12 +28,24 @@ import com.intellij.ui.components.panels.VerticalLayout;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import com.thaiopensource.xml.dtd.om.Def;
+import lombok.Builder;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
+import java.awt.Graphics;
+import java.awt.GridLayout;
+import java.awt.LayoutManager;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implements NullableComponent, SystemMessageHolder {
     private final JPanel myList = new JPanel(new VerticalLayout(0));
@@ -59,45 +74,12 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         mainPanel.setOpaque(false);
         mainPanel.setBorder(JBUI.Borders.emptyLeft(0));
 
-        if (true) {
-            JPanel panel = new NonOpaquePanel(new GridLayout(0,1));
-            JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
-            orgSelector = new ComboBox<>(organizationList.getNames());
-            orgSelector.setSelectedIndex(organizationList.indexOf(organization));
-            orgSelector.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    SwingUtilities.invokeLater(() -> {
-                        CapellaOrganization selectedOrg = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
-                        if (selectedOrg != organization) {
-                            orgChangeListener.onOrgSelected(selectedOrg);
-                        }
-                    });
-                }
-            });
-            orgPanel.add(orgSelector, BorderLayout.CENTER);
-            DefaultActionGroup toolbarActions = new DefaultActionGroup();
-            toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    SwingUtilities.invokeLater(() -> {
-                        logoutListener.onLogout(null);
-                    });
-                }
-            });
 
-            ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
-            actonPanel.setTargetComponent(this);
-            orgPanel.add(actonPanel,BorderLayout.EAST);
-            panel.add(orgPanel);
-            panel.setBorder(JBUI.Borders.empty(0,8,10,0));
-
-            HideableTitledPanel cPanel = new HideableTitledPanel("Settings", false);
-            cPanel.setContentComponent(panel);
-            cPanel.setOn(false);
-            cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
-            add(cPanel, BorderLayout.NORTH);
-        }
+        HideableTitledPanel cPanel = new HideableTitledPanel("Settings", false);
+        cPanel.setContentComponent(createSettingsPanel(organizationList, logoutListener));
+        cPanel.setOn(false);
+        cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
+        add(cPanel, BorderLayout.NORTH);
 
         add(mainPanel, BorderLayout.CENTER);
 
@@ -111,6 +93,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         panel.add(myTitle, BorderLayout.WEST);
 
         DefaultActionGroup chatActions = new DefaultActionGroup();
+        createContextSelectorAction(chatActions);
         chatActions.add(new AnAction(() -> "New chat", AllIcons.General.Remove) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -138,6 +121,97 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         });
 
         addAssistantTipsIfEnabled(true);
+    }
+
+    private void createContextSelectorAction(DefaultActionGroup group) {
+        DefaultActionGroup placeholder = new DefaultActionGroup();
+        group.add(placeholder);
+        AtomicReference<DefaultActionGroup> oldContextAction = new AtomicReference<>(placeholder);
+        ActiveCluster.subscribe(activeCluster -> {
+            DefaultActionGroup contextAction = new DefaultActionGroup("Set Query Context", true);
+
+            List<AnAction> bucketActions = new ArrayList<>();
+            if (oldContextAction.get() != null) {
+                group.replaceAction(oldContextAction.get(), contextAction);
+            } else {
+                group.add(contextAction);
+            }
+            oldContextAction.set(contextAction);
+            AnAction clearContextAction = new AnAction("Clear Context") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    DefaultActionGroup newGroup = new DefaultActionGroup("Set Query Context", true);
+                    newGroup.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
+                    bucketActions.forEach(newGroup::add);
+                    group.replaceAction(oldContextAction.get(), newGroup);
+                    oldContextAction.set(newGroup);
+                }
+            };
+
+            bucketActions.clear();
+            contextAction.removeAll();
+            contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
+            contextAction.addSeparator("Buckets");
+            activeCluster.getChildren().stream()
+                    .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
+                    .forEach(bucket -> {
+                        DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket.getName(), true);
+                        bucketsGroup.addSeparator("Scopes");
+
+                        bucket.getChildren().stream()
+                                .sorted(Comparator.comparing(s -> s.getName().toLowerCase()))
+                                .forEach(scope -> {
+
+                                    AnAction scopeAction = new AnAction(scope.getName()) {
+                                        @Override
+                                        public void actionPerformed(@NotNull AnActionEvent e) {
+                                            String context = String.format("%s.%s", bucket.getName(), scope.getName());
+                                            DefaultActionGroup newGroup = new DefaultActionGroup(context, true);
+                                            newGroup.add(clearContextAction);
+                                            newGroup.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg",MessageGroupComponent.class));
+                                            group.replaceAction(oldContextAction.get(), newGroup);
+                                            oldContextAction.set(newGroup);
+                                            IQWindowContent.getInstance().ifPresent(w -> w.setClusterContext(bucket.getName(), scope.getName()));
+                                        }
+                                    };
+
+                                    bucketsGroup.add(scopeAction);
+                                });
+                        bucketActions.add(bucketsGroup);
+                        contextAction.add(bucketsGroup);
+                    });
+        });
+    }
+
+    private JPanel createSettingsPanel(CapellaOrganizationList organizationList, ChatPanel.LogoutListener logoutListener) {
+        JPanel panel = new NonOpaquePanel(new GridLayout(0,1));
+        JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
+        orgSelector = new ComboBox<>(organizationList.getNames());
+        orgSelector.setSelectedIndex(organizationList.indexOf(organization));
+        orgSelector.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+            CapellaOrganization selectedOrg = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
+            if (selectedOrg != organization) {
+                orgChangeListener.onOrgSelected(selectedOrg);
+            }
+        }));
+        orgPanel.add(orgSelector, BorderLayout.CENTER);
+        DefaultActionGroup toolbarActions = new DefaultActionGroup();
+        toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    logoutListener.onLogout(null);
+                });
+            }
+        });
+
+        ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
+        actonPanel.setTargetComponent(this);
+        orgPanel.add(actonPanel,BorderLayout.EAST);
+        panel.add(orgPanel);
+        panel.setBorder(JBUI.Borders.empty(0,8,10,0));
+
+        return panel;
     }
 
     public void addSeparator(JComponent comp) {

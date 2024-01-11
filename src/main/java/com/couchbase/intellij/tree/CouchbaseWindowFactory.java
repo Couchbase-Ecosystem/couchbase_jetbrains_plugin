@@ -53,7 +53,7 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
 //        toolWindow.getContentManager().addContent(chatGpt);
 
         IQWindowContent iqWindowContent = new IQWindowContent(project);
-        Content iq = contentFactory.createContent(iqWindowContent, "iQ", false);
+        Content iq = contentFactory.createContent(iqWindowContent, "iQ ᴮᵉᵗᵃ", false);
         iq.setIcon(AllIcons.General.Tip);
         toolWindow.getContentManager().addContent(iq);
         setContent(project, IQ_CONTENT, iq);

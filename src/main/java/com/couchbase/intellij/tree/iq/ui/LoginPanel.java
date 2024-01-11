@@ -173,7 +173,7 @@ public class LoginPanel extends JPanel {
 
     private boolean doLogin(String login, String password, boolean store) {
         IQCredentials credentials = new IQCredentials(login, password);
-        if (credentials.checkAuthStatus()) {
+        if (credentials.doLogin()) {
             if (store) {
                 credentials.store();
             }

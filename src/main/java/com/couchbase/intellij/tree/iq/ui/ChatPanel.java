@@ -38,6 +38,7 @@ import javax.swing.text.AbstractDocument;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.awt.event.InputEvent.CTRL_DOWN_MASK;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -271,6 +272,13 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     }
 
     public void setContent(List<ChatMessage> content) {
+        content.forEach(message -> message.setContent(message.getContent()
+                .replaceAll("/```\n\s*SELECT/gmi", "```sql\nSELECT")
+                .replaceAll("```\nUPDATE", "```sql\nUPDATE")
+                .replaceAll("```\nDELETE", "```sql\nDELETE")
+                .replaceAll("```\nCREATE", "```sql\nCREATE")
+//                .replaceAll("```sql", "```sqlpp")
+        ));
         TextFragment parseResult = ChatCompletionParser.parseGPT35TurboWithStream(content);
         answer.setContent(parseResult);
         answer.showFeedback();

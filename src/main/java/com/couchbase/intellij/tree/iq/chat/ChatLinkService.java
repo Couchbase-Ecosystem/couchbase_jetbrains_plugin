@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree.iq.chat;
 import com.couchbase.intellij.tree.iq.core.TextSubstitutor;
 import com.couchbase.intellij.tree.iq.text.TextContent;
 import com.couchbase.intellij.tree.iq.ui.context.stack.DefaultInputContext;
+import com.couchbase.intellij.tree.iq.ui.context.stack.TextInputContextEntry;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.theokanning.openai.completion.chat.ChatMessage;
