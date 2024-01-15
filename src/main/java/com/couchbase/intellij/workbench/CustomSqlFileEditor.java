@@ -3,11 +3,14 @@ package com.couchbase.intellij.workbench;
 
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.CouchbaseWindowContent;
 import com.couchbase.intellij.tree.TreeActionHandler;
+import com.couchbase.intellij.tree.node.FileNodeDescriptor;
+import com.esotericsoftware.kryo.kryo5.util.Null;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -33,6 +36,7 @@ import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
@@ -93,6 +97,20 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
         this.panel = new JPanel(new BorderLayout());
         init(isViewer);
+    }
+
+    public static void openDocument(Project project, String bucket, String scope, String collection, String id, @Nullable Tree tree) {
+        String fileName = id + ".json";
+        FileNodeDescriptor descriptor = new FileNodeDescriptor(fileName, bucket, scope, collection, id, FileNodeDescriptor.FileType.JSON, null);
+        DataLoader.loadDocument(project, descriptor, tree);
+
+        VirtualFile virtualFile = descriptor.getVirtualFile();
+        if (virtualFile != null) {
+            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+            fileEditorManager.openFile(virtualFile, true);
+        } else {
+            Log.debug("virtual file is null");
+        }
     }
 
     @NotNull

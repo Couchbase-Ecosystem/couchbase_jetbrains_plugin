@@ -12,29 +12,30 @@ import com.couchbase.client.java.manager.collection.CollectionManager;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.tree.iq.IQWindowContent;
+import com.intellij.openapi.project.Project;
 
-public class CreateCollection {
-    public static String fire(JsonObject intents, JsonObject intent) {
+public class CreateCollection implements ActionInterface {
+    @Override
+    public String fire(Project project, String bucketName, String scopeName, JsonObject intents, JsonObject intent) {
         JsonObject arguments = intent.getObject("arguments");
         StringBuilder prompt = new StringBuilder();
-        if (!arguments.containsKey("bucketName")) {
-            if (!arguments.containsKey("scopeName")) {
+
+        if (bucketName == null) {
+            if (scopeName == null) {
                 prompt.append("ask the user in which bucket and scope does he want to create the collection ");
             } else {
                 prompt.append("ask the user in which bucket does he want to create the collection ");
             }
-        } else if (!arguments.containsKey("scopeName")) {
+        } else if (scopeName == null) {
             prompt.append("ask the user in which scope does he want to create the collection ");
         }
 
         if (prompt.isEmpty()) {
             Cluster cluster = ActiveCluster.getInstance().getCluster();
-            String bucketName = arguments.getString("bucketName");
-            String scopeName = arguments.getString("scopeName");
             String collectionName = arguments.getString("collectionName");
 
             try {
-                cluster.buckets().getBucket(bucketName);
                 CollectionManager colman = cluster.bucket(bucketName).collections();
                 ScopeSpec scope = colman.getAllScopes().stream().filter(ss -> scopeName.equals(ss.name())).findFirst().orElse(null);
                 if (scope == null) {

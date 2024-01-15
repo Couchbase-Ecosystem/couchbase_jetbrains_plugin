@@ -11,7 +11,6 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.project.Project;
-import lombok.Getter;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,11 +32,9 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
     private OpenAISettingsState.OpenAIConfig iqGptConfig;
-    @Getter
     private static String[] clusterContext;
     private static String cachedPrompt;
     private static AtomicReference<IQWindowContent> instance = new AtomicReference<>();
-    @Getter
     private ChatPanel chatPanel;
 
     public IQWindowContent(@NotNull Project project) {
@@ -67,6 +64,10 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     public static void clearClusterContext() {
         clusterContext = null;
         cachedPrompt = null;
+    }
+
+    public String[] getClusterContext() {
+        return clusterContext;
     }
 
     @Override
@@ -162,6 +163,10 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public ChatPanel getChatPanel() {
+        return chatPanel;
     }
 
 }

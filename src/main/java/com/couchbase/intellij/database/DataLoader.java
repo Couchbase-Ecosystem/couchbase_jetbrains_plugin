@@ -42,6 +42,7 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import utils.IndexUtils;
 
 import javax.swing.*;
@@ -304,8 +305,10 @@ public class DataLoader {
      * @param node    Node where the virtual file will be stored
      * @param tree    used to set the loading status
      */
-    public static void loadDocument(Project project, FileNodeDescriptor node, Tree tree) {
-        tree.setPaintBusy(true);
+    public static void loadDocument(Project project, FileNodeDescriptor node, @Nullable Tree tree) {
+        if (tree != null) {
+            tree.setPaintBusy(true);
+        }
 
         if (node.getVirtualFile() != null) {
             return;
@@ -344,7 +347,9 @@ public class DataLoader {
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
             return;
         } finally {
-            tree.setPaintBusy(false);
+            if (tree != null) {
+                tree.setPaintBusy(false);
+            }
         }
 
         final boolean isBinary = isDifferentFormat;
@@ -368,7 +373,9 @@ public class DataLoader {
                 node.setVirtualFile(virtualFile);
             });
         } catch (Exception e) {
-            tree.setPaintBusy(false);
+            if (tree != null) {
+                tree.setPaintBusy(false);
+            }
             Log.error("An error occurred while trying to load the file", e);
             SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
         }
