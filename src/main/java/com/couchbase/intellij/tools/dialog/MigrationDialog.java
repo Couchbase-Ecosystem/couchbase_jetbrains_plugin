@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tools.dialog;
 
+import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -40,14 +41,20 @@ public class MigrationDialog extends DialogWrapper {
         setOKButtonText(IMPORT);
     }
 
+    private JPanel wrapPanel(JPanel innerPanel) {
+        JPanel outerPanel = new JPanel(new BorderLayout());
+        outerPanel.add(innerPanel, BorderLayout.NORTH);
+        return outerPanel;
+    }
+
     @Override
     protected JComponent createCenterPanel() {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        cardPanel.add(createMongoDBPanel(), "1");
-        cardPanel.add(createDataSourcePanel(), "2");
-        cardPanel.add(createBucketPanel(), "3");
+        cardPanel.add(wrapPanel(createMongoDBPanel()), "1");
+        cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
+        cardPanel.add(wrapPanel(createBucketPanel()), "3");
 
         return cardPanel;
     }
@@ -56,12 +63,11 @@ public class MigrationDialog extends DialogWrapper {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.NORTHWEST;
-        gbc.weightx = 1;
-        gbc.weighty = 1;
-        gbc.insets = JBUI.insets(5, 5, 5, 5);
+        gbc.weightx = 0.05;
+        gbc.weighty = 0;
+        gbc.insets = JBUI.insets(5);
 
         JPanel mongoDBPanel = new JPanel(new GridBagLayout());
-        mongoDBPanel.setBorder(JBUI.Borders.empty(10));
 
         JLabel mongoDBLabel = new JLabel("MongoDB Connection String");
         gbc.gridx = 0;
@@ -71,6 +77,7 @@ public class MigrationDialog extends DialogWrapper {
         TextField mongoDBTextField = new TextField();
         mongoDBTextField.setBackground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
         gbc.gridx = 1;
+        gbc.weightx = 0.95;
         mongoDBPanel.add(mongoDBTextField, gbc);
 
         return mongoDBPanel;
@@ -78,40 +85,45 @@ public class MigrationDialog extends DialogWrapper {
 
     private JPanel createDataSourcePanel() {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTHWEST;
-        gbc.weightx = 1;
-        gbc.weighty = 1;
-        gbc.insets = JBUI.insets(5, 5, 5, 5);
+        gbc.weightx = 0.05;
+        gbc.weighty = 0;
+        gbc.insets = JBUI.insets(5);
 
         JPanel dataSourcePanel = new JPanel(new GridBagLayout());
-        dataSourcePanel.setBorder(JBUI.Borders.empty(10));
 
         TitledSeparator dataSourceSeparator = new TitledSeparator("Data Source");
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.gridwidth = 2;
         dataSourcePanel.add(dataSourceSeparator, gbc);
 
         JLabel databaseLabel = new JLabel("Database");
         gbc.gridy = 1;
+        gbc.gridwidth = 1;
         dataSourcePanel.add(databaseLabel, gbc);
 
         ComboBox<String> databaseComboBox = new ComboBox<>();
         gbc.gridx = 1;
+        gbc.weightx = 0.95;
         dataSourcePanel.add(databaseComboBox, gbc);
 
         JLabel collectionsLabel = new JLabel("Collections");
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.weightx = 0.05;
         dataSourcePanel.add(collectionsLabel, gbc);
 
         ComboBox<String> collectionsComboBox = new ComboBox<>();
         gbc.gridx = 1;
+        gbc.weightx = 0.95;
         dataSourcePanel.add(collectionsComboBox, gbc);
 
         JCheckBox migrateCollectionsCheckBox = new JCheckBox("Migrate Collections Indexes and Definitions");
         gbc.gridx = 0;
         gbc.gridy = 3;
+        gbc.gridwidth = 2;
         dataSourcePanel.add(migrateCollectionsCheckBox, gbc);
 
         return dataSourcePanel;
@@ -119,40 +131,45 @@ public class MigrationDialog extends DialogWrapper {
 
     private JPanel createBucketPanel() {
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTHWEST;
-        gbc.weightx = 1;
-        gbc.weighty = 1;
-        gbc.insets = JBUI.insets(5, 5, 5, 5);
+        gbc.weightx = 0.05;
+        gbc.weighty = 0;
+        gbc.insets = JBUI.insets(5);
 
         JPanel bucketPanel = new JPanel(new GridBagLayout());
-        bucketPanel.setBorder(JBUI.Borders.empty(10));
 
         TitledSeparator bucketSeparator = new TitledSeparator("Target");
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.gridwidth = 2;
         bucketPanel.add(bucketSeparator, gbc);
 
         JLabel bucketLabel = new JLabel("Bucket");
         gbc.gridy = 1;
+        gbc.gridwidth = 1;
         bucketPanel.add(bucketLabel, gbc);
 
         ComboBox<String> bucketComboBox = new ComboBox<>();
         gbc.gridx = 1;
+        gbc.weightx = 0.95;
         bucketPanel.add(bucketComboBox, gbc);
 
         JLabel scopeLabel = new JLabel("Scope");
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.weightx = 0.05;
         bucketPanel.add(scopeLabel, gbc);
 
         ComboBox<String> scopeComboBox = new ComboBox<>();
         gbc.gridx = 1;
+        gbc.weightx = 0.95;
         bucketPanel.add(scopeComboBox, gbc);
 
         JCheckBox createMissingCollectionsCheckBox = new JCheckBox("Create Missing Collections");
         gbc.gridx = 0;
         gbc.gridy = 3;
+        gbc.gridwidth = 2;
         bucketPanel.add(createMissingCollectionsCheckBox, gbc);
 
         return bucketPanel;
@@ -166,7 +183,7 @@ public class MigrationDialog extends DialogWrapper {
         backButton.addActionListener(e -> {
             if (currentPage == 1) {
                 doCancelAction();
-            }else {
+            } else {
                 previousPage();
                 updateButtonText();
                 validateAndEnableNextButton();
@@ -179,17 +196,15 @@ public class MigrationDialog extends DialogWrapper {
                 doOKAction();
             } else {
                 nextPage();
-               updateButtonText();
+                updateButtonText();
                 validateAndEnableNextButton();
             }
         });
 
-        // nextButton.setEnabled(false);
-        
         updateButtonText();
         southPanel.add(backButton);
         southPanel.add(nextButton);
-        
+
         return southPanel;
     }
 
