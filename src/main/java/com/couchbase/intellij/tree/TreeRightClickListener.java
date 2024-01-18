@@ -14,6 +14,7 @@ import com.couchbase.intellij.tools.PillowFightDialog;
 import com.couchbase.intellij.tools.dialog.DDLExportDialog;
 import com.couchbase.intellij.tools.dialog.ExportDialog;
 import com.couchbase.intellij.tools.dialog.ImportDialog;
+import com.couchbase.intellij.tools.dialog.MigrationDialog;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
@@ -215,6 +216,21 @@ public class TreeRightClickListener {
                     }
                 };
                 tools.add(cbimport);
+                tools.addSeparator();
+            }
+
+            // Migration Dialog
+            if (!ActiveCluster.getInstance().isReadOnlyMode() 
+            // && CBTools.getTool(CBTools.Type.CB_MIGRATION).isAvailable()
+            ) {
+                AnAction cbMigration = new AnAction("Mongo DB Data Migration") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        MigrationDialog dialog = new MigrationDialog();
+                        dialog.show();
+                    }
+                };
+                tools.add(cbMigration);
                 tools.addSeparator();
             }
 
