@@ -7,6 +7,8 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.TextField;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -14,10 +16,14 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.util.ui.JBUI;
+
+import utils.TemplateUtil;
 
 public class MigrationDialog extends DialogWrapper {
     private JPanel cardPanel;
@@ -54,12 +60,13 @@ public class MigrationDialog extends DialogWrapper {
 
         cardPanel.add(wrapPanel(createMongoDBPanel()), "1");
         cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
-        cardPanel.add(wrapPanel(createBucketPanel()), "3");
+        cardPanel.add(wrapPanel(createTargetPanel()), "3");
 
         return cardPanel;
     }
 
     private JPanel createMongoDBPanel() {
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.NORTHWEST;
@@ -69,9 +76,58 @@ public class MigrationDialog extends DialogWrapper {
 
         JPanel mongoDBPanel = new JPanel(new GridBagLayout());
 
-        JLabel mongoDBLabel = new JLabel("MongoDB Connection String");
+        JLabel infoLabel = new JLabel();
+
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                String content = "<html><h2>MongoDB Connection URI</h2>\n" +
+                        "<div>\n" +
+                        "The MongoDB Connection URI is a string that specifies how to connect to a MongoDB database. It contains all the information needed to establish a connection, including:\n"
+                        +
+                        "<ul>\n" +
+                        "    <li>Hostnames or IP addresses of MongoDB servers</li>\n" +
+                        "    <li>Port number for the MongoDB server</li>\n" +
+                        "    <li>Authentication credentials (username and password)</li>\n" +
+                        "    <li>Database name</li>\n" +
+                        "    <li>Additional connection options</li>\n" +
+                        "</ul>\n" +
+                        "Here is an example of a MongoDB Connection URI:\n" +
+                        "<pre>\n" +
+                        "mongodb://username:password@hostname1:27017,hostname2:27017/databaseName?authSource=admin&ssl=true\n"
+                        +
+                        "</pre>\n" +
+                        "<h3>Components of the MongoDB Connection URI</h3>\n" +
+                        "<ul>\n" +
+                        "    <li><strong>mongodb://</strong> - Indicates the protocol for MongoDB</li>\n" +
+                        "    <li><strong>username:password</strong> - Authentication credentials (optional)</li>\n" +
+                        "    <li><strong>@hostname1:27017,hostname2:27017</strong> - Hostnames or IP addresses of MongoDB servers, along with port numbers</li>\n"
+                        +
+                        "    <li><strong>/databaseName</strong> - Name of the database to connect to</li>\n" +
+                        "    <li><strong>?authSource=admin&ssl=true</strong> - Additional connection options (optional)</li>\n"
+                        +
+                        "</ul>\n" +
+                        "</div>\n" +
+                        "</html>";
+
+                TemplateUtil.showGotItTooltip(e.getComponent(), content);
+            }
+        });
+
+        JPanel helpPanel = new JPanel();
+        helpPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        helpPanel.add(infoLabel);
+
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        mongoDBPanel.add(helpPanel, gbc);
+
+        JLabel mongoDBLabel = new JLabel("MongoDB Connection String");
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 1;
         mongoDBPanel.add(mongoDBLabel, gbc);
 
         TextField mongoDBTextField = new TextField();
@@ -93,14 +149,45 @@ public class MigrationDialog extends DialogWrapper {
 
         JPanel dataSourcePanel = new JPanel(new GridBagLayout());
 
-        TitledSeparator dataSourceSeparator = new TitledSeparator("Data Source");
+        JLabel infoLabel = new JLabel();
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                String content = "<html><h2>Data Source Information</h2>\n" +
+                        "<div>\n" +
+                        "The data source panel allows you to specify the source of the data you want to migrate. You can select the database and collections from which you want to migrate data.\n"
+                        +
+                        "<h3>Database</h3>\n" +
+                        "Select the database from which you want to migrate data.\n" +
+                        "<h3>Collections</h3>\n" +
+                        "Choose the specific collections within the selected database that you want to migrate.\n" +
+                        "<h3>Migrate Collections Indexes and Definitions</h3>\n" +
+                        "Check this option if you want to migrate the indexes and definitions of the selected collections.\n"
+                        +
+                        "</div>\n" +
+                        "</html>";
+
+                TemplateUtil.showGotItTooltip(e.getComponent(), content);
+            }
+        });
+
+        JPanel helpPanel = new JPanel();
+        helpPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        helpPanel.add(infoLabel);
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
+        dataSourcePanel.add(helpPanel, gbc);
+
+        TitledSeparator dataSourceSeparator = new TitledSeparator("Data Source");
+        gbc.gridx = 0;
+        gbc.gridy++;
         dataSourcePanel.add(dataSourceSeparator, gbc);
 
         JLabel databaseLabel = new JLabel("Database");
-        gbc.gridy = 1;
+        gbc.gridy++;
         gbc.gridwidth = 1;
         dataSourcePanel.add(databaseLabel, gbc);
 
@@ -111,7 +198,7 @@ public class MigrationDialog extends DialogWrapper {
 
         JLabel collectionsLabel = new JLabel("Collections");
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy++;
         gbc.weightx = 0.05;
         dataSourcePanel.add(collectionsLabel, gbc);
 
@@ -122,14 +209,14 @@ public class MigrationDialog extends DialogWrapper {
 
         JCheckBox migrateCollectionsCheckBox = new JCheckBox("Migrate Collections Indexes and Definitions");
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy++;
         gbc.gridwidth = 2;
         dataSourcePanel.add(migrateCollectionsCheckBox, gbc);
 
         return dataSourcePanel;
     }
 
-    private JPanel createBucketPanel() {
+    private JPanel createTargetPanel() {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTHWEST;
@@ -137,42 +224,73 @@ public class MigrationDialog extends DialogWrapper {
         gbc.weighty = 0;
         gbc.insets = JBUI.insets(5);
 
-        JPanel bucketPanel = new JPanel(new GridBagLayout());
+        JPanel targetPanel = new JPanel(new GridBagLayout());
 
-        TitledSeparator bucketSeparator = new TitledSeparator("Target");
+        JLabel infoLabel = new JLabel();
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                String content = "<html><h2>Target Information</h2>\n" +
+                        "<div>\n" +
+                        "The target panel allows you to specify the destination for the migrated data. You can select the target bucket and scope where the data will be migrated to.\n"
+                        +
+                        "<h3>Bucket</h3>\n" +
+                        "Choose the destination bucket for the migration.\n" +
+                        "<h3>Scope</h3>\n" +
+                        "Select the scope within the chosen bucket where the data will be migrated.\n" +
+                        "<h3>Create Missing Collections</h3>\n" +
+                        "Check this option if you want to create any missing collections in the selected scope during migration.\n"
+                        +
+                        "</div>\n" +
+                        "</html>";
+
+                TemplateUtil.showGotItTooltip(e.getComponent(), content);
+            }
+        });
+
+        JPanel helpPanel = new JPanel();
+        helpPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        helpPanel.add(infoLabel);
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
-        bucketPanel.add(bucketSeparator, gbc);
+        targetPanel.add(helpPanel, gbc);
+
+        TitledSeparator bucketSeparator = new TitledSeparator("Target");
+        gbc.gridx = 0;
+        gbc.gridy++;
+        targetPanel.add(bucketSeparator, gbc);
 
         JLabel bucketLabel = new JLabel("Bucket");
-        gbc.gridy = 1;
+        gbc.gridy++;
         gbc.gridwidth = 1;
-        bucketPanel.add(bucketLabel, gbc);
+        targetPanel.add(bucketLabel, gbc);
 
         ComboBox<String> bucketComboBox = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
-        bucketPanel.add(bucketComboBox, gbc);
+        targetPanel.add(bucketComboBox, gbc);
 
         JLabel scopeLabel = new JLabel("Scope");
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy++;
         gbc.weightx = 0.05;
-        bucketPanel.add(scopeLabel, gbc);
+        targetPanel.add(scopeLabel, gbc);
 
         ComboBox<String> scopeComboBox = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
-        bucketPanel.add(scopeComboBox, gbc);
+        targetPanel.add(scopeComboBox, gbc);
 
         JCheckBox createMissingCollectionsCheckBox = new JCheckBox("Create Missing Collections");
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy++;
         gbc.gridwidth = 2;
-        bucketPanel.add(createMissingCollectionsCheckBox, gbc);
+        targetPanel.add(createMissingCollectionsCheckBox, gbc);
 
-        return bucketPanel;
+        return targetPanel;
     }
 
     @Override
