@@ -169,7 +169,7 @@ configurations remain protected from accidental alterations while using the plug
 
 ## License
 
-Apache Software License Version 2. See individual files for details.
+MIT. See individual files for details.
 
 ## Support
 
