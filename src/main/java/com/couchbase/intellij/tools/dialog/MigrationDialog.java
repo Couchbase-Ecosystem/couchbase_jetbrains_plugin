@@ -2,26 +2,49 @@ package com.couchbase.intellij.tools.dialog;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.TextField;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.event.DocumentEvent;
 
+import java.util.stream.Collectors;
+import org.bson.Document;
+import org.jetbrains.annotations.NotNull;
+
+import com.couchbase.client.java.manager.collection.ScopeSpec;
+import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
+import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ServerApi;
+import com.mongodb.ServerApiVersion;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 
 import utils.TemplateUtil;
 
@@ -31,12 +54,26 @@ public class MigrationDialog extends DialogWrapper {
     private JButton backButton;
     private JButton nextButton;
     private int currentPage = 1;
+
+    protected JPanel mainPanel;
+    protected JPanel universalErrorPanel;
     protected JPanel southPanel;
 
     protected static final String IMPORT = "Import";
     protected static final String NEXT = "Next";
     protected static final String BACK = "Back";
     protected static final String CANCEL = "Cancel";
+
+    protected JBTextField mongoDBTextField;
+
+    protected ComboBox<String> databaseComboBox;
+    protected ComboBox<String> collectionsComboBox;
+    protected ComboBox<String> targetBucketCombo;
+    protected ComboBox<String> targetScopeCombo;
+
+    protected List<ScopeSpec> targetScopeItems;
+
+    protected JBLabel universalErrorLabel;
 
     public MigrationDialog() {
         super(true);
@@ -47,28 +84,46 @@ public class MigrationDialog extends DialogWrapper {
         setOKButtonText(IMPORT);
     }
 
-    private JPanel wrapPanel(JPanel innerPanel) {
-        JPanel outerPanel = new JPanel(new BorderLayout());
-        outerPanel.add(innerPanel, BorderLayout.NORTH);
-        return outerPanel;
-    }
+    // private JPanel wrapPanel(JPanel innerPanel) {
+    // JPanel outerPanel = new JPanel(new BorderLayout());
+    // outerPanel.add(innerPanel, BorderLayout.NORTH);
+    // return outerPanel;
+    // }
 
     @Override
     protected JComponent createCenterPanel() {
+
+        mainPanel = new JPanel(new BorderLayout());
+
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        cardPanel.add(wrapPanel(createMongoDBPanel()), "1");
-        cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
-        cardPanel.add(wrapPanel(createTargetPanel()), "3");
+        // cardPanel.add(wrapPanel(createMongoDBPanel()), "1");
+        // cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
+        // cardPanel.add(wrapPanel(createTargetPanel()), "3");
 
+        cardPanel.add(createMongoDBPanel(), "1");
+        cardPanel.add(createDataSourcePanel(), "2");
+        cardPanel.add(createTargetPanel(), "3");
+
+        mainPanel.add(cardPanel, BorderLayout.NORTH);
+
+        universalErrorPanel = new JPanel();
+        universalErrorPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        universalErrorLabel = new JBLabel();
+        universalErrorLabel.setForeground(Color.decode("#FF4444"));
+        universalErrorLabel.setVisible(false);
+        universalErrorPanel.add(universalErrorLabel);
+        mainPanel.add(universalErrorPanel, BorderLayout.SOUTH);
+
+        addListeners();
         return cardPanel;
     }
 
     private JPanel createMongoDBPanel() {
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.NORTHWEST;
         gbc.weightx = 0.05;
         gbc.weighty = 0;
@@ -130,8 +185,9 @@ public class MigrationDialog extends DialogWrapper {
         gbc.gridwidth = 1;
         mongoDBPanel.add(mongoDBLabel, gbc);
 
-        TextField mongoDBTextField = new TextField();
+        mongoDBTextField = new JBTextField();
         mongoDBTextField.setBackground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
+
         gbc.gridx = 1;
         gbc.weightx = 0.95;
         mongoDBPanel.add(mongoDBTextField, gbc);
@@ -191,7 +247,7 @@ public class MigrationDialog extends DialogWrapper {
         gbc.gridwidth = 1;
         dataSourcePanel.add(databaseLabel, gbc);
 
-        ComboBox<String> databaseComboBox = new ComboBox<>();
+        databaseComboBox = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
         dataSourcePanel.add(databaseComboBox, gbc);
@@ -202,7 +258,7 @@ public class MigrationDialog extends DialogWrapper {
         gbc.weightx = 0.05;
         dataSourcePanel.add(collectionsLabel, gbc);
 
-        ComboBox<String> collectionsComboBox = new ComboBox<>();
+        collectionsComboBox = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
         dataSourcePanel.add(collectionsComboBox, gbc);
@@ -268,10 +324,14 @@ public class MigrationDialog extends DialogWrapper {
         gbc.gridwidth = 1;
         targetPanel.add(bucketLabel, gbc);
 
-        ComboBox<String> bucketComboBox = new ComboBox<>();
+        targetBucketCombo = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
-        targetPanel.add(bucketComboBox, gbc);
+
+        Set<String> bucketSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
+        String[] buckets = bucketSet.toArray(new String[0]);
+        targetBucketCombo.setModel(new DefaultComboBoxModel<>(buckets));
+        targetPanel.add(targetBucketCombo, gbc);
 
         JLabel scopeLabel = new JLabel("Scope");
         gbc.gridx = 0;
@@ -279,10 +339,11 @@ public class MigrationDialog extends DialogWrapper {
         gbc.weightx = 0.05;
         targetPanel.add(scopeLabel, gbc);
 
-        ComboBox<String> scopeComboBox = new ComboBox<>();
+        targetScopeCombo = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
-        targetPanel.add(scopeComboBox, gbc);
+        targetBucketCombo.setSelectedIndex(targetBucketCombo.getItemCount() > 0 ? 0 : -1);
+        targetPanel.add(targetScopeCombo, gbc);
 
         JCheckBox createMissingCollectionsCheckBox = new JCheckBox("Create Missing Collections");
         gbc.gridx = 0;
@@ -347,6 +408,98 @@ public class MigrationDialog extends DialogWrapper {
 
     protected void validateAndEnableNextButton() {
         nextButton.setEnabled(true);
+    }
+
+    protected void addListeners() {
+        mongoDBTextField.getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
+                databaseComboBox
+                        .setModel(new DefaultComboBoxModel<>(connection.getDatabaseNames().toArray(new String[0])));
+
+                // fire an event to update the collections combo box
+                if (databaseComboBox.getItemCount() > 0) {
+                    databaseComboBox.setSelectedIndex(0);
+                }
+            }
+
+        });
+
+        databaseComboBox.addActionListener(e -> {
+            MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
+            collectionsComboBox.setModel(new DefaultComboBoxModel<>(connection
+                    .getCollectionNames(Objects.requireNonNull(databaseComboBox.getSelectedItem()).toString())
+                    .toArray(new String[0])));
+        });
+
+        targetBucketCombo.addActionListener(e -> {
+            String selectedBucket = (String) targetBucketCombo.getSelectedItem();
+            if (selectedBucket != null) {
+                targetScopeItems = new ArrayList<>();
+                targetScopeItems.addAll(ActiveCluster.getInstance().get().bucket(selectedBucket)
+                        .collections().getAllScopes());
+    
+                Set<String> scopeSet = targetScopeItems.stream()
+                        .map(ScopeSpec::name)
+                        .collect(Collectors.toSet());
+                targetScopeCombo.removeAllItems();
+
+                String[] scopes = scopeSet.toArray(new String[0]);
+                targetScopeCombo.setModel(new DefaultComboBoxModel<>(scopes));
+            }
+        });
+    }
+
+    private static class MongoDBConnection {
+        private MongoClient mongoClient;
+
+        public MongoDBConnection(String connectionString) {
+            try {
+
+                ServerApi serverApi = ServerApi.builder()
+                        .version(ServerApiVersion.V1)
+                        .build();
+                MongoClientSettings settings = MongoClientSettings.builder()
+                        .applyConnectionString(new ConnectionString(connectionString))
+                        .serverApi(serverApi)
+                        .build();
+                // Create a new client and connect to the server
+                MongoClient tempMongoClient = MongoClients.create(settings);
+
+                // Send a ping to confirm a successful connection
+                MongoDatabase database = tempMongoClient.getDatabase("admin");
+                database.runCommand(new Document("ping", 1));
+                Log.info("Pinged your deployment. You successfully connected to MongoDB!");
+                this.mongoClient = tempMongoClient;
+
+            } catch (IllegalArgumentException e) {
+                Log.error("Invalid MongoDB Connection URI: " + connectionString);
+                this.mongoClient = null;
+            } catch (Exception e) {
+                Log.error("Error connecting to MongoDB: " + e.getMessage());
+                this.mongoClient = null;
+            }
+        }
+
+        public List<String> getDatabaseNames() {
+            try {
+                return mongoClient.listDatabaseNames().into(new ArrayList<>());
+            } catch (Exception e) {
+                Log.error("Error fetching database names: " + e.getMessage());
+                return new ArrayList<>();
+            }
+        }
+
+        public List<String> getCollectionNames(String databaseName) {
+            try {
+                MongoDatabase database = mongoClient.getDatabase(databaseName);
+                return database.listCollectionNames().into(new ArrayList<>());
+            } catch (Exception e) {
+                Log.error("Error fetching collection names: " + e.getMessage());
+                return new ArrayList<>();
+            }
+        }
     }
 
     @Override
