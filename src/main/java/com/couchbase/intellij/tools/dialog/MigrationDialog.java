@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -22,16 +23,20 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.event.DocumentEvent;
 
-import java.util.stream.Collectors;
 import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.tools.CBMigrate;
+import com.couchbase.intellij.tools.CBMigrate.CBMigrateCommandBuilder;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
@@ -49,6 +54,9 @@ import com.mongodb.client.MongoDatabase;
 import utils.TemplateUtil;
 
 public class MigrationDialog extends DialogWrapper {
+
+    private Project project;
+
     private JPanel cardPanel;
     private CardLayout cardLayout;
     private JButton backButton;
@@ -75,8 +83,9 @@ public class MigrationDialog extends DialogWrapper {
 
     protected JBLabel universalErrorLabel;
 
-    public MigrationDialog() {
+    public MigrationDialog(Project project) {
         super(true);
+        this.project = project;
         init();
         setTitle("Data Migration");
         getWindow().setMinimumSize(new Dimension(600, 400));
@@ -84,11 +93,11 @@ public class MigrationDialog extends DialogWrapper {
         setOKButtonText(IMPORT);
     }
 
-    // private JPanel wrapPanel(JPanel innerPanel) {
-    // JPanel outerPanel = new JPanel(new BorderLayout());
-    // outerPanel.add(innerPanel, BorderLayout.NORTH);
-    // return outerPanel;
-    // }
+    private JPanel wrapPanel(JPanel innerPanel) {
+        JPanel outerPanel = new JPanel(new BorderLayout());
+        outerPanel.add(innerPanel, BorderLayout.NORTH);
+        return outerPanel;
+    }
 
     @Override
     protected JComponent createCenterPanel() {
@@ -98,13 +107,9 @@ public class MigrationDialog extends DialogWrapper {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        // cardPanel.add(wrapPanel(createMongoDBPanel()), "1");
-        // cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
-        // cardPanel.add(wrapPanel(createTargetPanel()), "3");
-
-        cardPanel.add(createMongoDBPanel(), "1");
-        cardPanel.add(createDataSourcePanel(), "2");
-        cardPanel.add(createTargetPanel(), "3");
+        cardPanel.add(wrapPanel(createMongoDBPanel()), "1");
+        cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
+        cardPanel.add(wrapPanel(createTargetPanel()), "3");
 
         mainPanel.add(cardPanel, BorderLayout.NORTH);
 
@@ -439,7 +444,7 @@ public class MigrationDialog extends DialogWrapper {
                 targetScopeItems = new ArrayList<>();
                 targetScopeItems.addAll(ActiveCluster.getInstance().get().bucket(selectedBucket)
                         .collections().getAllScopes());
-    
+
                 Set<String> scopeSet = targetScopeItems.stream()
                         .map(ScopeSpec::name)
                         .collect(Collectors.toSet());
@@ -504,7 +509,39 @@ public class MigrationDialog extends DialogWrapper {
 
     @Override
     protected void doOKAction() {
-        super.doOKAction();
+        try {
+            String mongoDBConnectionString = mongoDBTextField.getText();
+            String databaseName = (String) databaseComboBox.getSelectedItem();
+            String collectionName = (String) collectionsComboBox.getSelectedItem();
+            String targetBucket = (String) targetBucketCombo.getSelectedItem();
+            String targetScope = (String) targetScopeCombo.getSelectedItem();
+
+            String clusterURL = ActiveCluster.getInstance().getClusterURL();
+            String username = ActiveCluster.getInstance().getUsername();
+            String password = ActiveCluster.getInstance().getPassword();
+
+            CBMigrateCommandBuilder builder = new CBMigrateCommandBuilder()
+                    .setMongoDBURI(mongoDBConnectionString)
+                    .setMongoDBDatabase(databaseName)
+                    .setMongoDBCollection(collectionName)
+                    .setCBBucket(targetBucket)
+                    .setCBScope(targetScope)
+                    .setCBCollection(collectionName) // TODO: change this to target collection
+                    .setCBCluster(clusterURL)
+                    .setCBUsername(username)
+                    .setCBPassword(password)
+                    .setCBGenerateKey("%_id%");
+            // .setVerbose();
+
+            CBMigrate.migrate(project, builder);
+            super.doOKAction();
+
+        } catch (Exception e) {
+            Log.error("Error migrating data: " + e.getMessage());
+            ApplicationManager.getApplication().invokeLater(
+                    () -> Messages.showErrorDialog(project, "Error migrating data: " + e.getMessage(), "Error"));
+        }
+
     }
 
 }

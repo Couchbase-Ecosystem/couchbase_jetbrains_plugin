@@ -226,7 +226,7 @@ public class TreeRightClickListener {
                 AnAction cbMigration = new AnAction("Mongo DB Data Migration") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        MigrationDialog dialog = new MigrationDialog();
+                        MigrationDialog dialog = new MigrationDialog(project);
                         dialog.show();
                     }
                 };
