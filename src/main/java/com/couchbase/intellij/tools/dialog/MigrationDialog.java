@@ -59,8 +59,11 @@ public class MigrationDialog extends DialogWrapper {
 
     private JPanel cardPanel;
     private CardLayout cardLayout;
+
+    private JButton connectButton;
     private JButton backButton;
     private JButton nextButton;
+
     private int currentPage = 1;
 
     protected JPanel mainPanel;
@@ -82,6 +85,8 @@ public class MigrationDialog extends DialogWrapper {
     protected List<ScopeSpec> targetScopeItems;
 
     protected JBLabel universalErrorLabel;
+
+    protected boolean isConnected = false;
 
     public MigrationDialog(Project project) {
         super(true);
@@ -111,18 +116,18 @@ public class MigrationDialog extends DialogWrapper {
         cardPanel.add(wrapPanel(createDataSourcePanel()), "2");
         cardPanel.add(wrapPanel(createTargetPanel()), "3");
 
-        mainPanel.add(cardPanel, BorderLayout.NORTH);
+        mainPanel.add(cardPanel, BorderLayout.CENTER);
 
         universalErrorPanel = new JPanel();
         universalErrorPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         universalErrorLabel = new JBLabel();
         universalErrorLabel.setForeground(Color.decode("#FF4444"));
-        universalErrorLabel.setVisible(false);
+        universalErrorLabel.setVisible(true);
         universalErrorPanel.add(universalErrorLabel);
         mainPanel.add(universalErrorPanel, BorderLayout.SOUTH);
 
         addListeners();
-        return cardPanel;
+        return mainPanel;
     }
 
     private JPanel createMongoDBPanel() {
@@ -181,7 +186,7 @@ public class MigrationDialog extends DialogWrapper {
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 4;
         mongoDBPanel.add(helpPanel, gbc);
 
         JLabel mongoDBLabel = new JLabel("MongoDB Connection String");
@@ -190,12 +195,21 @@ public class MigrationDialog extends DialogWrapper {
         gbc.gridwidth = 1;
         mongoDBPanel.add(mongoDBLabel, gbc);
 
-        mongoDBTextField = new JBTextField();
-        mongoDBTextField.setBackground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
+        mongoDBTextField = new JBTextField("Please enter your MongoDB connection string");
 
         gbc.gridx = 1;
         gbc.weightx = 0.95;
+        gbc.gridwidth = 3;
         mongoDBPanel.add(mongoDBTextField, gbc);
+
+        connectButton = new JButton("Connect");
+        gbc.gridy++;
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.05;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.fill = GridBagConstraints.NONE;
+        mongoDBPanel.add(connectButton, gbc);
 
         return mongoDBPanel;
     }
@@ -386,6 +400,7 @@ public class MigrationDialog extends DialogWrapper {
         });
 
         updateButtonText();
+        nextButton.setEnabled(false);
         southPanel.add(backButton);
         southPanel.add(nextButton);
 
@@ -412,23 +427,44 @@ public class MigrationDialog extends DialogWrapper {
     }
 
     protected void validateAndEnableNextButton() {
-        nextButton.setEnabled(true);
+        nextButton.setEnabled(isConnected);
     }
 
     protected void addListeners() {
+
+        connectButton.addActionListener(e -> {
+
+
+            MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
+            databaseComboBox.setModel(new DefaultComboBoxModel<>(connection.getDatabaseNames().toArray(new String[0])));
+            if (databaseComboBox.getItemCount() > 0) {
+                databaseComboBox.setSelectedIndex(0);
+            }
+
+            isConnected = connection.mongoClient != null;
+            if (isConnected) {
+                Log.info("Successfully connected to MongoDB");
+                universalErrorLabel.setForeground(Color.decode("#00C851"));
+                universalErrorLabel.setText("Connection was successful");
+            } else {
+                Log.error("Failed to connect to MongoDB");
+                universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                universalErrorLabel.setText("Connection failed. Please make sure your URI is valid");
+            }
+
+            universalErrorLabel.setVisible(true);
+            validateAndEnableNextButton();
+        });
+
         mongoDBTextField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
-                MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
-                databaseComboBox
-                        .setModel(new DefaultComboBoxModel<>(connection.getDatabaseNames().toArray(new String[0])));
-
-                // fire an event to update the collections combo box
-                if (databaseComboBox.getItemCount() > 0) {
-                    databaseComboBox.setSelectedIndex(0);
-                }
+                isConnected = false;
+                universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                universalErrorLabel.setText("Not connected");
+                universalErrorLabel.setVisible(true);
+                validateAndEnableNextButton();
             }
-
         });
 
         databaseComboBox.addActionListener(e -> {
