@@ -21,6 +21,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 
 import org.bson.Document;
@@ -416,6 +417,8 @@ public class MigrationDialog extends DialogWrapper {
         if (currentPage > 1) {
             currentPage--;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
+            // Hide the connection status label if not on the first page
+            universalErrorLabel.setVisible(currentPage == 1);
         }
     }
 
@@ -423,6 +426,8 @@ public class MigrationDialog extends DialogWrapper {
         if (currentPage < 3) {
             currentPage++;
             cardLayout.show(cardPanel, Integer.toString(currentPage));
+            // Hide the connection status label if not on the first page
+            universalErrorLabel.setVisible(currentPage == 1);
         }
     }
 
@@ -433,27 +438,47 @@ public class MigrationDialog extends DialogWrapper {
     protected void addListeners() {
 
         connectButton.addActionListener(e -> {
-
-
-            MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
-            databaseComboBox.setModel(new DefaultComboBoxModel<>(connection.getDatabaseNames().toArray(new String[0])));
-            if (databaseComboBox.getItemCount() > 0) {
-                databaseComboBox.setSelectedIndex(0);
-            }
-
-            isConnected = connection.mongoClient != null;
-            if (isConnected) {
-                Log.info("Successfully connected to MongoDB");
-                universalErrorLabel.setForeground(Color.decode("#00C851"));
-                universalErrorLabel.setText("Connection was successful");
-            } else {
-                Log.error("Failed to connect to MongoDB");
-                universalErrorLabel.setForeground(Color.decode("#FF4444"));
-                universalErrorLabel.setText("Connection failed. Please make sure your URI is valid");
-            }
-
+            // Set the label text and color to indicate that connection is being established
+            universalErrorLabel.setText("Establishing Connection...");
+            universalErrorLabel.setForeground(Color.decode("#FFA726"));
             universalErrorLabel.setVisible(true);
-            validateAndEnableNextButton();
+
+            SwingWorker<MongoDBConnection, Void> worker = new SwingWorker<>() {
+                @Override
+                protected MongoDBConnection doInBackground() {
+                    return new MongoDBConnection(mongoDBTextField.getText());
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        MongoDBConnection connection = get();
+                        databaseComboBox.setModel(
+                                new DefaultComboBoxModel<>(connection.getDatabaseNames().toArray(new String[0])));
+                        if (databaseComboBox.getItemCount() > 0) {
+                            databaseComboBox.setSelectedIndex(0);
+                        }
+
+                        isConnected = connection.mongoClient != null;
+                        if (isConnected) {
+                            Log.info("Successfully connected to MongoDB");
+                            universalErrorLabel.setForeground(Color.decode("#00C851"));
+                            universalErrorLabel.setText("Connection was successful");
+                        } else {
+                            Log.error("Failed to connect to MongoDB");
+                            universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                            universalErrorLabel.setText("Connection failed. Please make sure your URI is valid");
+                        }
+                        validateAndEnableNextButton();
+                    } catch (Exception ex) {
+                        Log.error("Failed to connect to MongoDB");
+                        universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                        universalErrorLabel.setText("Connection failed. Please make sure your URI is valid");
+                        validateAndEnableNextButton();
+                    }
+                }
+            };
+            worker.execute();
         });
 
         mongoDBTextField.getDocument().addDocumentListener(new DocumentAdapter() {
@@ -473,6 +498,7 @@ public class MigrationDialog extends DialogWrapper {
                     .getCollectionNames(Objects.requireNonNull(databaseComboBox.getSelectedItem()).toString())
                     .toArray(new String[0])));
         });
+        
 
         targetBucketCombo.addActionListener(e -> {
             String selectedBucket = (String) targetBucketCombo.getSelectedItem();
@@ -490,6 +516,7 @@ public class MigrationDialog extends DialogWrapper {
                 targetScopeCombo.setModel(new DefaultComboBoxModel<>(scopes));
             }
         });
+
     }
 
     private static class MongoDBConnection {
