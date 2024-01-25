@@ -21,6 +21,14 @@ public class CreateCollection implements ActionInterface {
         JsonObject arguments = intent.getObject("arguments");
         StringBuilder prompt = new StringBuilder();
 
+        if (arguments.containsKey("bucketName")) {
+            bucketName = arguments.getString("bucketName");
+        }
+
+        if (arguments.containsKey("scopeName")) {
+            scopeName = arguments.getString("scopeName");
+        }
+
         if (bucketName == null) {
             if (scopeName == null) {
                 prompt.append("ask the user in which bucket and scope does he want to create the collection ");
@@ -36,13 +44,17 @@ public class CreateCollection implements ActionInterface {
             String collectionName = arguments.getString("collectionName");
 
             try {
+                if (!cluster.buckets().getAllBuckets().containsKey(bucketName)) {
+                    return String.format("Let the user know that there is no bucket named '%s', ask if he wants to amend the bucket name or create one then return the response as updated JSON only", bucketName);
+                }
                 CollectionManager colman = cluster.bucket(bucketName).collections();
-                ScopeSpec scope = colman.getAllScopes().stream().filter(ss -> scopeName.equals(ss.name())).findFirst().orElse(null);
+                String finalScopeName = scopeName;
+                ScopeSpec scope = colman.getAllScopes().stream().filter(ss -> finalScopeName.equals(ss.name())).findFirst().orElse(null);
                 if (scope == null) {
-                    return "Let the user know that there is no such scope scope in the bucket, ask if he wants to amend the scope name or create one then return the response as updated JSON only";
+                    return String.format("Let the user know that there is no scope named '%s' in the bucket '%s', ask if he wants to amend the scope name or create one then return the response as updated JSON only", scopeName, bucketName);
                 }
                 if (scope.collections().stream().anyMatch(cs -> collectionName.equals(cs.name()))) {
-                    return "Let the user know that such collection already exists.";
+                    return String.format("Let the user know that collection '%s' already exists, ask if they want to amend the collection name and, if they do, respond with amended JSON only", collectionName);
                 }
 
                 try {
@@ -56,7 +68,7 @@ public class CreateCollection implements ActionInterface {
             }
         }
 
-        prompt.append("and return the response as updated JSON");
+        prompt.append("and then return the response as updated JSON");
         return prompt.toString();
     }
 }

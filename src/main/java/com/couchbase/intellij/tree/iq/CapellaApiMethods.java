@@ -11,7 +11,7 @@ import java.net.URL;
 import java.util.Base64;
 
 public class CapellaApiMethods {
-    public static final String CAPELLA_DOMAIN = "https://api.dev.nonprod-project-avengers.com";
+    public static final String CAPELLA_DOMAIN = "https://api.cloud.couchbase.com";
     private static final String AUTH_URL = CAPELLA_DOMAIN + "/sessions";
     public static final String ORGANIZATIONS_URL = CAPELLA_DOMAIN + "/v2/organizations";
 
@@ -28,7 +28,9 @@ public class CapellaApiMethods {
         connection.setRequestProperty("Authorization", getBasicAuthHeader(username, password));
 
         if (connection.getResponseCode() != 200) {
-            throw new IllegalStateException("Authentication failed");
+            String errmsg = String.format("Authentication failed; Response code: %d",
+                    connection.getResponseCode());
+            throw new IllegalStateException(errmsg);
         }
 
         try {
@@ -54,13 +56,14 @@ public class CapellaApiMethods {
 
 
         if (connection.getResponseCode() != 200) {
-            throw new RuntimeException("Failed: HTTP error code: " + connection.getResponseCode());
+            throw new RuntimeException("Failed to get organization list: HTTP error code: " + connection.getResponseCode());
         }
 
 
         String result = IOUtils.toString(connection.getInputStream());
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return objectMapper.readValue(result, CapellaOrganizationList.class);
+        CapellaOrganizationList resultList = objectMapper.readValue(result, CapellaOrganizationList.class);
+        return resultList;
     }
 }

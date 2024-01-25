@@ -16,7 +16,7 @@ public class IQAuthenticationInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws IOException {
         String token = OpenAISettingsState.getInstance().getGpt4Config().getApiKey();
         Request request = chain.request()
-                .newBuilder()
+               .newBuilder()
                 .header("Authorization", String.format("Bearer %s", token))
                 .header("Content-Type", "application/json")
                 .build();

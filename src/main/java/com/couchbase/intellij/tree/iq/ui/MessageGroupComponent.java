@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
@@ -32,8 +33,10 @@ import com.thaiopensource.xml.dtd.om.Def;
 import lombok.Builder;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.ScrollPaneConstants;
@@ -46,6 +49,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import static com.couchbase.intellij.workbench.CustomSqlFileEditor.NO_QUERY_CONTEXT_SELECTED;
 
 public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implements NullableComponent, SystemMessageHolder {
     private final JPanel myList = new JPanel(new VerticalLayout(0));
@@ -94,7 +100,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
 
         DefaultActionGroup chatActions = new DefaultActionGroup();
         createContextSelectorAction(chatActions);
-        chatActions.add(new AnAction(() -> "New chat", AllIcons.General.Remove) {
+        chatActions.add(new AnAction(() -> "New chat", AllIcons.General.Add) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 myList.removeAll();
@@ -128,7 +134,28 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         group.add(placeholder);
         AtomicReference<DefaultActionGroup> oldContextAction = new AtomicReference<>(placeholder);
         ActiveCluster.subscribe(activeCluster -> {
-            DefaultActionGroup contextAction = new DefaultActionGroup("Set Query Context", true);
+            AtomicReference<String> contextLabel = new AtomicReference<>(NO_QUERY_CONTEXT_SELECTED);
+            DefaultActionGroup contextAction = new DefaultActionGroup(contextLabel::get, true) {
+                @Override
+                public boolean displayTextInToolbar() {
+                    return true;
+                }
+            };
+
+            AnAction clearContextAction = new AnAction("Clear context") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    contextLabel.set(NO_QUERY_CONTEXT_SELECTED);
+//                    DefaultActionGroup newGroup = new DefaultActionGroup(contextLabel::get, true);
+//                    bucketActions.forEach(newGroup::add);
+//                    group.replaceAction(oldContextAction.get(), newGroup);
+//                    oldContextAction.set(newGroup);
+                    IQWindowContent.clearClusterContext();
+                    contextAction.remove(this);
+                    contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
+                }
+            };
+
 
             List<AnAction> bucketActions = new ArrayList<>();
             if (oldContextAction.get() != null) {
@@ -137,20 +164,10 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 group.add(contextAction);
             }
             oldContextAction.set(contextAction);
-            AnAction clearContextAction = new AnAction("Clear Context") {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    DefaultActionGroup newGroup = new DefaultActionGroup("Set Query Context", true);
-                    newGroup.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
-                    bucketActions.forEach(newGroup::add);
-                    group.replaceAction(oldContextAction.get(), newGroup);
-                    oldContextAction.set(newGroup);
-                }
-            };
 
             bucketActions.clear();
             contextAction.removeAll();
-            contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
+            contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg",MessageGroupComponent.class));
             contextAction.addSeparator("Buckets");
             activeCluster.getChildren().stream()
                     .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
@@ -166,12 +183,17 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                                         @Override
                                         public void actionPerformed(@NotNull AnActionEvent e) {
                                             String context = String.format("%s.%s", bucket.getName(), scope.getName());
-                                            DefaultActionGroup newGroup = new DefaultActionGroup(context, true);
-                                            newGroup.add(clearContextAction);
-                                            newGroup.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg",MessageGroupComponent.class));
-                                            group.replaceAction(oldContextAction.get(), newGroup);
-                                            oldContextAction.set(newGroup);
-                                            IQWindowContent.getInstance().ifPresent(w -> w.setClusterContext(bucket.getName(), scope.getName()));
+//                                            DefaultActionGroup newGroup = new DefaultActionGroup(context, true);
+//                                            newGroup.add(clearContextAction);
+//                                            group.replaceAction(oldContextAction.get(), newGroup);
+//                                            oldContextAction.set(newGroup);
+                                            IQWindowContent.setClusterContext(bucket.getName(), scope.getName());
+                                            contextLabel.set(context);
+                                            if (!contextAction.containsAction(clearContextAction)) {
+                                                contextAction.add(clearContextAction);
+                                            }
+                                            SwingUtilities.invokeLater(() -> {
+                                            });
                                         }
                                     };
 
@@ -180,13 +202,19 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                         bucketActions.add(bucketsGroup);
                         contextAction.add(bucketsGroup);
                     });
+            contextAction.addSeparator();
         });
     }
 
     private JPanel createSettingsPanel(CapellaOrganizationList organizationList, ChatPanel.LogoutListener logoutListener) {
         JPanel panel = new NonOpaquePanel(new GridLayout(0,1));
         JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
-        orgSelector = new ComboBox<>(organizationList.getNames());
+        orgSelector = new ComboBox<>(organizationList.getData().stream()
+                .map(org -> org.getData())
+                .filter(data -> data.getIq() != null && data.getIq().isEnabled() && data.getIq().getOther().isTermsAcceptedForOrg())
+                .map(data -> data.getName())
+                .toArray(String[]::new));
+
         orgSelector.setSelectedIndex(organizationList.indexOf(organization));
         orgSelector.addActionListener(e -> SwingUtilities.invokeLater(() -> {
             CapellaOrganization selectedOrg = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
@@ -194,6 +222,8 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 orgChangeListener.onOrgSelected(selectedOrg);
             }
         }));
+
+        orgPanel.add(new JLabel("Organization:"), BorderLayout.NORTH);
         orgPanel.add(orgSelector, BorderLayout.CENTER);
         DefaultActionGroup toolbarActions = new DefaultActionGroup();
         toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
@@ -203,13 +233,28 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                     logoutListener.onLogout(null);
                 });
             }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
         });
 
         ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
         actonPanel.setTargetComponent(this);
-        orgPanel.add(actonPanel,BorderLayout.EAST);
         panel.add(orgPanel);
-        panel.setBorder(JBUI.Borders.empty(0,8,10,0));
+        panel.setBorder(JBUI.Borders.empty(0,8,10,8));
+
+        JCheckBox enableTelemetry = new JCheckBox("Allow prompt and response collection to help make Capella iQ better.");
+        enableTelemetry.setSelected(IQStorage.getInstance().getState().isAllowTelemetry());
+        enableTelemetry.addActionListener(action -> {
+            IQStorage.getInstance().getState().setAllowTelemetry(enableTelemetry.isSelected());
+        });
+        panel.add(enableTelemetry);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(actonPanel,BorderLayout.EAST);
+        panel.add(bottomPanel);
 
         return panel;
     }
@@ -239,14 +284,12 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     protected MessageComponent createAssistantTips() {
         var modelType = chat.getChatLink().getConversationContext().getModelType();
         return new MessageComponent(chat, TextFragment.of("""
-                Hi, I'm your AI-powered annoying pair programmer. How can I assist you today?
+                Hi, I'm your iQ-powered couchbase assistant. How can I assist you today?
                 
                 Here are some suggestions to get you started:
-                [✦ Explain the selected code](assistant://?prompt=Explain+the+selected+code)
-                [✦ Convert this Oracle SQL to PostgreSQL](assistant://?prompt=Convert+this+Oracle+SQL+to+PostgreSQL)
-                [✦ What for can I use atomics in Java?](assistant://?prompt=What+for+can+I+use+atomics+in+Java%3F)
-                [✦ Explain the LazyHolder pattern in Java](assistant://?prompt=Explain+the+LazyHolder+pattern+in+Java)
-                [✦ Suggest Java library's method for doing OCR](assistant://?prompt=Suggest+Java+library%27s+method+for+doing+OCR)
+                [✦ What is Couchbase](assistant://?prompt=What+is+Couchbase)
+                [✦ How do I connect to Couchbase using Java SDK](assistant://?prompt=How+do+I+connect+to+Couchbase+using+Java+SDK)
+                [✦ How to use joins with Couchbase](assistant://?prompt=How+to+use+joins+with+Couchbase)
                 """), modelType);
     }
 

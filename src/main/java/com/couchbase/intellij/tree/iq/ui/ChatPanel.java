@@ -289,6 +289,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         if (event.getCause() != null && event.getCause() instanceof HttpException) {
             HttpException err = (HttpException) event.getCause();
             if (err.code() == 401) {
+                Log.debug("Received 401 error from Capella iQ");
                 if (messageRetryCount == 0) {
                     if (!logoutListener.onLogout(err)) {
                         SwingUtilities.invokeLater(() -> {

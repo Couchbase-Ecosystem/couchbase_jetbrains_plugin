@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree.iq.ui;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.util.ui.JBUI;
+import kotlin.reflect.jvm.internal.impl.load.java.typeEnhancement.JavaTypeEnhancement;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
@@ -13,6 +14,8 @@ import java.net.URISyntaxException;
 public class LoginPanel extends JPanel {
 
     private final Listener listener;
+    private JTextField username;
+    private JPasswordField password;
 
     public LoginPanel(IQCredentials storedCredentials, Listener loginListener) {
         super(new GridBagLayout());
@@ -27,7 +30,7 @@ public class LoginPanel extends JPanel {
         gbc.gridy = 0;
         gbc.weightx = 1;
 
-        JLabel title = new JLabel("Welcome to Couchbase IQ");
+        JLabel title = new JLabel("Welcome to Capella iQ");
         title.setBackground(null);
         title.setFont(new Font(
                 title.getFont().getName(),
@@ -42,8 +45,8 @@ public class LoginPanel extends JPanel {
         gbc.insets = JBUI.insets(20, 20, 10, 20);
         gbc.gridy++;
         JTextArea brief = new JTextArea("Need a productivity boost? " +
-                "Try chatting with Capella IQ, our AI cloud service. " +
-                "Capella IQ is a generative AI-powered coding assistant that helps developers become more productive");
+                "Try chatting with Capella iQ, our AI cloud service. " +
+                "Capella iQ is a generative AI-powered coding assistant that helps developers become more productive");
         brief.setLineWrap(true);
         brief.setWrapStyleWord(true);
         brief.setEditable(false);
@@ -54,8 +57,22 @@ public class LoginPanel extends JPanel {
         this.add(createLoginForm(storedCredentials), gbc);
 
         gbc.gridy++;
+        this.add(createNotesPanel(), gbc);
+
+        gbc.gridy++;
         gbc.weighty = 10;
         this.add(new JPanel(), gbc);
+    }
+
+    private JTextArea createNotesPanel() {
+        JTextArea brief = new JTextArea("By default, Couchbase will collect your prompts and responses to help make Capella iQ better. You can disable this through the Settings.");
+        brief.setLineWrap(true);
+        brief.setWrapStyleWord(true);
+        brief.setEditable(false);
+        brief.setBackground(null);
+        Font font = brief.getFont();
+        brief.setFont(new Font(font.getName(), font.getStyle(), (int) Math.round(font.getSize() * 0.8)));
+        return brief;
     }
 
     private JPanel createLoginForm(IQCredentials storedCredentials) {
@@ -89,7 +106,7 @@ public class LoginPanel extends JPanel {
         gbc.gridx++;
         gbc.weightx = 2;
         gbc.insets = JBUI.insets(10, 10, 5, 20);
-        JTextField username = new JTextField();
+        username = new JTextField();
         loginForm.add(username, gbc);
 
         gbc.gridy++;
@@ -103,15 +120,25 @@ public class LoginPanel extends JPanel {
         gbc.gridx++;
         gbc.weightx = 2;
         gbc.insets = JBUI.insets(10, 10, 5, 20);
-        JPasswordField password = new JPasswordField();
+        password = new JPasswordField();
         loginForm.add(password, gbc);
 
-        if (storedCredentials.getCredentials().isPresent()) {
-            Credentials credentials = storedCredentials.getCredentials().get();
-            username.setText(credentials.getUserName());
-            password.setText(credentials.getPasswordAsString());
+        if (storedCredentials != null) {
+            username.setText(storedCredentials.getLogin());
+            password.setText(storedCredentials.getPassword());
         }
 
+        gbc.gridy++;
+        JCheckBox showPassword = new JCheckBox("Show Password");
+        loginForm.add(showPassword, gbc);
+
+        showPassword.addActionListener(actionEvent -> {
+            if (showPassword.isSelected()) {
+                this.password.setEchoChar((char) 0);
+            } else {
+                this.password.setEchoChar('*');
+            }
+        });
         gbc.gridy++;
         JCheckBox saveLogin = new JCheckBox("Remember me");
         loginForm.add(saveLogin, gbc);
@@ -125,17 +152,19 @@ public class LoginPanel extends JPanel {
         JButton loginButton = new JButton("Sign in");
         loginForm.add(loginButton, gbc);
         loginButton.addActionListener(e -> {
-            invalidLogin.setVisible(false);
-            loginButton.setEnabled(false);
-            loginButton.setText("Signing in...");
-            updateUI();
             SwingUtilities.invokeLater(() -> {
-                if (!doLogin(username.getText(), new String(password.getPassword()), saveLogin.isSelected())) {
-                    loginButton.setText("Sign in");
-                    loginButton.setEnabled(true);
-                    invalidLogin.setVisible(true);
-                    updateUI();
-                }
+                invalidLogin.setVisible(false);
+                loginButton.setEnabled(false);
+                loginButton.setText("Signing in...");
+                updateUI();
+                SwingUtilities.invokeLater(() -> {
+                    if (!doLogin(username.getText(), new String(password.getPassword()), saveLogin.isSelected())) {
+                        loginButton.setText("Sign in");
+                        loginButton.setEnabled(true);
+                        invalidLogin.setVisible(true);
+                        updateUI();
+                    }
+                });
             });
         });
 
@@ -176,9 +205,15 @@ public class LoginPanel extends JPanel {
         if (credentials.doLogin()) {
             if (store) {
                 credentials.store();
+            } else {
+                this.username.setText("");
+                this.password.setText("");
+                credentials.unstore();
             }
             listener.onLogin(credentials);
             return true;
+        } else {
+            credentials.unstore();
         }
         return false;
     }

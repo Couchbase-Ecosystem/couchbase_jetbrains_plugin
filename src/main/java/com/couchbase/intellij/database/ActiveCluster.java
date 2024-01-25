@@ -61,7 +61,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
      */
     private static final List<Consumer<ActiveCluster>> subscribers = new ArrayList<>();
 
-    private ActiveCluster() {
+    protected ActiveCluster() {
     }
 
     public static ActiveCluster getInstance() {

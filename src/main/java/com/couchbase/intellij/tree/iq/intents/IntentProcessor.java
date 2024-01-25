@@ -71,7 +71,13 @@ public class IntentProcessor {
         } else if (intents.containsKey("actions")) {
             JsonArray detectedActions = intents.getArray("actions");
             for (int i = 0; i < detectedActions.size(); i++) {
-                JsonObject intent = detectedActions.getObject(i);
+                JsonObject intent = null;
+                if (detectedActions.get(i) instanceof String) {
+                    intent = JsonObject.create();
+                    intent.put("action", detectedActions.getString(i));
+                } else {
+                    intent = detectedActions.getObject(i);
+                }
                 ActionInterface action = getAction(intent.getString("action"));
                 if (action != null) {
                     String bucketName = null, scopeName = null;
@@ -101,11 +107,7 @@ public class IntentProcessor {
             }
         }
 
-        if (intentPrompt.isEmpty()) {
-            intentPrompt.append(getSecondaryPrompt());
-        } else {
-            intentPrompt.append("Now answer the user's question given this additional information and then continue working according to the original system prompt");
-        }
+        intentPrompt.append("Now answer the user's question given this additional information and instructions and then continue working according to the original system prompt");
         var application = ApplicationManager.getApplication();
         var chatCompletionRequestProvider = application.getService(ChatCompletionRequestProvider.class);
         var chatCompletionRequest = chatCompletionRequestProvider.chatCompletionRequest(link.getConversationContext(), userMessage)

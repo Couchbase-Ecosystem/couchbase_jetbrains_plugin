@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.workbench.Log;
 import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
@@ -74,10 +75,12 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         this.component =  new MessagePanel(chat.getProject());
         var fromUser = (model == null);
         if (!fromUser) {
-            logObject = chat.getQuestion().getLogObject();
-            logObject.put("response", text.toString());
-            logObject.put("response_time", Math.round(System.currentTimeMillis() / 1000D));
-            postLogObject();
+            if (chat.getQuestion() != null) {
+                logObject = chat.getQuestion().getLogObject();
+                logObject.put("response", text.toString());
+                logObject.put("response_time", Math.round(System.currentTimeMillis() / 1000D));
+                postLogObject();
+            }
         } else {
             logObject = JsonObject.create();
             logObject.put("id", UUID.randomUUID().toString());
@@ -343,7 +346,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
     }
 
     public void setErrorContent(String errorMessage) {
-        setContent(TextFragment.of(errorMessage));
+        setContent(TextFragment.of(String.format("We are sorry, but there was a problem communicating with IQ server. Error message: %s", errorMessage)));
     }
 
     protected void updateIncrementalContent(ActionEvent event) {
@@ -380,6 +383,9 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
     }
 
     private void postLogObject() {
+        if (!IQStorage.getInstance().getState().isAllowTelemetry()) {
+            return;
+        }
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI(feedbackEndpoint))
                     .header("X-Secret", "c0uchbase_is_aw3some")

@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.core;
 
 import com.couchbase.intellij.tree.iq.CapellaApiMethods;
+import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
@@ -8,6 +9,8 @@ import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.util.Pass;
 
+import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 
 public class IQCredentials {
@@ -16,6 +19,7 @@ public class IQCredentials {
     private String password;
 
     private CapellaAuth auth;
+    private CapellaOrganizationList organizations;
 
     public IQCredentials(String login, String password) {
         this.login = login;
@@ -78,7 +82,7 @@ public class IQCredentials {
                 tempAuth.setTenant(creds.getUserName());
                 tempAuth.setJwt(creds.getPasswordAsString());
                 try {
-                    CapellaApiMethods.loadOrganizations(tempAuth);
+                    this.organizations = CapellaApiMethods.loadOrganizations(tempAuth);
                     auth = tempAuth;
                 } catch (Exception e) {
                     Log.debug("Failed to restore capella session", e);
@@ -88,6 +92,33 @@ public class IQCredentials {
 
         return auth != null;
     }
+
+    public CapellaOrganizationList getOrganizations() {
+        if (organizations == null) {
+            try {
+                this.organizations = CapellaApiMethods.loadOrganizations(auth);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return organizations;
+    }
+
+    public boolean checkIqIsEnabled(String orgId) {
+        return getOrganizations().getData().stream()
+                .map(CapellaOrganizationList.Entry::getData)
+                .filter(org -> Objects.equals(orgId, org.getId()))
+                .filter(org -> org.getIq() != null)
+                .anyMatch(org -> org.getIq().isEnabled());
+    }
+
+    public boolean checkTermsAccepted(String orgId) {
+        return getOrganizations().getData().stream()
+                .map(CapellaOrganizationList.Entry::getData)
+                .filter(org -> Objects.equals(orgId, org.getId()))
+                .filter(org -> org.getIq() != null)
+                .anyMatch(org -> org.getIq().getOther().isTermsAcceptedForOrg());
+   }
 
     public boolean doLogin() {
         try {
@@ -108,5 +139,9 @@ public class IQCredentials {
         login = null;
         password = null;
         auth = null;
+    }
+
+    public void unstore() {
+        PasswordSafe.getInstance().set(getCredentialsAttributes(), null);
     }
 }

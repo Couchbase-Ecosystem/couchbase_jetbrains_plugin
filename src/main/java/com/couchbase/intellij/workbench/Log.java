@@ -27,6 +27,10 @@ public class Log {
         return logLevel >= 3;
     }
 
+    public static void setPrinter(Printer printer) {
+        Log.printer = printer;
+    }
+
     public static Printer getLogger() {
         if (printer == null) {
             try {
@@ -111,7 +115,7 @@ public class Log {
         public void print(String message, ConsoleViewContentType type);
     }
 
-    private static class ConsoleViewPrinter implements Printer {
+    public static class ConsoleViewPrinter implements Printer {
 
         private final ConsoleView console;
 
@@ -125,7 +129,7 @@ public class Log {
         }
     }
 
-    private static class StdoutPrinter implements Printer {
+    public static class StdoutPrinter implements Printer {
 
         @Override
         public void print(String message, ConsoleViewContentType type) {

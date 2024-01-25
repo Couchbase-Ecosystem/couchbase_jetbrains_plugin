@@ -38,5 +38,6 @@ public class IQStorage implements PersistentStateComponent<IQStorage.State> {
     @Data
     public static class State {
         public String activeOrganization;
+        public boolean allowTelemetry = true;
     }
 }

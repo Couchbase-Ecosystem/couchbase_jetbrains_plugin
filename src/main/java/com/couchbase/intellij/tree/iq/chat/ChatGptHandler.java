@@ -8,6 +8,7 @@ import io.reactivex.functions.Consumer;
 import org.apache.commons.lang3.StringUtils;
 import org.reactivestreams.Subscription;
 
+import javax.swing.SwingUtilities;
 import java.util.*;
 
 public class ChatGptHandler {
@@ -44,24 +45,26 @@ public class ChatGptHandler {
 
         public Consumer<Subscription> onSubscribe(ChatMessageEvent.Initiating event) {
             return subscription -> {
-                listener.exchangeStarted(this.event = event.started(subscription));
+                SwingUtilities.invokeLater(() -> listener.exchangeStarted(this.event = event.started(subscription)));
             };
         }
 
         public Action onComplete(ConversationContext ctx) {
             return () -> {
-                var assistantMessages = toMessages(partialResponseChoices);
-                if (!assistantMessages.isEmpty()) {
-                    ctx.addChatMessage(assistantMessages.get(0));
-                }
-                listener.responseCompleted(event.responseArrived(assistantMessages));
+                SwingUtilities.invokeLater(() -> {
+                    final List<ChatMessage> assistantMessages = toMessages(partialResponseChoices);
+                    if (!assistantMessages.isEmpty()) {
+                        ctx.addChatMessage(assistantMessages.get(0));
+                    }
+                    listener.responseCompleted(event.responseArrived(assistantMessages));
+                });
             };
         }
 
         public Consumer<ChatCompletionChunk> onNextChunk() {
             return chunk -> {
                 if (!chunk.getChoices().isEmpty()) {
-                    listener.responseArriving(event.responseArriving(chunk, formResponse(chunk.getChoices())));
+                    SwingUtilities.invokeLater(() -> listener.responseArriving(event.responseArriving(chunk, formResponse(chunk.getChoices()))));
                 }
             };
         }
@@ -69,7 +72,7 @@ public class ChatGptHandler {
         public Consumer<ChatCompletionResult> onNext() {
             return result -> {
                 if (result != null && result.getChoices() != null && !result.getChoices().isEmpty()) {
-                    listener.responseArrived(event.responseArrived(formResponse(result.getChoices())));
+                    SwingUtilities.invokeLater(() -> listener.responseArrived(event.responseArrived(formResponse(result.getChoices()))));
                 }
             };
         }
