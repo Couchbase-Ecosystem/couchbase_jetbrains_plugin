@@ -1,17 +1,35 @@
 package com.couchbase.intellij.tree.iq;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class CapellaOrganizationList {
 
-    private ArrayList<Entry> data;
+    private List<Entry> data;
 
-    public void setData(ArrayList<Entry> data) {
+    public void setData(List<Entry> data) {
         this.data = data;
     }
 
-    public ArrayList<Entry> getData() {
+    public List<Entry> getData() {
         return data;
+    }
+
+    public CapellaOrganizationList getOnlyIqEnabledOrgs() {
+        CapellaOrganizationList filteredList = new CapellaOrganizationList();
+        filteredList.setData(
+                data.stream()
+                        .filter(Objects::nonNull)
+                        .filter(org -> org.getData() != null)
+                        .filter(org -> org.getData().getIq() != null)
+                        .filter(org -> org.getData().getIq().isEnabled())
+                        .filter(org -> org.getData().getIq().getOther() != null)
+                        .filter(org -> org.getData().getIq().getOther().isTermsAcceptedForOrg())
+                        .collect(Collectors.toList())
+        );
+        return filteredList;
     }
 
     public String[] getNames() {

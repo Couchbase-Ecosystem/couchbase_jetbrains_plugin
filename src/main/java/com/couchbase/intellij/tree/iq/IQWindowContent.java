@@ -89,6 +89,10 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
                 return;
             }
 
+            if (this.organizationList != null) {
+                this.organizationList = this.organizationList.getOnlyIqEnabledOrgs();
+            }
+
             CapellaOrganization activeOrg = organizationList.getData().stream()
                     .map(org -> org.getData())
                     .filter(data -> credentials.checkIqIsEnabled(data.getId()))

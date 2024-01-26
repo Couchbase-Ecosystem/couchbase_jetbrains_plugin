@@ -11,7 +11,10 @@ import java.net.URL;
 import java.util.Base64;
 
 public class CapellaApiMethods {
-    public static final String CAPELLA_DOMAIN = "https://api.cloud.couchbase.com";
+    // DEV:
+    public static final String CAPELLA_DOMAIN = "https://api.dev.nonprod-project-avengers.com";
+    // PROD:
+    // public static final String CAPELLA_DOMAIN = "https://api.cloud.couchbase.com";
     private static final String AUTH_URL = CAPELLA_DOMAIN + "/sessions";
     public static final String ORGANIZATIONS_URL = CAPELLA_DOMAIN + "/v2/organizations";
 
