@@ -30,7 +30,7 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>Adding support for query charts and ER Diagram</li>
+          <li>Now the plugin allows you to use Couchbase iQ directly from your favorite IDE</li>
         </ul>
         ]]>
     </change-notes>
@@ -76,7 +76,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceFactory"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceProviderRegistry"/>
         <applicationService serviceInterface="com.couchbase.intellij.tree.iq.ui.ContextAwareSnippetizer"
-                serviceImplementation="com.couchbase.intellij.tree.iq.ui.TextEditorSelectionAwareSnippetizer"/>
+                            serviceImplementation="com.couchbase.intellij.tree.iq.ui.TextEditorSelectionAwareSnippetizer"/>
         <applicationService serviceInterface="com.couchbase.intellij.tree.iq.chat.ChatMessageComposer"
                             serviceImplementation="com.couchbase.intellij.tree.iq.chat.DefaultChatMessageComposer"/>
 
