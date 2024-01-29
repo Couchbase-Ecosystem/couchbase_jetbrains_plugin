@@ -1,0 +1,22 @@
+name: Tests
+on: [push,workflow_dispatch]
+jobs:
+  run-iq-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@ccb4328a959376b642e027874838f60f8e596de3
+      - name: Run the Gradle package task
+        uses: gradle/gradle-build-action@749f47bda3e44aa060e82d7b3ef7e40d953bd629
+        env:
+          CAPELLA_DOMAIN: https://api.dev.nonprod-project-avengers.com
+          IQ_ORG_ID: ${{ secrets.IQ_ORG_ID }}
+          IQ_ORG_LOGIN: ${{ secrets.IQ_ORG_LOGIN }}
+          IQ_ORG_PASSWD: ${{ secrets.IQ_ORG_PASSWD }}
+        with:
+          arguments: test --tests com.couchbase.intellij.tree.iq.intents.IntentProcessorTest

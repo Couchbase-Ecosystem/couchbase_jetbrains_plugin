@@ -3,6 +3,7 @@ package com.couchbase.intellij.database.entity;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.json.JsonValue;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -126,6 +127,22 @@ public class CouchbaseField implements CouchbaseClusterEntity {
             target.put(getName(), value);
         } else {
             target.put(getName(), (String) null);
+        }
+    }
+
+    public boolean hasChildren() {
+        return !children.isEmpty();
+    }
+
+    public JsonValue toJson() {
+        if (children == null || children.isEmpty()) {
+            JsonArray result = JsonArray.create();
+            types.forEach(result::add);
+            return result;
+        } else {
+            JsonObject result = JsonObject.create();
+            children.forEach(field -> result.put(field.getName(), field.toJson()));
+            return result;
         }
     }
 }

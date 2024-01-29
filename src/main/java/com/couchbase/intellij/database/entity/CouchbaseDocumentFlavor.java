@@ -64,4 +64,12 @@ public class CouchbaseDocumentFlavor implements CouchbaseClusterEntity {
         getChildren().forEach(field -> field.addZeroValue(result));
         return result;
     }
+
+    public JsonObject toJson() {
+        JsonObject result = JsonObject.create();
+        if (children != null) {
+            children.forEach(child -> result.put(child.getName(), child.toJson()));
+        }
+        return result;
+    }
 }

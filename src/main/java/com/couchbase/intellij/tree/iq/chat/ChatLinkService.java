@@ -1,15 +1,14 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.chat;
 
 import com.couchbase.intellij.tree.iq.core.TextSubstitutor;
 import com.couchbase.intellij.tree.iq.text.TextContent;
 import com.couchbase.intellij.tree.iq.ui.context.stack.DefaultInputContext;
+import com.couchbase.intellij.tree.iq.ui.context.stack.TextInputContextEntry;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.theokanning.openai.completion.chat.ChatMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +16,7 @@ import java.util.Optional;
 
 public class ChatLinkService extends AbstractChatLink {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChatLinkService.class);
     private final Project project;
     private final InputContext inputContext;
     private final ConversationHandler conversationHandler;
@@ -66,12 +66,19 @@ public class ChatLinkService extends AbstractChatLink {
             listener.exchangeStarting(event);
             conversationHandler.push(conversationContext, event, listener);
         } catch (ChatExchangeAbortException ex) {
+            LOGGER.debug("chat exchange aborted", ex);
             listener.exchangeCancelled(event.cancelled());
             getConversationContext().setLastPostedCodeFragments(List.of());
         } catch (Throwable x) {
+            LOGGER.debug("chat exchange failed", x);
             listener.exchangeFailed(event.failed(x));
             getConversationContext().setLastPostedCodeFragments(List.of());
         }
+    }
+
+    @Override
+    public ChatMessageListener getListener() {
+        return this.chatMessageListeners.fire();
     }
 
     private static List<? extends TextContent> mergeContext(List<? extends TextContent> textContents, InputContext inputContext) {

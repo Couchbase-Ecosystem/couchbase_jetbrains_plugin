@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @State(
@@ -64,6 +65,8 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
                                 .filter(e-> e.getValue() !=null)
                                 .peek(utimes -> {
                                     utimes.setValue(utimes.getValue().entrySet().stream()
+                                                    .filter(Objects::nonNull)
+                                                    .filter(utime -> utime.getValue() != null)
                                                     .filter(utime -> {
                                                         SavedCluster savedCluster = myState.clusters.getMap().get(utimes.getKey());
                                                         if (savedCluster != null) {

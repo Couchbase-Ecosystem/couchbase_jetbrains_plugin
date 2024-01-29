@@ -1,11 +1,8 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.ui.view;
 
 import com.couchbase.intellij.tree.iq.ui.MessagePanel;
 import com.couchbase.intellij.tree.iq.ui.MessageRenderer;
+import com.intellij.openapi.project.Project;
 import org.jdesktop.swingx.JXCollapsiblePane;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,11 +25,11 @@ public class CollapsiblePanelFactory {
     }
 
     @NotNull
-    public static JComponentView createPanel(MessageRenderer renderer, Element elem, AttributeSet attrs) {
+    public static JComponentView createPanel(Project project, MessageRenderer renderer, Element elem, AttributeSet attrs) {
         JXCollapsiblePane collapsiblePane = new JXCollapsiblePane();
         collapsiblePane.setCollapsed(true);
 
-        JEditorPane contentPane = new MessagePanel();
+        JEditorPane contentPane = new MessagePanel(project);
         contentPane.putClientProperty(HONOR_COLLAPSIBLE_PANELS, Boolean.FALSE);
         // Get the content of the Element object
         StringWriter out = new StringWriter();

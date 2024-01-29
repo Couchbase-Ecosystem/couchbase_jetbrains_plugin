@@ -260,7 +260,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     }
 
     public JPanel getConsolePanel() {
-        ConsoleView console = Log.getLogger();
+        ConsoleView console = Log.getView();
 
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         AnAction clearAction = new AnAction("Clear Log") {

@@ -6,6 +6,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
+import com.couchbase.intellij.workbench.CustomSqlFileEditor;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
@@ -41,7 +42,7 @@ public class OpenDocumentDialog extends DialogWrapper {
 
     private Tree tree;
 
-    protected OpenDocumentDialog(boolean createDocument, Project project, Tree tree, String bucket, String scope, String collection) {
+    protected OpenDocumentDialog(boolean createDocument, Project project, @Nullable Tree tree, String bucket, String scope, String collection) {
         super(true);
         this.createDocument = createDocument;
         this.project = project;
@@ -176,17 +177,7 @@ public class OpenDocumentDialog extends DialogWrapper {
             }
         }
 
-        String fileName = textField.getText() + ".json";
-        FileNodeDescriptor descriptor = new FileNodeDescriptor(fileName, bucket, scope, collection, textField.getText(), FileNodeDescriptor.FileType.JSON, null);
-        DataLoader.loadDocument(project, descriptor, tree);
-
-        VirtualFile virtualFile = descriptor.getVirtualFile();
-        if (virtualFile != null) {
-            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-            fileEditorManager.openFile(virtualFile, true);
-        } else {
-            Log.debug("virtual file is null");
-        }
+        CustomSqlFileEditor.openDocument(project, bucket, scope, collection, textField.getText(), tree);
 
         super.doOKAction();
     }

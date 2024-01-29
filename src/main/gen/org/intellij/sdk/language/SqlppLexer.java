@@ -9,7 +9,7 @@ import generated.GeneratedTypes;
 import com.intellij.psi.TokenType;
 
 
-class SqlppLexer implements FlexLexer {
+public class SqlppLexer implements FlexLexer {
 
   /** This character denotes the end of file */
   public static final int YYEOF = -1;
@@ -2139,7 +2139,7 @@ class SqlppLexer implements FlexLexer {
    *
    * @param   in  the java.io.Reader to read input from.
    */
-  SqlppLexer(java.io.Reader in) {
+  public SqlppLexer(java.io.Reader in) {
     this.zzReader = in;
   }
 

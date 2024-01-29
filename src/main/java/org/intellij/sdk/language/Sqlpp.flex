@@ -7,6 +7,7 @@ import com.intellij.psi.TokenType;
 
 %%
 
+%public
 %class SqlppLexer
 %implements FlexLexer
 %unicode

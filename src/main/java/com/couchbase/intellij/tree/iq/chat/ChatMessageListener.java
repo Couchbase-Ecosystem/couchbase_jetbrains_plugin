@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.chat;
 
 public interface ChatMessageListener {
@@ -13,6 +9,8 @@ public interface ChatMessageListener {
     void responseArriving(ChatMessageEvent.ResponseArriving event);
 
     void responseArrived(ChatMessageEvent.ResponseArrived event);
+
+    void responseCompleted(ChatMessageEvent.ResponseArrived event);
 
     void exchangeFailed(ChatMessageEvent.Failed event);
 

@@ -34,6 +34,9 @@ import java.util.stream.Stream;
 public class ActiveCluster implements CouchbaseClusterEntity {
 
     private static ActiveCluster activeCluster = new ActiveCluster();
+    /**
+     * Connection listeners are invoked only when a new cluster connection is established
+     */
     private final List<Runnable> newConnectionListener = new ArrayList<>();
     private Cluster cluster;
     private SavedCluster savedCluster;
@@ -52,12 +55,24 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private Runnable disconnectListener;
 
     public static final AtomicBoolean ReconnectOnDisconnect = new AtomicBoolean();
+    /**
+     * Subscribers are invoked upon subscription and when a new connection is established
+     * and initialized (schema has been populated)
+     */
+    private static final List<Consumer<ActiveCluster>> subscribers = new ArrayList<>();
 
-    private ActiveCluster() {
+    protected ActiveCluster() {
     }
 
     public static ActiveCluster getInstance() {
         return activeCluster;
+    }
+
+    public static void subscribe(Consumer<ActiveCluster> listener) {
+        subscribers.add(listener);
+        if (activeCluster.cluster != null) {
+            listener.accept(activeCluster);
+        }
     }
 
     @VisibleForTesting
@@ -91,7 +106,6 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         if (this.cluster != null) {
             disconnect();
         }
-
 
         new Task.ConditionalModal(null, "Connecting to Couchbase cluster '" + savedCluster.getId() + "'", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
             @Override
@@ -151,6 +165,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                                 disconnect();
                             }
                         }
+
                     });
                     if (savedCluster.getColor() != null) {
                         ActiveCluster.this.color = Color.decode(savedCluster.getColor());
@@ -176,7 +191,13 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         }
                     });
 
-                    scheduleSchemaUpdate(connectListener);
+                    scheduleSchemaUpdate(e -> {
+                        if (e == null) {
+                            // notify all subscribers
+                            subscribers.forEach(s -> s.accept(ActiveCluster.this));
+                        }
+                        connectListener.accept(e);
+                    });
                 } catch (Exception e) {
                     SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
                             String.format("Error while connecting to cluster '%s': \n %s", savedCluster.getId(), e.getMessage()),

@@ -1,14 +1,17 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.ui.view;
 
+import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
+import com.couchbase.intellij.tree.iq.IQWindowContent;
 import com.couchbase.intellij.tree.iq.ui.view.rsyntaxtextarea.RSyntaxTextAreaUIEx;
 import com.couchbase.intellij.tree.iq.util.Language;
+import com.couchbase.intellij.workbench.QueryExecutor;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.impl.ActionButton;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -18,6 +21,9 @@ import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.ide.CopyPasteManager;
+import com.intellij.openapi.progress.PerformInBackgroundOption;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
@@ -49,16 +55,24 @@ import java.awt.event.MouseWheelListener;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
+
+import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.NORMAL;
 
 public class RSyntaxTextAreaView extends ComponentView {
 
     private static final Logger log = Logger.getInstance(RSyntaxTextAreaView.class);
     private static Theme defaultTheme;
+    private static final int padding = 2;
 
+    private Project project;
     private Language language;
 
-    public RSyntaxTextAreaView(Element element, Language language) {
+    public RSyntaxTextAreaView(Project project, Element element, Language language) {
         super(element);
+        this.project = project;
         this.language = language;
     }
 
@@ -141,6 +155,7 @@ public class RSyntaxTextAreaView extends ComponentView {
         if (theme != null)
             theme.apply(textArea);
 
+        JComponent corner = new CodeBlockActionPanel(project, language);
         RTextScrollPane scrollPane = new RTextScrollPane(textArea) {
             @Override
             public Dimension getPreferredSize() {
@@ -150,7 +165,9 @@ public class RSyntaxTextAreaView extends ComponentView {
                     doLayout();
                     getViewport().doLayout();
                 }
-                return super.getPreferredSize();
+                Dimension preferred = super.getPreferredSize();
+                preferred.setSize(preferred.getWidth(), preferred.getHeight() + corner.getHeight() + padding * 2);
+                return preferred;
             }
         };
         scrollPane.setLineNumbersEnabled(false);
@@ -185,12 +202,9 @@ public class RSyntaxTextAreaView extends ComponentView {
         };
         myCorner.setNoIconsInPopup(true);
 
-        JComponent corner = new CodeBlockActionPanel(textArea);
-
         textArea.add(corner);
 
         textArea.addComponentListener(new ComponentAdapter() {
-            private static final int padding = 2;
 
             @Override
             public void componentResized(ComponentEvent e) {
@@ -199,7 +213,7 @@ public class RSyntaxTextAreaView extends ComponentView {
                     Dimension prefSize = corner.getPreferredSize();
                     corner.setSize(prefSize);
                 }
-                corner.setBounds(c.getWidth() - corner.getWidth() - padding, padding, corner.getWidth(), corner.getHeight());
+                corner.setBounds(c.getWidth() - corner.getWidth() - padding, c.getHeight() - corner.getHeight() - padding, corner.getWidth(), corner.getHeight());
             }
         });
 
@@ -213,16 +227,19 @@ public class RSyntaxTextAreaView extends ComponentView {
         public static Icon INSERT_COPY_ICON_16x16_DARK = IconLoader.getIcon("/icons/expui/action/insert-copy_dark.svg", RSyntaxTextArea.class);
         public static Icon INSERT_COPY_ICON_22x22_DARK = IconUtil.scale(INSERT_COPY_ICON_16x16_DARK, null, 1.25f);
 
-        private final RSyntaxTextArea textArea;
+        private Language language;
 
-        public CodeBlockActionPanel(RSyntaxTextArea textArea) {
+        public CodeBlockActionPanel(Project project, Language language) {
             super(new GridLayout(1, 0));
-            this.textArea = textArea;
+            this.language = language;
             setOpaque(false);
-            createUI();
+            createUI(project);
         }
 
-        protected void createUI() {
+        protected void createUI(Project project) {
+            if ("text/sql".equals(language.mimeType()) || "text/sqlpp".equals(language.mimeType())) {
+                add(createActionButton(new MyRunSqlAction(project, IconLoader.getIcon("/assets/icons/play.svg", CodeBlockActionPanel.class))));
+            }
             add(createActionButton(new MyCopyAction(COPY_ICON_16x16_DARK)));
             add(createActionButton(new MyInsertCodeAction(INSERT_COPY_ICON_16x16_DARK)));
         }
@@ -239,6 +256,11 @@ public class RSyntaxTextAreaView extends ComponentView {
             };
             actionButton.setNoIconsInPopup(true);
             return actionButton;
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return super.getPreferredSize();
         }
     }
 
@@ -261,7 +283,7 @@ public class RSyntaxTextAreaView extends ComponentView {
     private static class MyCopyAction extends RSyntaxTextAreaAction {
 
         MyCopyAction(Icon icon) {
-            super("", "Copy to Clipboard", icon);
+            super("Copy to Clipboard", "Copy to Clipboard", icon);
         }
 
         @Override
@@ -274,10 +296,64 @@ public class RSyntaxTextAreaView extends ComponentView {
         }
     }
 
+    private static class MyRunSqlAction extends RSyntaxTextAreaAction {
+
+        private Project project;
+        MyRunSqlAction(Project project, Icon icon) {
+            super("Run SQL code", "Run SQL code on the cluster", icon);
+            this.project = project;
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            IQWindowContent.getInstance().ifPresentOrElse(iqWindow -> {
+                String[] context = iqWindow.getClusterContext();
+                if (context == null || context.length != 2) {
+                    Notifications.Bus.notify(
+                            new Notification(
+                                    ChatGptBundle.message("group.id"),
+                                    "No iQ cluster context set",
+                                    "Please connect to a cluster using Couchbase plugin Explorer tab and then select cluster context in iQ tab.",
+                                    NotificationType.ERROR
+                            )
+                    );
+                }
+
+                JTextArea textArea = e.getData(TEXT_AREA_KEY);
+                if (textArea != null) {
+                    String sql = getTextContent(textArea);
+                    List<String> script = Arrays.stream(sql.split(";"))
+                            .map(String::trim)
+                            .filter(s -> s != null && s.length() > 0)
+                            .collect(Collectors.toList());
+                    new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                        @Override
+                        public void run(@NotNull ProgressIndicator indicator) {
+                            if (script.size() > 1) {
+                                QueryExecutor.executeScript(new LinkedBlockingQueue<>(), NORMAL, script, context[0], context[1], 0, project);
+                            } else {
+                                QueryExecutor.executeQuery(new LinkedBlockingQueue<>(), NORMAL, sql, context[0], context[1], 0, project);
+                            }
+                        }
+                    }.queue();
+                }
+            }, () -> {
+                Notifications.Bus.notify(
+                        new Notification(
+                                ChatGptBundle.message("group.id"),
+                                "Unable to get iQ context",
+                                "Please contact couchbase plugin developers for support on this issue.",
+                                NotificationType.ERROR
+                        )
+                );
+            });
+        }
+    }
+
     private static class MyInsertCodeAction extends RSyntaxTextAreaAction {
 
         MyInsertCodeAction(Icon icon) {
-            super("", "Copy to Selected Text Editor", icon);
+            super("Copy to Selected Text Editor", "Copy to Selected Text Editor", icon);
         }
 
         @Override

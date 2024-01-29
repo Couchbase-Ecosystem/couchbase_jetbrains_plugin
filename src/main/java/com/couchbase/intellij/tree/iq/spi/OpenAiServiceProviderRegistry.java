@@ -1,10 +1,6 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.spi;
 
-import com.couchbase.intellij.tree.iq.spi.azure.AzureOpenAiServiceProvider;
+import com.couchbase.intellij.tree.iq.spi.iq.CouchbaseIQServiceProvider;
 
 import java.util.List;
 
@@ -14,7 +10,7 @@ public class OpenAiServiceProviderRegistry {
 
     public List<OpenAiServiceProvider> getProviders() {
         if (providers == null)
-            providers = List.of(new AzureOpenAiServiceProvider(), new DefaultOpenAiServiceProvider());
+            providers = List.of(new CouchbaseIQServiceProvider());
         return providers;
     }
 

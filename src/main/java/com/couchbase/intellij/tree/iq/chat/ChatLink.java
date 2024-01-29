@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.chat;
 
 import com.couchbase.intellij.tree.iq.text.TextContent;
@@ -35,4 +31,6 @@ public interface ChatLink {
     default void regenerateResponse() {
 
     }
+
+    ChatMessageListener getListener();
 }

@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2023 Mariusz Bernacki <consulting@didalgo.com>
- * SPDX-License-Identifier: Apache-2.0
- */
 package com.couchbase.intellij.tree.iq.chat;
 
 import com.didalgo.gpt3.ChatFormatDescriptor;
@@ -92,31 +88,35 @@ public class ChatLinkState implements ConversationContext {
     public List<ChatMessage> getChatMessages(ModelType model, ChatMessage userMessage) {
         var chatMessages = new LinkedList<ChatMessage>();
 
-        // First add current system message
-        var systemMessage = getSystemPrompt().get();
-        if (!systemMessage.isBlank()) {
-            systemMessage = systemMessage.stripTrailing()
-                    + "\n\nCurrent IDE: " + ApplicationInfo.getInstance().getFullApplicationName()
-                    + "\nOS: " + System.getProperty("os.name");
-            chatMessages.add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
-        }
-        var hasSystemMessage = !chatMessages.isEmpty();
 
         // Add the rest of messages in the chat
         synchronized (this.chatMessages) {
             if (!this.chatMessages.isEmpty())
-                chatMessages.addAll(this.chatMessages);
+                this.chatMessages.stream()
+                        .filter(chatMessage -> !ChatMessageRole.SYSTEM.value().equals(chatMessage.getRole()))
+                                .forEach(chatMessages::add);
 
             // Substitute template placeholders
             substitutePlaceholders(chatMessages);
 
+            // add the system prompt
+            var systemMessage = getSystemPrompt().get();
+            if (!systemMessage.isBlank()) {
+                systemMessage = systemMessage.stripTrailing()
+                        + "\n\nCurrent IDE: " + ApplicationInfo.getInstance().getFullApplicationName()
+                        + "\nOS: " + System.getProperty("os.name");
+                chatMessages.add(0, new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
+            }
+
             // Trim messages if exceeding token limit
-            int maxTokens = model.maxTokens();
+            //int maxTokens = model.maxTokens();
+            // hard-coded as I couldn't find API to set it
+            int maxTokens = 4097;
             var tokenizer = model.getTokenizer();
             var chatFormatDescriptor = model.getChatFormatDescriptor();
             int removed = dropOldestMessagesToStayWithinTokenLimit(chatMessages, maxTokens, tokenizer, chatFormatDescriptor);
             while (removed-- > 0)
-                this.chatMessages.remove(hasSystemMessage ? 1 : 0);
+                this.chatMessages.remove(0);
 
             return chatMessages;
         }
