@@ -11,7 +11,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import utils.IndexUtils;
 import utils.TimeUtils;
@@ -233,7 +232,7 @@ public class CBExport {
                     ProcessBuilder processBuilder = new ProcessBuilder(cmd);
 
                     if (Log.isDebug()) {
-                        Log.debug(String.join(" ", (StringUtils.join(processBuilder.command(), " ").replace(
+                        Log.debug(String.join(" ", (String.join(" ", processBuilder.command()).replace(
                                 ActiveCluster.getInstance().getPassword(), "********"))));
                     }
 
