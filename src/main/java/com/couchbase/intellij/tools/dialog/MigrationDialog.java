@@ -56,7 +56,7 @@ import utils.TemplateUtil;
 
 public class MigrationDialog extends DialogWrapper {
 
-    private Project project;
+    private final Project project;
 
     private JPanel cardPanel;
     private CardLayout cardLayout;
@@ -79,7 +79,8 @@ public class MigrationDialog extends DialogWrapper {
     protected JBTextField mongoDBTextField;
 
     protected ComboBox<String> databaseComboBox;
-    protected ComboBox<String> collectionsComboBox;
+    protected JComboCheckBox collectionsComboBox;
+
     protected ComboBox<String> targetBucketCombo;
     protected ComboBox<String> targetScopeCombo;
 
@@ -88,6 +89,10 @@ public class MigrationDialog extends DialogWrapper {
     protected JBLabel universalErrorLabel;
 
     protected boolean isConnected = false;
+
+    protected static final Color ERROR_COLOR = Color.decode("#FF4444");
+    protected static final Color SUCCESS_COLOR = Color.decode("#00C851");
+    protected static final Color ESTABILISHING_COLOR = Color.decode("#FFA726");
 
     public MigrationDialog(Project project) {
         super(true);
@@ -122,7 +127,7 @@ public class MigrationDialog extends DialogWrapper {
         universalErrorPanel = new JPanel();
         universalErrorPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         universalErrorLabel = new JBLabel();
-        universalErrorLabel.setForeground(Color.decode("#FF4444"));
+        universalErrorLabel.setForeground(ERROR_COLOR);
         universalErrorLabel.setVisible(true);
         universalErrorPanel.add(universalErrorLabel);
         mainPanel.add(universalErrorPanel, BorderLayout.SOUTH);
@@ -148,34 +153,22 @@ public class MigrationDialog extends DialogWrapper {
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                String content = "<html><h2>MongoDB Connection URI</h2>\n" +
-                        "<div>\n" +
-                        "The MongoDB Connection URI is a string that specifies how to connect to a MongoDB database. It contains all the information needed to establish a connection, including:\n"
-                        +
-                        "<ul>\n" +
-                        "    <li>Hostnames or IP addresses of MongoDB servers</li>\n" +
-                        "    <li>Port number for the MongoDB server</li>\n" +
-                        "    <li>Authentication credentials (username and password)</li>\n" +
-                        "    <li>Database name</li>\n" +
-                        "    <li>Additional connection options</li>\n" +
-                        "</ul>\n" +
-                        "Here is an example of a MongoDB Connection URI:\n" +
-                        "<pre>\n" +
-                        "mongodb://username:password@hostname1:27017,hostname2:27017/databaseName?authSource=admin&ssl=true\n"
-                        +
-                        "</pre>\n" +
-                        "<h3>Components of the MongoDB Connection URI</h3>\n" +
-                        "<ul>\n" +
-                        "    <li><strong>mongodb://</strong> - Indicates the protocol for MongoDB</li>\n" +
-                        "    <li><strong>username:password</strong> - Authentication credentials (optional)</li>\n" +
-                        "    <li><strong>@hostname1:27017,hostname2:27017</strong> - Hostnames or IP addresses of MongoDB servers, along with port numbers</li>\n"
-                        +
-                        "    <li><strong>/databaseName</strong> - Name of the database to connect to</li>\n" +
-                        "    <li><strong>?authSource=admin&ssl=true</strong> - Additional connection options (optional)</li>\n"
-                        +
-                        "</ul>\n" +
-                        "</div>\n" +
-                        "</html>";
+                String content = new StringBuilder().append("<html><h2>MongoDB Connection URI</h2>\n").append("<div>\n")
+                        .append("The MongoDB Connection URI is a string that specifies how to connect to a MongoDB database. It contains all the information needed to establish a connection, including:\n")
+                        .append("<ul>\n").append("    <li>Hostnames or IP addresses of MongoDB servers</li>\n")
+                        .append("    <li>Port number for the MongoDB server</li>\n")
+                        .append("    <li>Authentication credentials (username and password)</li>\n")
+                        .append("    <li>Database name</li>\n").append("    <li>Additional connection options</li>\n")
+                        .append("</ul>\n").append("Here is an example of a MongoDB Connection URI:\n").append("<pre>\n")
+                        .append("mongodb://username:password@hostname1:27017,hostname2:27017/databaseName?authSource=admin&ssl=true\n")
+                        .append("</pre>\n").append("<h3>Components of the MongoDB Connection URI</h3>\n")
+                        .append("<ul>\n")
+                        .append("    <li><strong>mongodb://</strong> - Indicates the protocol for MongoDB</li>\n")
+                        .append("    <li><strong>username:password</strong> - Authentication credentials (optional)</li>\n")
+                        .append("    <li><strong>@hostname1:27017,hostname2:27017</strong> - Hostnames or IP addresses of MongoDB servers, along with port numbers</li>\n")
+                        .append("    <li><strong>/databaseName</strong> - Name of the database to connect to</li>\n")
+                        .append("    <li><strong>?authSource=admin&ssl=true</strong> - Additional connection options (optional)</li>\n")
+                        .append("</ul>\n").append("</div>\n").append("</html>").toString();
 
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
             }
@@ -230,19 +223,16 @@ public class MigrationDialog extends DialogWrapper {
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                String content = "<html><h2>Data Source Information</h2>\n" +
-                        "<div>\n" +
-                        "The data source panel allows you to specify the source of the data you want to migrate. You can select the database and collections from which you want to migrate data.\n"
-                        +
-                        "<h3>Database</h3>\n" +
-                        "Select the database from which you want to migrate data.\n" +
-                        "<h3>Collections</h3>\n" +
-                        "Choose the specific collections within the selected database that you want to migrate.\n" +
-                        "<h3>Migrate Collections Indexes and Definitions</h3>\n" +
-                        "Check this option if you want to migrate the indexes and definitions of the selected collections.\n"
-                        +
-                        "</div>\n" +
-                        "</html>";
+                String content = new StringBuilder().append("<html><h2>Data Source Information</h2>\n")
+                        .append("<div>\n")
+                        .append("The data source panel allows you to specify the source of the data you want to migrate. You can select the database and collections from which you want to migrate data.\n")
+                        .append("<h3>Database</h3>\n")
+                        .append("Select the database from which you want to migrate data.\n")
+                        .append("<h3>Collections</h3>\n")
+                        .append("Choose the specific collections within the selected database that you want to migrate.\n")
+                        .append("<h3>Migrate Collections Indexes and Definitions</h3>\n")
+                        .append("Check this option if you want to migrate the indexes and definitions of the selected collections.\n")
+                        .append("</div>\n").append("</html>").toString();
 
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
             }
@@ -278,9 +268,10 @@ public class MigrationDialog extends DialogWrapper {
         gbc.weightx = 0.05;
         dataSourcePanel.add(collectionsLabel, gbc);
 
-        collectionsComboBox = new ComboBox<>();
+        collectionsComboBox = new JComboCheckBox();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
+        collectionsComboBox.setHint("Select collections to migrate");
         dataSourcePanel.add(collectionsComboBox, gbc);
 
         JCheckBox migrateCollectionsCheckBox = new JCheckBox("Migrate Collections Indexes and Definitions");
@@ -307,19 +298,14 @@ public class MigrationDialog extends DialogWrapper {
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                String content = "<html><h2>Target Information</h2>\n" +
-                        "<div>\n" +
-                        "The target panel allows you to specify the destination for the migrated data. You can select the target bucket and scope where the data will be migrated to.\n"
-                        +
-                        "<h3>Bucket</h3>\n" +
-                        "Choose the destination bucket for the migration.\n" +
-                        "<h3>Scope</h3>\n" +
-                        "Select the scope within the chosen bucket where the data will be migrated.\n" +
-                        "<h3>Create Missing Collections</h3>\n" +
-                        "Check this option if you want to create any missing collections in the selected scope during migration.\n"
-                        +
-                        "</div>\n" +
-                        "</html>";
+                String content = new StringBuilder().append("<html><h2>Target Information</h2>\n").append("<div>\n")
+                        .append("The target panel allows you to specify the destination for the migrated data. You can select the target bucket and scope where the data will be migrated to.\n")
+                        .append("<h3>Bucket</h3>\n").append("Choose the destination bucket for the migration.\n")
+                        .append("<h3>Scope</h3>\n")
+                        .append("Select the scope within the chosen bucket where the data will be migrated.\n")
+                        .append("<h3>Create Missing Collections</h3>\n")
+                        .append("Check this option if you want to create any missing collections in the selected scope during migration.\n")
+                        .append("</div>\n").append("</html>").toString();
 
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
             }
@@ -351,6 +337,7 @@ public class MigrationDialog extends DialogWrapper {
         Set<String> bucketSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
         String[] buckets = bucketSet.toArray(new String[0]);
         targetBucketCombo.setModel(new DefaultComboBoxModel<>(buckets));
+        targetBucketCombo.setSelectedIndex(0);
         targetPanel.add(targetBucketCombo, gbc);
 
         JLabel scopeLabel = new JLabel("Scope");
@@ -362,13 +349,13 @@ public class MigrationDialog extends DialogWrapper {
         targetScopeCombo = new ComboBox<>();
         gbc.gridx = 1;
         gbc.weightx = 0.95;
-        targetBucketCombo.setSelectedIndex(targetBucketCombo.getItemCount() > 0 ? 0 : -1);
         targetPanel.add(targetScopeCombo, gbc);
 
-        JCheckBox createMissingCollectionsCheckBox = new JCheckBox("Create Missing Collections");
+        JCheckBox createMissingCollectionsCheckBox = new JCheckBox("Auto create missing collections");
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.gridwidth = 2;
+        createMissingCollectionsCheckBox.setSelected(true);
         targetPanel.add(createMissingCollectionsCheckBox, gbc);
 
         return targetPanel;
@@ -438,9 +425,8 @@ public class MigrationDialog extends DialogWrapper {
     protected void addListeners() {
 
         connectButton.addActionListener(e -> {
-            // Set the label text and color to indicate that connection is being established
             universalErrorLabel.setText("Establishing Connection...");
-            universalErrorLabel.setForeground(Color.decode("#FFA726"));
+            universalErrorLabel.setForeground(ESTABILISHING_COLOR);
             universalErrorLabel.setVisible(true);
 
             SwingWorker<MongoDBConnection, Void> worker = new SwingWorker<>() {
@@ -462,17 +448,17 @@ public class MigrationDialog extends DialogWrapper {
                         isConnected = connection.mongoClient != null;
                         if (isConnected) {
                             Log.info("Successfully connected to MongoDB");
-                            universalErrorLabel.setForeground(Color.decode("#00C851"));
+                            universalErrorLabel.setForeground(SUCCESS_COLOR);
                             universalErrorLabel.setText("Connection was successful");
                         } else {
                             Log.error("Failed to connect to MongoDB");
-                            universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                            universalErrorLabel.setForeground(ERROR_COLOR);
                             universalErrorLabel.setText("Connection failed. Please make sure your URI is valid");
                         }
                         validateAndEnableNextButton();
                     } catch (Exception ex) {
                         Log.error("Failed to connect to MongoDB");
-                        universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                        universalErrorLabel.setForeground(ERROR_COLOR);
                         universalErrorLabel.setText("Connection failed. Please make sure your URI is valid");
                         validateAndEnableNextButton();
                     }
@@ -485,7 +471,7 @@ public class MigrationDialog extends DialogWrapper {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
                 isConnected = false;
-                universalErrorLabel.setForeground(Color.decode("#FF4444"));
+                universalErrorLabel.setForeground(ERROR_COLOR);
                 universalErrorLabel.setText("Not connected");
                 universalErrorLabel.setVisible(true);
                 validateAndEnableNextButton();
@@ -494,11 +480,14 @@ public class MigrationDialog extends DialogWrapper {
 
         databaseComboBox.addActionListener(e -> {
             MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
-            collectionsComboBox.setModel(new DefaultComboBoxModel<>(connection
-                    .getCollectionNames(Objects.requireNonNull(databaseComboBox.getSelectedItem()).toString())
-                    .toArray(new String[0])));
+            List<String> collectionNames = connection
+                    .getCollectionNames(Objects.requireNonNull(databaseComboBox.getSelectedItem()).toString());
+            collectionsComboBox.removeAllItems(); // Clear the previous items
+            collectionsComboBox.addItem("All collections in the database"); // Add the "All collections" option
+            for (String collectionName : collectionNames) {
+                collectionsComboBox.addItem(collectionName);
+            }
         });
-        
 
         targetBucketCombo.addActionListener(e -> {
             String selectedBucket = (String) targetBucketCombo.getSelectedItem();
@@ -532,6 +521,7 @@ public class MigrationDialog extends DialogWrapper {
                         .applyConnectionString(new ConnectionString(connectionString))
                         .serverApi(serverApi)
                         .build();
+
                 // Create a new client and connect to the server
                 MongoClient tempMongoClient = MongoClients.create(settings);
 
@@ -575,7 +565,6 @@ public class MigrationDialog extends DialogWrapper {
         try {
             String mongoDBConnectionString = mongoDBTextField.getText();
             String databaseName = (String) databaseComboBox.getSelectedItem();
-            String collectionName = (String) collectionsComboBox.getSelectedItem();
             String targetBucket = (String) targetBucketCombo.getSelectedItem();
             String targetScope = (String) targetScopeCombo.getSelectedItem();
 
@@ -583,20 +572,50 @@ public class MigrationDialog extends DialogWrapper {
             String username = ActiveCluster.getInstance().getUsername();
             String password = ActiveCluster.getInstance().getPassword();
 
-            CBMigrateCommandBuilder builder = new CBMigrateCommandBuilder()
-                    .setMongoDBURI(mongoDBConnectionString)
-                    .setMongoDBDatabase(databaseName)
-                    .setMongoDBCollection(collectionName)
-                    .setCBBucket(targetBucket)
-                    .setCBScope(targetScope)
-                    .setCBCollection(collectionName) // TODO: change this to target collection
-                    .setCBCluster(clusterURL)
-                    .setCBUsername(username)
-                    .setCBPassword(password)
-                    .setCBGenerateKey("%_id%");
-            // .setVerbose();
+            List<CBMigrateCommandBuilder> builders = new ArrayList<>();
 
-            CBMigrate.migrate(project, builder);
+            for (String collections : collectionsComboBox.getSelectedItems()) {
+                if (collections.equals("All collections in the database")) {
+                    builders.clear();
+                    // If "All collections in the database" is selected, add all collections to the
+                    // builders list
+                    MongoDBConnection connection = new MongoDBConnection(mongoDBTextField.getText());
+                    List<String> allCollectionNames = connection.getCollectionNames(databaseName);
+                    for (String allCollectionName : allCollectionNames) {
+                        CBMigrateCommandBuilder builder = new CBMigrateCommandBuilder()
+                                .setMongoDBURI(mongoDBConnectionString)
+                                .setMongoDBDatabase(databaseName)
+                                .setMongoDBCollection(allCollectionName)
+                                .setCBBucket(targetBucket)
+                                .setCBScope(targetScope)
+                                .setCBCollection(allCollectionName)
+                                .setCBCluster(clusterURL)
+                                .setCBUsername(username)
+                                .setCBPassword(password)
+                                .setCBGenerateKey("%_id%");
+                                // .setVerbose();
+                        builders.add(builder);
+                    }
+                    break;
+                } else {
+                    // If a specific collection is selected, add it to the builders list
+                    CBMigrateCommandBuilder builder = new CBMigrateCommandBuilder()
+                            .setMongoDBURI(mongoDBConnectionString)
+                            .setMongoDBDatabase(databaseName)
+                            .setMongoDBCollection(collections)
+                            .setCBBucket(targetBucket)
+                            .setCBScope(targetScope)
+                            .setCBCollection(collections)
+                            .setCBCluster(clusterURL)
+                            .setCBUsername(username)
+                            .setCBPassword(password)
+                            .setCBGenerateKey("%_id%");
+                            // .setVerbose();
+                    builders.add(builder);
+                }
+            }
+
+            CBMigrate.migrateMultipleCollections(project, builders);
             super.doOKAction();
 
         } catch (Exception e) {
@@ -604,7 +623,6 @@ public class MigrationDialog extends DialogWrapper {
             ApplicationManager.getApplication().invokeLater(
                     () -> Messages.showErrorDialog(project, "Error migrating data: " + e.getMessage(), "Error"));
         }
-
     }
 
 }

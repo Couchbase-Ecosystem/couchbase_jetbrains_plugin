@@ -17,7 +17,8 @@ import com.intellij.openapi.ui.Messages;
 
 public class CBMigrate {
 
-    private CBMigrate() {}
+    private CBMigrate() {
+    }
 
     public static class CBMigrateCommandBuilder {
 
@@ -100,7 +101,7 @@ public class CBMigrate {
 
     }
 
-    public static void migrate(Project project, CBMigrateCommandBuilder builder) {
+    public static void migrateSingleCollection(Project project, CBMigrateCommandBuilder builder) {
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Migrating MongoDB to Couchbase", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
@@ -117,14 +118,18 @@ public class CBMigrate {
                     printOutput(process, "Migrating MongoDB to Couchbase: ");
 
                     int exitCode = process.waitFor();
+                    String collectionName = builder.commandList
+                            .get(builder.commandList.indexOf("--mongodb-collection") + 1);
                     if (exitCode == 0) {
-                        Log.info("MongoDB to Couchbase migration completed successfully");
+                        // Get the string after collection
+                        Log.info("Successfully migrated MongoDB collection " + collectionName + " to Couchbase");
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage(project,
-                                "MongoDB to Couchbase migration completed successfully", "Migration Completed"));
+                                "MongoDB collection " + collectionName + " migrated to Couchbase",
+                                "Migration Successful"));
                     } else {
-                        Log.error("An error occurred while migrating MongoDB to Couchbase with exit code: " + exitCode);
+                        Log.error("An error occurred while migrating collection" + collectionName);
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(project,
-                                "MongoDB to Couchbase migration failed", "Migration Failed"));
+                                "An error occurred while migrating collection " + collectionName, "Migration Failed"));
                     }
 
                 } catch (InterruptedException ex) {
@@ -134,6 +139,61 @@ public class CBMigrate {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(project,
                             "MongoDB to Couchbase migration failed", "Migration Failed"));
                 }
+            }
+        });
+    }
+
+    public static void migrateMultipleCollections(Project project, List<CBMigrateCommandBuilder> builders) {
+
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Migrating MongoDB to Couchbase", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+
+                indicator.setIndeterminate(true);
+                indicator.setText("Migrating data from MongoDB to Couchbase");
+
+                List<String> successfulMigrations = new ArrayList<>();
+                List<String> failedMigrations = new ArrayList<>();
+
+                for (CBMigrateCommandBuilder builder : builders) {
+                    String collectionName = builder.commandList
+                            .get(builder.commandList.indexOf("--mongodb-collection") + 1);
+                    try {
+                        ProcessBuilder processBuilder = new ProcessBuilder(builder.build());
+                        Log.debug("Running command: " + String.join(" ", builder.commandList));
+                        Process process = processBuilder.start();
+                        printOutput(process, "Migrating MongoDB to Couchbase: ");
+                        int exitCode = process.waitFor();
+                        if (exitCode == 0) {
+                            Log.info("Successfully migrated MongoDB collection " + collectionName + " to Couchbase");
+                            successfulMigrations.add(collectionName);
+                        } else {
+                            Log.error("An error occurred while migrating collection " + collectionName);
+                            failedMigrations.add(collectionName);
+                        }
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception ex) {
+                        Log.error("Error while migrating MongoDB to Couchbase", ex);
+                        failedMigrations.add(collectionName);
+                    }
+                }
+
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (!successfulMigrations.isEmpty()) {
+                        Messages.showInfoMessage(project,
+                                "Successfully migrated the following MongoDB collections to Couchbase: "
+                                        + String.join(", ", successfulMigrations),
+                                "Migration Successful");
+                    }
+                    if (!failedMigrations.isEmpty()) {
+                        Messages.showErrorDialog(project,
+                                "An error occurred while migrating the following collections: "
+                                        + String.join(", ", failedMigrations),
+                                "Migration Failed");
+                    }
+                });
+
             }
         });
     }
