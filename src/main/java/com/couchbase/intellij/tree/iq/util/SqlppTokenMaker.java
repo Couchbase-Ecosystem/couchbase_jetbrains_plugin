@@ -66,7 +66,7 @@ public class SqlppTokenMaker extends AbstractTokenMaker {
             } else if (nextToken == GeneratedTypes.FUNCS || nextToken == GeneratedTypes.FUNCTION_NAME || nextToken == GeneratedTypes.FUNCTION_REF) {
                 tokenType = Token.FUNCTION;
             } else {
-                throw new RuntimeException("handle me: " + nextToken.getDebugName());
+                throw new RuntimeException("handle me: " + nextToken);
             }
 
             if (tokenType > 0) {
