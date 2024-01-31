@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.ui.view;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
@@ -307,8 +308,8 @@ public class RSyntaxTextAreaView extends ComponentView {
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
             IQWindowContent.getInstance().ifPresentOrElse(iqWindow -> {
-                String[] context = iqWindow.getClusterContext();
-                if (context == null || context.length != 2) {
+                QueryContext context = iqWindow.getClusterContext();
+                if (context == null) {
                     Notifications.Bus.notify(
                             new Notification(
                                     ChatGptBundle.message("group.id"),
@@ -330,9 +331,9 @@ public class RSyntaxTextAreaView extends ComponentView {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
                             if (script.size() > 1) {
-                                QueryExecutor.executeScript(new LinkedBlockingQueue<>(), NORMAL, script, context[0], context[1], 0, project);
+                                QueryExecutor.executeScript(new LinkedBlockingQueue<>(), NORMAL, context, script, 0, project);
                             } else {
-                                QueryExecutor.executeQuery(new LinkedBlockingQueue<>(), NORMAL, sql, context[0], context[1], 0, project);
+                                QueryExecutor.executeQuery(new LinkedBlockingQueue<>(), NORMAL, context, sql, 0, project);
                             }
                         }
                     }.queue();

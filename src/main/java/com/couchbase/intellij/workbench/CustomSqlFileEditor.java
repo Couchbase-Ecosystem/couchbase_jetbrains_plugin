@@ -4,6 +4,7 @@ package com.couchbase.intellij.workbench;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
@@ -36,6 +37,7 @@ import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.ui.speedSearch.ElementFilter;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import generated.psi.Statement;
@@ -67,8 +69,6 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
     private JLabel historyLabel;
     private JComponent component;
     private int currentHistoryIndex;
-    private String selectedBucketContext;
-    private String selectedScopeContext;
     private String cachedPreviousSelectedConnection;
     private JPanel topPanel;
 
@@ -188,12 +188,13 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         public void run(@NotNull ProgressIndicator indicator) {
                             boolean query = false;
                             boolean script = false;
+                            QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
                             if (statements.size() == 0) {
                                 return;
                             } else if (statements.size() == 1) {
-                                query = QueryExecutor.executeQuery(queryExecutionChannel,NORMAL, statements.get(0), selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                                query = QueryExecutor.executeQuery(queryExecutionChannel,NORMAL, context, statements.get(0), currentHistoryIndex, project);
                             } else {
-                                script = QueryExecutor.executeScript(scriptExecutionChannel,NORMAL, statements, selectedBucketContext, selectedScopeContext, currentHistoryIndex, project);
+                                script = QueryExecutor.executeScript(scriptExecutionChannel,NORMAL, context, statements, currentHistoryIndex, project);
                             }
 
                             try {
@@ -230,7 +231,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                 }
                 String statement = getFocusedStatement();
 
-                QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, statement, selectedBucketContext, selectedScopeContext, -1, project);
+                QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
             }
         });
 
@@ -242,7 +243,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     return;
                 }
                 String statement = getFocusedStatement();
-                QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, statement, selectedBucketContext, selectedScopeContext, -1, project);
+                QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
             }
         });
 
@@ -516,36 +517,53 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             public void actionPerformed(@NotNull AnActionEvent e) {
                 contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
                 contextLabel.revalidate();
-                setSelectedContext(Collections.EMPTY_LIST);
+                setSelectedContext(null);
             }
         };
 
         option1Group.add(clearContextAction);
         option1Group.addSeparator("Buckets");
 
-        ActiveCluster.getInstance().getChildren().stream()
-                .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
-                .forEach(bucket -> {
-                    DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket.getName(), true);
-                    bucketsGroup.addSeparator("Scopes");
 
-                    bucket.getChildren().stream()
-                            .sorted(Comparator.comparing(s -> s.getName().toLowerCase()))
-                            .forEach(scope -> {
+        ActiveCluster.subscribe(activeCluster -> {
+            activeCluster.getQueryContext().subscribe(queryContext -> {
+                if (queryContext.isPresent()) {
+                    contextLabel.setText(String.format("%s > %s", queryContext.get().getBucket(), queryContext.get().getScope()));
+                    contextLabel.revalidate();
+                } else {
+                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                    contextLabel.revalidate();
+                }
+                PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+                if (psiFile instanceof SqlppFile) {
+                    ((SqlppFile) psiFile).setClusterContext(queryContext.orElse(null));
+                }
+                return true;
+            });
+            activeCluster.getChildren().stream()
+                    .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
+                    .forEach(bucket -> {
+                        DefaultActionGroup bucketsGroup = new DefaultActionGroup(bucket.getName(), true);
+                        bucketsGroup.addSeparator("Scopes");
 
-                                AnAction scopeAction = new AnAction(scope.getName()) {
-                                    @Override
-                                    public void actionPerformed(@NotNull AnActionEvent e) {
-                                        contextLabel.setText(bucket.getName() + " > " + scope.getName());
-                                        contextLabel.revalidate();
-                                        setSelectedContext(Arrays.asList(bucket.getName(), scope.getName()));
-                                    }
-                                };
+                        bucket.getChildren().stream()
+                                .sorted(Comparator.comparing(s -> s.getName().toLowerCase()))
+                                .forEach(scope -> {
 
-                                bucketsGroup.add(scopeAction);
-                            });
-                    option1Group.add(bucketsGroup);
-                });
+                                    AnAction scopeAction = new AnAction(scope.getName()) {
+                                        @Override
+                                        public void actionPerformed(@NotNull AnActionEvent e) {
+                                            contextLabel.setText(bucket.getName() + " > " + scope.getName());
+                                            contextLabel.revalidate();
+                                            setSelectedContext(new QueryContext(bucket.getName(), scope.getName()));
+                                        }
+                                    };
+
+                                    bucketsGroup.add(scopeAction);
+                                });
+                        option1Group.add(bucketsGroup);
+                    });
+        });
     }
 
     @Override
@@ -639,18 +657,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
      * Used in testing only
      * * @param context
      */
-    public void setSelectedContext(List<String> context) {
-        if (!context.isEmpty()) {
-            this.selectedBucketContext = context.get(0);
-            if (context.size() > 1) {
-                this.selectedScopeContext = context.get(1);
-            } else {
-                this.selectedScopeContext = null;
-            }
-        } else {
-            this.selectedBucketContext = null;
-            this.selectedScopeContext = null;
-        }
+    public void setSelectedContext(QueryContext context) {
+        ActiveCluster.getInstance().setQueryContext(context);
         PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
         if (psiFile instanceof SqlppFile) {
             ((SqlppFile) psiFile).setClusterContext(context);

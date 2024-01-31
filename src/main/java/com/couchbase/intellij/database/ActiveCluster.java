@@ -10,13 +10,16 @@ import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
+import com.couchbase.intellij.utils.Subscribable;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
+import kotlinx.html.INS;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import utils.CBConfigUtil;
 
@@ -33,7 +36,7 @@ import java.util.stream.Stream;
 
 public class ActiveCluster implements CouchbaseClusterEntity {
 
-    private static ActiveCluster activeCluster = new ActiveCluster();
+    public static Subscribable<ActiveCluster> INSTANCE = new Subscribable<>(new ActiveCluster());
     /**
      * Connection listeners are invoked only when a new cluster connection is established
      */
@@ -54,30 +57,46 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     private Runnable disconnectListener;
 
+    private final Subscribable<QueryContext> queryContext = new Subscribable<>();
+
     public static final AtomicBoolean ReconnectOnDisconnect = new AtomicBoolean();
     /**
      * Subscribers are invoked upon subscription and when a new connection is established
      * and initialized (schema has been populated)
      */
-    private static final List<Consumer<ActiveCluster>> subscribers = new ArrayList<>();
+    private static final List<Consumer<ActiveCluster>> clusterListeners = new ArrayList<>();
+
+    /**
+     * Subscribers are invoked every time context is changed on this cluster
+     */
+    private final List<Consumer<Optional<QueryContext>>> queryContextListeners = new ArrayList<>();
 
     protected ActiveCluster() {
     }
 
     public static ActiveCluster getInstance() {
-        return activeCluster;
+        return INSTANCE.get().orElse(null);
     }
 
     public static void subscribe(Consumer<ActiveCluster> listener) {
-        subscribers.add(listener);
-        if (activeCluster.cluster != null) {
-            listener.accept(activeCluster);
+        clusterListeners.add(listener);
+        if (INSTANCE != null && INSTANCE.isPresent() && INSTANCE.getValue().cluster != null) {
+            listener.accept(INSTANCE.getValue());
         }
+    }
+
+    public void setQueryContext(@Nullable QueryContext context) {
+        this.queryContext.set(context);
+    }
+
+    @NotNull
+    public Subscribable<QueryContext> getQueryContext() {
+        return this.queryContext;
     }
 
     @VisibleForTesting
     public static void setInstance(ActiveCluster i) {
-        activeCluster = i;
+        INSTANCE.set(i);
     }
 
     public void registerNewConnectionListener(Runnable runnable) {
@@ -194,7 +213,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     scheduleSchemaUpdate(e -> {
                         if (e == null) {
                             // notify all subscribers
-                            subscribers.forEach(s -> s.accept(ActiveCluster.this));
+                            clusterListeners.forEach(s -> s.accept(ActiveCluster.this));
                         }
                         connectListener.accept(e);
                     });

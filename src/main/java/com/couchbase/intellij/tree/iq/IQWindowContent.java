@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
@@ -32,7 +33,6 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
     private OpenAISettingsState.OpenAIConfig iqGptConfig;
-    private static String[] clusterContext;
     private static String cachedPrompt;
     private static AtomicReference<IQWindowContent> instance = new AtomicReference<>();
     private ChatPanel chatPanel;
@@ -57,17 +57,17 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     }
 
     public static void setClusterContext(String bucket, String scope) {
-        clusterContext = new String[] {bucket, scope};
+        ActiveCluster.getInstance().setQueryContext(new QueryContext(bucket, scope));
         cachedPrompt = null;
     }
 
     public static void clearClusterContext() {
-        clusterContext = null;
+        ActiveCluster.getInstance().setQueryContext(null);
         cachedPrompt = null;
     }
 
-    public String[] getClusterContext() {
-        return clusterContext;
+    public QueryContext getClusterContext() {
+        return ActiveCluster.getInstance().getQueryContext().getValue();
     }
 
     @Override
@@ -201,8 +201,11 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
                         .distinct()
                         .collect(Collectors.joining(", "));
                 cachedPrompt = cachedPrompt.replaceAll("\\$\\{collections\\}", collections);
-                if (clusterContext != null) {
-                    cachedPrompt = String.format("%s\n Use this couchbase cluster context to address all collections: `%s`.`%s`", cachedPrompt, clusterContext[0], clusterContext[1]);
+                if (ActiveCluster.getInstance() != null) {
+                    QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
+                    if (context != null) {
+                        cachedPrompt = String.format("%s\n Use this couchbase cluster context to address all collections: `%s`.`%s`", cachedPrompt, context.getBucket(), context.getScope());
+                    }
                 }
             }
             return cachedPrompt;

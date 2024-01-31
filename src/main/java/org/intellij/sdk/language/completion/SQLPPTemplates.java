@@ -1,6 +1,7 @@
 package org.intellij.sdk.language.completion;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.database.entity.CouchbaseField;
 import com.couchbase.intellij.database.entity.CouchbaseScope;
@@ -44,17 +45,17 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     @Override
     protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext ctx, @NotNull CompletionResultSet result) {
         result.addAllElements(getStaticRecommendations());
-        List<String> context = getQueryContext(parameters);
-        if (!context.isEmpty()) {
+        QueryContext context = getQueryContext(parameters);
+        if (context != null) {
             result.addAllElements(getDynamicRecommendations(context));
         }
     }
 
 
-    private List<LookupElement> getDynamicRecommendations(List<String> path) {
+    private List<LookupElement> getDynamicRecommendations(QueryContext path) {
 
         List<LookupElement> recommendations = new ArrayList<>();
-        Optional<CouchbaseScope> scope = ((Stream<CouchbaseScope>) ActiveCluster.getInstance().navigate(path)).findFirst();
+        Optional<CouchbaseScope> scope = ((Stream<CouchbaseScope>) ActiveCluster.getInstance().navigate(path.toList())).findFirst();
         if (scope.isPresent()) {
             Set<CouchbaseCollection> collections = scope.get().getChildren();
             Map<String, Set<String>> colAttributes = collections
@@ -218,10 +219,10 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
         return recommendations;
     }
 
-    private List<String> getQueryContext(CompletionParameters parameters) {
+    private QueryContext getQueryContext(CompletionParameters parameters) {
         PsiElement element = Utils.cleanErrorIfPresent(parameters.getPosition());
         PsiFile psiFile = element.getContainingFile();
-        return psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
+        return psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : null;
     }
 
 
