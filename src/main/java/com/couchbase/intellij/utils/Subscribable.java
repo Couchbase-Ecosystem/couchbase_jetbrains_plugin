@@ -1,14 +1,16 @@
 package com.couchbase.intellij.utils;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Subscribable<T> {
     private Optional<T> value;
-    private List<Function<Optional<T>, Boolean>> subscribers = new ArrayList<>();
+    private List<WeakReference<Function<Optional<T>, Boolean>>> subscribers = new ArrayList<>();
 
     public Subscribable() {
         value = Optional.empty();
@@ -21,7 +23,8 @@ public class Subscribable<T> {
     public void set(T value) {
         this.value = Optional.ofNullable(value);
         subscribers = subscribers.stream()
-                .filter(subscriber -> subscriber.apply(this.value))
+                .filter(subscriber -> subscriber.get() != null)
+                .filter(subscriber -> subscriber.get().apply(this.value))
                 .collect(Collectors.toList());
     }
 
@@ -33,12 +36,15 @@ public class Subscribable<T> {
      */
     public void subscribe(Function<Optional<T>, Boolean> subscriber) {
         if (subscriber.apply(value)) {
-            this.subscribers.add(subscriber);
+            this.subscribers.add(new WeakReference<>(subscriber));
         }
     }
 
     public void unsubscribe(Function<Optional<T>, Boolean> subscriber) {
-        this.subscribers.remove(subscriber);
+        this.subscribers.retainAll(this.subscribers.stream()
+                .filter(ref -> ref.get() != null)
+                .filter(ref -> !Objects.equals(subscriber, ref.get()))
+                        .collect(Collectors.toList()));
     }
 
     public Optional<T> get() {
