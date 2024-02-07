@@ -217,6 +217,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         }
                         connectListener.accept(e);
                     });
+                    INSTANCE.set(ActiveCluster.this);
                 } catch (Exception e) {
                     SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
                             String.format("Error while connecting to cluster '%s': \n %s", savedCluster.getId(), e.getMessage()),

@@ -1,16 +1,16 @@
 package com.couchbase.intellij.utils;
 
+import cn.hutool.core.stream.StreamUtil;
+
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Subscribable<T> {
     private Optional<T> value;
-    private List<WeakReference<Function<Optional<T>, Boolean>>> subscribers = new ArrayList<>();
+    private Map<WeakReference<Object>, Function<Optional<T>, Boolean>> subscribers = new HashMap<>();
 
     public Subscribable() {
         value = Optional.empty();
@@ -22,10 +22,18 @@ public class Subscribable<T> {
 
     public void set(T value) {
         this.value = Optional.ofNullable(value);
-        subscribers = subscribers.stream()
-                .filter(subscriber -> subscriber.get() != null)
-                .filter(subscriber -> subscriber.get().apply(this.value))
-                .collect(Collectors.toList());
+        subscribers = subscribers.entrySet().stream()
+                .filter(subscriber -> subscriber.getKey() != null
+                        && subscriber.getKey().get() != null
+                        && subscriber.getValue() != null)
+                .filter(subscriber -> {
+                    try {
+                        return subscriber.getValue().apply(this.value);
+                    } catch (Throwable e) {
+                        return false;
+                    }
+                })
+                .collect(Collectors.toMap(s -> s.getKey(), s -> s.getValue()));
     }
 
     /**
@@ -34,17 +42,19 @@ public class Subscribable<T> {
      *  otherwise it will be unsubscribed.
      * @param subscriber the subscriber
      */
-    public void subscribe(Function<Optional<T>, Boolean> subscriber) {
+    public void subscribe(Object key, Function<Optional<T>, Boolean> subscriber) {
         if (subscriber.apply(value)) {
-            this.subscribers.add(new WeakReference<>(subscriber));
+            this.subscribers = this.subscribers.entrySet().stream()
+                            .filter(s -> s.getKey() != null && s.getKey().get() != null && !Objects.equals(s.getKey().get(), key))
+                    .collect(Collectors.toMap(s -> s.getKey(), s -> s.getValue()));
+            this.subscribers.put(new WeakReference<>(key), subscriber);
         }
     }
 
-    public void unsubscribe(Function<Optional<T>, Boolean> subscriber) {
-        this.subscribers.retainAll(this.subscribers.stream()
-                .filter(ref -> ref.get() != null)
-                .filter(ref -> !Objects.equals(subscriber, ref.get()))
-                        .collect(Collectors.toList()));
+    public void unsubscribe(Object key) {
+        this.subscribers = this.subscribers.entrySet().stream()
+                .filter(s -> s.getKey() != null && s.getKey().get() != null && !Objects.equals(s.getKey().get(), key))
+                .collect(Collectors.toMap(s -> s.getKey(), s -> s.getValue()));
     }
 
     public Optional<T> get() {

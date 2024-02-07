@@ -131,7 +131,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         DefaultActionGroup placeholder = new DefaultActionGroup();
         group.add(placeholder);
         AtomicReference<DefaultActionGroup> oldContextAction = new AtomicReference<>(placeholder);
-        ActiveCluster.INSTANCE.subscribe(optionalActiveCluster -> {
+        ActiveCluster.INSTANCE.subscribe(this, optionalActiveCluster -> {
             if (optionalActiveCluster.isEmpty()) {
                 if (oldContextAction.get() != null) {
                     group.remove(oldContextAction.get());
@@ -156,7 +156,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 }
             };
 
-            activeCluster.getQueryContext().subscribe(queryContext -> {
+            activeCluster.getQueryContext().subscribe(this, queryContext -> {
                 if (queryContext.isPresent()) {
                     QueryContext context = queryContext.get();
                     contextLabel.set(String.format("%s.%s", context.getBucket(), context.getScope()));
