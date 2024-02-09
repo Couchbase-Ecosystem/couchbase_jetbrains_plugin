@@ -10,7 +10,6 @@ import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.CouchbaseWindowContent;
 import com.couchbase.intellij.tree.TreeActionHandler;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
-import com.esotericsoftware.kryo.kryo5.util.Null;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -38,6 +37,9 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import generated.psi.LimitClause;
+import generated.psi.SelectStatement;
+import generated.psi.SelectTerm;
 import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.intellij.sdk.language.psi.SqlppFile;
@@ -363,6 +365,18 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         panel.add(topPanel, BorderLayout.NORTH);
     }
 
+    private String normalizeStatement(Statement statement) {
+        String text = statement.getText();
+        PsiElement firstDeepest = PsiTreeUtil.getDeepestFirst(statement);
+        if (firstDeepest instanceof SelectTerm){
+            PsiElement selStatement = PsiTreeUtil.getParentOfType(firstDeepest, SelectStatement.class);
+            if (PsiTreeUtil.getChildrenOfType(selStatement, LimitClause.class).length == 0) {
+                text = String.format("SELECT * FROM (%s) as d LIMIT 200");
+            }
+        }
+        return text;
+    }
+
     private String getFocusedStatement() {
         SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
 
@@ -379,7 +393,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         return ReadAction.compute(() -> {
             PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
             if (focused != null) {
-                return PsiTreeUtil.getTopmostParentOfType(focused, Statement.class).getText();
+                return normalizeStatement(PsiTreeUtil.getTopmostParentOfType(focused, Statement.class));
             }
             return null;
         });
@@ -399,7 +413,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             return List.of(queryEditor.getDocument().getText());
         }
         return ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
-                .map(PsiElement::getText)
+                .map(this::normalizeStatement)
                 .collect(Collectors.toList())
         );
     }

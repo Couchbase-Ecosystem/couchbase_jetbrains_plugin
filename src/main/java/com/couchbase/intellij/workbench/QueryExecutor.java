@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import generated.GeneratedParser;
 import reactor.core.publisher.Mono;
 
 import javax.swing.*;
@@ -172,8 +173,11 @@ public class QueryExecutor {
 
         return error.getErrors().isEmpty();
     }
-
     public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
+        return executeQuery(queue, type, query, bucket, scope, historyIndex, project, 200);
+    }
+
+    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, String query, String bucket, String scope, int historyIndex, Project project, int limit) {
         if (query == null || query.trim().isEmpty()) {
             return false;
         }
