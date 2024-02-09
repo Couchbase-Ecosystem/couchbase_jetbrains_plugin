@@ -2,6 +2,7 @@
 
 package org.intellij.sdk.language.psi;
 
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.intellij.extapi.psi.PsiFileBase;
 import com.intellij.openapi.fileTypes.FileType;
@@ -16,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class SqlppFile extends PsiFileBase {
-  private static List<String> context;
+  private static QueryContext context;
   public SqlppFile(@NotNull FileViewProvider viewProvider) {
     super(viewProvider, SQLPPLanguage.INSTANCE);
   }
@@ -41,11 +42,11 @@ public class SqlppFile extends PsiFileBase {
     return result;
   }
 
-  public List<String> getClusterContext() {
-    return new ArrayList<>(context == null ? Collections.EMPTY_LIST : context);
+  public QueryContext getClusterContext() {
+    return context;
   }
 
-  public void setClusterContext(List<String> context) {
+  public void setClusterContext(QueryContext context) {
     this.context = context;
   }
 }

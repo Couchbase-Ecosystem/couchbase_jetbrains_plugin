@@ -8,6 +8,7 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.*;
 import com.couchbase.client.java.transactions.TransactionQueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
@@ -49,7 +50,7 @@ public class QueryExecutor {
         return resultWindow;
     }
 
-    public static Boolean executeScript(BlockingQueue<Boolean> queue,QueryType type, List<String> statements, String bucket, String scope, int historyIndex, Project project) {
+    public static Boolean executeScript(BlockingQueue<Boolean> queue,QueryType type, QueryContext context, List<String> statements, int historyIndex, Project project) {
         Cluster cluster = ActiveCluster.getInstance().getCluster();
         if (statements == null || statements.isEmpty()) {
             return false;
@@ -87,10 +88,10 @@ public class QueryExecutor {
                         try {
                             Mono<TransactionQueryResult> transactionResult;
 
-                            if (bucket == null) {
+                            if (context == null || context.getBucket() == null) {
                                 transactionResult = tx.query(query);
                             } else {
-                                transactionResult = tx.query(cluster.bucket(bucket).scope(scope).reactive(), query);
+                                transactionResult = tx.query(cluster.bucket(context.getBucket()).scope(context.getScope()).reactive(), query);
                             }
                             if (aggregatedResult == null) {
                                 aggregatedResult = transactionResult;
@@ -173,11 +174,11 @@ public class QueryExecutor {
 
         return error.getErrors().isEmpty();
     }
-    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, String query, String bucket, String scope, int historyIndex, Project project) {
-        return executeQuery(queue, type, query, bucket, scope, historyIndex, project, 200);
+    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, QueryContext context, String query, int historyIndex, Project project) {
+        return executeQuery(queue, type, context, query, historyIndex, project, 200);
     }
 
-    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, String query, String bucket, String scope, int historyIndex, Project project, int limit) {
+    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, QueryContext context, String query, int historyIndex, Project project, int limit) {
         if (query == null || query.trim().isEmpty()) {
             return false;
         }
@@ -211,8 +212,8 @@ public class QueryExecutor {
                 start = System.currentTimeMillis();
                 CompletableFuture<QueryResult> futureResult;
 
-                if (bucket != null) {
-                    futureResult = ActiveCluster.getInstance().get().bucket(bucket).scope(scope).async().query(adjustedQuery,
+                if (context != null && context.getBucket() != null && context.getScope() != null) {
+                    futureResult = ActiveCluster.getInstance().get().bucket(context.getBucket()).scope(context.getScope()).async().query(adjustedQuery,
                             QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
                 } else {
                     futureResult = ActiveCluster.getInstance().get().async().query(adjustedQuery, QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));

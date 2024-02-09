@@ -2,6 +2,7 @@ package org.intellij.sdk.language.completion;
 
 import com.couchbase.client.java.Cluster;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.database.entity.*;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
@@ -13,16 +14,15 @@ import org.mockito.Mockito;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.function.Consumer;
 
 public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     private void assertCompletes(String text, String complete) {
-        assertCompletes(Collections.EMPTY_LIST, text, complete);
+        assertCompletes(null, text, complete);
     }
 
-    private void assertCompletes(List<String> context, String text, String complete) {
+    private void assertCompletes(QueryContext context, String text, String complete) {
         assertCompletes(context, text, items -> {
             if (complete == null) {
                 assertNull(items);
@@ -38,7 +38,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         assertNotCompletes(null, text, notComplete);
     }
 
-    private void assertNotCompletes(List<String> context, String text, String notComplete) {
+    private void assertNotCompletes(QueryContext context, String text, String notComplete) {
         assertCompletes(context, text, items -> {
             if (items != null && items.length != 0) {
                 assertFalse(Arrays.stream(items).anyMatch(i -> notComplete.equals(i.getLookupString())));
@@ -46,7 +46,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
         });
     }
 
-    private void assertCompletes(List<String> context, String text, Consumer<LookupElement[]> checker) {
+    private void assertCompletes(QueryContext context, String text, Consumer<LookupElement[]> checker) {
         ActiveCluster activeClusterInstance = Mockito.mock(ActiveCluster.class);
         Mockito.when(activeClusterInstance.pathElements()).thenCallRealMethod();
         Cluster cluster = Mockito.mock(Cluster.class);
@@ -179,13 +179,13 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testSubFieldsViaContext() {
-        assertCompletes(Arrays.asList("bucket-entity", "scope-entity"),
+        assertCompletes(new QueryContext("bucket-entity", "scope-entity"),
                 "select * from `collection-entity`.parent-field.", "child-field");
     }
 
     @Test
     public void testInWhere() {
-        assertCompletes(Arrays.asList("bucket-entity", "scope-entity"),
+        assertCompletes(new QueryContext("bucket-entity", "scope-entity"),
                 "SELECT * from collection-entity where collection-entity.parent-field.",
                 "child-field");
     }
@@ -212,7 +212,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
     @Test
     public void testUsesEditorContext() {
-        assertCompletes(Arrays.asList("other-bucket-entity", "other-scope-entity"), "SELECT ", items -> {
+        assertCompletes(new QueryContext("other-bucket-entity", "other-scope-entity"), "SELECT ", items -> {
             assertTrue(Arrays.stream(items).anyMatch(item -> "other-collection-entity".equals(item.getLookupString())));
             assertTrue(Arrays.stream(items).noneMatch(item -> "collection-entity".equals(item.getLookupString())));
         });
@@ -235,7 +235,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     @Test
     public void testPaths() {
         assertCompletes(
-                Arrays.asList("bucket-entity", "scope-entity"),
+                new QueryContext("bucket-entity", "scope-entity"),
                 "SELECT * from collection-entity where landmark.geo.accuracy = 100 + 300 and collection-entity.",
                 "parent-field"
         );
@@ -244,7 +244,7 @@ public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
     @Test
     public void testExpressionChild() {
         assertCompletes(
-                Arrays.asList("bucket-entity", "scope-entity"),
+                new QueryContext("bucket-entity", "scope-entity"),
                 "SELECT * from collection-entity where landmark.geo.accuracy = 100 + 300 and collection-entity.parent-field.",
                 "child-field"
         );
