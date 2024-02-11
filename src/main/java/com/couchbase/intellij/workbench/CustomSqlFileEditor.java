@@ -39,6 +39,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.speedSearch.ElementFilter;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import generated.GeneratedTypes;
 import generated.psi.LimitClause;
 import generated.psi.SelectStatement;
 import generated.psi.SelectTerm;
@@ -367,10 +368,14 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
     private String normalizeStatement(Statement statement) {
         String text = statement.getText();
         PsiElement firstDeepest = PsiTreeUtil.getDeepestFirst(statement);
-        if (firstDeepest instanceof SelectTerm){
+
+        if (firstDeepest.getNode().getElementType() == GeneratedTypes.SELECT){
             PsiElement selStatement = PsiTreeUtil.getParentOfType(firstDeepest, SelectStatement.class);
-            if (PsiTreeUtil.getChildrenOfType(selStatement, LimitClause.class).length == 0) {
-                text = String.format("SELECT * FROM (%s) as d LIMIT 200");
+            if (PsiTreeUtil.getChildrenOfType(selStatement, LimitClause.class) == null) {
+                Integer queryLimit = ActiveCluster.getInstance().getQueryLimit();
+                if (queryLimit != null) {
+                    text = String.format("SELECT * FROM (%s) as d LIMIT %d", text, queryLimit);
+                }
             }
         }
         return text;
@@ -485,17 +490,19 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
         ActiveCluster.subscribe(activeCluster -> {
             activeCluster.getQueryContext().subscribe(this, queryContext -> {
-                if (queryContext.isPresent()) {
-                    contextLabel.setText(String.format("%s > %s", queryContext.get().getBucket(), queryContext.get().getScope()));
-                    contextLabel.revalidate();
-                } else {
-                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
-                    contextLabel.revalidate();
-                }
-                PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
-                if (psiFile instanceof SqlppFile) {
-                    ((SqlppFile) psiFile).setClusterContext(queryContext.orElse(null));
-                }
+                SwingUtilities.invokeLater(() -> {
+                    if (queryContext.isPresent()) {
+                        contextLabel.setText(String.format("%s > %s", queryContext.get().getBucket(), queryContext.get().getScope()));
+                        contextLabel.revalidate();
+                    } else {
+                        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                        contextLabel.revalidate();
+                    }
+                    PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+                    if (psiFile instanceof SqlppFile) {
+                        ((SqlppFile) psiFile).setClusterContext(queryContext.orElse(null));
+                    }
+                });
                 return true;
             });
             activeCluster.getChildren().stream()
