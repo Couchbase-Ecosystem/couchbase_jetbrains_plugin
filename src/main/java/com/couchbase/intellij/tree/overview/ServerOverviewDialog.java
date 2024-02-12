@@ -133,7 +133,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
         try {
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-            BucketOverview btOverview = CouchbaseRestAPI.getBucketOverview(bucket);
+            var btOverview = CouchbaseRestAPI.getBucketOverview(bucket);
 
 
             String[] keys = {"Type", "Storage Backend", "Replicas", "Eviction Policy", "Durability Level", "Max TTL",
@@ -227,7 +227,7 @@ public class ServerOverviewDialog extends DialogWrapper {
     }
 
     private JPanel getNodePanel(String hostname) {
-        CBNode node = overview.getNodes().stream().filter(e -> hostname.equals(e.getHostname())).collect(Collectors.toList()).get(0);
+        CBNode node = overview.getNodes().stream().filter(e -> hostname.equals(e.getHostname())).toList().get(0);
 
         JPanel panel = new JPanel();
         panel.setBorder(JBUI.Borders.empty(10, 15));
@@ -318,15 +318,13 @@ public class ServerOverviewDialog extends DialogWrapper {
     }
 
     private void exportContent(String filePath) {
-        PDDocument document = new PDDocument();
-
         List<CBNode> nodes = overview.getNodes();
         List<BucketName> buckets = overview.getBucketNames();
 
         ProgressManager.getInstance().run(new Task.Backgroundable(null, "Exporting cluster overview", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
-                try {
+                try (PDDocument document = new PDDocument()) {
                     createPageAndAddHeader(document, "Server Overview");
                     addServerOverviewContent(document, overview);
 
@@ -350,14 +348,6 @@ public class ServerOverviewDialog extends DialogWrapper {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to export the Cluster Overview", "Cluster Overview Export Error"));
                     Log.error(e);
                     e.printStackTrace();
-                } finally {
-                    try {
-                        document.close();
-                    } catch (IOException e) {
-                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error occurred while trying to export the Cluster Overview", "Cluster Overview Export Error"));
-                        Log.error(e);
-                        e.printStackTrace();
-                    }
                 }
             }
         });
@@ -401,14 +391,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         yOffset -= 10;
 
         for (int i = 0; i < keys.length; i++) {
-            if (yOffset < 50) {
-                contentStream.close();
-                PDPage nextPage = new PDPage();
-                document.addPage(nextPage);
-                contentStream = new PDPageContentStream(document, nextPage);
-                yOffset = 700;
-            }
-
             contentStream.setFont(PDType1Font.HELVETICA, 12);
             contentStream.beginText();
             contentStream.newLineAtOffset(100, yOffset - 20);
@@ -418,14 +400,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         }
 
         yOffset -= 30;
-
-        if (yOffset < 50) {
-            contentStream.close();
-            PDPage nextPage = new PDPage();
-            document.addPage(nextPage);
-            contentStream = new PDPageContentStream(document, nextPage);
-            yOffset = 700;
-        }
 
         contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
@@ -439,14 +413,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         String[] quotaValues = {mbToGb(overview.getMemoryQuota()), mbToGb(overview.getIndexMemoryQuota()), mbToGb(overview.getFtsMemoryQuota()), mbToGb(overview.getEventingMemoryQuota()), mbToGb(overview.getCbasMemoryQuota())};
 
         for (int i = 0; i < quotaKeys.length; i++) {
-            if (yOffset < 50) {
-                contentStream.close();
-                PDPage nextPage = new PDPage();
-                document.addPage(nextPage);
-                contentStream = new PDPageContentStream(document, nextPage);
-                yOffset = 700;
-            }
-
             contentStream.setFont(PDType1Font.HELVETICA, 12);
             contentStream.beginText();
             contentStream.newLineAtOffset(100, yOffset - 20);
@@ -456,14 +422,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         }
 
         yOffset -= 30;
-
-        if (yOffset < 50) {
-            contentStream.close();
-            PDPage nextPage = new PDPage();
-            document.addPage(nextPage);
-            contentStream = new PDPageContentStream(document, nextPage);
-            yOffset = 700;
-        }
 
         contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
@@ -478,14 +436,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         String[] ramValues = {fmtByte(ram.getTotal()), fmtByte(ram.getUsed()), fmtByte(ram.getQuotaTotal()), fmtByte(ram.getQuotaUsed()), fmtByte(ram.getQuotaUsedPerNode()), fmtByte(ram.getQuotaTotalPerNode()), fmtByte(ram.getUsedByData())};
 
         for (int i = 0; i < ramKeys.length; i++) {
-            if (yOffset < 50) {
-                contentStream.close();
-                PDPage nextPage = new PDPage();
-                document.addPage(nextPage);
-                contentStream = new PDPageContentStream(document, nextPage);
-                yOffset = 700;
-            }
-
             contentStream.setFont(PDType1Font.HELVETICA, 12);
             contentStream.beginText();
             contentStream.newLineAtOffset(100, yOffset - 20);
@@ -495,14 +445,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         }
 
         yOffset -= 30;
-
-        if (yOffset < 50) {
-            contentStream.close();
-            PDPage nextPage = new PDPage();
-            document.addPage(nextPage);
-            contentStream = new PDPageContentStream(document, nextPage);
-            yOffset = 700;
-        }
 
         contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
         contentStream.beginText();
@@ -517,14 +459,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         String[] hddValues = {fmtByte(hdd.getTotal()), fmtByte(hdd.getUsed()), fmtByte(hdd.getQuotaTotal()), fmtByte(hdd.getUsedByData()), fmtByte(hdd.getFree())};
 
         for (int i = 0; i < hddKeys.length; i++) {
-            if (yOffset < 50) {
-                contentStream.close();
-                PDPage nextPage = new PDPage();
-                document.addPage(nextPage);
-                contentStream = new PDPageContentStream(document, nextPage);
-                yOffset = 700;
-            }
-
             contentStream.setFont(PDType1Font.HELVETICA, 12);
             contentStream.beginText();
             contentStream.newLineAtOffset(100, yOffset - 20);
@@ -539,7 +473,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
     private void addNodeContent(PDDocument document, CBNode cbNode) throws IOException {
         String nodeName = cbNode.getHostname();
-        CBNode node = overview.getNodes().stream().filter(e -> nodeName.equals(e.getHostname())).collect(Collectors.toList()).get(0);
+        CBNode node = overview.getNodes().stream().filter(e -> nodeName.equals(e.getHostname())).toList().get(0);
 
         PDPage currentPage;
         if (firstNodeContent) {
@@ -557,15 +491,7 @@ public class ServerOverviewDialog extends DialogWrapper {
 
         PDPageContentStream contentStream = new PDPageContentStream(document, currentPage, PDPageContentStream.AppendMode.APPEND, true);
 
-        int yOffset = 680;
-
-        if (yOffset < 50) {
-            contentStream.close();
-            PDPage nextPage = new PDPage();
-            document.addPage(nextPage);
-            contentStream = new PDPageContentStream(document, nextPage);
-            yOffset = 700;
-        }
+        int yOffset = 670;
 
         contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
         contentStream.beginText();
@@ -740,7 +666,6 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset -= 20;
         }
 
-        yOffset -= 30;
         contentStream.close();
     }
 
@@ -765,14 +690,6 @@ public class ServerOverviewDialog extends DialogWrapper {
         PDPageContentStream contentStream = new PDPageContentStream(document, currentPage, PDPageContentStream.AppendMode.APPEND, true);
 
         int yOffset = 670;
-
-        if (yOffset < 50) {
-            contentStream.close();
-            PDPage nextPage = new PDPage();
-            document.addPage(nextPage);
-            contentStream = new PDPageContentStream(document, nextPage);
-            yOffset = 700;
-        }
 
         contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
         contentStream.beginText();
@@ -898,7 +815,6 @@ public class ServerOverviewDialog extends DialogWrapper {
             yOffset -= 20;
         }
 
-        yOffset -= 30;
         contentStream.close();
     }
 }
