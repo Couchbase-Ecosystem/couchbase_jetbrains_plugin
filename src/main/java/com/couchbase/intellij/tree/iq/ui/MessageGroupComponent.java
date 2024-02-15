@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
@@ -41,10 +42,7 @@ import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import java.awt.BorderLayout;
-import java.awt.Graphics;
-import java.awt.GridLayout;
-import java.awt.LayoutManager;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -133,7 +131,16 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         DefaultActionGroup placeholder = new DefaultActionGroup();
         group.add(placeholder);
         AtomicReference<DefaultActionGroup> oldContextAction = new AtomicReference<>(placeholder);
-        ActiveCluster.subscribe(activeCluster -> {
+        ActiveCluster.INSTANCE.subscribe(this, optionalActiveCluster -> {
+            if (optionalActiveCluster.isEmpty()) {
+                if (oldContextAction.get() != null) {
+                    group.remove(oldContextAction.get());
+                    oldContextAction.set(null);
+                }
+                return true;
+            }
+
+            ActiveCluster activeCluster = optionalActiveCluster.get();
             AtomicReference<String> contextLabel = new AtomicReference<>(NO_QUERY_CONTEXT_SELECTED);
             DefaultActionGroup contextAction = new DefaultActionGroup(contextLabel::get, true) {
                 @Override
@@ -145,17 +152,24 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             AnAction clearContextAction = new AnAction("Clear context") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    contextLabel.set(NO_QUERY_CONTEXT_SELECTED);
-//                    DefaultActionGroup newGroup = new DefaultActionGroup(contextLabel::get, true);
-//                    bucketActions.forEach(newGroup::add);
-//                    group.replaceAction(oldContextAction.get(), newGroup);
-//                    oldContextAction.set(newGroup);
                     IQWindowContent.clearClusterContext();
-                    contextAction.remove(this);
-                    contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
                 }
             };
 
+            activeCluster.getQueryContext().subscribe(this, queryContext -> {
+                if (queryContext.isPresent()) {
+                    QueryContext context = queryContext.get();
+                    contextLabel.set(String.format("%s.%s", context.getBucket(), context.getScope()));
+                    if (!contextAction.containsAction(clearContextAction)) {
+                        contextAction.add(clearContextAction);
+                    }
+                } else {
+                    contextLabel.set(NO_QUERY_CONTEXT_SELECTED);
+                    contextAction.remove(clearContextAction);
+                    contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/question_circle.svg", MessageGroupComponent.class));
+                }
+                return true;
+            });
 
             List<AnAction> bucketActions = new ArrayList<>();
             if (oldContextAction.get() != null) {
@@ -182,18 +196,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                                     AnAction scopeAction = new AnAction(scope.getName()) {
                                         @Override
                                         public void actionPerformed(@NotNull AnActionEvent e) {
-                                            String context = String.format("%s.%s", bucket.getName(), scope.getName());
-//                                            DefaultActionGroup newGroup = new DefaultActionGroup(context, true);
-//                                            newGroup.add(clearContextAction);
-//                                            group.replaceAction(oldContextAction.get(), newGroup);
-//                                            oldContextAction.set(newGroup);
                                             IQWindowContent.setClusterContext(bucket.getName(), scope.getName());
-                                            contextLabel.set(context);
-                                            if (!contextAction.containsAction(clearContextAction)) {
-                                                contextAction.add(clearContextAction);
-                                            }
-                                            SwingUtilities.invokeLater(() -> {
-                                            });
                                         }
                                     };
 
@@ -203,6 +206,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                         contextAction.add(bucketsGroup);
                     });
             contextAction.addSeparator();
+            return true;
         });
     }
 

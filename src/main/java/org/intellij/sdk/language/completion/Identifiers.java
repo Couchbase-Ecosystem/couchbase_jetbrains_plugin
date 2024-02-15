@@ -1,6 +1,7 @@
 package org.intellij.sdk.language.completion;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.codeInsight.completion.*;
@@ -163,7 +164,7 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         PsiElement element = Utils.cleanErrorIfPresent(parameters.getPosition());
 
         PsiFile psiFile = element.getContainingFile();
-        List<String> editorContext = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : Collections.EMPTY_LIST;
+        QueryContext editorContext = psiFile instanceof SqlppFile ? ((SqlppFile) psiFile).getClusterContext() : null;
         List<List<String>> statementContexts = Utils.getStatementContexts(element);
         List<String> completePath = Utils.getPath(element);
         boolean openContext = Utils.isOpenContext(element);
@@ -171,7 +172,7 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
 
         if (!completePath.isEmpty()) {
             if (!appendAliases(element, cluster, completePath, result) &&
-                    0 == Utils.findEntities(cluster, openContext, editorContext, statementContexts, completePath)
+                    0 == Utils.findEntities(cluster, openContext, editorContext == null ? (List<String>)Collections.EMPTY_LIST : editorContext.toList(), statementContexts, completePath)
                             .peek(e -> Log.debug("potential path target: " + e.path()))
                             .filter(entity -> completeForPath(entity, Collections.EMPTY_LIST, result))
                             .count()) {
@@ -183,20 +184,20 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         if (completePath.isEmpty()) {
             Log.debug("Empty path completion");
             appendAliases(element, cluster, Collections.EMPTY_LIST, result);
-            if (editorContext.isEmpty() && openContext) {
+            if (editorContext == null && openContext) {
                 Log.debug("Empty statement context completion");
                 appendRecursively(0, cluster, result, emptyPathPasser);
             }
 
             if (!statementContexts.isEmpty()) {
                 Log.debug("STATEMENT context completion");
-                Utils.findEntities(cluster, openContext, editorContext, statementContexts, Collections.EMPTY_LIST)
+                Utils.findEntities(cluster, openContext, editorContext == null ? Collections.EMPTY_LIST : editorContext.toList(), statementContexts, Collections.EMPTY_LIST)
                         .forEach(entity -> completeForPath((CouchbaseClusterEntity) entity, Collections.EMPTY_LIST, result));
             }
 
-            if (!editorContext.isEmpty() && Utils.isOpenContext(element)) {
+            if (editorContext != null && Utils.isOpenContext(element)) {
                 Log.debug("EDITOR context completion");
-                completeForPath(cluster, editorContext, result);
+                completeForPath(cluster, editorContext.toList(), result);
             }
         }
     }
@@ -212,7 +213,10 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
                 if (aliasPath.size() == 1) {
                     List<String> context = Collections.EMPTY_LIST;
                     if (element.getContainingFile() instanceof SqlppFile) {
-                        context = ((SqlppFile) element.getContainingFile()).getClusterContext();
+                        QueryContext editorContext = ((SqlppFile) element.getContainingFile()).getClusterContext();
+                        if (editorContext != null) {
+                            context = editorContext.toList();
+                        }
                     }
                     aliasPath = Utils.expandCollectionPath(context, aliasPath.get(0));
                 }

@@ -6,6 +6,7 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.query.GetAllQueryIndexesOptions;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.CollectionRelationships;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
@@ -65,7 +66,7 @@ public class IntentProcessor {
         final ChatLink link = chat.getChatLink();
         StringBuilder intentPrompt = new StringBuilder();
         ActiveCluster activeCluster = ActiveCluster.getInstance();
-        String[] windowContext = IQWindowContent.getInstance().map(IQWindowContent::getClusterContext).orElse(null);
+        QueryContext windowContext = IQWindowContent.getInstance().map(IQWindowContent::getClusterContext).orElse(null);
         if (activeCluster == null || activeCluster.getCluster() == null) {
             intentPrompt.append("Respond once by only telling the user that, in order to fulfill their request, they first need to connect their IDE plugin to Couchbase cluster using the 'Explorer' tab. Do not provide any other suggestions how to perform requested action in this response.");
         } else if (intents.containsKey("actions")) {
@@ -87,8 +88,8 @@ public class IntentProcessor {
                             scopeName = intent.getString("scopeName");
                         }
                     } else if (windowContext != null) {
-                        bucketName = windowContext[0];
-                        scopeName = windowContext[1];
+                        bucketName = windowContext.getBucket();
+                        scopeName = windowContext.getScope();
                     }
                     String prompt = action.fire(chat.getProject(), bucketName, scopeName, intents, intent);
                     if (prompt != null) {
