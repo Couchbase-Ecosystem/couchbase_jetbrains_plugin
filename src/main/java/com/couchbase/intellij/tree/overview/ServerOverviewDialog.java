@@ -44,8 +44,6 @@ public class ServerOverviewDialog extends DialogWrapper {
     private List<String> nodes;
 
     private Map<String, BucketSettings> bucketMap;
-    private boolean firstNodeContent = true;
-    private boolean firstBucketContent = true;
     private Project project;
 
 
@@ -329,14 +327,23 @@ public class ServerOverviewDialog extends DialogWrapper {
                     addServerOverviewContent(document, overview);
 
                     createPageAndAddHeader(document, "Nodes");
-                    for (CBNode node : nodes) {
-                        addNodeContent(document, node);
+
+                    int totalNodes = nodes.size();
+
+                    for (int i = 0; i < totalNodes; i++) {
+                        CBNode node = nodes.get(i);
+                        boolean isFirstNode = (i == 0); // Check if the current node is the first one
+                        addNodeContent(document, node, isFirstNode);
                     }
 
                     createPageAndAddHeader(document, "Buckets");
 
-                    for (BucketName bucket : buckets) {
-                        addBucketsContent(document, bucket);
+                    int totalBuckets = buckets.size();
+
+                    for (int i = 0; i < totalBuckets; i++) {
+                        BucketName bucket = buckets.get(i);
+                        boolean isFirstBucket = (i == 0); // Check if the current bucket is the first one
+                        addBucketsContent(document, bucket, isFirstBucket);
                     }
 
                     document.save(filePath);
@@ -471,19 +478,13 @@ public class ServerOverviewDialog extends DialogWrapper {
     }
 
 
-    private void addNodeContent(PDDocument document, CBNode cbNode) throws IOException {
+    private void addNodeContent(PDDocument document, CBNode cbNode, boolean isFirstNode) throws IOException {
         String nodeName = cbNode.getHostname();
         CBNode node = overview.getNodes().stream().filter(e -> nodeName.equals(e.getHostname())).toList().get(0);
 
         PDPage currentPage;
-        if (firstNodeContent) {
-            firstNodeContent = false;
-            if (document.getNumberOfPages() > 0) {
+        if (isFirstNode) {
                 currentPage = document.getPage(document.getNumberOfPages() - 1);
-            } else {
-                currentPage = new PDPage();
-                document.addPage(currentPage);
-            }
         } else {
             currentPage = new PDPage();
             document.addPage(currentPage);
@@ -670,18 +671,12 @@ public class ServerOverviewDialog extends DialogWrapper {
     }
 
 
-    private void addBucketsContent(PDDocument document, BucketName bucket) throws Exception {
+    private void addBucketsContent(PDDocument document, BucketName bucket, boolean isFirstBucket) throws Exception {
         String bucketName = bucket.getBucketName();
 
         PDPage currentPage;
-        if (firstBucketContent) {
-            firstBucketContent = false;
-            if (document.getNumberOfPages() > 0) {
+        if (isFirstBucket) {
                 currentPage = document.getPage(document.getNumberOfPages() - 1);
-            } else {
-                currentPage = new PDPage();
-                document.addPage(currentPage);
-            }
         } else {
             currentPage = new PDPage();
             document.addPage(currentPage);
