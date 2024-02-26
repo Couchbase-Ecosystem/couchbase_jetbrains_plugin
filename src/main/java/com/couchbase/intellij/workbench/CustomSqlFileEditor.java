@@ -186,32 +186,34 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
-                            boolean query = false;
-                            boolean script = false;
-                            QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
-                            if (statements.size() == 0) {
-                                return;
-                            } else if (statements.size() == 1) {
-                                query = QueryExecutor.executeQuery(queryExecutionChannel,NORMAL, context, statements.get(0), currentHistoryIndex, project);
-                            } else {
-                                script = QueryExecutor.executeScript(scriptExecutionChannel,NORMAL, context, statements, currentHistoryIndex, project);
-                            }
-
-                            try {
-                                if (query || script) {
-                                    int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                                    currentHistoryIndex = historySize - 1;
-                                    SwingUtilities.invokeLater(() -> {
-                                        historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                                        historyLabel.revalidate();
-                                    });
+                            SwingUtilities.invokeLater(() -> {
+                                boolean query = false;
+                                boolean script = false;
+                                QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
+                                if (statements.size() == 0) {
+                                    return;
+                                } else if (statements.size() == 1) {
+                                    query = QueryExecutor.executeQuery(queryExecutionChannel,NORMAL, context, statements.get(0), currentHistoryIndex, project);
+                                } else {
+                                    script = QueryExecutor.executeScript(scriptExecutionChannel,NORMAL, context, statements, currentHistoryIndex, project);
                                 }
-                            } catch (Exception ex) {
-                                throw new RuntimeException(ex);
-                            }
 
-                            executeGroup.replaceAction(cancelAction, executeAction);
-                            isExecutingQuery = false;
+                                try {
+                                    if (query || script) {
+                                        int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
+                                        currentHistoryIndex = historySize - 1;
+                                        SwingUtilities.invokeLater(() -> {
+                                            historyLabel.setText("history (" + historySize + "/" + historySize + ")");
+                                            historyLabel.revalidate();
+                                        });
+                                    }
+                                } catch (Exception ex) {
+                                    throw new RuntimeException(ex);
+                                }
+
+                                executeGroup.replaceAction(cancelAction, executeAction);
+                                isExecutingQuery = false;
+                            });
                         }
                     }.queue();
                 }
@@ -226,12 +228,14 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeGroup.add(new AnAction("Advise", "Get index recommendations about focused query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                if (!isSameConnection()) {
-                    return;
-                }
-                String statement = getFocusedStatement();
+                SwingUtilities.invokeLater(() -> {
+                    if (!isSameConnection()) {
+                        return;
+                    }
+                    String statement = getFocusedStatement();
 
-                QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                    QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                });
             }
         });
 
@@ -239,11 +243,13 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeGroup.add(new AnAction("Explain", "Explains query phases for focused statement", explainIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                if (!isSameConnection()) {
-                    return;
-                }
-                String statement = getFocusedStatement();
-                QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                SwingUtilities.invokeLater(() -> {
+                    if (!isSameConnection()) {
+                        return;
+                    }
+                    String statement = getFocusedStatement();
+                    QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                });
             }
         });
 
@@ -367,17 +373,6 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     private String normalizeStatement(Statement statement) {
         String text = statement.getText();
-        PsiElement firstDeepest = PsiTreeUtil.getDeepestFirst(statement);
-
-        if (firstDeepest.getNode().getElementType() == GeneratedTypes.SELECT){
-            PsiElement selStatement = PsiTreeUtil.getParentOfType(firstDeepest, SelectStatement.class);
-            if (PsiTreeUtil.getChildrenOfType(selStatement, LimitClause.class) == null) {
-                Integer queryLimit = ActiveCluster.getInstance().getQueryLimit();
-                if (queryLimit != null) {
-                    text = String.format("SELECT * FROM (%s) as d LIMIT %d", text, queryLimit);
-                }
-            }
-        }
         return text;
     }
 

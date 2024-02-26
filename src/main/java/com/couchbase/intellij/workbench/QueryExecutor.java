@@ -205,6 +205,15 @@ public class QueryExecutor {
             }
         }
 
+        final String origQuery = query;
+        boolean autoLimited = false;
+        if (!SQLPPAnalyzer.isLimited(project, query)) {
+            Integer queryLimit = ActiveCluster.getInstance().getQueryLimit();
+            if (queryLimit != null) {
+                query = String.format("SELECT * FROM (%s) as d LIMIT %d", query, queryLimit);
+                autoLimited = true;
+            }
+        }
         final String adjustedQuery = query;
 
             long start = 0;
@@ -273,8 +282,14 @@ public class QueryExecutor {
                 String timings;
                 if (QueryType.EXPLAIN == type) {
                     timings = result.rowsAsObject().get(0).get("plan").toString();
+                } else if (result.metaData().profile().isPresent()) {
+                    JsonObject metadata = result.metaData().profile().get().getObject("executionTimings");
+                    if (autoLimited) {
+                        metadata = cleanupAutoLimitedMetadata(metadata);
+                    }
+                    timings = metadata.toString();
                 } else {
-                    timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
+                    timings = null;
                 }
 
                 getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings),false);
@@ -295,10 +310,23 @@ public class QueryExecutor {
 
         //if historyIndex is negative, doesn't add it to the history
         if (historyIndex >= 0) {
-            return updateQueryHistory(query, historyIndex);
+            return updateQueryHistory(origQuery, historyIndex);
         } else {
             return false;
         }
+    }
+
+    private static JsonObject cleanupAutoLimitedMetadata(JsonObject metadata) {
+        JsonArray items = metadata.getObject("~child").getArray("~children");
+        if (items.size() > 4) {
+            JsonArray newItems = JsonArray.create();
+            for (int i = 0; i < items.size() - 4; i++) {
+                newItems.add(items.getObject(i));
+            }
+            newItems.add(items.getObject(items.size() - 1));
+            metadata.getObject("~child").put("~children", newItems);
+        }
+        return metadata;
     }
 
     private static String getSizeText(long size) {

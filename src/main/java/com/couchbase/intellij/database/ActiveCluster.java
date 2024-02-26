@@ -458,7 +458,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.queryLimit = limit;
     }
 
-    public Integer getQueryLimit() {
+    public @Nullable Integer getQueryLimit() {
         return this.queryLimit;
     }
 }

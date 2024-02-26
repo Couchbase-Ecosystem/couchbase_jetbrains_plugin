@@ -330,11 +330,13 @@ public class RSyntaxTextAreaView extends ComponentView {
                     new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
-                            if (script.size() > 1) {
-                                QueryExecutor.executeScript(new LinkedBlockingQueue<>(), NORMAL, context, script, 0, project);
-                            } else {
-                                QueryExecutor.executeQuery(new LinkedBlockingQueue<>(), NORMAL, context, sql, 0, project);
-                            }
+                            SwingUtilities.invokeLater(() -> {
+                                if (script.size() > 1) {
+                                    QueryExecutor.executeScript(new LinkedBlockingQueue<>(), NORMAL, context, script, 0, project);
+                                } else {
+                                    QueryExecutor.executeQuery(new LinkedBlockingQueue<>(), NORMAL, context, sql, 0, project);
+                                }
+                            });
                         }
                     }.queue();
                 }
