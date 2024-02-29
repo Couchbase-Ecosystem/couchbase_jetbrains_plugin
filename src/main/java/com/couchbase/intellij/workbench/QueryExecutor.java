@@ -182,6 +182,10 @@ public class QueryExecutor {
         if (query == null || query.trim().isEmpty()) {
             return false;
         }
+        query = query.trim();
+        if (query.endsWith(";")) {
+            query = query.substring(0, query.length() - 1).trim();
+        }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
             return false;
