@@ -117,10 +117,6 @@ public class DataLoader {
                         for (ScopeSpec scopeSpec : scopes) {
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(), bucketName));
 
-//                            DefaultMutableTreeNode collections = new DefaultMutableTreeNode(
-//                                    new CollectionsNodeDescriptor(ActiveCluster.getInstance().getId(), bucketName,
-//                                            scopeSpec.name()));
-//                            collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
 
                             parentNode.add(childNode);
@@ -214,7 +210,7 @@ public class DataLoader {
                     }
 
                     String filter = colNode.getQueryFilter();
-                    String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias " + ((filter == null || filter.isEmpty()) ? "" : (" where " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
+                    String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias WHERE meta(couchbaseAlias).id IS NOT MISSING " + ((filter == null || filter.isEmpty()) ? "" : (" and " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                     final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
                     InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));

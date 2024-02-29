@@ -151,6 +151,20 @@ public class JComboCheckBox extends JComboBox {
         this.repaint();
     }
 
+    @Override
+    public void removeAllItems() {
+        super.removeAllItems();
+        setHint("Select one or more items");
+    }
+
+    @Override
+    public void setEnabled(boolean b) {
+        if (!b) {
+            setHint(" ");
+        }
+        super.setEnabled(b);
+    }
+
     public void addItem(String text) {
         JCheckBox checkBox = new JCheckBox(text) {
             @Override

@@ -27,7 +27,7 @@ public class DependenciesDownloader {
     public static final String TOOL_IMPORT_EXPORT = "import_export";
 
     public static final String ALL_TOOLS = "all_tools";
-
+    public static final String CB_MIGRATE = "cb_migrate";
 
     private String getToolInstallPath(String toolKey) {
 
@@ -37,6 +37,8 @@ public class DependenciesDownloader {
             return "cbimport_export";
         } else if (ALL_TOOLS.equals(toolKey)) {
             return "cbtools";
+        } else if (CB_MIGRATE.equals(toolKey)) {
+            return "cbmigrate";
         } else {
             throw new IllegalStateException("Not Implemented yet");
         }
@@ -68,6 +70,8 @@ public class DependenciesDownloader {
             map.put(CBTools.Type.CBC_PILLOW_FIGHT, path + "cbc-pillowfight" + suffix);
             map.put(CBTools.Type.MCTIMINGS, path + "mctimings" + suffix);
 
+        } else if (CB_MIGRATE.equals(toolKey)) {
+            map.put(CBTools.Type.CBMIGRATE, "cbmigrate" + suffix);
         } else {
             throw new IllegalStateException("Not implemented yet");
         }
@@ -86,30 +90,38 @@ public class DependenciesDownloader {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-apple-darwin.zip", TOOL_SHELL, MACOS_64));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-macos_x86_64.zip", TOOL_IMPORT_EXPORT, MACOS_64));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_64.zip", ALL_TOOLS, MACOS_64));
+            map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_darwin_amd64.zip", CB_MIGRATE, MACOS_64));
 
         } else if (MACOS_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-aarch64-apple-darwin.zip", TOOL_SHELL, MACOS_ARM));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-macos_arm64.zip", TOOL_IMPORT_EXPORT, MACOS_ARM));
-            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_arm.zip", ALL_TOOLS, MACOS_64));
+            map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_arm.zip", ALL_TOOLS, MACOS_ARM));
+            map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_darwin_arm64.zip", CB_MIGRATE, MACOS_ARM));
+
 
         } else if (WINDOWS_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-pc-windows-msvc.zip", TOOL_SHELL, WINDOWS_64));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_64));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-windows_64.zip", ALL_TOOLS, WINDOWS_64));
+            map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_windows_amd64.zip", CB_MIGRATE, WINDOWS_64));
 
         } else if (WINDOWS_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-pc-windows-msvc.zip", TOOL_SHELL, WINDOWS_ARM));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_ARM));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-windows_64.zip", ALL_TOOLS, WINDOWS_ARM));
+            map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_windows_amd64.zip", CB_MIGRATE, WINDOWS_ARM));
 
         } else if (LINUX_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-unknown-linux-gnu.tar.gz", TOOL_SHELL, LINUX_64));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-linux_x86_64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_64));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-linux_64.zip", ALL_TOOLS, LINUX_64));
+            map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_linux_amd64.zip", CB_MIGRATE, LINUX_64));
 
         } else if (LINUX_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-aarch64-unknown-linux-gnu.tar.gz", TOOL_SHELL, LINUX_ARM));
             map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-linux_aarch64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_ARM));
+            map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_linux_arm64.zip", CB_MIGRATE, LINUX_ARM));
+
         } else {
             throw new IllegalStateException("OS not supported.");
         }
@@ -129,7 +141,7 @@ public class DependenciesDownloader {
                 && !CBIMPORT_EXPORT_VERSION.equals(getPropertyValue(configPath, CBIMPORT_EXPORT_KEY))) {
             Log.info("A new version of CB Import/Export is available. Removing local version and downloading the new one");
             ToolSpec cbImport = downloads.get(TOOL_IMPORT_EXPORT);
-            deleteFolder( toolsPath + File.separator + cbImport.getInstallationPath());
+            deleteFolder(toolsPath + File.separator + cbImport.getInstallationPath());
         }
 
         if (isInstalled(toolsPath, downloads.get(ALL_TOOLS), CBTools.Type.CBC_PILLOW_FIGHT)
@@ -137,7 +149,15 @@ public class DependenciesDownloader {
             Log.info("A new version of Couchbase Tools is available. Removing local version and downloading the new one");
             ToolSpec cbTools = downloads.get(ALL_TOOLS);
             String toolsDir = toolsPath + File.separator + cbTools.getInstallationPath();
-            deleteFolder( toolsDir);
+            deleteFolder(toolsDir);
+        }
+
+        if (isInstalled(toolsPath, downloads.get(CB_MIGRATE), CBTools.Type.CBMIGRATE)
+                && !CBMIGRATE_VERSION.equals(getPropertyValue(configPath, CBMIGRATE_KEY))) {
+            Log.info("A new version of Couchbase CBMIGRATE is available. Removing local version and downloading the new one");
+            ToolSpec cbTools = downloads.get(CB_MIGRATE);
+            String toolsDir = toolsPath + File.separator + cbTools.getInstallationPath();
+            deleteFolder(toolsDir);
         }
     }
 
@@ -194,6 +214,20 @@ public class DependenciesDownloader {
             setToolActive(ToolStatus.AVAILABLE, toolsDir, cbTools);
         }
 
+
+        ToolSpec cbmigrate = downloads.get(CB_MIGRATE);
+        String cbmigrateDir = toolsPath + File.separator + cbmigrate.getInstallationPath();
+        if (CBTools.getTool(CBTools.Type.CBMIGRATE).getStatus() == ToolStatus.NOT_AVAILABLE
+                && !isInstalled(toolsPath, downloads.get(CB_MIGRATE), CBTools.Type.CBMIGRATE)) {
+
+            Log.info("Downloading CBMIGRATE. The feature will be automatically enabled when the download is complete.");
+            CBTools.getTool(CBTools.Type.CBMIGRATE).setStatus(ToolStatus.DOWNLOADING);
+            downloadAndUnzip(cbmigrateDir, cbmigrate, pluginConfigPath, CBMIGRATE_KEY, CBMIGRATE_VERSION);
+        } else {
+            Log.debug("CBMIGRATE is already installed");
+            setToolActive(ToolStatus.AVAILABLE, cbmigrateDir, cbmigrate);
+        }
+
     }
 
     private void setToolActive(ToolStatus status, String path, ToolSpec spec) {
@@ -204,12 +238,11 @@ public class DependenciesDownloader {
     }
 
     /**
-     *
-     * @param targetDir where the zip file should be downloaded
+     * @param targetDir    where the zip file should be downloaded
      * @param spec
      * @param configFolder folder where the file with the versions is stored
-     * @param key the key that will be updated
-     * @param value the value that will be set
+     * @param key          the key that will be updated
+     * @param value        the value that will be set
      */
     public void downloadAndUnzip(String targetDir, ToolSpec spec, String configFolder, String key, String value) {
         CompletableFuture.runAsync(() -> {
