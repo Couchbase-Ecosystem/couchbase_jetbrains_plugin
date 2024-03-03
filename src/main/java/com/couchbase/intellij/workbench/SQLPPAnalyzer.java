@@ -1,5 +1,21 @@
 package com.couchbase.intellij.workbench;
 
+import com.couchbase.intellij.database.ActiveCluster;
+import com.intellij.lang.PsiParser;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiFileFactory;
+import com.intellij.psi.util.PsiTreeUtil;
+import generated.GeneratedTypes;
+import generated.psi.LimitClause;
+import generated.psi.SelectStatement;
+import generated.psi.Statement;
+import generated.psi.impl.StatementImpl;
+import org.intellij.sdk.language.SQLPPFileType;
+import org.intellij.sdk.language.SqlppParserDefinition;
+import org.intellij.sdk.language.psi.SqlppFile;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -37,5 +53,17 @@ public class SQLPPAnalyzer {
             }
         }
         return tokens;
+    }
+
+    public static boolean isLimited(Project project, String query) {
+        SqlppFile vFile = (SqlppFile) PsiFileFactory.getInstance(project).createFileFromText("__query__.sqlpp", SQLPPFileType.INSTANCE, query);
+        Statement statement = PsiTreeUtil.getParentOfType(vFile.findElementAt(0), Statement.class);
+        PsiElement firstDeepest = PsiTreeUtil.getDeepestFirst(statement);
+
+        if (firstDeepest.getNode().getElementType() == GeneratedTypes.SELECT){
+            PsiElement selStatement = PsiTreeUtil.getParentOfType(firstDeepest, SelectStatement.class);
+            return PsiTreeUtil.getChildrenOfType(selStatement, LimitClause.class) != null;
+        }
+        return true;
     }
 }

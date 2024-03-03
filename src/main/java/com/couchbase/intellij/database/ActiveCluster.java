@@ -69,6 +69,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
      * Subscribers are invoked every time context is changed on this cluster
      */
     private final List<Consumer<Optional<QueryContext>>> queryContextListeners = new ArrayList<>();
+    private Integer queryLimit = 200;
 
     protected ActiveCluster() {
     }
@@ -453,5 +454,13 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             this.buckets.clear();
             this.lastSchemaUpdate = 0;
         }
+    }
+
+    public void setQueryLimit(Integer limit) {
+        this.queryLimit = limit;
+    }
+
+    public @Nullable Integer getQueryLimit() {
+        return this.queryLimit;
     }
 }

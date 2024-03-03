@@ -42,6 +42,7 @@ import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String mutationsToolTip = "Count of documents mutated";
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
+    private static final String[] QUERY_LIMITS = {"200", "500", "1000", "No Limit"};
     public static QueryResultToolWindowFactory instance;
     public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static String latestExplain = null;
@@ -146,6 +148,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         popupMenu.add(csvMenuItem);
         popupMenu.add(jsonMenuItem);
 
+
         DefaultActionGroup executeGroup = new DefaultActionGroup();
         Icon executeIcon = IconLoader.getIcon("/assets/icons/export.svg", QueryResultToolWindowFactory.class);
         executeGroup.add(new AnAction("Export", "Export", executeIcon) {
@@ -160,7 +163,24 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         toolbar.getComponent().setBorder(JBUI.Borders.emptyRight(10));
         toolbar.setTargetComponent(topPanel);
 
-        topPanel.add(toolbar.getComponent(), BorderLayout.EAST);
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        JPanel limitPanel = new JPanel(new BorderLayout());
+        limitPanel.add(new JLabel("Limit:"), BorderLayout.WEST);
+        ComboBox queryLimitSelector = new ComboBox(QUERY_LIMITS);
+
+        queryLimitSelector.addActionListener(e -> {
+            Integer limit = null;
+            if (queryLimitSelector.getSelectedIndex() < QUERY_LIMITS.length -1) {
+                limit = Integer.valueOf(QUERY_LIMITS[queryLimitSelector.getSelectedIndex()]);
+            }
+            ActiveCluster.getInstance().setQueryLimit(limit);
+        });
+
+        limitPanel.add(queryLimitSelector, BorderLayout.EAST);
+
+        rightPanel.add(limitPanel, BorderLayout.WEST);
+        rightPanel.add(toolbar.getComponent(), BorderLayout.EAST);
+        topPanel.add(rightPanel, BorderLayout.EAST);
 
 
         VirtualFile virtualFile = new LightVirtualFile("query_result", FileTypeManager.getInstance().getFileTypeByExtension("json"),

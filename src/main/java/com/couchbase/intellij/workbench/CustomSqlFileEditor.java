@@ -177,32 +177,36 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
-                            boolean query = false;
-                            boolean script = false;
-                            QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
-                            if (statements.size() == 0) {
-                                return;
-                            } else if (statements.size() == 1) {
-                                query = QueryExecutor.executeQuery(queryExecutionChannel, NORMAL, context, statements.get(0), currentHistoryIndex, project);
-                            } else {
-                                script = QueryExecutor.executeScript(scriptExecutionChannel, NORMAL, context, statements, currentHistoryIndex, project);
-                            }
 
-                            try {
-                                if (query || script) {
-                                    int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                                    currentHistoryIndex = historySize - 1;
-                                    SwingUtilities.invokeLater(() -> {
-                                        historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                                        historyLabel.revalidate();
-                                    });
+                            SwingUtilities.invokeLater(() -> {
+                                boolean query = false;
+                                boolean script = false;
+                                QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
+                                if (statements.size() == 0) {
+                                    return;
+                                } else if (statements.size() == 1) {
+                                    query = QueryExecutor.executeQuery(queryExecutionChannel, NORMAL, context, statements.get(0), currentHistoryIndex, project);
+                                } else {
+                                    script = QueryExecutor.executeScript(scriptExecutionChannel, NORMAL, context, statements, currentHistoryIndex, project);
+
                                 }
-                            } catch (Exception ex) {
-                                throw new RuntimeException(ex);
-                            }
 
-                            executeGroup.replaceAction(cancelAction, executeAction);
-                            isExecutingQuery = false;
+                                try {
+                                    if (query || script) {
+                                        int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
+                                        currentHistoryIndex = historySize - 1;
+                                        SwingUtilities.invokeLater(() -> {
+                                            historyLabel.setText("history (" + historySize + "/" + historySize + ")");
+                                            historyLabel.revalidate();
+                                        });
+                                    }
+                                } catch (Exception ex) {
+                                    throw new RuntimeException(ex);
+                                }
+
+                                executeGroup.replaceAction(cancelAction, executeAction);
+                                isExecutingQuery = false;
+                            });
                         }
                     }.queue();
                 }
@@ -217,12 +221,14 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeGroup.add(new AnAction("Advise", "Get index recommendations about focused query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                if (!isSameConnection()) {
-                    return;
-                }
-                String statement = getFocusedStatement();
+                SwingUtilities.invokeLater(() -> {
+                    if (!isSameConnection()) {
+                        return;
+                    }
+                    String statement = getFocusedStatement();
 
-                QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                    QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                });
             }
         });
 
@@ -230,11 +236,13 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeGroup.add(new AnAction("Explain", "Explains query phases for focused statement", explainIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                if (!isSameConnection()) {
-                    return;
-                }
-                String statement = getFocusedStatement();
-                QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                SwingUtilities.invokeLater(() -> {
+                    if (!isSameConnection()) {
+                        return;
+                    }
+                    String statement = getFocusedStatement();
+                    QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                });
             }
         });
 
@@ -373,6 +381,11 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         panel.add(topPanel, BorderLayout.NORTH);
     }
 
+    private String normalizeStatement(Statement statement) {
+        String text = statement.getText();
+        return text;
+    }
+
     private String getFocusedStatement() {
         SelectionModel selectionModel = queryEditor.textEditor.getEditor().getSelectionModel();
 
@@ -389,7 +402,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         return ReadAction.compute(() -> {
             PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
             if (focused != null) {
-                return PsiTreeUtil.getTopmostParentOfType(focused, Statement.class).getText();
+                return normalizeStatement(PsiTreeUtil.getTopmostParentOfType(focused, Statement.class));
             }
             return null;
         });
@@ -409,7 +422,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             return List.of(queryEditor.getDocument().getText());
         }
         return ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
-                .map(PsiElement::getText)
+                .map(this::normalizeStatement)
                 .collect(Collectors.toList())
         );
     }
@@ -482,17 +495,19 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
         ActiveCluster.subscribe(activeCluster -> {
             activeCluster.getQueryContext().subscribe(this, queryContext -> {
-                if (queryContext.isPresent()) {
-                    contextLabel.setText(String.format("%s > %s", queryContext.get().getBucket(), queryContext.get().getScope()));
-                    contextLabel.revalidate();
-                } else {
-                    contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
-                    contextLabel.revalidate();
-                }
-                PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
-                if (psiFile instanceof SqlppFile) {
-                    ((SqlppFile) psiFile).setClusterContext(queryContext.orElse(null));
-                }
+                SwingUtilities.invokeLater(() -> {
+                    if (queryContext.isPresent()) {
+                        contextLabel.setText(String.format("%s > %s", queryContext.get().getBucket(), queryContext.get().getScope()));
+                        contextLabel.revalidate();
+                    } else {
+                        contextLabel.setText(NO_QUERY_CONTEXT_SELECTED);
+                        contextLabel.revalidate();
+                    }
+                    PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+                    if (psiFile instanceof SqlppFile) {
+                        ((SqlppFile) psiFile).setClusterContext(queryContext.orElse(null));
+                    }
+                });
                 return true;
             });
             activeCluster.getChildren().stream()

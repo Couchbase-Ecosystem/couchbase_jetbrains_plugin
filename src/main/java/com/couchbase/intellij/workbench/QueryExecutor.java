@@ -38,6 +38,7 @@ public class QueryExecutor {
     private static final DecimalFormat df = new DecimalFormat("#.00");
     private static ToolWindow toolWindow;
     private static QueryResultToolWindowFactory resultWindow;
+    private static boolean isQueryScript = false;
 
     private static QueryResultToolWindowFactory getOutputWindow(Project project) {
         if (toolWindow == null) {
@@ -178,8 +179,16 @@ public class QueryExecutor {
     }
 
     public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, QueryContext context, String query, int historyIndex, Project project) {
+        return executeQuery(queue, type, context, query, historyIndex, project, 200);
+    }
+
+    public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, QueryContext context, String query, int historyIndex, Project project, int limit) {
         if (query == null || query.trim().isEmpty()) {
             return false;
+        }
+        query = query.trim();
+        if (query.endsWith(";")) {
+            query = query.substring(0, query.length() - 1).trim();
         }
         if (ActiveCluster.getInstance().get() == null) {
             Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error", Messages.getErrorIcon());
@@ -204,20 +213,29 @@ public class QueryExecutor {
             }
         }
 
+        final String origQuery = query;
+        boolean autoLimited = false;
+        if (!SQLPPAnalyzer.isLimited(project, query)) {
+            Integer queryLimit = ActiveCluster.getInstance().getQueryLimit();
+            if (queryLimit != null) {
+                query = String.format("SELECT * FROM (%s) as d LIMIT %d", query, queryLimit);
+                autoLimited = true;
+            }
+        }
         final String adjustedQuery = query;
+        QueryPreferences pref = ActiveCluster.getInstance().getSavedCluster().getQueryPreferences();
+        QueryOptions queryOptions = QueryOptions.queryOptions()
+                .timeout(Duration.ofSeconds(pref.getQueryTimeout()))
+                .profile(QueryProfile.TIMINGS).metrics(true);
 
         long start = 0;
         try {
             start = System.currentTimeMillis();
             CompletableFuture<QueryResult> futureResult;
-            QueryPreferences pref = ActiveCluster.getInstance().getSavedCluster().getQueryPreferences();
-
-            QueryOptions queryOptions = QueryOptions.queryOptions()
-                    .timeout(Duration.ofSeconds(pref.getQueryTimeout()))
-                    .profile(QueryProfile.TIMINGS).metrics(true);
 
             if (context != null && context.getBucket() != null && context.getScope() != null) {
-                futureResult = ActiveCluster.getInstance().get().bucket(context.getBucket()).scope(context.getScope()).async().query(adjustedQuery, queryOptions);
+                futureResult = ActiveCluster.getInstance().get().bucket(context.getBucket()).scope(context.getScope()).async().query(
+                        adjustedQuery, queryOptions);
             } else {
                 futureResult = ActiveCluster.getInstance().get().async().query(adjustedQuery, queryOptions);
             }
@@ -276,8 +294,14 @@ public class QueryExecutor {
             String timings;
             if (QueryType.EXPLAIN == type) {
                 timings = result.rowsAsObject().get(0).get("plan").toString();
+            } else if (result.metaData().profile().isPresent()) {
+                JsonObject metadata = result.metaData().profile().get().getObject("executionTimings");
+                if (autoLimited) {
+                    metadata = cleanupAutoLimitedMetadata(metadata);
+                }
+                timings = metadata.toString();
             } else {
-                timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
+                timings = null;
             }
 
             getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings), false);
@@ -296,11 +320,24 @@ public class QueryExecutor {
         }
 
         //if historyIndex is negative, doesn't add it to the history
-        if (historyIndex >= 0 && ActiveCluster.getInstance().getSavedCluster().getQueryPreferences().isSaveHistory()) {
-            return updateQueryHistory(query, historyIndex);
+        if (historyIndex >= 0 && pref.isSaveHistory()) {
+            return updateQueryHistory(origQuery, historyIndex);
         } else {
             return false;
         }
+    }
+
+    private static JsonObject cleanupAutoLimitedMetadata(JsonObject metadata) {
+        JsonArray items = metadata.getObject("~child").getArray("~children");
+        if (items.size() > 4) {
+            JsonArray newItems = JsonArray.create();
+            for (int i = 0; i < items.size() - 4; i++) {
+                newItems.add(items.getObject(i));
+            }
+            newItems.add(items.getObject(items.size() - 1));
+            metadata.getObject("~child").put("~children", newItems);
+        }
+        return metadata;
     }
 
     private static String getSizeText(long size) {
@@ -338,6 +375,14 @@ public class QueryExecutor {
             hist.remove(0);
             hist.add(query.trim());
         }
+    }
+
+    public static void setIsQueryScript(boolean isQueryScript) {
+        QueryExecutor.isQueryScript = isQueryScript;
+    }
+
+    public static boolean getIsQueryScript() {
+        return isQueryScript;
     }
 
     public enum QueryType {
