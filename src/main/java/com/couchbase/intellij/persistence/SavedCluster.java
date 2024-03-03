@@ -27,6 +27,8 @@ public class SavedCluster {
 
     private Long inferCachePeriod;
 
+    private QueryPreferences queryPreferences;
+
     public Boolean getLDAP() {
         if (ldap == null) {
             return false;
@@ -193,5 +195,18 @@ public class SavedCluster {
 
     public void setReadOnly(Boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    public QueryPreferences getQueryPreferences() {
+        if (queryPreferences == null) {
+            queryPreferences = new QueryPreferences();
+            queryPreferences.setQueryTimeout(600);
+            queryPreferences.setSaveHistory(true);
+        }
+        return queryPreferences;
+    }
+
+    public void setQueryPreferences(QueryPreferences queryPreferences) {
+        this.queryPreferences = queryPreferences;
     }
 }
