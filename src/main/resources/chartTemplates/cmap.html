@@ -79,9 +79,8 @@
 
     // Iterate over JSON data to create markers and popups
     jsonData.forEach(function (item) {
-        var landmark = item.landmark;
-        var marker = L.marker([GEO_LAT_TEMPLATE, GEO_LON_TEMPLATE]).addTo(myMap);
-        marker.bindPopup(createPopupContent(landmark));
+        var marker = L.marker([item.GEO_LAT_TEMPLATE, item.GEO_LON_TEMPLATE]).addTo(myMap);
+        marker.bindPopup(createPopupContent(item));
 
         // Show popup on hover
         marker.on('mouseover', function (e) {
