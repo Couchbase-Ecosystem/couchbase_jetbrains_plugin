@@ -177,6 +177,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
+
                             SwingUtilities.invokeLater(() -> {
                                 boolean query = false;
                                 boolean script = false;
@@ -187,6 +188,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                                     query = QueryExecutor.executeQuery(queryExecutionChannel, NORMAL, context, statements.get(0), currentHistoryIndex, project);
                                 } else {
                                     script = QueryExecutor.executeScript(scriptExecutionChannel, NORMAL, context, statements, currentHistoryIndex, project);
+
                                 }
 
                                 try {
