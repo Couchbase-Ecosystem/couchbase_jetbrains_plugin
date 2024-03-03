@@ -8,8 +8,6 @@ import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
-import com.couchbase.intellij.tree.CouchbaseWindowContent;
-import com.couchbase.intellij.tree.TreeActionHandler;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -25,7 +23,6 @@ import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
@@ -36,13 +33,8 @@ import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.ui.speedSearch.ElementFilter;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
-import generated.GeneratedTypes;
-import generated.psi.LimitClause;
-import generated.psi.SelectStatement;
-import generated.psi.SelectTerm;
 import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.intellij.sdk.language.psi.SqlppFile;
@@ -52,7 +44,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
-import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.*;
@@ -193,9 +184,9 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                                 if (statements.size() == 0) {
                                     return;
                                 } else if (statements.size() == 1) {
-                                    query = QueryExecutor.executeQuery(queryExecutionChannel,NORMAL, context, statements.get(0), currentHistoryIndex, project);
+                                    query = QueryExecutor.executeQuery(queryExecutionChannel, NORMAL, context, statements.get(0), currentHistoryIndex, project);
                                 } else {
-                                    script = QueryExecutor.executeScript(scriptExecutionChannel,NORMAL, context, statements, currentHistoryIndex, project);
+                                    script = QueryExecutor.executeScript(scriptExecutionChannel, NORMAL, context, statements, currentHistoryIndex, project);
                                 }
 
                                 try {
@@ -345,6 +336,23 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                 dialog.show();
             }
         });
+
+        favoriteActionGroup.addSeparator();
+        favoriteActionGroup.add(new AnAction("Query Options", "Query Options", IconLoader.getIcon("/assets/icons/gear.svg", CustomSqlFileEditor.class)) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                if (ActiveCluster.getInstance().getCluster() != null) {
+                    QueryOptionsDialog dialog = new QueryOptionsDialog(project);
+                    dialog.show();
+                } else {
+                    Messages.showErrorDialog(
+                            String.format("You can only change the query options when you are connected to a cluster"),
+                            "Query Options Error"
+                    );
+                }
+            }
+        });
+
         favorite.add(favToolbar.getComponent(), BorderLayout.CENTER);
 
         topPanel = new JPanel(new BorderLayout());
