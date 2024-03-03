@@ -11,10 +11,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.HyperlinkLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeExpansionListener;
@@ -25,6 +27,7 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URI;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -36,6 +39,22 @@ public class CouchbaseWindowContent extends JPanel {
 
     private static Tree tree;
 
+
+    public JPanel getTourPanel() {
+        HyperlinkLabel hyperlinkLabel = new HyperlinkLabel("Watch a quick plugin tour >>");
+        hyperlinkLabel.addHyperlinkListener(e -> {
+            try {
+                Desktop.getDesktop().browse(new URI("https://www.youtube.com/watch?v=RiHLyop_KUM&ab_channel=Couchbase"));
+            } catch (Exception ex) {
+                Log.error(ex);
+            }
+        });
+
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        panel.setBorder(new EmptyBorder(5, 0, 5, 0));
+        panel.add(hyperlinkLabel);
+        return panel;
+    }
 
     public CouchbaseWindowContent(Project project) {
         CouchbaseWindowContent.project = project;
@@ -51,6 +70,11 @@ public class CouchbaseWindowContent extends JPanel {
         toolBarPanel = toolBarBuilder.build(project, tree);
         add(toolBarPanel, BorderLayout.NORTH);
         add(new JScrollPane(tree), BorderLayout.CENTER);
+
+        //only shows when the user doesn't have any connections yet
+        if (DataLoader.getSavedClusters().isEmpty()) {
+            add(getTourPanel(), BorderLayout.SOUTH);
+        }
 
         tree.addMouseListener(new MouseInputAdapter() {
             @Override
