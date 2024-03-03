@@ -5,14 +5,11 @@ import com.couchbase.client.java.kv.ExistsResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
-import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.couchbase.intellij.workbench.CustomSqlFileEditor;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.treeStructure.Tree;
@@ -69,10 +66,11 @@ public class OpenDocumentDialog extends DialogWrapper {
         if (documentId.length() > maxDocumentIdLength) {
             return false;
         }
-        String regex = "^[A-Za-z0-9_.-]+$";
-        if (!documentId.matches(regex)) {
-            return false;
-        }
+// Relaxing constraints according to https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues/172
+//        String regex = "^[A-Za-z0-9_.-]+$";
+//        if (!documentId.matches(regex)) {
+//            return false;
+//        }
 
         return true;
     }
@@ -187,5 +185,6 @@ public class OpenDocumentDialog extends DialogWrapper {
         Dimension preferredSize = super.getPreferredSize();
         return new Dimension(Math.max(preferredSize.width, MINIMUM_WIDTH), preferredSize.height);
     }
+
 
 }

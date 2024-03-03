@@ -76,8 +76,7 @@ public class DataLoader {
 
                             //NOTE: if the user has a travel-sample bucket and no relationships yet, we add the relationships
                             //from travel-sample
-                            if ("travel-sample".equals(bucket) && RelationshipStorage.getInstance()
-                                    .getValue().getRelationships().get(ActiveCluster.getInstance().getId()) == null) {
+                            if ("travel-sample".equals(bucket) && RelationshipStorage.getInstance().getValue().getRelationships().get(ActiveCluster.getInstance().getId()) == null) {
                                 RelationshipSettingsManager.populateTravelSample();
                             }
 
@@ -89,7 +88,10 @@ public class DataLoader {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
 
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    SwingUtilities.invokeLater(() -> {
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    });
+
                 } catch (Exception e) {
                     Log.error(e);
                 } finally {
@@ -130,7 +132,9 @@ public class DataLoader {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
 
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    SwingUtilities.invokeLater(() -> {
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    });
                 } catch (Exception e) {
                     Log.error(e);
                     e.printStackTrace();
@@ -169,7 +173,10 @@ public class DataLoader {
                     } else {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    SwingUtilities.invokeLater(() -> {
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    });
+
                 } catch (Exception e) {
                     Log.error(e);
                     e.printStackTrace();
@@ -241,7 +248,9 @@ public class DataLoader {
                     } else if (newOffset == 0) {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
-                    ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    SwingUtilities.invokeLater(() -> {
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    });
                 }
             } catch (PlanningFailureException | IndexFailureException ex) {
                 //This catch handles when the user has no indexes in the collection
@@ -291,7 +300,9 @@ public class DataLoader {
             parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
         }
 
-        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+        SwingUtilities.invokeLater(() -> {
+            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+        });
     }
 
     public static boolean stubsAvailable(String bucket, String scope, String collection) {
@@ -407,7 +418,9 @@ public class DataLoader {
                                 Log.debug("Could not infer the schema for " + colNode.getText());
                             }
 
-                            treeModel.nodeStructureChanged(parentNode);
+                            SwingUtilities.invokeLater(() -> {
+                                treeModel.nodeStructureChanged(parentNode);
+                            });
                         }
                     }.queue();
                 } catch (Exception e) {
@@ -446,9 +459,7 @@ public class DataLoader {
             if (!ldap) {
                 options = ClusterOptions.clusterOptions(username, password);
             } else {
-                PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(username)
-                        .password(password)
-                        .onlyEnablePlainSaslMechanism().build();
+                PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(username).password(password).onlyEnablePlainSaslMechanism().build();
 
                 options = ClusterOptions.clusterOptions(authenticator);
             }
@@ -556,8 +567,10 @@ public class DataLoader {
             } else {
                 parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
             }
-            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-            tree.setPaintBusy(false);
+            SwingUtilities.invokeLater(() -> {
+                ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                tree.setPaintBusy(false);
+            });
         } else {
             throw new IllegalStateException("The expected parent was IndexesNodeDescriptor but got something else");
         }

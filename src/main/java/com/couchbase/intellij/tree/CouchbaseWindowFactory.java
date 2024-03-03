@@ -1,10 +1,9 @@
 package com.couchbase.intellij.tree;
 
-//import com.couchbase.intellij.tree.iq.ChatGPTToolWindow;
 
 import com.couchbase.intellij.tree.cblite.CBLWindowContent;
-import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
@@ -46,11 +45,7 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
             e.printStackTrace();
             Log.error("Failed to start the CBLite Plugin", e);
         }
-
-//        ChatGPTToolWindow chatGPTToolWindow = new ChatGPTToolWindow(project);
-//        Content chatGpt = contentFactory.createContent(chatGPTToolWindow.getContent(), "iQ", false);
-//        chatGpt.setIcon(AllIcons.General.Add);
-//        toolWindow.getContentManager().addContent(chatGpt);
+        
 
         IQWindowContent iqWindowContent = new IQWindowContent(project);
         Content iq = contentFactory.createContent(iqWindowContent, "iQ ᴮᵉᵗᵃ", false);

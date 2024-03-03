@@ -17,7 +17,6 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
-import kotlinx.html.INS;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -144,11 +143,14 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         options = ClusterOptions.clusterOptions(authenticator);
                     }
 
+//TODO: Don't know why this doesn't work
+//                    options.environment(env -> {
+//                        env.applyProfile("wan-development");
+//                    });
+
                     Cluster cluster = Cluster.connect(savedCluster.getUrl()
                                     + (savedCluster.getQueryParams() == null ? "" : savedCluster.getQueryParams()),
-                            options.environment(env -> {
-                                // env.applyProfile("wan-development");
-                            }));
+                            options);
 
                     cluster.waitUntilReady(Duration.ofSeconds(10));
                     ActiveCluster.this.cluster = cluster;
@@ -175,7 +177,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                                     try {
                                         Messages.showErrorDialog(
                                                 String.format("Lost connection to cluster '%s'", savedCluster.getId()),
-                                                "Lost connecion"
+                                                "Lost connection"
                                         );
                                     } catch (Exception e) {
                                         // noop, idea be crazy sometimes

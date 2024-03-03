@@ -9,6 +9,7 @@ import com.couchbase.client.java.query.*;
 import com.couchbase.client.java.transactions.TransactionQueryResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.QueryContext;
+import com.couchbase.intellij.persistence.QueryPreferences;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
@@ -24,8 +25,11 @@ import reactor.core.publisher.Mono;
 import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -35,7 +39,6 @@ public class QueryExecutor {
     private static final DecimalFormat df = new DecimalFormat("#.00");
     private static ToolWindow toolWindow;
     private static QueryResultToolWindowFactory resultWindow;
-    private static boolean isQueryScript = false;
 
     private static QueryResultToolWindowFactory getOutputWindow(Project project) {
         if (toolWindow == null) {
@@ -50,7 +53,7 @@ public class QueryExecutor {
         return resultWindow;
     }
 
-    public static Boolean executeScript(BlockingQueue<Boolean> queue,QueryType type, QueryContext context, List<String> statements, int historyIndex, Project project) {
+    public static Boolean executeScript(BlockingQueue<Boolean> queue, QueryType type, QueryContext context, List<String> statements, int historyIndex, Project project) {
         Cluster cluster = ActiveCluster.getInstance().getCluster();
         if (statements == null || statements.isEmpty()) {
             return false;
@@ -69,108 +72,108 @@ public class QueryExecutor {
         AtomicLong resultSize = new AtomicLong();
         CouchbaseQueryResultError error = new CouchbaseQueryResultError();
 
-            try {
-                var future = cluster.reactive().transactions().run(tx -> {
-                    Mono<TransactionQueryResult> aggregatedResult = null;
-                    for (int i = 0; i < statements.size(); i++) {
+        try {
+            var future = cluster.reactive().transactions().run(tx -> {
+                Mono<TransactionQueryResult> aggregatedResult = null;
+                for (int i = 0; i < statements.size(); i++) {
 
-                        String query = statements.get(i);
+                    String query = statements.get(i);
 
-                        if (type != QueryType.NORMAL) {
-                            query = String.format("%s %s", type.toString(), query);
+                    if (type != QueryType.NORMAL) {
+                        query = String.format("%s %s", type.toString(), query);
+                    }
+
+                    JsonObject queryResult = JsonObject.create();
+                    result.add(queryResult);
+                    queryResult.put("_sequence_num", i);
+                    queryResult.put("_sequence_query", query);
+
+                    try {
+                        Mono<TransactionQueryResult> transactionResult;
+
+                        if (context == null || context.getBucket() == null) {
+                            transactionResult = tx.query(query);
+                        } else {
+                            transactionResult = tx.query(cluster.bucket(context.getBucket()).scope(context.getScope()).reactive(), query);
+                        }
+                        if (aggregatedResult == null) {
+                            aggregatedResult = transactionResult;
+                        } else {
+                            aggregatedResult = aggregatedResult.then(transactionResult);
                         }
 
-                        JsonObject queryResult = JsonObject.create();
-                        result.add(queryResult);
-                        queryResult.put("_sequence_num", i);
-                        queryResult.put("_sequence_query", query);
-
-                        try {
-                            Mono<TransactionQueryResult> transactionResult;
-
-                            if (context == null || context.getBucket() == null) {
-                                transactionResult = tx.query(query);
-                            } else {
-                                transactionResult = tx.query(cluster.bucket(context.getBucket()).scope(context.getScope()).reactive(), query);
-                            }
-                            if (aggregatedResult == null) {
-                                aggregatedResult = transactionResult;
-                            } else {
-                                aggregatedResult = aggregatedResult.then(transactionResult);
-                            }
-
-                            aggregatedResult = aggregatedResult.flatMap((r) -> {
-                                QueryMetaData meta = r.metaData();
-                                metas.add(meta);
-                                if (meta.status() == QueryStatus.SUCCESS) {
-                                    queryResult.put("_sequence_query_status", "success");
-                                    JsonArray rows = JsonArray.from(r.rowsAsObject());
-                                    if (rows.size() > 0) {
-                                        queryResult.put("_sequence_result", rows);
-                                        resultCount.addAndGet(rows.size());
-                                        meta.metrics().ifPresent(queryMetrics -> {
-                                            resultSize.addAndGet(queryMetrics.resultSize());
-                                            mutationCount.addAndGet(queryMetrics.mutationCount());
-                                        });
-                                    } else {
-                                        meta.metrics().ifPresent(queryMetrics -> mutationCount.addAndGet(queryMetrics.mutationCount()));
-                                    }
+                        aggregatedResult = aggregatedResult.flatMap((r) -> {
+                            QueryMetaData meta = r.metaData();
+                            metas.add(meta);
+                            if (meta.status() == QueryStatus.SUCCESS) {
+                                queryResult.put("_sequence_query_status", "success");
+                                JsonArray rows = JsonArray.from(r.rowsAsObject());
+                                if (rows.size() > 0) {
+                                    queryResult.put("_sequence_result", rows);
+                                    resultCount.addAndGet(rows.size());
+                                    meta.metrics().ifPresent(queryMetrics -> {
+                                        resultSize.addAndGet(queryMetrics.resultSize());
+                                        mutationCount.addAndGet(queryMetrics.mutationCount());
+                                    });
                                 } else {
-                                    queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
+                                    meta.metrics().ifPresent(queryMetrics -> mutationCount.addAndGet(queryMetrics.mutationCount()));
                                 }
-                                return Mono.empty();
-                            });
+                            } else {
+                                queryResult.put("_sequence_query_status", meta.status().toString().toLowerCase());
+                            }
+                            return Mono.empty();
+                        });
 
-                        } catch (Throwable e) {
-                            queryResult.put("_sequence_query_status", "error");
-                            queryResult.put("_sequence_query_error", e.getMessage());
-                            throw e;
-                        }
+                    } catch (Throwable e) {
+                        queryResult.put("_sequence_query_status", "error");
+                        queryResult.put("_sequence_query_error", e.getMessage());
+                        throw e;
                     }
+                }
 
-                    return  aggregatedResult;
-                }).toFuture();
+                return aggregatedResult;
+            }).toFuture();
 
-                do {
-                    if (queue.peek() != null) {
-                        queue.poll();
-                        future.cancel(true);
-                        getOutputWindow(project).setStatusAsCanceled();
-                    }
-                } while (!future.isDone());
+            do {
+                if (queue.peek() != null) {
+                    queue.poll();
+                    future.cancel(true);
+                    getOutputWindow(project).setStatusAsCanceled();
+                }
+            } while (!future.isDone());
 
-                future.get();
-            } catch (Exception e) {
-                error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
-            }
+            future.get();
+        } catch (Exception e) {
+            error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
+        }
 
-            List<String> metricsList = new ArrayList<>();
-            metricsList.add(System.currentTimeMillis() - start + " MS");
-            metricsList.add("-");
-            metricsList.add("-");
-            metricsList.add(String.valueOf(mutationCount.get()));
-            metricsList.add(String.valueOf(resultCount.get()));
-            metricsList.add(getSizeText(resultSize.get()));
-            List<String> timings;
-            if (type == QueryType.EXPLAIN) {
-                timings = result.stream()
-                        .map(o -> o.getArray("_sequence_result"))
-                        .filter(Objects::nonNull)
-                        .map(a -> a.getObject(0))
-                        .filter(Objects::nonNull)
-                        .map(o -> o.get("plan"))
-                        .filter(Objects::nonNull)
-                        .map(o -> o.toString())
-                        .collect(Collectors.toList());
-            } else if (type == QueryType.ADVISE) {
-                timings = metas.stream()
-                        .filter(meta -> meta.profile().isPresent())
-                        .map(meta -> meta.profile().get().get("executionTimings").toString())
-                        .collect(Collectors.toList());
-            } else {
-                timings = null;
-            }
-            getOutputWindow(project).updateQueryStats(metricsList, result, error, timings,true);
+        List<String> metricsList = new ArrayList<>();
+        metricsList.add(System.currentTimeMillis() - start + " MS");
+        metricsList.add("-");
+        metricsList.add("-");
+        metricsList.add(String.valueOf(mutationCount.get()));
+        metricsList.add(String.valueOf(resultCount.get()));
+        metricsList.add(getSizeText(resultSize.get()));
+        List<String> timings;
+        if (type == QueryType.EXPLAIN) {
+            timings = result.stream()
+                    .map(o -> o.getArray("_sequence_result"))
+                    .filter(Objects::nonNull)
+                    .map(a -> a.getObject(0))
+                    .filter(Objects::nonNull)
+                    .map(o -> o.get("plan"))
+                    .filter(Objects::nonNull)
+                    .map(o -> o.toString())
+                    .collect(Collectors.toList());
+        } else if (type == QueryType.ADVISE) {
+            timings = metas.stream()
+                    .filter(meta -> meta.profile().isPresent())
+                    .map(meta -> meta.profile().get().get("executionTimings").toString())
+                    .collect(Collectors.toList());
+        } else {
+            timings = null;
+        }
+        getOutputWindow(project).updateQueryStats(metricsList, result, error, timings, true);
 
         return error.getErrors().isEmpty();
     }
@@ -204,7 +207,7 @@ public class QueryExecutor {
                 error.setErrors(List.of(err));
 
                 getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-", "-"),
-                        null, error, null,false);
+                        null, error, null, false);
                 return false;
             }
         }
@@ -220,68 +223,31 @@ public class QueryExecutor {
         }
         final String adjustedQuery = query;
 
-            long start = 0;
-            try {
-                start = System.currentTimeMillis();
-                CompletableFuture<QueryResult> futureResult;
+        long start = 0;
+        try {
+            start = System.currentTimeMillis();
+            CompletableFuture<QueryResult> futureResult;
+            QueryPreferences pref = ActiveCluster.getInstance().getSavedCluster().getQueryPreferences();
 
-                if (context != null && context.getBucket() != null && context.getScope() != null) {
-                    futureResult = ActiveCluster.getInstance().get().bucket(context.getBucket()).scope(context.getScope()).async().query(adjustedQuery,
-                            QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
-                } else {
-                    futureResult = ActiveCluster.getInstance().get().async().query(adjustedQuery, QueryOptions.queryOptions().profile(QueryProfile.TIMINGS).metrics(true));
+            QueryOptions queryOptions = QueryOptions.queryOptions()
+                    .timeout(Duration.ofSeconds(pref.getQueryTimeout()))
+                    .profile(QueryProfile.TIMINGS).metrics(true);
+
+            if (context != null && context.getBucket() != null && context.getScope() != null) {
+                futureResult = ActiveCluster.getInstance().get().bucket(context.getBucket()).scope(context.getScope()).async().query(adjustedQuery, queryOptions);
+            } else {
+                futureResult = ActiveCluster.getInstance().get().async().query(adjustedQuery, queryOptions);
+            }
+
+            while (!futureResult.isDone()) {
+                if (queue.peek() != null) {
+                    queue.poll();
+                    futureResult.cancel(true);
+                    getOutputWindow(project).setStatusAsCanceled();
                 }
+            }
+            QueryResult result = futureResult.get();
 
-                while (!futureResult.isDone()) {
-                    if (queue.peek() != null) {
-                        queue.poll();
-                        futureResult.cancel(true);
-                        getOutputWindow(project).setStatusAsCanceled();
-                    }
-                }
-                QueryResult result = futureResult.get();
-
-                long end = System.currentTimeMillis();
-
-                Optional<QueryMetrics> metrics = result.metaData().metrics();
-                List<String> metricsList = new ArrayList<>();
-                if (metrics.isPresent()) {
-                    metricsList.add(end - start + " MS");
-                    metricsList.add(metrics.get().elapsedTime().toMillis() + " MS");
-                    metricsList.add(metrics.get().executionTime().toMillis() + " MS");
-                    metricsList.add(String.valueOf(metrics.get().mutationCount()));
-                    metricsList.add(String.valueOf(metrics.get().resultCount()));
-                    metricsList.add(getSizeText(metrics.get().resultSize()));
-                } else {
-                    metricsList.add("-");
-                    metricsList.add("-");
-                    metricsList.add("-");
-                    metricsList.add("-");
-                    metricsList.add("-");
-                    metricsList.add("-");
-                }
-
-                List<JsonObject> resultList;
-
-                try {
-                    resultList = result.rowsAsObject();
-                } catch (Exception ex) {
-                    if (ex.getMessage().startsWith("Deserialization of content into target class com.couchbase.client.java.json.JsonObject failed")) {
-                        Field field = QueryResult.class.getDeclaredField("internal");
-                        field.setAccessible(true);
-                        CoreQueryResult internal = (CoreQueryResult) field.get(result);
-                        List<JsonObject> objList = new ArrayList<>();
-                        internal.rows().forEach(e -> {
-                            JsonObject obj = JsonObject.create();
-                            obj.put("content", JsonArray.fromJson(e.data()));
-                            objList.add(obj);
-                        });
-                        resultList = objList;
-                    } else {
-                        Log.error(ex);
-                        throw ex;
-                    }
-                }
 
                 String timings;
                 if (QueryType.EXPLAIN == type) {
@@ -296,25 +262,54 @@ public class QueryExecutor {
                     timings = null;
                 }
 
-                getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings),false);
+            List<JsonObject> resultList;
 
-            } catch (CouchbaseException e) {
-                long end = System.currentTimeMillis();
-                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
-                        null, CouchbaseQueryErrorUtil.parseQueryError(e), null,false);
-            } catch (ExecutionException e) {
-                long end = System.currentTimeMillis();
-                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
-                        null, CouchbaseQueryErrorUtil.parseQueryError(e), null,false);
+            try {
+                resultList = result.rowsAsObject();
+            } catch (Exception ex) {
+                if (ex.getMessage().startsWith("Deserialization of content into target class com.couchbase.client.java.json.JsonObject failed")) {
+                    Field field = QueryResult.class.getDeclaredField("internal");
+                    field.setAccessible(true);
+                    CoreQueryResult internal = (CoreQueryResult) field.get(result);
+                    List<JsonObject> objList = new ArrayList<>();
+                    internal.rows().forEach(e -> {
+                        JsonObject obj = JsonObject.create();
+                        obj.put("content", JsonArray.fromJson(e.data()));
+                        objList.add(obj);
+                    });
+                    resultList = objList;
+                } else {
+                    Log.error(ex);
+                    throw ex;
+                }
             }
-            catch (Exception e) {
-                Log.error(e);
-                e.printStackTrace();
+
+            String timings;
+            if (QueryType.EXPLAIN == type) {
+                timings = result.rowsAsObject().get(0).get("plan").toString();
+            } else {
+                timings = result.metaData().profile().isPresent() ? result.metaData().profile().get().get("executionTimings").toString() : null;
             }
+
+            getOutputWindow(project).updateQueryStats(metricsList, resultList, null, Collections.singletonList(timings), false);
+
+        } catch (CouchbaseException e) {
+            long end = System.currentTimeMillis();
+            getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
+                    null, CouchbaseQueryErrorUtil.parseQueryError(e), null, false);
+        } catch (ExecutionException e) {
+            long end = System.currentTimeMillis();
+            getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"),
+                    null, CouchbaseQueryErrorUtil.parseQueryError(e), null, false);
+        } catch (Exception e) {
+            Log.error(e);
+            e.printStackTrace();
+        }
 
         //if historyIndex is negative, doesn't add it to the history
-        if (historyIndex >= 0) {
-            return updateQueryHistory(origQuery, historyIndex);
+
+        if (historyIndex >= 0 && ActiveCluster.getInstance().getSavedCluster().getQueryPreferences().isSaveHistory()) {
+            return updateQueryHistory(query, historyIndex);
         } else {
             return false;
         }
@@ -368,14 +363,6 @@ public class QueryExecutor {
             hist.remove(0);
             hist.add(query.trim());
         }
-    }
-
-    public static void setIsQueryScript(boolean isQueryScript) {
-        QueryExecutor.isQueryScript = isQueryScript;
-    }
-
-    public static boolean getIsQueryScript() {
-        return isQueryScript;
     }
 
     public enum QueryType {
