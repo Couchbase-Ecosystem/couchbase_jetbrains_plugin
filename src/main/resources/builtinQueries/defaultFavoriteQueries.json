@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Longest running queries",
+    "query": "SELECT statement,\n    DURATION_TO_STR(avgServiceTime) AS avgServiceTime,\n    COUNT(1) AS queries\nFROM system:completed_requests\nWHERE UPPER(statement) NOT LIKE 'INFER %'\n    AND UPPER(statement) NOT LIKE 'CREATE INDEX%'\n    AND UPPER(statement) NOT LIKE '% SYSTEM:%'\nGROUP BY statement\nLETTING avgServiceTime = AVG(STR_TO_DURATION(serviceTime))\nORDER BY avgServiceTime DESC\n",
+    "description": "List queries by it's execution time (slowest first). Couchbase stores a limited amount of executed queries, so the results might not show a global view of the slowest queries"
+  },
+  {
+    "name": "Most frequent queries",
+    "query": "SELECT statement,\n    COUNT(1) AS queries\nFROM system:completed_requests\nWHERE UPPER(statement) NOT LIKE 'INFER %'\n    AND UPPER(statement) NOT LIKE 'CREATE INDEX%'\n    AND UPPER(statement) NOT LIKE '% SYSTEM:%'\nGROUP BY statement\nLETTING queries = COUNT(1)\nORDER BY queries DESC",
+    "description": "List queries that are executed most often. Couchbase stores a limited amount of executed queries, so the results might not show a global view of the most frequent queries"
+  },
+  {
+    "name": "Largest result size queries",
+    "query": "SELECT statement,\n    (avgResultSize) AS avgResultSizeBytes,\n    (avgResultSize / 1000) AS avgResultSizeKB,\n    (avgResultSize / 1000 / 1000) AS avgResultSizeMB,\n    COUNT(1) AS queries\nFROM system:completed_requests\nWHERE UPPER(statement) NOT LIKE 'INFER %'\n    AND UPPER(statement) NOT LIKE 'CREATE INDEX%'\n    AND UPPER(statement) NOT LIKE '% SYSTEM:%'\nGROUP BY statement\nLETTING avgResultSize = AVG(resultSize)\nORDER BY avgResultSize DESC\n",
+    "description": "List queries by the data size returned. Couchbase stores a limited amount of executed queries, so the results might not show a comprehensive view."
+  },
+  {
+    "name": "Largest result count queries",
+    "query": "SELECT statement,\n    avgResultCount,\n    COUNT(1) AS queries\nFROM system:completed_requests\nWHERE UPPER(statement) NOT LIKE 'INFER %'\n    AND UPPER(statement) NOT LIKE 'CREATE INDEX%'\n    AND UPPER(statement) NOT LIKE '% SYSTEM:%'\nGROUP BY statement\nLETTING avgResultCount = AVG(resultCount)\nORDER BY avgResultCount DESC",
+    "description": "List queries that returned the highest number of results. Couchbase stores a limited amount of executed queries, so the results might not show a comprehensive view."
+  },
+  {
+    "name": "Queries using the primary index",
+    "query": "SELECT *\nFROM system:completed_requests\nWHERE phaseCounts.`primaryScan` IS NOT MISSING\n    AND UPPER(statement) NOT LIKE '% SYSTEM:%'\nORDER BY resultCount DESC\n",
+    "description": "List of queries that are using the primary index instead of secondary ones. Couchbase stores a limited amount of executed queries, so the results might not show a comprehensive view."
+  }
+]

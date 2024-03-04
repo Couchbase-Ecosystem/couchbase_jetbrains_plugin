@@ -113,6 +113,19 @@ public class TreeToolBarBuilder {
                 });
                 menu.add(item2);
 
+                JBMenuItem pluginTour = new JBMenuItem("Watch the plugin's tour video");
+                pluginTour.addActionListener(e1 -> {
+
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        try {
+                            Desktop.getDesktop().browse(new URI("https://www.youtube.com/watch?v=RiHLyop_KUM&ab_channel=Couchbase"));
+                        } catch (IOException | URISyntaxException ex) {
+                            Log.error("Could not open the plugin's tour video");
+                        }
+                    }
+                });
+                menu.add(pluginTour);
+
 
                 Component component = e.getInputEvent().getComponent();
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
