@@ -20,6 +20,9 @@ public class CBTools {
         CB_IMPORT,
         CB_EXPORT,
         CBC_PILLOW_FIGHT,
-        MCTIMINGS
+        MCTIMINGS,
+
+        CBMIGRATE
+
     }
 }

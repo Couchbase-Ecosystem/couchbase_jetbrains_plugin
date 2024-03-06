@@ -14,12 +14,16 @@ import java.util.Properties;
 public class DependenciesUtil {
 
     public static final String VERSION_FILE = "cb_tool_versions.properties";
+
+    public static final String CBMIGRATE_KEY = "cbmigrate";
     public static final String TOOLS_KEY = "tools";
     public static final String SHELL_KEY = "shell";
     public static final String CBIMPORT_EXPORT_KEY = "cbimport_export";
     public static final String EXPLAIN_KEY = "explain";
 
     public static final String TOOLS_VERSION = "7.2";
+
+    public static final String CBMIGRATE_VERSION = "2";
     public static final String SHELL_VERSION = "1";
     public static final String CBIMPORT_EXPORT_VERSION = "7.2";
     public static final String EXPLAIN_VERSION = "1";

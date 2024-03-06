@@ -29,6 +29,7 @@ dependencies {
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
     implementation("com.google.code.gson:gson:2.10.1")
 
+    implementation("org.mongodb:mongodb-driver-sync:4.11.1")
 
     implementation("com.google.code.gson:gson:2.10.1")
 
