@@ -13,8 +13,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MongoConnection {
-    
-    public static List<String> canConnect(String url) {
+
+    private static MongoClient tempMongoClient;
+    private String connectionString;
+
+    public MongoConnection(String connectionString) {
+        this.connectionString = connectionString;
+    }
+
+    public List<String> listDatabases() {
+        if (tempMongoClient == null) {
+            tempMongoClient = getMongoClient(connectionString);
+        }
+
+        MongoIterable<String> databases = tempMongoClient.listDatabaseNames();
+        List<String> databasesList = new ArrayList<>();
+        for (String db : databases) {
+            databasesList.add(db);
+        }
+        return databasesList;
+    }
+
+    public static List<String> testConnection(String url) {
 
         MongoClient tempMongoClient = getMongoClient(url);
         MongoIterable<String> databases = tempMongoClient.listDatabaseNames();
@@ -38,9 +58,16 @@ public class MongoConnection {
     }
 
 
-    public static List<String> getCollectionNames(String url, String databaseName) {
-        MongoClient tempMongoClient = getMongoClient(url);
+    public List<String> getCollectionNames(String databaseName) {
+        if (tempMongoClient == null) {
+            tempMongoClient = getMongoClient(connectionString);
+        }
         return tempMongoClient.getDatabase(databaseName).listCollectionNames().into(new ArrayList<>());
+    }
 
+    public void closeConnection() {
+        if (tempMongoClient != null) {
+            tempMongoClient.close();
+        }
     }
 }
