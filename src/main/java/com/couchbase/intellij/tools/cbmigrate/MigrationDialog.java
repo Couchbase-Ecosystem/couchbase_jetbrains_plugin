@@ -49,6 +49,8 @@ public class MigrationDialog extends DialogWrapper {
     protected static final Color SUCCESS_COLOR = Color.decode("#00C851");
     protected static final Color ESTABILISHING_COLOR = Color.decode("#FFA726");
 
+    private MongoConnection mongoConnection;
+
     public MigrationDialog(Project project) {
         super(true);
         this.project = project;
@@ -171,7 +173,7 @@ public class MigrationDialog extends DialogWrapper {
             mongoErrorLabel.setText("Loading databases...");
             mongoErrorLabel.setForeground(ESTABILISHING_COLOR);
             mongoErrorLabel.setVisible(true);
-            tryToConnectToMongo(mongoDBTextField.getText(), mongoErrorLabel, list -> {
+            connectToMongo(mongoDBTextField.getText(), mongoErrorLabel, list -> {
                 if (!list.isEmpty()) {
                     showDataSourcePanel(list);
                     mongoErrorLabel.setText("");
@@ -180,7 +182,9 @@ public class MigrationDialog extends DialogWrapper {
 
         });
         JButton cancel = new JButton("Cancel");
-        cancel.addActionListener(e -> super.doCancelAction());
+        cancel.addActionListener(e -> {
+            super.doCancelAction();
+        });
 
         JPanel southButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         southButtonPanel.add(cancel);
@@ -218,7 +222,7 @@ public class MigrationDialog extends DialogWrapper {
             if (databaseComboBox.getSelectedItem() == null) {
                 return;
             }
-            List<String> collectionNames = MongoConnection.getCollectionNames(mongoDBTextField.getText(), databaseComboBox.getSelectedItem().toString());
+            List<String> collectionNames = mongoConnection.getCollectionNames(databaseComboBox.getSelectedItem().toString());
             collectionsComboBox.removeAllItems();
             collectionsComboBox.addItem(ALL_COLLECTIONS_IN_THE_DATABASE);
             for (String collectionName : collectionNames) {
@@ -466,7 +470,29 @@ public class MigrationDialog extends DialogWrapper {
     public void tryToConnectToMongo(String mongoDBUri, JLabel errorLabel, Consumer<List<String>> callback) {
         SwingUtilities.invokeLater(() -> {
             try {
-                List<String> databases = MongoConnection.canConnect(mongoDBUri);
+                List<String> databases = MongoConnection.testConnection(mongoDBUri);
+
+                if (!databases.isEmpty()) {
+                    errorLabel.setForeground(SUCCESS_COLOR);
+                    errorLabel.setText("Connection was successful");
+                    callback.consume(databases);
+                } else {
+                    throw new IllegalStateException("Cluster has zero databases.");
+                }
+            } catch (Exception ex) {
+                errorLabel.setForeground(ERROR_COLOR);
+                errorLabel.setText("Connection failed. Please make sure your URI is valid");
+                Log.error("Could not connect to MongoDB", ex);
+                callback.consume(new ArrayList<>());
+            }
+        });
+    }
+
+    public void connectToMongo(String mongoDBUri, JLabel errorLabel, Consumer<List<String>> callback) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                mongoConnection = new MongoConnection(mongoDBUri);
+                List<String> databases = mongoConnection.listDatabases();
 
                 if (!databases.isEmpty()) {
                     errorLabel.setForeground(SUCCESS_COLOR);
@@ -505,7 +531,7 @@ public class MigrationDialog extends DialogWrapper {
 
             List<String> selectedCols;
             if (collectionsComboBox.getSelectedItems().contains(ALL_COLLECTIONS_IN_THE_DATABASE)) {
-                selectedCols = MongoConnection.getCollectionNames(mongoDBConnectionString, databaseName);
+                selectedCols = mongoConnection.getCollectionNames(databaseName);
             } else {
                 selectedCols = collectionsComboBox.getSelectedItems();
             }
@@ -534,6 +560,14 @@ public class MigrationDialog extends DialogWrapper {
             ApplicationManager.getApplication().invokeLater(
                     () -> Messages.showErrorDialog(project, "Error migrating data: " + e.getMessage(), "Error"));
         }
+    }
+
+    @Override
+    protected void dispose() {
+        if (mongoConnection != null) {
+            mongoConnection.closeConnection();
+        }
+        super.dispose();
     }
 
 }

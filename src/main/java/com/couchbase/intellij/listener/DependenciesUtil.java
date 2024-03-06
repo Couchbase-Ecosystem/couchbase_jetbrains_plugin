@@ -23,7 +23,7 @@ public class DependenciesUtil {
 
     public static final String TOOLS_VERSION = "7.2";
 
-    public static final String CBMIGRATE_VERSION = "2";
+    public static final String CBMIGRATE_VERSION = "3";
     public static final String SHELL_VERSION = "1";
     public static final String CBIMPORT_EXPORT_VERSION = "7.2";
     public static final String EXPLAIN_VERSION = "1";
