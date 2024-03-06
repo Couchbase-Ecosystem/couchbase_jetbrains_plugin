@@ -72,4 +72,8 @@ public class CouchbaseDocumentFlavor implements CouchbaseClusterEntity {
         }
         return result;
     }
+
+    public JsonObject getProperties() {
+        return properties;
+    }
 }

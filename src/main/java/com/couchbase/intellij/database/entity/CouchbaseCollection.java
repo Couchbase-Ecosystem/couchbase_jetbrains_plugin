@@ -12,7 +12,7 @@ import com.intellij.openapi.progress.Task;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
-import java.util.Optional;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -29,6 +29,7 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
         this.parent = parent;
         this.spec = spec;
     }
+
     @Override
     public String getName() {
         return spec.name();
@@ -121,5 +122,51 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
                     .forEach(result::add);
         }
         return result;
+    }
+
+
+    public Set<String> getAllAttributeNames() {
+        Set<String> attributeNames = new HashSet<>();
+
+        // Check if children are not null
+        if (this.children != null) {
+            for (CouchbaseDocumentFlavor flavor : this.children) {
+                collectAttributeNames(flavor, attributeNames);
+            }
+        }
+
+        return attributeNames;
+    }
+
+    /**
+     * Recursively collects attribute names from a CouchbaseDocumentFlavor and its children.
+     *
+     * @param flavor         The document flavor to collect attribute names from.
+     * @param attributeNames The set to collect attribute names into.
+     */
+    private void collectAttributeNames(CouchbaseDocumentFlavor flavor, Set<String> attributeNames) {
+        // Assuming each flavor's properties are represented as fields within the document flavor
+        Set<CouchbaseField> fields = flavor.getChildren();
+        if (fields != null) {
+            for (CouchbaseField field : fields) {
+                attributeNames.add(field.getName());
+                collectAttributeNamesFromFields(field.getChildren(), attributeNames);
+            }
+        }
+    }
+
+    /**
+     * Recursively collects attribute names from nested fields.
+     *
+     * @param fields         The set of nested fields to collect attribute names from.
+     * @param attributeNames The set to collect attribute names into.
+     */
+    private void collectAttributeNamesFromFields(Set<CouchbaseField> fields, Set<String> attributeNames) {
+        for (CouchbaseField field : fields) {
+            attributeNames.add(field.getName());
+            if (field.hasChildren()) {
+                collectAttributeNamesFromFields(field.getChildren(), attributeNames);
+            }
+        }
     }
 }
