@@ -44,7 +44,7 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
                         }
 
                         if (ActiveCluster.getInstance() == null
-                                && !ActiveCluster.getInstance().getId().equals(virtualFile.getUserData(VirtualFileKeys.CONN_ID))) {
+                                || !ActiveCluster.getInstance().getId().equals(virtualFile.getUserData(VirtualFileKeys.CONN_ID))) {
                             return;
                         }
 
