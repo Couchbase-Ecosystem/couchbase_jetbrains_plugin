@@ -335,6 +335,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     @Override
     public Stream<? extends CouchbaseClusterEntity> getChild(String name) {
+        if (getChildren() == null) {
+            return Stream.empty();
+        }
+        
         return getChildren().stream()
                 .flatMap(b -> Stream.concat(
                         Stream.of(b),

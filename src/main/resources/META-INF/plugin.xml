@@ -110,6 +110,10 @@
         <completion.contributor language="sqlpp"
                                 implementationClass="org.intellij.sdk.language.completion.SqlppCompletionContributor"/>
 
+        <completion.contributor language="JSON"
+                                implementationClass="org.intellij.sdk.language.JsonKeyCompletionContributor"/>
+
+
         <fileType name="SQL++ Lite file"
                   implementationClass="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileType"
                   fieldName="INSTANCE"
