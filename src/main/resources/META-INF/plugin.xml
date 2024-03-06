@@ -30,7 +30,12 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>Now the plugin allows you to use Couchbase iQ directly from your favorite IDE</li>
+          <li>You can now easily migrate from mongodb to Couchbase!</li>
+          <li>JSON Documents now suggests attribute keys</li>
+          <li>We automatically add limit to your SQL++ Queries</li>
+          <li>Favorite Queries has a new tab called "Built-in Queries"</li>
+          <li>Document Ids can now contain special chars</li>
+          <li>Bug fixes</li>
         </ul>
         ]]>
     </change-notes>
