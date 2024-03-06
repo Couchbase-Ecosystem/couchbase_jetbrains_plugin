@@ -14,7 +14,7 @@ import java.util.List;
 
 public class MongoConnection {
 
-    private static MongoClient tempMongoClient;
+    private MongoClient tempMongoClient;
     private String connectionString;
 
     public MongoConnection(String connectionString) {
