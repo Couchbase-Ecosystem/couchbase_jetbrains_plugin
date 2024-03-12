@@ -4,13 +4,14 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.testutil.TestActiveCluster;
-import com.couchbase.intellij.tree.iq.intents.AbstractIQTest;
+import com.couchbase.intellij.tree.iq.AbstractCapellaTest;
+import com.couchbase.intellij.tree.iq.AbstractIQTest;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
 
-public class CreateCollectionTest extends AbstractIQTest {
+public class CreateCollectionTest extends AbstractCapellaTest {
     @Override
     protected void setUp() throws Exception {
         super.setUp();

@@ -25,10 +25,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class IQWindowContent extends JPanel implements LoginPanel.Listener, ChatPanel.LogoutListener, ChatPanel.OrganizationListener {
-    private static final String IQ_URL = CapellaApiMethods.CAPELLA_DOMAIN + "/v2/organizations/%s/integrations/iq/";
+    private static final Supplier<String> IQ_URL = () -> CapellaApiMethods.getCapellaDomain() + "/v2/organizations/%s/integrations/iq/";
     private final Project project;
     private IQCredentials credentials = new IQCredentials();
     private CapellaOrganizationList organizationList;
@@ -173,7 +174,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.updateUI();
         SwingUtilities.invokeLater(() -> {
             IQStorage.getInstance().getState().setActiveOrganization(organization.getId());
-            final String iqUrl = String.format(IQ_URL, organization.getId());
+            final String iqUrl = String.format(IQ_URL.get(), organization.getId());
             iqGptConfig = new OpenAISettingsState.OpenAIConfig();
             OpenAISettingsState.getInstance().setGpt4Config(iqGptConfig);
             OpenAISettingsState.getInstance().setEnableInitialMessage(true);

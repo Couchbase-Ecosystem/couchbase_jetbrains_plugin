@@ -79,7 +79,7 @@ public class ChatGptHandler {
 
         public Consumer<Throwable> onError() {
             return cause -> {
-                listener.exchangeFailed(event.failed(cause));
+                listener.exchangeFailed(event == null ? null : event.failed(cause));
             };
         }
 

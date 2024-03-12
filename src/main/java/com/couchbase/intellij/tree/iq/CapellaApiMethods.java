@@ -11,12 +11,16 @@ import java.net.URL;
 import java.util.Base64;
 
 public class CapellaApiMethods {
-    // DEV:
-    //public static final String CAPELLA_DOMAIN = "https://api.dev.nonprod-project-avengers.com";
-    // PROD:
-    public static final String CAPELLA_DOMAIN = "https://api.cloud.couchbase.com";
-    private static final String AUTH_URL = CAPELLA_DOMAIN + "/sessions";
-    public static final String ORGANIZATIONS_URL = CAPELLA_DOMAIN + "/v2/organizations";
+    private static String CAPELLA_DOMAIN;
+    private static String AUTH_URL;
+    private static String ORGANIZATIONS_URL;
+
+    static {
+        // DEV:
+        // setCapellaDomain(System.getenv().getOrDefault("CAPELLA_DOMAIN", "https://api.dev.nonprod-project-avengers.com"));
+        // PROD:
+        setCapellaDomain(System.getenv().getOrDefault("CAPELLA_DOMAIN", "https://api.cloud.couchbase.com"));
+    }
 
 
     public static CapellaAuth login(String username, String password) throws IOException, IllegalStateException {
@@ -68,5 +72,15 @@ public class CapellaApiMethods {
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         CapellaOrganizationList resultList = objectMapper.readValue(result, CapellaOrganizationList.class);
         return resultList;
+    }
+
+    public static String getCapellaDomain() {
+        return CAPELLA_DOMAIN;
+    }
+
+    public static void setCapellaDomain(String domain) {
+        CAPELLA_DOMAIN = domain;
+        AUTH_URL = domain + "/sessions";
+        ORGANIZATIONS_URL = domain + "/v2/organizations";
     }
 }

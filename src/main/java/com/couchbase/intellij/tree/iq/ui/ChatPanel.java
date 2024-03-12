@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
@@ -37,6 +38,8 @@ import javax.swing.event.ListDataListener;
 import javax.swing.text.AbstractDocument;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
+    public static final String FAKE_CONFUSION = "Sorry, I couldn't quite get that. Could you restate the request?";
     private final ExpandableTextFieldExt searchTextField;
     private final JButton button;
     private final JButton stopGenerating;
@@ -259,16 +263,41 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         List<ChatMessage> response = event.getResponseChoices();
         response.forEach(message -> Log.info(String.format("IQ response message: %s", message.toString())));
         if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
-            IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
             JsonObject intents = JsonObject.fromJson(response.get(0).getContent());
-            getQuestion().addIntentResponse(intents);
-            intentProcessor.process(this, event.getUserMessage(), intents);
-        } else {
-            setContent(event.getResponseChoices());
-            SwingUtilities.invokeLater(() -> {
-                aroundRequest(false);
-            });
+            if (isEmptyResponse(intents) || containsNoneIntent(intents)) {
+                response = Arrays.asList(new ChatMessage("assistant", FAKE_CONFUSION) );
+            } else {
+                IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
+                getQuestion().addIntentResponse(intents);
+                intentProcessor.process(this, event.getUserMessage(), intents);
+                return;
+            }
         }
+
+        setContent(response);
+        SwingUtilities.invokeLater(() -> {
+            aroundRequest(false);
+        });
+    }
+
+    private boolean containsNoneIntent(JsonObject intents) {
+        JsonArray actions = intents.getArray("actions");
+        for (int i = 0; i < actions.size(); i++) {
+            JsonObject action = actions.getObject(i);
+
+            if (!action.containsKey("action") || action.getString("action").equalsIgnoreCase("none")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isEmptyResponse(JsonObject intents) {
+        return intents.size() == 0
+                || !intents.containsKey("actions")
+                || !(intents.get("actions") instanceof JsonArray)
+                || intents.getArray("actions").size() == 0;
     }
 
     public void setContent(List<ChatMessage> content) {
