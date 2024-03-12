@@ -60,6 +60,11 @@ public abstract class AbstractMockedIQTest extends AbstractIQTest {
         ctx = new ChatLinkState(cp);
     }
 
+    @Override
+    protected void tearDown() throws Exception {
+        server.close();
+    }
+
     protected void enqueueResponse(String text) {
         JsonObject packet = JsonObject.create();
         packet.put("id", UUID.randomUUID().toString());
