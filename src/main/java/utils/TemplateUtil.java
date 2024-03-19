@@ -14,6 +14,7 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,15 +27,35 @@ public class TemplateUtil {
     public static void showGotItTooltip(Component component, String tooltipText) {
         Point screenPoint = component.getLocationOnScreen();
         Point tooltipPoint = new Point(screenPoint.x + component.getWidth(), screenPoint.y);
-        JLabel label = new JLabel(tooltipText);
+        JTextPane label = new JTextPane();
+        label.setContentType("text/html"); // Set content type to HTML
+        label.setText(tooltipText);
+        label.setEditable(false);
+        label.setOpaque(false);
+        label.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                try {
+                    Desktop.getDesktop().browse(e.getURL().toURI()); // Open the link in the default browser
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
         label.setBorder(JBUI.Borders.empty(2));
-        JBScrollPane scroll = new JBScrollPane(label);
-        scroll.setOpaque(false);
-        scroll.setBorder(null);
-        scroll.getViewport().setOpaque(false);
+        // Wrap the JTextPane in a JBScrollPane
+        Dimension preferredSize = new Dimension(600, 200);
+        JBScrollPane scrollPane = new JBScrollPane(label);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(null);
+        scrollPane.setPreferredSize(preferredSize);
+
+        SwingUtilities.invokeLater(() -> {
+            scrollPane.getViewport().setViewPosition(new Point(0, 0));
+        });
 
         Balloon balloon = JBPopupFactory.getInstance()
-                .createBalloonBuilder(scroll)
+                .createBalloonBuilder(scrollPane)
                 .setFillColor(UIUtil.getToolTipBackground())
                 .setBorderColor(JBColor.GRAY)
                 .setAnimationCycle(200)

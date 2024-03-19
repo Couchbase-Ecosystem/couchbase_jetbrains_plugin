@@ -89,6 +89,7 @@ public class MigrationDialog extends DialogWrapper {
         JLabel infoLabel = new JLabel();
 
         infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -96,7 +97,7 @@ public class MigrationDialog extends DialogWrapper {
                         <html>
                         <h2>MongoDB Connection URI</h2>
                             <div>
-                            The MongoDB Connection URI is a string that specifies how to connect to a MongoDB database. It contains all the information needed to establish a connection, including:
+                            <p>The MongoDB Connection URI is a string that specifies how to connect to a MongoDB database.<br> It contains all the information needed to establish a connection, including:</p>
                             <ul>
                                 <li>Hostnames or IP addresses of MongoDB servers</li>
                                 <li>Port number for the MongoDB server</li>
@@ -117,6 +118,10 @@ public class MigrationDialog extends DialogWrapper {
                                 <li><strong>?authSource=admin&ssl=true</strong> - Additional connection options (optional)</li>
                             </ul>
                         </div>
+                        <br>
+                        Check the CLI tool for additional options <a href='https://github.com/couchbaselabs/cbmigrate'>here</a>
+                        <br>
+                                                
                         </html>""";
 
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
@@ -262,6 +267,9 @@ public class MigrationDialog extends DialogWrapper {
                          <h3>Migrate Collections Indexes and Definitions</h3>
                          Check this option if you want to migrate the indexes and definitions of the selected collections.
                          </div>
+                         <br>
+                        Check the CLI tool for additional options <a href='https://github.com/couchbaselabs/cbmigrate'>here</a>
+                        <br>
                          </html>""";
 
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
@@ -376,6 +384,9 @@ public class MigrationDialog extends DialogWrapper {
                         <h3>Scope</h3>
                         Select the scope within the chosen bucket where the data will be migrated.
                         </div>
+                        <br>
+                        Check the CLI tool for additional options <a href='https://github.com/couchbaselabs/cbmigrate'>here</a>
+                        <br>
                         </html>""";
 
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
