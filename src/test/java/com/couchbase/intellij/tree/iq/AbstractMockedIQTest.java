@@ -8,6 +8,7 @@ import com.couchbase.intellij.tree.iq.chat.ConfigurationPage;
 import com.couchbase.intellij.tree.iq.core.CapellaAuth;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
+import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.workbench.Log;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -56,7 +57,7 @@ public abstract class AbstractMockedIQTest extends AbstractIQTest {
         Log.setLevel(3);
         Log.setPrinter(new Log.StdoutPrinter());
 
-        link = new ChatLinkService(getProject(), null, cp);
+        panel = new ChatPanel(getProject(), iqGptConfig, organizationList, organization, Mockito.mock(ChatPanel.LogoutListener.class), Mockito.mock(ChatPanel.OrganizationListener.class));
         ctx = new ChatLinkState(cp);
     }
 
@@ -73,6 +74,7 @@ public abstract class AbstractMockedIQTest extends AbstractIQTest {
         packet.put("model", GPT_MODEL);
         JsonArray choices = JsonArray.create();
         JsonObject choice = JsonObject.create();
+        choices.add(choice);
         choice.put("index", 0);
         JsonObject message = JsonObject.create();
         message.put("role", "assistant");

@@ -5,7 +5,9 @@ import com.couchbase.intellij.tree.iq.chat.ChatLinkState;
 import com.couchbase.intellij.tree.iq.chat.ConfigurationPage;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
+import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.workbench.Log;
+import org.mockito.Mockito;
 
 public abstract class AbstractCapellaTest extends AbstractIQTest {
     @Override
@@ -30,7 +32,8 @@ public abstract class AbstractCapellaTest extends AbstractIQTest {
         Log.setLevel(3);
         Log.setPrinter(new Log.StdoutPrinter());
 
-        link = new ChatLinkService(getProject(), null, cp);
+        ChatLinkService link = new ChatLinkService(getProject(), null, cp);
+        panel  = new ChatPanel(getProject(), iqGptConfig, Mockito.mock(CapellaOrganizationList.class), Mockito.mock(CapellaOrganization.class), Mockito.mock(ChatPanel.LogoutListener.class), Mockito.mock(ChatPanel.OrganizationListener.class));
         ctx = new ChatLinkState(cp);
     }
 

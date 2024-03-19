@@ -257,15 +257,19 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     public void responseArrived(ChatMessageEvent.ResponseArrived event) {
     }
 
+    public boolean isJsonResponse(ChatMessage message) {
+        return message.getContent().startsWith("{");
+    }
+
     @Override
     public void responseCompleted(ChatMessageEvent.ResponseArrived event) {
         messageRetryCount = 0;
         List<ChatMessage> response = event.getResponseChoices();
         response.forEach(message -> Log.info(String.format("IQ response message: %s", message.toString())));
-        if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
+        if (response.size() == 1 && isJsonResponse(response.get(0))) {
             JsonObject intents = JsonObject.fromJson(response.get(0).getContent());
-            if (isEmptyResponse(intents) || containsNoneIntent(intents)) {
-                response = Arrays.asList(new ChatMessage("assistant", FAKE_CONFUSION) );
+            if (isEmptyResponse(intents)) {
+                response = Arrays.asList(new ChatMessage("assistant", FAKE_CONFUSION));
             } else {
                 IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
                 getQuestion().addIntentResponse(intents);
@@ -280,32 +284,23 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         });
     }
 
-    private boolean containsNoneIntent(JsonObject intents) {
-        JsonArray actions = intents.getArray("actions");
-        for (int i = 0; i < actions.size(); i++) {
-            JsonObject action = actions.getObject(i);
-
-            if (!action.containsKey("action") || action.getString("action").equalsIgnoreCase("none")) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private boolean isEmptyResponse(JsonObject intents) {
-        return intents.size() == 0
-                || !intents.containsKey("actions")
-                || !(intents.get("actions") instanceof JsonArray)
-                || intents.getArray("actions").size() == 0;
+        return intents == null || !(
+                intents.size() > 0 ||
+                        intents.containsKey("collections") || (
+                        intents.containsKey("actions") &&
+                                (intents.get("actions") instanceof JsonArray) &&
+                                intents.getArray("actions").size() > 0
+                )
+        );
     }
 
     public void setContent(List<ChatMessage> content) {
         content.forEach(message -> message.setContent(message.getContent()
-                .replaceAll("/```\n\s*SELECT/gmi", "```sql\nSELECT")
-                .replaceAll("```\nUPDATE", "```sql\nUPDATE")
-                .replaceAll("```\nDELETE", "```sql\nDELETE")
-                .replaceAll("```\nCREATE", "```sql\nCREATE")
+                        .replaceAll("/```\n\s*SELECT/gmi", "```sql\nSELECT")
+                        .replaceAll("```\nUPDATE", "```sql\nUPDATE")
+                        .replaceAll("```\nDELETE", "```sql\nDELETE")
+                        .replaceAll("```\nCREATE", "```sql\nCREATE")
 //                .replaceAll("```sql", "```sqlpp")
         ));
         TextFragment parseResult = ChatCompletionParser.parseGPT35TurboWithStream(content);
