@@ -42,6 +42,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 
     implementation("com.didalgo:gpt3-tokenizer:0.1.5")

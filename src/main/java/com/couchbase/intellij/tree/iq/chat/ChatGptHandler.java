@@ -52,11 +52,15 @@ public class ChatGptHandler {
         public Action onComplete(ConversationContext ctx) {
             return () -> {
                 SwingUtilities.invokeLater(() -> {
-                    final List<ChatMessage> assistantMessages = toMessages(partialResponseChoices);
-                    if (!assistantMessages.isEmpty()) {
-                        ctx.addChatMessage(assistantMessages.get(0));
+                    try {
+                        final List<ChatMessage> assistantMessages = toMessages(partialResponseChoices);
+                        if (!assistantMessages.isEmpty()) {
+                            ctx.addChatMessage(assistantMessages.get(0));
+                        }
+                        listener.responseCompleted(event.responseArrived(assistantMessages));
+                    } catch (Exception e) {
+
                     }
-                    listener.responseCompleted(event.responseArrived(assistantMessages));
                 });
             };
         }
@@ -79,7 +83,7 @@ public class ChatGptHandler {
 
         public Consumer<Throwable> onError() {
             return cause -> {
-                listener.exchangeFailed(event.failed(cause));
+                listener.exchangeFailed(event == null ? null : event.failed(cause));
             };
         }
 

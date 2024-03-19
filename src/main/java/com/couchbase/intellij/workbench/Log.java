@@ -58,8 +58,11 @@ public class Log {
         return console;
     }
 
-    public static void info(String message) {
+    public static void info(String message, Object... arguments) {
         if (logLevel >= 2) {
+            if (arguments.length > 0) {
+                message = String.format(message, arguments);
+            }
             getLogger().print("\n" + message, ConsoleViewContentType.LOG_INFO_OUTPUT);
         }
     }

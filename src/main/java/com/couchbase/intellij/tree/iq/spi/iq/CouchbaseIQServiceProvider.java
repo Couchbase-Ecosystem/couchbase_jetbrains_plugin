@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq.spi.iq;
 
+import com.couchbase.intellij.tree.iq.CapellaApiMethods;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.spi.OpenAiServiceProvider;
 import com.couchbase.intellij.workbench.Log;
@@ -25,7 +26,8 @@ public class CouchbaseIQServiceProvider implements OpenAiServiceProvider {
         try {
             URI uri = new URI(url);
             return uri.getHost().endsWith("couchbase.com")
-                    || uri.getHost().endsWith("project-avengers.com");
+                    || uri.getHost().endsWith("project-avengers.com")
+                    || url.toLowerCase().contains(CapellaApiMethods.getCapellaDomain().toLowerCase());
         } catch (URISyntaxException e) {
             return false;
         }

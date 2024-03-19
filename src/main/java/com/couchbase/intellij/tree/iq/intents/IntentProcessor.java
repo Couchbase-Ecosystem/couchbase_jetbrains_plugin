@@ -39,6 +39,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class IntentProcessor {
+    protected static final String PROMPT_CONNECT_TO_DB = "Respond once by only telling the user that, in order to fulfill their request, they first need to connect their IDE plugin to Couchbase cluster using the 'Explorer' tab. Do not provide any other suggestions how to perform requested action in this res ...";
+    protected static final String PROMPT_ANSWER_USER = "Now answer the user's question in plain text given this additional information and instructions and then continue working according to the original system prompt: ";
     private static String secondaryPrompt;
     private static String intentPrompt;
     private static Map<String, ActionInterface> loadedActions = new HashMap<>();
@@ -63,37 +65,69 @@ public class IntentProcessor {
     }
 
     public Disposable process(ChatPanel chat, ChatMessage userMessage, JsonObject intents) {
-        final ChatLink link = chat.getChatLink();
+        var application = ApplicationManager.getApplication();
+        var chatCompletionRequestProvider = application.getService(ChatCompletionRequestProvider.class);
+        var chatCompletionRequest = chatCompletionRequestProvider.chatCompletionRequest(chat.getChatLink().getConversationContext(), userMessage)
+                .build();
+
+        // replace previous system prompts
+        chatCompletionRequest.getMessages().removeAll(chatCompletionRequest.getMessages().stream()
+                .skip(1)
+                .filter(message -> ChatMessageRole.SYSTEM.value().equals(message.getRole()))
+                .collect(Collectors.toList()));
+
+        String intentPrompt = generateIntentReturnPrompt(chat, userMessage, intents);
+        chatCompletionRequest.getMessages().add(new ChatMessage(ChatMessageRole.SYSTEM.value(), intentPrompt));
+
+        chat.getQuestion().addIntentPrompt(intentPrompt);
+
+        ChatMessageEvent.Starting event = ChatMessageEvent.starting(chat.getChatLink(), userMessage);
+        return application.getService(ChatGptHandler.class)
+                .handle(chat.getChatLink().getConversationContext(), event.initiating(chatCompletionRequest), chat.getChatLink().getListener())
+                .subscribeOn(Schedulers.io())
+                .subscribe();
+    }
+
+    public String generateIntentReturnPrompt(ChatPanel chat, ChatMessage userMessage, JsonObject intents) {
         StringBuilder intentPrompt = new StringBuilder();
+
         ActiveCluster activeCluster = ActiveCluster.getInstance();
         QueryContext windowContext = IQWindowContent.getInstance().map(IQWindowContent::getClusterContext).orElse(null);
         if (activeCluster == null || activeCluster.getCluster() == null) {
-            intentPrompt.append("Respond once by only telling the user that, in order to fulfill their request, they first need to connect their IDE plugin to Couchbase cluster using the 'Explorer' tab. Do not provide any other suggestions how to perform requested action in this response.");
-        } else if (intents.containsKey("actions")) {
+            return PROMPT_CONNECT_TO_DB;
+        }
+
+        intentPrompt.append(PROMPT_ANSWER_USER);
+        if (intents.containsKey("actions")) {
             JsonArray detectedActions = intents.getArray("actions");
-            for (int i = 0; i < detectedActions.size(); i++) {
-                JsonObject intent = null;
-                if (detectedActions.get(i) instanceof String) {
-                    intent = JsonObject.create();
-                    intent.put("action", detectedActions.getString(i));
-                } else {
-                    intent = detectedActions.getObject(i);
-                }
-                ActionInterface action = getAction(intent.getString("action"));
-                if (action != null) {
-                    String bucketName = null, scopeName = null;
-                    if (intent.containsKey("bucketName")) {
-                        bucketName = intent.getString("bucketName");
-                        if (intent.containsKey("scopeName")) {
-                            scopeName = intent.getString("scopeName");
+            if (detectedActions != null) {
+                for (int i = 0; i < detectedActions.size(); i++) {
+                    JsonObject intent = null;
+                    if (detectedActions.get(i) instanceof String) {
+                        intent = JsonObject.create();
+                        intent.put("action", detectedActions.getString(i));
+                    } else {
+                        intent = detectedActions.getObject(i);
+                        if (intent.size() == 0) {
+                            continue;
                         }
-                    } else if (windowContext != null) {
-                        bucketName = windowContext.getBucket();
-                        scopeName = windowContext.getScope();
                     }
-                    String prompt = action.fire(chat.getProject(), bucketName, scopeName, intents, intent);
-                    if (prompt != null) {
-                        intentPrompt.append(prompt);
+                    ActionInterface action = getAction(intent.getString("action"));
+                    if (action != null) {
+                        String bucketName = null, scopeName = null;
+                        if (intent.containsKey("bucketName")) {
+                            bucketName = intent.getString("bucketName");
+                            if (intent.containsKey("scopeName")) {
+                                scopeName = intent.getString("scopeName");
+                            }
+                        } else if (windowContext != null) {
+                            bucketName = windowContext.getBucket();
+                            scopeName = windowContext.getScope();
+                        }
+                        String prompt = action.fire(chat.getProject(), bucketName, scopeName, intents, intent);
+                        if (prompt != null) {
+                            intentPrompt.append(prompt);
+                        }
                     }
                 }
             }
@@ -108,27 +142,8 @@ public class IntentProcessor {
             }
         }
 
-        intentPrompt.append("Now answer the user's question given this additional information and instructions and then continue working according to the original system prompt");
-        var application = ApplicationManager.getApplication();
-        var chatCompletionRequestProvider = application.getService(ChatCompletionRequestProvider.class);
-        var chatCompletionRequest = chatCompletionRequestProvider.chatCompletionRequest(link.getConversationContext(), userMessage)
-                .build();
-
-        // replace previous system prompts
-        chatCompletionRequest.getMessages().removeAll(chatCompletionRequest.getMessages().stream()
-                        .skip(1)
-                        .filter(message -> ChatMessageRole.SYSTEM.value().equals(message.getRole()))
-                                .collect(Collectors.toList()));
-        chatCompletionRequest.getMessages().add(new ChatMessage(ChatMessageRole.SYSTEM.value(), intentPrompt.toString()));
-
         Log.info(String.format("IQ intent prompt: %s", intentPrompt.toString()));
-        chat.getQuestion().addIntentPrompt(intentPrompt.toString());
-
-        ChatMessageEvent.Starting event = ChatMessageEvent.starting(link, userMessage);
-        return application.getService(ChatGptHandler.class)
-                .handle(link.getConversationContext(), event.initiating(chatCompletionRequest), link.getListener())
-                .subscribeOn(Schedulers.io())
-                .subscribe();
+        return intentPrompt.toString();
     }
 
     private void appendCollectionIndexes(@NotNull JsonArray collections, @NotNull StringBuilder intentPrompt) {
@@ -145,11 +160,11 @@ public class IntentProcessor {
                                 scope.getChildren().stream()
                                         .filter(collection -> collectionName.equalsIgnoreCase(collection.getName()))
                                         .forEach(collection -> {
-                                                    Collection c = cluster.bucket(bucket.getName()).scope(scope.getName()).collection(collectionName);
-                                                    c.queryIndexes().getAllIndexes().forEach(index -> {
-                                                        collecitonIndexes.put(index.name(), index.indexKey());
-                                                    });
-                                                    intentPrompt.append(String.format("Indexes on collection '%s.%s.%s': %s\n", bucket.getName(), scope.getName(), collectionName, collecitonIndexes.toString()));
+                                            Collection c = cluster.bucket(bucket.getName()).scope(scope.getName()).collection(collectionName);
+                                            c.queryIndexes().getAllIndexes().forEach(index -> {
+                                                collecitonIndexes.put(index.name(), index.indexKey());
+                                            });
+                                            intentPrompt.append(String.format("Indexes on collection '%s.%s.%s': %s\n", bucket.getName(), scope.getName(), collectionName, collecitonIndexes.toString()));
                                         });
                             });
                         });

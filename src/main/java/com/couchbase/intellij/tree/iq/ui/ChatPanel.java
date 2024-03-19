@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq.ui;
 
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.iq.CapellaOrganization;
 import com.couchbase.intellij.tree.iq.CapellaOrganizationList;
@@ -37,6 +38,8 @@ import javax.swing.event.ListDataListener;
 import javax.swing.text.AbstractDocument;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
 
+    public static final String FAKE_CONFUSION = "Sorry, I couldn't quite get that. Could you restate the request?";
     private final ExpandableTextFieldExt searchTextField;
     private final JButton button;
     private final JButton stopGenerating;
@@ -253,30 +257,50 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     public void responseArrived(ChatMessageEvent.ResponseArrived event) {
     }
 
+    public boolean isJsonResponse(ChatMessage message) {
+        return message.getContent().startsWith("{");
+    }
+
     @Override
     public void responseCompleted(ChatMessageEvent.ResponseArrived event) {
         messageRetryCount = 0;
         List<ChatMessage> response = event.getResponseChoices();
         response.forEach(message -> Log.info(String.format("IQ response message: %s", message.toString())));
-        if (response.size() == 1 && response.get(0).getContent().startsWith("{")) {
-            IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
+        if (response.size() == 1 && isJsonResponse(response.get(0))) {
             JsonObject intents = JsonObject.fromJson(response.get(0).getContent());
-            getQuestion().addIntentResponse(intents);
-            intentProcessor.process(this, event.getUserMessage(), intents);
-        } else {
-            setContent(event.getResponseChoices());
-            SwingUtilities.invokeLater(() -> {
-                aroundRequest(false);
-            });
+            if (isEmptyResponse(intents)) {
+                response = Arrays.asList(new ChatMessage("assistant", FAKE_CONFUSION));
+            } else {
+                IntentProcessor intentProcessor = ApplicationManager.getApplication().getService(IntentProcessor.class);
+                getQuestion().addIntentResponse(intents);
+                intentProcessor.process(this, event.getUserMessage(), intents);
+                return;
+            }
         }
+
+        setContent(response);
+        SwingUtilities.invokeLater(() -> {
+            aroundRequest(false);
+        });
+    }
+
+    private boolean isEmptyResponse(JsonObject intents) {
+        return intents == null || !(
+                intents.size() > 0 ||
+                        intents.containsKey("collections") || (
+                        intents.containsKey("actions") &&
+                                (intents.get("actions") instanceof JsonArray) &&
+                                intents.getArray("actions").size() > 0
+                )
+        );
     }
 
     public void setContent(List<ChatMessage> content) {
         content.forEach(message -> message.setContent(message.getContent()
-                .replaceAll("/```\n\s*SELECT/gmi", "```sql\nSELECT")
-                .replaceAll("```\nUPDATE", "```sql\nUPDATE")
-                .replaceAll("```\nDELETE", "```sql\nDELETE")
-                .replaceAll("```\nCREATE", "```sql\nCREATE")
+                        .replaceAll("/```\n\s*SELECT/gmi", "```sql\nSELECT")
+                        .replaceAll("```\nUPDATE", "```sql\nUPDATE")
+                        .replaceAll("```\nDELETE", "```sql\nDELETE")
+                        .replaceAll("```\nCREATE", "```sql\nCREATE")
 //                .replaceAll("```sql", "```sqlpp")
         ));
         TextFragment parseResult = ChatCompletionParser.parseGPT35TurboWithStream(content);
