@@ -32,8 +32,8 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.UserBinaryFileType;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -402,7 +402,8 @@ public class DataLoader {
                     String scopeName = colNode.getScope();
                     String bucketName = colNode.getBucket();
 
-                    new Task.ConditionalModal(null, String.format("Running INFER for collection %s.%s.%s", bucketName, scopeName, collectionName), true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                    ProgressManager.getInstance().run(new Task.Backgroundable(null, String.format("Running INFER for collection %s.%s.%s", bucketName, scopeName, collectionName), false) {
+
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
                             JsonObject inferenceQueryResults = InferHelper.inferSchema(collectionName, scopeName, bucketName);
@@ -417,7 +418,7 @@ public class DataLoader {
                                 treeModel.nodeStructureChanged(parentNode);
                             });
                         }
-                    }.queue();
+                    });
                 } catch (Exception e) {
                     Log.error(e);
                     e.printStackTrace();

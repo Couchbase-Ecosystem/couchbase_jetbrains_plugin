@@ -6,8 +6,8 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +51,8 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
             loadSchema(getSavedCluster().getInferCacheValue(path));
         } else {
             updating.set(true);
-            new Task.ConditionalModal(null, "Running INFER for collection " + path, true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+            ProgressManager.getInstance().run(new Task.Backgroundable(null, "Running INFER for collection " + path, true) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     try {
@@ -67,7 +68,7 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
                         updating.set(false);
                     }
                 }
-            }.queue();
+            });
         }
     }
 

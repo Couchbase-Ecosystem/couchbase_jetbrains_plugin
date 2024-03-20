@@ -16,8 +16,8 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -233,8 +233,8 @@ public class CBLWindowContent extends JPanel {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
-                new Task.ConditionalModal(project, String.format("Running Database Optimize for ",
-                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, String.format("Running Database Optimize for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
@@ -244,7 +244,7 @@ public class CBLWindowContent extends JPanel {
                             Log.error(ex);
                         }
                     }
-                }.queue();
+                });
             }
         };
 
@@ -259,8 +259,9 @@ public class CBLWindowContent extends JPanel {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
-                new Task.ConditionalModal(project, String.format("Running Database Full Optimize for ",
-                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, String.format("Running Database Full Optimize for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
@@ -269,7 +270,7 @@ public class CBLWindowContent extends JPanel {
                             Log.error(ex);
                         }
                     }
-                }.queue();
+                });
             }
         };
 
@@ -284,8 +285,9 @@ public class CBLWindowContent extends JPanel {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
-                new Task.ConditionalModal(project, String.format("Running Database Compact for ",
-                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, String.format("Running Database Compact for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
@@ -294,7 +296,7 @@ public class CBLWindowContent extends JPanel {
                             Log.error(ex);
                         }
                     }
-                }.queue();
+                });
             }
         };
 
@@ -308,8 +310,9 @@ public class CBLWindowContent extends JPanel {
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
-                new Task.ConditionalModal(project, String.format("Running Database Integrity Check for ",
-                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, String.format("Running Database Integrity Check for ",
+                        ActiveCBLDatabase.getInstance().getDatabase().getName()), false) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
@@ -318,7 +321,7 @@ public class CBLWindowContent extends JPanel {
                             Log.error(ex);
                         }
                     }
-                }.queue();
+                });
             }
         };
 

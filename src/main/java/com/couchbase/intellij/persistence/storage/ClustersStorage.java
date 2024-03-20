@@ -7,8 +7,8 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +43,8 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
     @Override
     public void loadState(@NotNull ClustersStorage.State state) {
         XmlSerializerUtil.copyBean(state, myState);
-        new Task.ConditionalModal(null, "Cleaning up stale cache entries...", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+        ProgressManager.getInstance().run(new Task.Backgroundable(null, "Cleaning up stale cache entries...", true) {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
@@ -52,7 +53,7 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
                         myState.clusters.getInferCacheUpdateTimes().entrySet().stream()
                                 .filter(entry -> {
 
-                                    if(myState.clusters.getMap() == null) {
+                                    if (myState.clusters.getMap() == null) {
                                         return false;
                                     }
                                     if (!myState.clusters.getMap().containsKey(entry.getKey())) {
@@ -62,29 +63,29 @@ public class ClustersStorage implements PersistentStateComponent<ClustersStorage
                                     }
                                     return true;
                                 })
-                                .filter(e-> e.getValue() !=null)
+                                .filter(e -> e.getValue() != null)
                                 .peek(utimes -> {
                                     utimes.setValue(utimes.getValue().entrySet().stream()
-                                                    .filter(Objects::nonNull)
-                                                    .filter(utime -> utime.getValue() != null)
-                                                    .filter(utime -> {
-                                                        SavedCluster savedCluster = myState.clusters.getMap().get(utimes.getKey());
-                                                        if (savedCluster != null) {
-                                                            if (System.currentTimeMillis() - utime.getValue() < savedCluster.getInferCachePeriod()) {
-                                                                return true;
-                                                            }
-                                                        }
-                                                        savedCluster.getInferCacheValues().remove(utime.getKey());
-                                                        Log.debug("Removing stale cache for " + utime.getKey() + " on cluster " + utimes.getKey());
-                                                        return false;
-                                                    })
-                                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+                                            .filter(Objects::nonNull)
+                                            .filter(utime -> utime.getValue() != null)
+                                            .filter(utime -> {
+                                                SavedCluster savedCluster = myState.clusters.getMap().get(utimes.getKey());
+                                                if (savedCluster != null) {
+                                                    if (System.currentTimeMillis() - utime.getValue() < savedCluster.getInferCachePeriod()) {
+                                                        return true;
+                                                    }
+                                                }
+                                                savedCluster.getInferCacheValues().remove(utime.getKey());
+                                                Log.debug("Removing stale cache for " + utime.getKey() + " on cluster " + utimes.getKey());
+                                                return false;
+                                            })
+                                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
                                     );
                                 })
                                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
                 );
             }
-        }.queue();
+        });
     }
 
     public Clusters getValue() {
