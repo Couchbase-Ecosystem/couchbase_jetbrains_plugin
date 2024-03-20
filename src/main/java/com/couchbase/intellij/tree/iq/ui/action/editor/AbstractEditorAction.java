@@ -28,7 +28,7 @@ public abstract class AbstractEditorAction extends AnAction {
     protected AbstractEditorAction(
             @NotNull Supplier<@NlsActions.ActionText String> dynamicText,
             @NotNull Supplier<@NlsActions.ActionText String> dynamicDescription) {
-        super(dynamicText, dynamicDescription, null);
+        super(dynamicText, dynamicDescription, (Supplier<? extends Icon>) null);
     }
 
     @Override

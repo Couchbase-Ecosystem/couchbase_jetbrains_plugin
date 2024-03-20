@@ -8,6 +8,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class CapellaApiMethods {
@@ -67,7 +68,7 @@ public class CapellaApiMethods {
         }
 
 
-        String result = IOUtils.toString(connection.getInputStream());
+        String result = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         CapellaOrganizationList resultList = objectMapper.readValue(result, CapellaOrganizationList.class);
