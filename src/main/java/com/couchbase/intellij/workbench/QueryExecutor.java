@@ -21,7 +21,6 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import reactor.core.publisher.Mono;
 
-import javax.swing.*;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.time.Duration;
@@ -45,7 +44,7 @@ public class QueryExecutor {
             ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
             toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
         }
-        SwingUtilities.invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
+        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
 
         if (resultWindow == null) {
             resultWindow = QueryResultToolWindowFactory.instance;

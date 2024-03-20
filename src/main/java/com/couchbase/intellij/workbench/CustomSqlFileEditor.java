@@ -178,7 +178,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
 
-                            SwingUtilities.invokeLater(() -> {
+                            ApplicationManager.getApplication().invokeLater(() -> {
                                 boolean query = false;
                                 boolean script = false;
                                 QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
@@ -195,7 +195,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                                     if (query || script) {
                                         int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
                                         currentHistoryIndex = historySize - 1;
-                                        SwingUtilities.invokeLater(() -> {
+                                        ApplicationManager.getApplication().invokeLater(() -> {
                                             historyLabel.setText("history (" + historySize + "/" + historySize + ")");
                                             historyLabel.revalidate();
                                         });
@@ -221,7 +221,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeGroup.add(new AnAction("Advise", "Get index recommendations about focused query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     if (!isSameConnection()) {
                         return;
                     }
@@ -236,7 +236,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeGroup.add(new AnAction("Explain", "Explains query phases for focused statement", explainIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     if (!isSameConnection()) {
                         return;
                     }
@@ -284,7 +284,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex)));
 
 
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
                         historyLabel.revalidate();
                     });
@@ -302,7 +302,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
                     ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex)));
 
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
                         historyLabel.revalidate();
                     });
@@ -495,7 +495,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
         ActiveCluster.subscribe(activeCluster -> {
             activeCluster.getQueryContext().subscribe(this, queryContext -> {
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     if (queryContext.isPresent()) {
                         contextLabel.setText(String.format("%s > %s", queryContext.get().getBucket(), queryContext.get().getScope()));
                         contextLabel.revalidate();

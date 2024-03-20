@@ -14,7 +14,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +26,7 @@ public class SQLLiteQueryExecutor {
     public static void runQuery(String query, int historyIndex, Project project) {
 
         if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("There is no active Couchbase Lite connection to execute this query.", "Couchbase Plugin"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("There is no active Couchbase Lite connection to execute this query.", "Couchbase Plugin"));
             return;
         }
 
@@ -70,7 +69,7 @@ public class SQLLiteQueryExecutor {
             ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
             toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
         }
-        SwingUtilities.invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
+        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
 
         if (resultWindow == null) {
             resultWindow = QueryResultToolWindowFactory.instance;

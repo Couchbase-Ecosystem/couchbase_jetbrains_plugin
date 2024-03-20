@@ -4,6 +4,7 @@ import com.couchbase.client.core.deps.com.fasterxml.jackson.databind.ObjectMappe
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.json.JsonFileType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsSafe;
@@ -13,7 +14,6 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
 import java.io.*;
 import java.util.Objects;
 
@@ -179,7 +179,7 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
         };
 
         if (asynchronous) {
-            SwingUtilities.invokeLater(refresh);
+            ApplicationManager.getApplication().invokeLater(refresh);
         } else {
             refresh.run();
         }

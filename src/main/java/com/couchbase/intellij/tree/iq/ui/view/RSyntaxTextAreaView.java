@@ -1,8 +1,6 @@
 package com.couchbase.intellij.tree.iq.ui.view;
 
-import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.QueryContext;
-import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
 import com.couchbase.intellij.tree.iq.ui.view.rsyntaxtextarea.RSyntaxTextAreaUIEx;
@@ -15,6 +13,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.impl.ActionButton;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
@@ -56,7 +55,6 @@ import java.awt.event.MouseWheelListener;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -113,7 +111,7 @@ public class RSyntaxTextAreaView extends ComponentView {
         var element = getElement();
         var text = getDocument().getText(element.getStartOffset(), element.getEndOffset() - element.getStartOffset());
         if (text.endsWith("\n"))
-            text = text.substring(0, text.length() + (text.endsWith("\r\n")? -2: -1));
+            text = text.substring(0, text.length() + (text.endsWith("\r\n") ? -2 : -1));
 
         //text = Escaping.unescapeHtml(text);
         return text;
@@ -188,7 +186,7 @@ public class RSyntaxTextAreaView extends ComponentView {
         ActionGroup actionGroup = new ActionGroup() {
             @Override
             public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
-                return new AnAction[] { new MyCopyAction(icon1) };
+                return new AnAction[]{new MyCopyAction(icon1)};
             }
         };
 
@@ -277,7 +275,7 @@ public class RSyntaxTextAreaView extends ComponentView {
 
         protected String getTextContent(JTextArea textArea) {
             String selectedText = textArea.getSelectedText();
-            return (selectedText == null || selectedText.isEmpty())? textArea.getText() : selectedText;
+            return (selectedText == null || selectedText.isEmpty()) ? textArea.getText() : selectedText;
         }
     }
 
@@ -300,6 +298,7 @@ public class RSyntaxTextAreaView extends ComponentView {
     private static class MyRunSqlAction extends RSyntaxTextAreaAction {
 
         private Project project;
+
         MyRunSqlAction(Project project, Icon icon) {
             super("Run SQL code", "Run SQL code on the cluster", icon);
             this.project = project;
@@ -330,7 +329,7 @@ public class RSyntaxTextAreaView extends ComponentView {
                     new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
-                            SwingUtilities.invokeLater(() -> {
+                            ApplicationManager.getApplication().invokeLater(() -> {
                                 if (script.size() > 1) {
                                     QueryExecutor.executeScript(new LinkedBlockingQueue<>(), NORMAL, context, script, 0, project);
                                 } else {
@@ -382,9 +381,9 @@ public class RSyntaxTextAreaView extends ComponentView {
 
             if (textEditors.size() > 1) {
                 JBPopupFactory.getInstance().createActionGroupPopup(ChatGptBundle.message("popup.title.paste.target"),
-                        new PasteTargetGroup(textEditors, targetText), e.getDataContext(),
-                        JBPopupFactory.ActionSelectionAid.SPEEDSEARCH, false)
-                                .showUnderneathOf(e.getInputEvent().getComponent());
+                                new PasteTargetGroup(textEditors, targetText), e.getDataContext(),
+                                JBPopupFactory.ActionSelectionAid.SPEEDSEARCH, false)
+                        .showUnderneathOf(e.getInputEvent().getComponent());
                 return;
             }
 

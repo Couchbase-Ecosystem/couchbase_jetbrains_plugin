@@ -1,9 +1,8 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
-import com.intellij.credentialStore.Credentials;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.ui.JBUI;
-import kotlin.reflect.jvm.internal.impl.load.java.typeEnhancement.JavaTypeEnhancement;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
@@ -152,12 +151,12 @@ public class LoginPanel extends JPanel {
         JButton loginButton = new JButton("Sign in");
         loginForm.add(loginButton, gbc);
         loginButton.addActionListener(e -> {
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 invalidLogin.setVisible(false);
                 loginButton.setEnabled(false);
                 loginButton.setText("Signing in...");
                 updateUI();
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     if (!doLogin(username.getText(), new String(password.getPassword()), saveLogin.isSelected())) {
                         loginButton.setText("Sign in");
                         loginButton.setEnabled(true);
@@ -183,7 +182,7 @@ public class LoginPanel extends JPanel {
         gbc.anchor = GridBagConstraints.SOUTHEAST;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = JBUI.insets(5, 10, 20, 20);
-        JEditorPane signupLink = new JEditorPane("text/html","<a href='https://cloud.couchbase.com/sign-up'>Don't have an account yet?</a>");
+        JEditorPane signupLink = new JEditorPane("text/html", "<a href='https://cloud.couchbase.com/sign-up'>Don't have an account yet?</a>");
         signupLink.setEditable(false);
         signupLink.setBackground(null);
         signupLink.addHyperlinkListener(e -> {

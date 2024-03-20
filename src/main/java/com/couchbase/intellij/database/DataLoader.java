@@ -45,7 +45,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import utils.IndexUtils;
 
-import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.time.Duration;
@@ -88,7 +87,7 @@ public class DataLoader {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
 
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     });
 
@@ -128,7 +127,7 @@ public class DataLoader {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
 
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     });
                 } catch (Exception e) {
@@ -169,7 +168,7 @@ public class DataLoader {
                     } else {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     });
 
@@ -244,7 +243,7 @@ public class DataLoader {
                     } else if (newOffset == 0) {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                     }
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     });
                 }
@@ -296,7 +295,7 @@ public class DataLoader {
             parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
         }
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
         });
     }
@@ -340,18 +339,18 @@ public class DataLoader {
             }
 
         } catch (DocumentNotFoundException dnf) {
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>The document <strong>" + node.getId() + "</strong> doesn't exists anymore.</html>", "Couchbase Plugin Error"));
             return;
 
         } catch (TimeoutException te) {
             te.printStackTrace();
             Log.error("Request to get the document " + node.getId() + " timed out.", te);
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>The request to get the document <strong>" + node.getId() + "</strong> timed out. Please try again or check your network connection.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>The request to get the document <strong>" + node.getId() + "</strong> timed out. Please try again or check your network connection.</html>", "Couchbase Plugin Error"));
 
             return;
         } catch (Exception e) {
             Log.error("Could not load the document " + node.getId() + ".", e);
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
             return;
         } finally {
             if (tree != null) {
@@ -384,7 +383,7 @@ public class DataLoader {
                 tree.setPaintBusy(false);
             }
             Log.error("An error occurred while trying to load the file", e);
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
         }
     }
 
@@ -414,7 +413,7 @@ public class DataLoader {
                                 Log.debug("Could not infer the schema for " + colNode.getText());
                             }
 
-                            SwingUtilities.invokeLater(() -> {
+                            ApplicationManager.getApplication().invokeLater(() -> {
                                 treeModel.nodeStructureChanged(parentNode);
                             });
                         }
@@ -532,7 +531,7 @@ public class DataLoader {
             try {
                 ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection).queryIndexes().createPrimaryIndex();
 
-                SwingUtilities.invokeLater(() -> Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation"));
+                ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("The primary index for the collection " + bucket + "." + scope + "." + collection + " was created successfully.", "Primary Index Creation"));
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
@@ -563,7 +562,7 @@ public class DataLoader {
             } else {
                 parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
             }
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                 tree.setPaintBusy(false);
             });

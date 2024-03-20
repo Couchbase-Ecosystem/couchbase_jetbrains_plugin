@@ -1,19 +1,19 @@
 package com.couchbase.intellij.tree.iq.ui;
 
-import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.persistence.storage.IQStorage;
-import com.couchbase.intellij.workbench.Log;
-import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.ChatGptBundle;
 import com.couchbase.intellij.tree.iq.ChatGptIcons;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
 import com.couchbase.intellij.tree.iq.text.CodeSnippetManipulator;
 import com.couchbase.intellij.tree.iq.text.TextFragment;
+import com.couchbase.intellij.workbench.Log;
+import com.didalgo.gpt3.ModelType;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
@@ -72,7 +72,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
     public MessageComponent(ChatPanel chat, TextFragment text, ModelType model) {
         this.chat = chat;
         this.text = text;
-        this.component =  new MessagePanel(chat.getProject());
+        this.component = new MessagePanel(chat.getProject());
         var fromUser = (model == null);
         if (!fromUser) {
             if (chat.getQuestion() != null) {
@@ -136,7 +136,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (feedbackForm == null) {
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         feedbackThumbupAction.setIcon(getThumbUpInvertedIcon());
                         feedbackThumbdownAction.setEnabled(false);
                         feedbackThumbupAction.setCursor(Cursor.getDefaultCursor());
@@ -156,7 +156,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (feedbackForm == null) {
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         feedbackThumbdownAction.setIcon(getThumbDownInvertedIcon());
                         feedbackThumbupAction.setEnabled(false);
                         feedbackThumbdownAction.setCursor(Cursor.getDefaultCursor());
@@ -183,7 +183,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
                 Notifications.Bus.notify(
                         new Notification(ChatGptBundle.message("group.id"),
                                 "Copied successfully",
-                                "IQ " + (fromUser? "prompt":"reply") + " content has been successfully copied to the clipboard.",
+                                "IQ " + (fromUser ? "prompt" : "reply") + " content has been successfully copied to the clipboard.",
                                 NotificationType.INFORMATION));
             }
         });
@@ -223,6 +223,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         }
         return thumbdownInverted;
     }
+
     private ImageIcon getThumbUpInvertedIcon() {
         if (thumbupInverted == null) {
             ImageIcon loaded = new ImageIcon(MessageComponent.class.getResource("/icons/thumbup_inverted.png"));
@@ -256,7 +257,8 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         boolean onLineStart = true;
         for (int i = 0; i < markdown.length(); i++) {
             switch (ch = markdown.charAt(i)) {
-                case '\r' -> { }
+                case '\r' -> {
+                }
                 case '\n' -> {
                     onLineStart = true;
                     buf.append("<br>");
@@ -298,7 +300,7 @@ public class MessageComponent extends JBPanel<MessageComponent> implements ChatP
         if (fromUser)
             editorKit.getStyleSheet().addRule("body {white-space:pre-wrap}");
         component.putClientProperty(AccessibleContext.ACCESSIBLE_NAME_PROPERTY, getText().markdown());
-        component.updateMessage(fromUser? TextFragment.of(content.markdown(), CodeSnippetManipulator.makeCodeSnippetBlocksCollapsible(toDisplayText(content, true))) : content);
+        component.updateMessage(fromUser ? TextFragment.of(content.markdown(), CodeSnippetManipulator.makeCodeSnippetBlocksCollapsible(toDisplayText(content, true))) : content);
         component.setEditable(false);
         if (component.getCaret() != null) {
             component.setCaretPosition(0);

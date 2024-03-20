@@ -7,6 +7,7 @@ import com.couchbase.client.protostellar.admin.bucket.v1.EvictionMode;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -470,7 +471,7 @@ public class NewBucketCreationDialog extends DialogWrapper {
             }
 
             this.pack();
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
 
                 int locLeft = (int) Math.max(1, (Toolkit.getDefaultToolkit().getScreenSize().getWidth()) / 2 - getSize().getWidth() / 2);
                 int locTop = (int) Math.max(1, (Toolkit.getDefaultToolkit().getScreenSize().getHeight()) / 2 - getSize().getHeight() / 2);

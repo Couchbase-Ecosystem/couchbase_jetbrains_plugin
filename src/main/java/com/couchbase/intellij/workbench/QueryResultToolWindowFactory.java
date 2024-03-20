@@ -253,7 +253,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         ActiveCluster.getInstance().registerNewConnectionListener(() -> {
 
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 if (!ActiveCluster.getInstance().hasQueryService()) {
                     queryResultTab.setEnabled(false);
                     queryResultTab.revalidate();
@@ -372,7 +372,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     public void updateQueryStats(List<String> queryValues, List<JsonObject> results, CouchbaseQueryResultError error, List<String> explain, boolean isQueryScript) {
         this.cachedResults = results;
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             if (results != null && error == null || error.getErrors().isEmpty()) {
 
                 List<Map<String, Object>> convertedResults = new ArrayList<>();
@@ -501,7 +501,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     }
 
     public void setStatusAsLoading() {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             for (JLabel label : queryStatsList) {
                 label.setText("-");
             }
@@ -512,7 +512,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     }
 
     public void setStatusAsCanceled() {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             for (JLabel label : queryStatsList) {
                 label.setText("-");
             }

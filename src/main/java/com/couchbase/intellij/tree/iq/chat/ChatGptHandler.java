@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.chat;
 
 import com.couchbase.intellij.tree.iq.OpenAIServiceHolder;
+import com.intellij.openapi.application.ApplicationManager;
 import com.theokanning.openai.completion.chat.*;
 import io.reactivex.Flowable;
 import io.reactivex.functions.Action;
@@ -8,7 +9,6 @@ import io.reactivex.functions.Consumer;
 import org.apache.commons.lang3.StringUtils;
 import org.reactivestreams.Subscription;
 
-import javax.swing.SwingUtilities;
 import java.util.*;
 
 public class ChatGptHandler {
@@ -45,13 +45,13 @@ public class ChatGptHandler {
 
         public Consumer<Subscription> onSubscribe(ChatMessageEvent.Initiating event) {
             return subscription -> {
-                SwingUtilities.invokeLater(() -> listener.exchangeStarted(this.event = event.started(subscription)));
+                ApplicationManager.getApplication().invokeLater(() -> listener.exchangeStarted(this.event = event.started(subscription)));
             };
         }
 
         public Action onComplete(ConversationContext ctx) {
             return () -> {
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     try {
                         final List<ChatMessage> assistantMessages = toMessages(partialResponseChoices);
                         if (!assistantMessages.isEmpty()) {
@@ -68,7 +68,7 @@ public class ChatGptHandler {
         public Consumer<ChatCompletionChunk> onNextChunk() {
             return chunk -> {
                 if (!chunk.getChoices().isEmpty()) {
-                    SwingUtilities.invokeLater(() -> listener.responseArriving(event.responseArriving(chunk, formResponse(chunk.getChoices()))));
+                    ApplicationManager.getApplication().invokeLater(() -> listener.responseArriving(event.responseArriving(chunk, formResponse(chunk.getChoices()))));
                 }
             };
         }
@@ -76,7 +76,7 @@ public class ChatGptHandler {
         public Consumer<ChatCompletionResult> onNext() {
             return result -> {
                 if (result != null && result.getChoices() != null && !result.getChoices().isEmpty()) {
-                    SwingUtilities.invokeLater(() -> listener.responseArrived(event.responseArrived(formResponse(result.getChoices()))));
+                    ApplicationManager.getApplication().invokeLater(() -> listener.responseArrived(event.responseArrived(formResponse(result.getChoices()))));
                 }
             };
         }

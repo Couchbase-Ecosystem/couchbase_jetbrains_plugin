@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
@@ -89,7 +90,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
         FavoriteQueryStorage.getInstance().getValue().getList().add(new FavoriteQuery(textField.getText(),
                 document.getText()));
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             AnAction updatedAction = new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-filled.svg", NewFavoriteCatalog.class)) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {

@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.cblite.sync;
 
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.components.JBScrollPane;
@@ -315,7 +316,7 @@ public class SyncGatewayTablePanel extends JPanel {
                     filters.collections.add(collectionCombo.getSelectedItem().toString());
                 }
 
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     table.getTableHeader().revalidate();
                     table.revalidate();
                     reapplyFilters();
@@ -358,7 +359,7 @@ public class SyncGatewayTablePanel extends JPanel {
                 filters.scopes.add(scopeCombo.getSelectedItem().toString());
             }
 
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 table.getTableHeader().revalidate();
                 table.revalidate();
                 reapplyFilters();
@@ -434,7 +435,7 @@ public class SyncGatewayTablePanel extends JPanel {
     }
 
     private void hidePopup(JPopupMenu filterPopup) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             table.getTableHeader().revalidate();
             table.revalidate();
             reapplyFilters();
@@ -528,7 +529,7 @@ public class SyncGatewayTablePanel extends JPanel {
                 .filter(this::shouldShowOnTable)
                 .collect(Collectors.toList());
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             model.setItems(filtered);
             model.fireTableDataChanged();
         });
@@ -555,7 +556,7 @@ public class SyncGatewayTablePanel extends JPanel {
             model.removeRow(0);
         }
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             if (shouldShowOnTable(entry)) {
                 model.addRow(entry);
                 model.fireTableDataChanged();
@@ -573,7 +574,7 @@ public class SyncGatewayTablePanel extends JPanel {
         pullCountLabel.setText("0");
         pushCountLabel.setText("0");
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             model.fireTableDataChanged();
             pushCountLabel.revalidate();
             pullCountLabel.revalidate();
@@ -618,7 +619,7 @@ public class SyncGatewayTablePanel extends JPanel {
 
     public void updateSyncStatus(String text) {
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             syncStatus.setText(text);
             syncStatus.revalidate();
         });

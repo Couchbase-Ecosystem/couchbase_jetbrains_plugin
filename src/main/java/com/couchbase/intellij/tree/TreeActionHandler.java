@@ -6,6 +6,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.node.LoadingNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
@@ -29,7 +30,7 @@ public class TreeActionHandler {
 
     public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener, Runnable disconnectListener) {
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             tree.setPaintBusy(true);
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
             Enumeration<TreeNode> children = selectedNode.children();
@@ -75,7 +76,7 @@ public class TreeActionHandler {
                     if (toolBarPanel != null) {
 
                         if (ActiveCluster.getInstance().getColor() != null) {
-                            SwingUtilities.invokeLater(() -> {
+                            ApplicationManager.getApplication().invokeLater(() -> {
                                 if (ActiveCluster.getInstance().getColor() != null) {
                                     Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
                                     Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0); // Top, left, bottom, right margins
@@ -85,7 +86,7 @@ public class TreeActionHandler {
                                 }
                             });
                         } else {
-                            SwingUtilities.invokeLater(() -> {
+                            ApplicationManager.getApplication().invokeLater(() -> {
                                 toolBarPanel.setBorder(JBUI.Borders.empty());
                                 toolBarPanel.revalidate();
                             });
@@ -96,11 +97,11 @@ public class TreeActionHandler {
 
 
                             if (!CBConfigUtil.isSupported(ActiveCluster.getInstance().getVersion())) {
-                                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
+                                ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("<html>This plugin doesn't work with versions bellow Couchbase 7.0</html>", "Couchbase Plugin Error"));
                             }
 
                             if (!CBConfigUtil.hasQueryService(ActiveCluster.getInstance().getServices())) {
-                                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("<html>Your cluster doesn't have the Query Service. Some features might not work properly.</html>", "Couchbase Plugin Error"));
+                                ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("<html>Your cluster doesn't have the Query Service. Some features might not work properly.</html>", "Couchbase Plugin Error"));
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -131,7 +132,7 @@ public class TreeActionHandler {
             } catch (Exception e) {
                 tree.setPaintBusy(false);
                 e.printStackTrace();
-                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
+                ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not connect to the cluster. Please check your network connectivity, " +
                         " if the cluster is active or if the credentials are still valid.", "Couchbase Connection Error"));
                 if (connectionListener != null) {
                     connectionListener.consume(e);
