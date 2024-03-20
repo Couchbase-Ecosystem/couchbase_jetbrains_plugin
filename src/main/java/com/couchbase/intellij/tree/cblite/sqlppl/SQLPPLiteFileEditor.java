@@ -12,8 +12,8 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.fileEditor.*;
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil;
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
@@ -94,12 +94,13 @@ public class SQLPPLiteFileEditor implements FileEditor, TextEditor {
         executeAction = new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                new Task.ConditionalModal(null, "Running SQL++ Lite query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ Lite query", true) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         SQLLiteQueryExecutor.runQuery(queryEditor.getDocument().getText(), 0, project);
                     }
-                }.queue();
+                });
             }
         };
 

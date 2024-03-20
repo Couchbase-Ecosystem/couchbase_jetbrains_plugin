@@ -13,8 +13,8 @@ import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.utils.Subscribable;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
@@ -126,7 +126,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             disconnect();
         }
 
-        new Task.ConditionalModal(null, "Connecting to Couchbase cluster '" + savedCluster.getId() + "'", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(null, "Connecting to Couchbase cluster '" + savedCluster.getId() + "'", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
@@ -234,7 +234,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     }
                 }
             }
-        }.queue();
+        });
     }
 
     public void disconnect() {
@@ -370,7 +370,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         }
         if (!schemaUpdating.get() && System.currentTimeMillis() - lastSchemaUpdate > 60000) {
             schemaUpdating.set(true);
-            new Task.ConditionalModal(null, "Reading Couchbase cluster schema", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+            ProgressManager.getInstance().run(new Task.Backgroundable(null, "Reading Couchbase cluster schema", true) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     try {
@@ -387,7 +388,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         disconnect();
                     }
                 }
-            }.queue();
+            });
         }
     }
 

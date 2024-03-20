@@ -157,10 +157,9 @@ public class TreeToolBarBuilder {
         ActionToolbar rightActionToolbar = ActionManager.getInstance().createActionToolbar("MoreOptions", rightActionGroup, true);
         rightActionToolbar.setTargetComponent(toolBarPanel);
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
-
         ActiveCluster.getInstance().registerNewConnectionListener(() -> {
             ApplicationManager.getApplication().invokeLater(() -> {
-                leftActionToolbar.updateActionsImmediately();
+                leftActionToolbar.getComponent().revalidate();
                 toolBarPanel.revalidate();
             });
         });

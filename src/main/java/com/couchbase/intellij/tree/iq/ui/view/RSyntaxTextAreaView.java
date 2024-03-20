@@ -21,8 +21,8 @@ import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.ide.CopyPasteManager;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -326,7 +326,8 @@ public class RSyntaxTextAreaView extends ComponentView {
                             .map(String::trim)
                             .filter(s -> s != null && s.length() > 0)
                             .collect(Collectors.toList());
-                    new Task.ConditionalModal(null, "Running SQL++ query", true, PerformInBackgroundOption.ALWAYS_BACKGROUND) {
+
+                    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
                             ApplicationManager.getApplication().invokeLater(() -> {
@@ -337,7 +338,7 @@ public class RSyntaxTextAreaView extends ComponentView {
                                 }
                             });
                         }
-                    }.queue();
+                    });
                 }
             }, () -> {
                 Notifications.Bus.notify(
