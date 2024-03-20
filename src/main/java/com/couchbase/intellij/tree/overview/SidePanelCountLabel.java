@@ -5,7 +5,6 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.GraphicsUtil;
-import com.intellij.util.ui.StartupUiUtil;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
@@ -48,8 +47,9 @@ public class SidePanelCountLabel extends JLabel {
         g.setColor(isSelected() ? UIUtil.getListSelectionBackground(true) : UIUtil.SIDE_PANEL_BACKGROUND);
         g.fillRect(0, 0, getWidth(), getHeight());
         if (StringUtil.isEmpty(getText())) return;
+
         final JBColor deepBlue = new JBColor(new Color(0x97A4B2), new Color(92, 98, 113));
-        g.setColor(isSelected() ? Gray._255.withAlpha(StartupUiUtil.isUnderDarcula() ? 100 : 220) : deepBlue);
+        g.setColor(isSelected() ? Gray._255.withAlpha(!JBColor.isBright() ? 100 : 220) : deepBlue);
         final GraphicsConfig config = GraphicsUtil.setupAAPainting(g);
         g.fillRoundRect(0, 3, getWidth() - 6 - 1, getHeight() - 6, getHeight() - 6, getHeight() - 6);
         config.restore();

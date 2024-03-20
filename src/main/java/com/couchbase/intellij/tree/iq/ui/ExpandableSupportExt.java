@@ -132,8 +132,7 @@ public abstract class ExpandableSupportExt<Source extends JComponent> implements
             int top = location.y - screen.y + source.getHeight();
             if (top < bottom) {
                 size.height = bottom;
-            }
-            else {
+            } else {
                 if (size.height > top) size.height = top;
                 location.y -= size.height - source.getHeight();
             }
@@ -163,8 +162,7 @@ public abstract class ExpandableSupportExt<Source extends JComponent> implements
                         content.cancel(onHide);
                         popup = null;
                         return true;
-                    }
-                    catch (Exception ignore) {
+                    } catch (Exception ignore) {
                         return false;
                     }
                 }).createPopup();
@@ -207,7 +205,7 @@ public abstract class ExpandableSupportExt<Source extends JComponent> implements
 
             @Override
             public void mouseClicked(MouseEvent event) {
-                Runnable action = extension.getActionOnClick(event);
+                Runnable action = extension.getActionOnClick();
                 if (action != null) action.run();
             }
         });

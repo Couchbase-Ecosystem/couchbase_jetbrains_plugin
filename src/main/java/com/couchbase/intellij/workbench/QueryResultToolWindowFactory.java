@@ -42,7 +42,6 @@ import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -170,7 +169,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         queryLimitSelector.addActionListener(e -> {
             Integer limit = null;
-            if (queryLimitSelector.getSelectedIndex() < QUERY_LIMITS.length -1) {
+            if (queryLimitSelector.getSelectedIndex() < QUERY_LIMITS.length - 1) {
                 limit = Integer.valueOf(QUERY_LIMITS[queryLimitSelector.getSelectedIndex()]);
             }
             ActiveCluster.getInstance().setQueryLimit(limit);
@@ -294,7 +293,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         actionGroup.add(clearAction);
 
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
-        actionToolbar.setLayoutPolicy(ActionToolbar.WRAP_LAYOUT_POLICY);
         JPanel actionPanel = new JPanel(new FlowLayout());
         actionPanel.add(actionToolbar.getComponent());
 
