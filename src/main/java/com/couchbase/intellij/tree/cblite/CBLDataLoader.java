@@ -14,7 +14,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
 import org.json.JSONObject;
 
-import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.util.Date;
@@ -92,7 +91,7 @@ public class CBLDataLoader {
             col.setDocumentExpiration(docId, date);
 
         } catch (Exception e) {
-            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("An error ocurred while setting the expiration date for the document " + docId + ". Check the logs for more.", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("An error ocurred while setting the expiration date for the document " + docId + ". Check the logs for more.", "Couchbase Plugin Error"));
             Log.error("Failed to set the expiration for document " + docId, e);
         }
 
@@ -261,7 +260,7 @@ public class CBLDataLoader {
             Map<String, Blob> blobs = CBLBlobHandler.getDocumentBlobsWithNames(document);
 
             // Once the blobs are loaded, update the tree on the Swing event dispatch thread
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 documentNode.removeAllChildren();
                 for (Map.Entry<String, Blob> entry : blobs.entrySet()) {
                     DefaultMutableTreeNode blobNode = new DefaultMutableTreeNode(new CBLBlobNodeDescriptor(entry.getValue(), entry.getKey(), fileNode.getScope(), fileNode.getCollection(), fileNode.getId()));
@@ -271,7 +270,7 @@ public class CBLDataLoader {
             });
         } catch (Exception e) {
             Log.error("An error occurred while trying to load the blobs", e);
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the blobs for the document <strong>" + documentNode.getUserObject() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>Could not load the blobs for the document <strong>" + documentNode.getUserObject() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
         } finally {
             tree.setPaintBusy(false);
         }
@@ -304,7 +303,7 @@ public class CBLDataLoader {
 
         } catch (CouchbaseLiteException e) {
             Log.error("Could not load the document " + node.getId() + ".", e);
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
             tree.setPaintBusy(false);
             return;
         }
@@ -323,7 +322,7 @@ public class CBLDataLoader {
             });
         } catch (Exception e) {
             Log.error("An error occurred while trying to load the file", e);
-            SwingUtilities.invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("<html>Could not load the document <strong>" + node.getId() + "</strong>. Please check the log for more.</html>", "Couchbase Plugin Error"));
         } finally {
             tree.setPaintBusy(false);
         }

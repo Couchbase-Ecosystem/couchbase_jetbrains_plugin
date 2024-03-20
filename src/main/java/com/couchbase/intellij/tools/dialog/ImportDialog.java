@@ -11,6 +11,7 @@ import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaTextBorder;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
@@ -1244,7 +1245,7 @@ public class ImportDialog extends DialogWrapper {
                 if (!isJsonArray) {
                     boolean isLines = sampleJSONLines(datasetPath);
                     if (!isLines) {
-                        SwingUtilities.invokeLater(() -> Messages.showInfoMessage("Your dateset is not in a JSON Array or JSON lines format", "Couchbase Plugin Error"));
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("Your dateset is not in a JSON Array or JSON lines format", "Couchbase Plugin Error"));
                     }
                 }
             } else if (datasetPath.endsWith(CSV_FILE_EXTENSION)) {

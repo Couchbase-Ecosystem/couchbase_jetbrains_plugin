@@ -11,6 +11,7 @@ import com.couchbase.intellij.tools.doctor.SdkDoctorRunner;
 import com.couchbase.intellij.tree.node.ConnectionNodeDescriptor;
 import com.couchbase.intellij.tree.overview.NewConnectionBanner;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
@@ -151,7 +152,7 @@ public class NewConnectionDialog extends DialogWrapper {
             return;
         }
         messageLabel.setText("Trying to Connect...");
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             try {
                 if (!hasCorrectBucketConnection()) {
                     messageLabel.setText("");
@@ -209,7 +210,7 @@ public class NewConnectionDialog extends DialogWrapper {
         testConnectionButton.setEnabled(false);
         messageLabel.setText("Trying to Connect...");
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             if (!defaultBucketTextField.getText().trim().isEmpty()) {
                 consoleScrollPane.setVisible(true);
                 thirdPanel.revalidate();

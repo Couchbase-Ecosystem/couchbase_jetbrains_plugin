@@ -38,10 +38,8 @@ import javax.swing.event.ListDataListener;
 import javax.swing.text.AbstractDocument;
 import java.awt.*;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.awt.event.InputEvent.CTRL_DOWN_MASK;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -149,7 +147,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
             tokenCount = getModelType().getTokenizer().encode(TextContent.toString(info.getTextContent().get())).size();
         info.setTokenCount(tokenCount);
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             contextStack.getListModel().syncModel();
 
             actionPanel.revalidate();
@@ -214,7 +212,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         TextFragment userMessage = TextFragment.of(event.getUserMessage().getContent());
         question = new MessageComponent(this, userMessage, null);
         answer = new MessageComponent(this, TextFragment.of("Thinking..."), getModelType());
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             setSearchText("");
             aroundRequest(true);
 
@@ -235,7 +233,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     public void exchangeStarted(ChatMessageEvent.Started event) {
         setRequestHolder(event.getSubscription());
 
-        SwingUtilities.invokeLater(contentPanel::updateLayout);
+        ApplicationManager.getApplication().invokeLater(contentPanel::updateLayout);
     }
 
     protected boolean presetCheck() {
@@ -279,7 +277,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
         }
 
         setContent(response);
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             aroundRequest(false);
         });
     }
@@ -316,7 +314,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
                 Log.debug("Received 401 error from Capella iQ");
                 if (messageRetryCount == 0) {
                     if (!logoutListener.onLogout(err)) {
-                        SwingUtilities.invokeLater(() -> {
+                        ApplicationManager.getApplication().invokeLater(() -> {
                             messageRetryCount = 1;
                             contentPanel.removeLastMessage();
                             submitAction.submitPrompt(event.getUserMessage().getContent());
@@ -355,7 +353,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
             return;
         }
         answer.setErrorContent("*Response failure*, cause: " + event.getCause().getMessage() + ", please try again.\n\n Tips: if proxy is enabled, please check if the proxy server is working.");
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             aroundRequest(false);
             contentPanel.scrollToBottom();
         });
@@ -402,7 +400,7 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     }
 
     public void addMessageComponent(JBPanel<?> component) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             contentPanel.add(component);
             lastChatComponent = component;
             contentPanel.revalidate();

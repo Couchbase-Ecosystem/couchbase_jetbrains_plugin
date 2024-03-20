@@ -5,6 +5,7 @@ import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -171,7 +172,7 @@ public class CouchbaseWindowContent extends JPanel {
         });
         if (DataLoader.getSavedClusters() == null || DataLoader.getSavedClusters().isEmpty()) {
             Timer timer = new Timer(10000, e -> {
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     try {
                         toolBarBuilder.showGotItTooltip();
                     } catch (Exception ex) {

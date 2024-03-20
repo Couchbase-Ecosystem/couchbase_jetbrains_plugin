@@ -230,7 +230,7 @@ public class CBLWindowContent extends JPanel {
             public void actionPerformed(@NotNull AnActionEvent e) {
 
                 if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
                 new Task.ConditionalModal(project, String.format("Running Database Optimize for ",
@@ -256,7 +256,7 @@ public class CBLWindowContent extends JPanel {
             public void actionPerformed(@NotNull AnActionEvent e) {
 
                 if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
                 new Task.ConditionalModal(project, String.format("Running Database Full Optimize for ",
@@ -281,7 +281,7 @@ public class CBLWindowContent extends JPanel {
             public void actionPerformed(@NotNull AnActionEvent e) {
 
                 if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
                 new Task.ConditionalModal(project, String.format("Running Database Compact for ",
@@ -305,7 +305,7 @@ public class CBLWindowContent extends JPanel {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
                 new Task.ConditionalModal(project, String.format("Running Database Integrity Check for ",
@@ -329,7 +329,7 @@ public class CBLWindowContent extends JPanel {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (ActiveCBLDatabase.getInstance().getDatabase() == null) {
-                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("You need to connect to a database before running this task", "Couchbase Plugin"));
                     return;
                 }
 

@@ -4,11 +4,11 @@ import com.couchbase.intellij.tree.cblite.nodes.CBLDatabaseNodeDescriptor;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.treeStructure.Tree;
 
-import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
@@ -27,7 +27,7 @@ public class CBLTreeHandler {
     }
 
     public static void connectToDatabase(Project project, SavedCBLDatabase savedDatabase, Tree tree) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             tree.setPaintBusy(true);
             DefaultMutableTreeNode rootNode = (DefaultMutableTreeNode) tree.getModel().getRoot();
             Enumeration<TreeNode> children = rootNode.children();
@@ -73,7 +73,7 @@ public class CBLTreeHandler {
 
             } catch (Exception e) {
                 Log.error(e);
-                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not connect to the specified database.", "Couchbase Connection Error"));
+                ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not connect to the specified database.", "Couchbase Connection Error"));
                 ((CBLDatabaseNodeDescriptor) newActiveNode.getUserObject()).setActive(false);
                 ((DefaultTreeModel) tree.getModel()).reload();
             } finally {

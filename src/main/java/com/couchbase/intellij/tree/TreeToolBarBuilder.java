@@ -159,7 +159,7 @@ public class TreeToolBarBuilder {
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
 
         ActiveCluster.getInstance().registerNewConnectionListener(() -> {
-            SwingUtilities.invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 leftActionToolbar.updateActionsImmediately();
                 toolBarPanel.revalidate();
             });

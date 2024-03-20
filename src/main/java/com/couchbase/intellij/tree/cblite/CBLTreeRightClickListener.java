@@ -29,7 +29,6 @@ import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -120,7 +119,7 @@ public class CBLTreeRightClickListener {
                         CBLTreeHandler.disconnectFromCluster(clickedNode, userObject, tree);
                     } catch (CouchbaseLiteException ex) {
                         Log.error(ex);
-                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not disconnect from the database.", "Couchbase Lite Connection Error"));
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not disconnect from the database.", "Couchbase Lite Connection Error"));
                     }
                 }
             };
@@ -136,7 +135,7 @@ public class CBLTreeRightClickListener {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(clickedNode);
                     } catch (Exception ex) {
                         Log.error(ex);
-                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not create the collection.", COUCHBASE_LITE_PLUGIN_ERROR));
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not create the collection.", COUCHBASE_LITE_PLUGIN_ERROR));
                     }
                 }
             };
@@ -171,7 +170,7 @@ public class CBLTreeRightClickListener {
                     CBLTreeHandler.deleteConnection(clickedNode, userObject, tree);
                 } catch (CouchbaseLiteException ex) {
                     Log.error(ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the connection.", COUCHBASE_LITE_PLUGIN_ERROR));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the connection.", COUCHBASE_LITE_PLUGIN_ERROR));
                 }
             }
         };
@@ -214,7 +213,7 @@ public class CBLTreeRightClickListener {
                             ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                         } catch (Exception ex) {
                             Log.error(ex);
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the scope.", COUCHBASE_LITE_PLUGIN_ERROR));
+                            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the scope.", COUCHBASE_LITE_PLUGIN_ERROR));
                         }
                     }
                 };
@@ -269,7 +268,7 @@ public class CBLTreeRightClickListener {
                             }
                             DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
                             Scope scope = ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope());
-                            SwingUtilities.invokeLater(() -> {
+                            ApplicationManager.getApplication().invokeLater(() -> {
                                 ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
                                 // If the scope has no collections after deleting the collection, remove the
                                 // scope
@@ -285,12 +284,12 @@ public class CBLTreeRightClickListener {
                                     }
                                 } catch (CouchbaseLiteException e) {
                                     Log.error(e);
-                                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the scope after deleting the collection.", COUCHBASE_LITE_PLUGIN_ERROR));
+                                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the scope after deleting the collection.", COUCHBASE_LITE_PLUGIN_ERROR));
                                 }
                             });
                         } catch (Exception ex) {
                             Log.error(ex);
-                            SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the collection.", COUCHBASE_LITE_PLUGIN_ERROR));
+                            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the collection.", COUCHBASE_LITE_PLUGIN_ERROR));
                         }
                     }
                 };
@@ -354,7 +353,7 @@ public class CBLTreeRightClickListener {
                     }
                 } catch (Exception ex) {
                     Log.error("An error occurred while trying to attach a blob to the document " + userObject.getId(), ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not attach the blob. Please check the logs for more.", "Couchbase Plugin Error"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not attach the blob. Please check the logs for more.", "Couchbase Plugin Error"));
                 }
             }
         };
@@ -386,7 +385,7 @@ public class CBLTreeRightClickListener {
                     ActiveCBLDatabase.getInstance().getDatabase().getScope(userObject.getScope()).getCollection(userObject.getCollection()).delete(document);
 
                     DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                    SwingUtilities.invokeLater(() -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
                         if (parentNode != null) {
                             ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
                         }
@@ -394,7 +393,7 @@ public class CBLTreeRightClickListener {
                     });
                 } catch (Exception ex) {
                     Log.error("An error occurred while trying to delete the document " + userObject.getId(), ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the document. Please check the logs for more.", "Couchbase Plugin Error"));
                 }
             }
         };
@@ -436,7 +435,7 @@ public class CBLTreeRightClickListener {
                                 ActiveCBLDatabase.getInstance().getDatabase().performMaintenance(MaintenanceType.COMPACT);
                             } catch (Exception ex) {
                                 Log.error("An error occurred while trying to delete the blob " + userObject.getDigest(), ex);
-                                SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the blob. Please check the logs for more.", COUCHBASE_LITE_PLUGIN_ERROR));
+                                ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the blob. Please check the logs for more.", COUCHBASE_LITE_PLUGIN_ERROR));
                             }
                         }
                     };
@@ -445,7 +444,7 @@ public class CBLTreeRightClickListener {
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(grandParentNode);
                 } catch (Exception ex) {
                     Log.error("An error occurred while trying to delete the blob " + userObject.getDigest(), ex);
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not delete the blob. Please check the logs for more.", COUCHBASE_LITE_PLUGIN_ERROR));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not delete the blob. Please check the logs for more.", COUCHBASE_LITE_PLUGIN_ERROR));
                 }
             }
         };

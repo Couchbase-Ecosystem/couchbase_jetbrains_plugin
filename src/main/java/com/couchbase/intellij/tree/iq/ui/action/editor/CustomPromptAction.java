@@ -8,6 +8,7 @@ import com.couchbase.intellij.tree.iq.text.CodeFragment;
 import com.intellij.CommonBundle;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.*;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.event.DocumentEvent;
@@ -98,7 +99,7 @@ public class CustomPromptAction extends GenericEditorAction {
             panel.setLayout(new VerticalLayout(JBUIScale.scale(8)));
             panel.setBorder(JBUI.Borders.empty(10));
             panel.add(createItemPanel());
-            SwingUtilities.invokeLater(question::requestFocusInWindow);
+            ApplicationManager.getApplication().invokeLater(question::requestFocusInWindow);
             return panel;
         }
 
@@ -141,8 +142,8 @@ public class CustomPromptAction extends GenericEditorAction {
 
             JPanel codePanel = new NonOpaquePanel(new BorderLayout());
             JBLabel codeLabel = new JBLabel("Code block:");
-            codeLabel.setBorder(JBUI.Borders.empty(10,0,5,0));
-            codePanel.add(codeLabel,BorderLayout.NORTH);
+            codeLabel.setBorder(JBUI.Borders.empty(10, 0, 5, 0));
+            codePanel.add(codeLabel, BorderLayout.NORTH);
             editorFactory = EditorFactory.getInstance();
             FileType fileType = FileTypeManager.getInstance().getFileTypeByExtension(fileExtension);
             LightVirtualFile virtualFile = new LightVirtualFile(UUID.randomUUID() + "." + fileExtension, selected.content());
@@ -157,11 +158,11 @@ public class CustomPromptAction extends GenericEditorAction {
                 }
             });
 
-            String originalGroupId = ((EditorEx)this.editor).getContextMenuGroupId();
+            String originalGroupId = ((EditorEx) this.editor).getContextMenuGroupId();
             AnAction originalGroup = (originalGroupId == null) ? null : ActionManager.getInstance().getAction(originalGroupId);
             DefaultActionGroup group = new DefaultActionGroup();
             if (originalGroup instanceof ActionGroup)
-                group.addAll(((ActionGroup)originalGroup).getChildren(null));
+                group.addAll(((ActionGroup) originalGroup).getChildren(null));
 
             EditorEx editorEx = (EditorEx) editor;
             editorEx.installPopupHandler(new ContextMenuPopupHandler.Simple(group));
@@ -176,7 +177,7 @@ public class CustomPromptAction extends GenericEditorAction {
             editorSettings.setAdditionalLinesCount(3);
             editorSettings.setCaretRowShown(true);
             editorSettings.setAnimatedScrolling(true);
-            codePanel.setPreferredSize(new Dimension(600,400));
+            codePanel.setPreferredSize(new Dimension(600, 400));
             codePanel.add(editor.getComponent(), BorderLayout.CENTER);
             basePanel.add(codePanel, BorderLayout.CENTER);
 
@@ -186,7 +187,7 @@ public class CustomPromptAction extends GenericEditorAction {
             prefixPanel.add(prefixLabel, BorderLayout.NORTH);
             question.getEmptyText().setText("Type your prompt here");
             prefixPanel.add(question, BorderLayout.CENTER);
-            prefixPanel.setBorder(JBUI.Borders.empty(5,0));
+            prefixPanel.setBorder(JBUI.Borders.empty(5, 0));
             basePanel.add(prefixPanel, BorderLayout.SOUTH);
 
             return basePanel;
@@ -207,7 +208,7 @@ public class CustomPromptAction extends GenericEditorAction {
 
             @Override
             public Action @NotNull [] getOptions() {
-                return new Action[] { new SendAndSaveAction() };
+                return new Action[]{new SendAndSaveAction()};
             }
         }
 

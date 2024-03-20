@@ -1,8 +1,8 @@
 package com.couchbase.intellij.workbench.chart;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.components.JBTextField;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +52,7 @@ public class MapBridge {
 
     public void updateFilter() {
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             List<String> filters = new ArrayList<>();
 
             for (Map.Entry<String, Circle> entry : circles.entrySet()) {

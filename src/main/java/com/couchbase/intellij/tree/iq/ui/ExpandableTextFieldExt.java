@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.textarea.TextComponentEditor;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
@@ -237,7 +238,7 @@ public class ExpandableTextFieldExt extends ExtendableTextField implements Expan
                 String newText = e.getDocument().getText(e.getOffset(), e.getLength());
                 if (newText.indexOf(NEWLINE_REPLACEMENT) >= 0 && !StringUtils.containsOnly(newText, NEWLINE_REPLACEMENT)) {
                     if (!expandable.isExpanded())
-                        SwingUtilities.invokeLater(expandable::expand);
+                        ApplicationManager.getApplication().invokeLater(expandable::expand);
                 }
             } catch (BadLocationException ignored) {
             }

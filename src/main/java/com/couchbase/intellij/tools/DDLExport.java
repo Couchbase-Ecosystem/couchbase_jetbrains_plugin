@@ -6,6 +6,7 @@ import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -14,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import utils.IndexUtils;
 import utils.TimeUtils;
 
-import javax.swing.*;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -100,7 +100,7 @@ public class DDLExport {
 
                     Log.info("DDL file " + fullPath + " was exported successfully.");
 
-                    SwingUtilities.invokeLater(() -> Messages.showInfoMessage("File exported successfully.", "DDL Export"));
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("File exported successfully.", "DDL Export"));
 
                 } catch (Exception e) {
                     Log.error("An error occurred while writing to export the DDL: ", e);

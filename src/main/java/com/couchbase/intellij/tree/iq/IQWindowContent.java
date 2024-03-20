@@ -12,6 +12,7 @@ import com.couchbase.intellij.workbench.Log;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -137,7 +138,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         }
         this.removeAll();
         this.updateUI();
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             IQStorage.getInstance().getState().setActiveOrganization(organization.getId());
             final String iqUrl = String.format(IQ_URL.get(), organization.getId());
             iqGptConfig = new OpenAISettingsState.OpenAIConfig();

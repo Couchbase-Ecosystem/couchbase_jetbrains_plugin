@@ -15,6 +15,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.NullableComponent;
@@ -30,31 +31,21 @@ import com.intellij.ui.components.panels.VerticalLayout;
 import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
-import com.thaiopensource.xml.dtd.om.Def;
-import lombok.Builder;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JSeparator;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.CustomSqlFileEditor.NO_QUERY_CONTEXT_SELECTED;
 
 public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implements NullableComponent, SystemMessageHolder {
     private final JPanel myList = new JPanel(new VerticalLayout(0));
     private final JBScrollPane myScrollPane = new JBScrollPane(myList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-                                      ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
     private final CapellaOrganization organization;
     private final ChatPanel.OrganizationListener orgChangeListener;
     private int myScrollValue = 0;
@@ -82,7 +73,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         HideableTitledPanel cPanel = new HideableTitledPanel("Settings", false);
         cPanel.setContentComponent(createSettingsPanel(organizationList, logoutListener));
         cPanel.setOn(false);
-        cPanel.setBorder(JBUI.Borders.empty(0,8,10,0));
+        cPanel.setBorder(JBUI.Borders.empty(0, 8, 10, 0));
         add(cPanel, BorderLayout.NORTH);
 
         add(mainPanel, BorderLayout.CENTER);
@@ -92,7 +83,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         myTitle.setFont(JBFont.label());
 
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(JBUI.Borders.empty(0,10,10,0));
+        panel.setBorder(JBUI.Borders.empty(0, 10, 10, 0));
 
         panel.add(myTitle, BorderLayout.WEST);
 
@@ -181,7 +172,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
 
             bucketActions.clear();
             contextAction.removeAll();
-            contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg",MessageGroupComponent.class));
+            contextAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg", MessageGroupComponent.class));
             contextAction.addSeparator("Buckets");
             activeCluster.getChildren().stream()
                     .sorted(Comparator.comparing(b -> b.getName().toLowerCase()))
@@ -211,7 +202,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     }
 
     private JPanel createSettingsPanel(CapellaOrganizationList organizationList, ChatPanel.LogoutListener logoutListener) {
-        JPanel panel = new NonOpaquePanel(new GridLayout(0,1));
+        JPanel panel = new NonOpaquePanel(new GridLayout(0, 1));
         JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
         orgSelector = new ComboBox<>(organizationList.getData().stream()
                 .map(org -> org.getData())
@@ -220,7 +211,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
                 .toArray(String[]::new));
 
         orgSelector.setSelectedIndex(organizationList.indexOf(organization));
-        orgSelector.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+        orgSelector.addActionListener(e -> ApplicationManager.getApplication().invokeLater(() -> {
             CapellaOrganization selectedOrg = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
             if (selectedOrg != organization) {
                 orgChangeListener.onOrgSelected(selectedOrg);
@@ -233,7 +224,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                SwingUtilities.invokeLater(() -> {
+                ApplicationManager.getApplication().invokeLater(() -> {
                     logoutListener.onLogout(null);
                 });
             }
@@ -244,10 +235,10 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             }
         });
 
-        ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar",toolbarActions,true);
+        ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar", toolbarActions, true);
         actonPanel.setTargetComponent(this);
         panel.add(orgPanel);
-        panel.setBorder(JBUI.Borders.empty(0,8,10,8));
+        panel.setBorder(JBUI.Borders.empty(0, 8, 10, 8));
 
         JCheckBox enableTelemetry = new JCheckBox("Allow prompt and response collection to help make Capella iQ better.");
         enableTelemetry.setSelected(IQStorage.getInstance().getState().isAllowTelemetry());
@@ -257,14 +248,14 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         panel.add(enableTelemetry);
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.add(actonPanel,BorderLayout.EAST);
+        bottomPanel.add(actonPanel, BorderLayout.EAST);
         panel.add(bottomPanel);
 
         return panel;
     }
 
     public void addSeparator(JComponent comp) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             JSeparator separator = new JSeparator();
             separator.setForeground(JBColor.border());
             comp.add(separator);
@@ -289,7 +280,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         var modelType = chat.getChatLink().getConversationContext().getModelType();
         return new MessageComponent(chat, TextFragment.of("""
                 Hi, I'm your iQ-powered couchbase assistant. How can I assist you today?
-                
+                                
                 Here are some suggestions to get you started:
                 [✦ What is Couchbase](assistant://?prompt=What+is+Couchbase)
                 [✦ How do I connect to Couchbase using Java SDK](assistant://?prompt=How+do+I+connect+to+Couchbase+using+Java+SDK)
@@ -298,7 +289,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     }
 
     public void add(JBPanel<?> messageComponent) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             myList.add(messageComponent);
             updateLayout();
             scrollToBottom();
@@ -335,7 +326,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     public boolean isVisible() {
         if (super.isVisible()) {
             int count = myList.getComponentCount();
-            for (int i = 0 ; i < count ; i++) {
+            for (int i = 0; i < count; i++) {
                 if (myList.getComponent(i).isVisible()) {
                     return true;
                 }
@@ -355,7 +346,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     }
 
     public void removeLastMessage() {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             myList.remove(myList.getComponentCount() - 1);
             myList.remove(myList.getComponentCount() - 1);
             updateLayout();

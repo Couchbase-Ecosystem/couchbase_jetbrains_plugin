@@ -479,7 +479,7 @@ public class MigrationDialog extends DialogWrapper {
     }
 
     public void tryToConnectToMongo(String mongoDBUri, JLabel errorLabel, Consumer<List<String>> callback) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             try {
                 List<String> databases = MongoConnection.testConnection(mongoDBUri);
 
@@ -500,7 +500,7 @@ public class MigrationDialog extends DialogWrapper {
     }
 
     public void connectToMongo(String mongoDBUri, JLabel errorLabel, Consumer<List<String>> callback) {
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             try {
                 mongoConnection = new MongoConnection(mongoDBUri);
                 List<String> databases = mongoConnection.listDatabases();

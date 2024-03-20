@@ -1,6 +1,7 @@
 package utils;
 
 import com.couchbase.intellij.tree.NewConnectionDialog;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.IconLoader;
@@ -50,7 +51,7 @@ public class TemplateUtil {
         scrollPane.setBorder(null);
         scrollPane.setPreferredSize(preferredSize);
 
-        SwingUtilities.invokeLater(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             scrollPane.getViewport().setViewPosition(new Point(0, 0));
         });
 

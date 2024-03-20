@@ -26,6 +26,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
@@ -270,7 +271,7 @@ public class TreeRightClickListener {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         ActiveCluster.getInstance().setReadOnlyMode(true);
-                        SwingUtilities.invokeLater(() -> Messages.showWarningDialog("<html>The <strong>Read Only Mode</strong> is a simple guardrail in the plugin to avoid unwanted changes in sensible environments. Please note that this is a <strong>best effort</strong> approach. For true read-only approach, connect to the cluster using read-only credentials.</html>", "Couchbase Plugin Warning"));
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showWarningDialog("<html>The <strong>Read Only Mode</strong> is a simple guardrail in the plugin to avoid unwanted changes in sensible environments. Please note that this is a <strong>best effort</strong> approach. For true read-only approach, connect to the cluster using read-only credentials.</html>", "Couchbase Plugin Warning"));
 
                     }
                 };
@@ -421,7 +422,7 @@ public class TreeRightClickListener {
                         tree.collapsePath(treePath.getParentPath());
                         tree.expandPath(treePath.getParentPath());
                     } catch (Exception ex) {
-                        SwingUtilities.invokeLater(() -> Messages.showInfoMessage("An error occurred while creating the bucket. Check the Log tab for more.", "Couchbase Plugin Error"));
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage("An error occurred while creating the bucket. Check the Log tab for more.", "Couchbase Plugin Error"));
                         Log.error("Bucket deletion failed ", ex);
                     }
                 }

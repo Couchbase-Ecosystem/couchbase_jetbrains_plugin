@@ -12,6 +12,7 @@ import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.utils.Subscribable;
 import com.couchbase.intellij.workbench.Log;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -22,7 +23,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import utils.CBConfigUtil;
 
-import javax.swing.*;
 import java.awt.*;
 import java.time.Duration;
 import java.util.List;
@@ -173,7 +173,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                                     return;
                                 }
                                 Log.info("Disconnected from cluster " + savedCluster.getId());
-                                SwingUtilities.invokeLater(() -> {
+                                ApplicationManager.getApplication().invokeLater(() -> {
                                     try {
                                         Messages.showErrorDialog(
                                                 String.format("Lost connection to cluster '%s'", savedCluster.getId()),
@@ -222,7 +222,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     });
                     INSTANCE.set(ActiveCluster.this);
                 } catch (Exception e) {
-                    SwingUtilities.invokeLater(() -> Messages.showErrorDialog(
+                    ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(
                             String.format("Error while connecting to cluster '%s': \n %s", savedCluster.getId(), e.getMessage()),
                             "Failed to connect to cluster"
                     ));
@@ -338,7 +338,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         if (getChildren() == null) {
             return Stream.empty();
         }
-        
+
         return getChildren().stream()
                 .flatMap(b -> Stream.concat(
                         Stream.of(b),
@@ -383,7 +383,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         if (onComplete != null) {
                             onComplete.accept(e);
                         }
-                        SwingUtilities.invokeLater(() -> Messages.showErrorDialog("Could not read cluster schema.", "Couchbase Connection Error"));
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not read cluster schema.", "Couchbase Connection Error"));
                         disconnect();
                     }
                 }
