@@ -12,9 +12,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 public class LineChart implements CbChart {
 
@@ -116,7 +118,7 @@ public class LineChart implements CbChart {
             String template = ChartUtil.loadResourceAsString("/chartTemplates/lines.html");
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
                     .replace("DATA_LABELS", labels.toString())
-                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
+                    .replaceAll("JS_LIB_PATH_", Matcher.quoteReplacement(CBFolders.getInstance().getJsDependenciesPath() + File.separator))
                     .replace("DATA_VALUES", values.toString())
                     .replace("ISDARK", String.valueOf(ColorHelper.isDarkTheme()));
             browser.loadHTML(template);

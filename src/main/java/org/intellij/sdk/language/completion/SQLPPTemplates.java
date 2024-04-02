@@ -19,7 +19,6 @@ import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ProcessingContext;
-import generated.GeneratedTypes;
 import org.intellij.sdk.language.psi.SqlppFile;
 import org.jetbrains.annotations.NotNull;
 
@@ -101,8 +100,8 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     }
 
     private Set<String> getCollectionAttributes(CouchbaseCollection col) {
-        if (col == null || col.getChildren() == null ) {
-            return  new HashSet<>();
+        if (col == null || col.getChildren() == null) {
+            return new HashSet<>();
         }
         return col.getChildren().stream()
                 .flatMap(e -> Optional.ofNullable(e.getChildren())
@@ -285,7 +284,7 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
 
         List<String> attributesList = new ArrayList<>(attributes);
         String attrStream = IntStream.range(0, attributesList.size())
-                .mapToObj(i -> (i == 0 ? "" : "\t\t") + collection + "." + attributesList.get(i))
+                .mapToObj(i -> (i == 0 ? "" : "\t\t") + collection + ".`" + attributesList.get(i) + "`")
                 .collect(Collectors.joining(", \n"));
 
         TemplateManager templateManager = TemplateManager.getInstance(project);

@@ -12,10 +12,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 public class PieDoughnutChart implements CbChart {
 
@@ -129,7 +131,7 @@ public class PieDoughnutChart implements CbChart {
             String template = ChartUtil.loadResourceAsString("/chartTemplates/pie_doughnut.html");
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
                     .replace("CHART_TYPE", type == Type.PIE ? "pie" : "doughnut")
-                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
+                    .replaceAll("JS_LIB_PATH_", Matcher.quoteReplacement(CBFolders.getInstance().getJsDependenciesPath() + File.separator))
                     .replace("DATA_LABELS", labels.toString())
                     .replace("DATA_VALUES", values.toString())
                     .replace("ISDARK", String.valueOf(ColorHelper.isDarkTheme()));
