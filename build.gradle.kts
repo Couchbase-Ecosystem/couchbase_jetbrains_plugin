@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.0.8"
+version = "1.0.9"
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17

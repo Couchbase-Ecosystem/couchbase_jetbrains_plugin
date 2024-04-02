@@ -12,13 +12,13 @@ import java.awt.*;
 import java.util.List;
 
 
-
 public class NewScopeCreationDialog extends DialogWrapper {
 
     private JTextField textField;
     private JLabel errorLabel;
     private String bucketName;
     private String scopeName;
+
     protected NewScopeCreationDialog(
             Project project,
             String bucketName) {
@@ -28,6 +28,7 @@ public class NewScopeCreationDialog extends DialogWrapper {
 
         init();
         setTitle("Create new Scope");
+        getPeer().getWindow().setMinimumSize(new Dimension(360, 120));
     }
 
     @Override
@@ -35,24 +36,33 @@ public class NewScopeCreationDialog extends DialogWrapper {
     protected JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridwidth = GridBagConstraints.RELATIVE;
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.insets = JBUI.insets(5);
+        gbc.weightx = 0.3;
+        gbc.insets = JBUI.insets(3);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JLabel nameLabel = new JLabel("Name of the Scope");
+        JLabel nameLabel = new JLabel("Scope name");
         panel.add(nameLabel, gbc);
 
-        gbc.gridy = 1;
-        textField = new JTextField(20);
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        textField = new JTextField();
         panel.add(textField, gbc);
 
-        gbc.gridy = 2;
         errorLabel = new JLabel("");
         errorLabel.setForeground(Color.decode("#FF4444"));
-        panel.add(errorLabel, gbc);
 
-        return panel;
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(panel, BorderLayout.NORTH);
+        wrapper.add(errorLabel, BorderLayout.SOUTH);
+
+        return wrapper;
     }
 
     @Override

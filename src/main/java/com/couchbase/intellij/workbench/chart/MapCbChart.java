@@ -27,9 +27,11 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 public class MapCbChart implements CbChart {
 
@@ -195,7 +197,7 @@ public class MapCbChart implements CbChart {
             template = template.replace("JSON_DATA_TEMPLATE", JsonArray.from(results).toString())
                     .replace("GEO_CIRCLE_LIST", circles)
                     .replace("GEO_POLYGON_LIST", polygons)
-                    .replaceAll("JS_LIB_PATH", CBFolders.getInstance().getJsDependenciesPath())
+                    .replaceAll("JS_LIB_PATH_", Matcher.quoteReplacement(CBFolders.getInstance().getJsDependenciesPath() + File.separator))
                     .replace("GEO_LAT_TEMPLATE", latBox.getSelectedItem().toString())
                     .replace("GEO_LON_TEMPLATE", lonBox.getSelectedItem().toString());
             browser.loadHTML(template);
