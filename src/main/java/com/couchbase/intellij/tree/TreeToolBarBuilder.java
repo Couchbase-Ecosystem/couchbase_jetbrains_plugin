@@ -81,7 +81,7 @@ public class TreeToolBarBuilder {
                 if (ActiveCluster.getInstance().get() != null) {
                     CBShell.openNewTerminal();
                 } else {
-                    Messages.showErrorDialog("You need to connecto to a cluster first before running CB Shell", "Couchbase Plugin Error");
+                    Messages.showErrorDialog("You need to connect to a cluster first before running CB Shell", "Couchbase Plugin Error");
                 }
             }
         };
