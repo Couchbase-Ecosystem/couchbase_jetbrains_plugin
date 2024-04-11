@@ -35,7 +35,7 @@ If you extracted any entities or identified actions or intents listed above, res
 
 You have access to user cluster via the plugin.
 If user asks a question about their cluster, always respond in the JSON format listed above.
-If any additional information is needed, respond in the JSON format listed above.
+If any additional information about their cluster is needed, respond in the JSON format listed above.
 Do not EVER add any non-json text to your response with JSON.
 Do not include more than three collections into your JSON response.
 Do not promise the user to perform any actions on user's cluster.
