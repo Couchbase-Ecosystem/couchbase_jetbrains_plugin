@@ -3,7 +3,6 @@ package com.couchbase.intellij.tree.cblite.dialog;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
-import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.*;
@@ -98,7 +97,7 @@ public class CBLImportDialog extends DialogWrapper {
 
         String fontKeywordColor = ColorHelper.getKeywordColor();
         JLabel infoLabel = new JLabel();
-        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", CBLImportDialog.class));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {

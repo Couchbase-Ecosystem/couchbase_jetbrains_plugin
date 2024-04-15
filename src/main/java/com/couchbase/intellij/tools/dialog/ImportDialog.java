@@ -8,7 +8,6 @@ import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBImportCommandBuilder;
 import com.couchbase.intellij.tree.NewEntityCreationDialog;
 import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
-import com.couchbase.intellij.tree.docfilter.DocumentFilterDialog;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaTextBorder;
 import com.intellij.openapi.application.ApplicationManager;
@@ -226,7 +225,7 @@ public class ImportDialog extends DialogWrapper {
         JLabel infoLabel = new JLabel();
 
         String fontKeywordColor = ColorHelper.getKeywordColor();
-        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", ImportDialog.class));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {

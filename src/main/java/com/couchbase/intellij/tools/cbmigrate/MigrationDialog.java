@@ -371,7 +371,7 @@ public class MigrationDialog extends DialogWrapper {
         JPanel targetPanel = new JPanel(new GridBagLayout());
 
         JLabel infoLabel = new JLabel();
-        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", DocumentFilterDialog.class));
+        infoLabel.setIcon(IconLoader.getIcon("/assets/icons/information_big.svg", MigrationDialog.class));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {

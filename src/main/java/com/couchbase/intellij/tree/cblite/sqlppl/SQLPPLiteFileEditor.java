@@ -2,7 +2,6 @@ package com.couchbase.intellij.tree.cblite.sqlppl;
 
 
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -26,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.HashMap;
@@ -165,13 +163,6 @@ public class SQLPPLiteFileEditor implements FileEditor, TextEditor {
         topPanel = new JPanel(new BorderLayout());
         topPanel.add(leftPanel, BorderLayout.WEST);
         topPanel.add(rightPanel, BorderLayout.EAST);
-
-        if (ActiveCluster.getInstance().getColor() != null) {
-            Border line = BorderFactory.createMatteBorder(0, 0, 1, 0, ActiveCluster.getInstance().getColor());
-            Border margin = BorderFactory.createEmptyBorder(0, 0, 1, 0);
-            Border compound = BorderFactory.createCompoundBorder(margin, line);
-            topPanel.setBorder(compound);
-        }
 
         panel.add(topPanel, BorderLayout.NORTH);
     }

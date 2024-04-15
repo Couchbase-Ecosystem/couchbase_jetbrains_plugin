@@ -421,6 +421,11 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         Log.debug("updated cluster schema");
     }
 
+    @VisibleForTesting
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
     @Override
     public SavedCluster getSavedCluster() {
         return savedCluster;

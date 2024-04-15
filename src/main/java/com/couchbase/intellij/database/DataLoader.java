@@ -216,8 +216,14 @@ public class DataLoader {
                         parentNode.remove(parentNode.getChildCount() - 1);
                     }
 
+
+                    //selects the attribute that needs to be used according to the index
+                    String idxField = getIndexedField(colNode);
+                    if (idxField == null) {
+                        throw new IndexFailureException(null);
+                    }
                     String filter = colNode.getQueryFilter();
-                    String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias WHERE meta(couchbaseAlias).id IS NOT MISSING " + ((filter == null || filter.isEmpty()) ? "" : (" and " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
+                    String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias WHERE " + idxField + " IS NOT MISSING " + ((filter == null || filter.isEmpty()) ? "" : (" and " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
                     final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
                     InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
@@ -275,6 +281,41 @@ public class DataLoader {
         } else {
             throw new IllegalStateException("The expected parent was CollectionNodeDescriptor but got something else");
         }
+    }
+
+    public static String getIndexedField(CollectionNodeDescriptor colNode) {
+        List<QueryIndex> idxs = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).collection(colNode.getText()).queryIndexes().getAllIndexes();
+        String filter = null;
+        for (QueryIndex idx : idxs) {
+            if (idx.primary()) {
+                return "meta(couchbaseAlias).id";
+            } else {
+                AbstractMap.SimpleEntry<String, Boolean> result = getValidIndexKey(idx.indexKey());
+                if (result != null) {
+                    if (!idx.condition().isPresent() && result.getValue()) {
+                        return result.getKey();
+                    } else {
+                        filter = result.getKey();
+                    }
+                }
+            }
+        }
+        return filter;
+    }
+
+    private static AbstractMap.SimpleEntry<String, Boolean> getValidIndexKey(JsonArray array) {
+        for (int i = 0; i < array.size(); i++) {
+            String key = array.getString(i);
+            if (!key.contains("(")) {
+                if (key.endsWith(" DESC") || key.endsWith(" ASC")) {
+                    key = key.replace(" ASC", "").replace(" DESC", "").trim();
+                }
+                key = key.replaceAll("`", "");
+
+                return new AbstractMap.SimpleEntry<>(key, i == 0);
+            }
+        }
+        return null;
     }
 
     private static void loadKVDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset, CollectionNodeDescriptor colNode) throws Exception {
