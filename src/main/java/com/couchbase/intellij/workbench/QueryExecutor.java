@@ -217,7 +217,7 @@ public class QueryExecutor {
         if (!SQLPPAnalyzer.isLimited(project, query)) {
             Integer queryLimit = ActiveCluster.getInstance().getQueryLimit();
             if (queryLimit != null) {
-                query = String.format("SELECT * FROM (%s) as d LIMIT %d", query, queryLimit);
+                query = String.format("SELECT d.* FROM (%s) as d LIMIT %d", query, queryLimit);
                 autoLimited = true;
             }
         }

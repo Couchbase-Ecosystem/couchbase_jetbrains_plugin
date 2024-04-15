@@ -677,8 +677,20 @@ public class TreeRightClickListener {
             AnAction menuItem = new AnAction(filter) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
-                    dialog.show();
+
+                    CollectionNodeDescriptor desc = new CollectionNodeDescriptor(
+                            col.getText(), null, col.getBucket(), col.getScope(), null);
+                    String field = DataLoader.getIndexedField(desc);
+
+                    if (field != null) {
+                        DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
+                        dialog.show();
+                    } else {
+                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(
+                                "Filters can only be applied to collections that have at least one index.",
+                                "Document Filters"
+                        ));
+                    }
                 }
             };
             actionGroup.add(menuItem);

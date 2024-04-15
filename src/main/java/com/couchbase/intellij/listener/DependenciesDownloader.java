@@ -88,38 +88,38 @@ public class DependenciesDownloader {
 
         if (MACOS_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-apple-darwin.zip", TOOL_SHELL, MACOS_64));
-            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-macos_x86_64.zip", TOOL_IMPORT_EXPORT, MACOS_64));
+            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.6.0/couchbase-server-tools_7.6.0-macos_x86_64.zip", TOOL_IMPORT_EXPORT, MACOS_64));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_64.zip", ALL_TOOLS, MACOS_64));
             map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_darwin_amd64.zip", CB_MIGRATE, MACOS_64));
 
         } else if (MACOS_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-aarch64-apple-darwin.zip", TOOL_SHELL, MACOS_ARM));
-            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-macos_arm64.zip", TOOL_IMPORT_EXPORT, MACOS_ARM));
+            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.6.0/couchbase-server-tools_7.6.0-macos_arm64.zip", TOOL_IMPORT_EXPORT, MACOS_ARM));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-macos_arm.zip", ALL_TOOLS, MACOS_ARM));
             map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_darwin_arm64.zip", CB_MIGRATE, MACOS_ARM));
 
 
         } else if (WINDOWS_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-pc-windows-msvc.zip", TOOL_SHELL, WINDOWS_64));
-            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_64));
+            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.6.0/couchbase-server-tools_7.6.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_64));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-windows_64.zip", ALL_TOOLS, WINDOWS_64));
             map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_windows_amd64.zip", CB_MIGRATE, WINDOWS_64));
 
         } else if (WINDOWS_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-pc-windows-msvc.zip", TOOL_SHELL, WINDOWS_ARM));
-            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_ARM));
+            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.6.0/couchbase-server-tools_7.6.0-windows_amd64.zip", TOOL_IMPORT_EXPORT, WINDOWS_ARM));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-windows_64.zip", ALL_TOOLS, WINDOWS_ARM));
             map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_windows_amd64.zip", CB_MIGRATE, WINDOWS_ARM));
 
         } else if (LINUX_64.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-x86_64-unknown-linux-gnu.tar.gz", TOOL_SHELL, LINUX_64));
-            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-linux_x86_64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_64));
+            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.6.0/couchbase-server-tools_7.6.0-linux_x86_64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_64));
             map.put(ALL_TOOLS, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/7.2.0-linux_64.zip", ALL_TOOLS, LINUX_64));
             map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_linux_amd64.zip", CB_MIGRATE, LINUX_64));
 
         } else if (LINUX_ARM.equals(os)) {
             map.put(TOOL_SHELL, getToolSpec("https://github.com/couchbaselabs/couchbase-shell/releases/download/v0.75.1/cbsh-aarch64-unknown-linux-gnu.tar.gz", TOOL_SHELL, LINUX_ARM));
-            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.2.0/couchbase-server-tools_7.2.0-linux_aarch64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_ARM));
+            map.put(TOOL_IMPORT_EXPORT, getToolSpec("https://packages.couchbase.com/releases/7.6.0/couchbase-server-tools_7.6.0-linux_aarch64.tar.gz", TOOL_IMPORT_EXPORT, LINUX_ARM));
             map.put(CB_MIGRATE, getToolSpec("https://intellij-plugin-dependencies.s3.us-east-2.amazonaws.com/cbmigrate/cbmigrate_0.0.1-beta_linux_arm64.zip", CB_MIGRATE, LINUX_ARM));
 
         } else {
