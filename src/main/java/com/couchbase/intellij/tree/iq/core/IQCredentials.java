@@ -7,6 +7,7 @@ import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.Pass;
 
 import java.io.IOException;

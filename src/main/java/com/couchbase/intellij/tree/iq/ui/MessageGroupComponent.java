@@ -206,7 +206,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
         orgSelector = new ComboBox<>(organizationList.getData().stream()
                 .map(org -> org.getData())
-                .filter(data -> data.getIq() != null && data.getIq().isEnabled() && data.getIq().getOther().isTermsAcceptedForOrg())
+                .filter(data -> data.getIq() != null && data.getIq().isEnabled())
                 .map(data -> data.getName())
                 .toArray(String[]::new));
 

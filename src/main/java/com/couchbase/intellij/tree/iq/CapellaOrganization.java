@@ -3,11 +3,15 @@ package com.couchbase.intellij.tree.iq;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class CapellaOrganization {
     private String id;
     private String name;
+    private String description;
+    private String website;
+    private Map<String, Object> preferences;
 
     private IQ iq;
 

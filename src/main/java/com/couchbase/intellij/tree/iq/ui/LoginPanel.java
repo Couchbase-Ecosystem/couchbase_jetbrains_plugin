@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -203,11 +204,15 @@ public class LoginPanel extends JPanel {
         IQCredentials credentials = new IQCredentials(login, password);
         if (credentials.doLogin()) {
             if (store) {
-                credentials.store();
+                ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+                    credentials.store();
+                }, "Storing Capella credentials...", false, null);
             } else {
                 this.username.setText("");
                 this.password.setText("");
-                credentials.unstore();
+                ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+                    credentials.unstore();
+                }, "Removing Capella credentials...", false, null);
             }
             listener.onLogin(credentials);
             return true;
