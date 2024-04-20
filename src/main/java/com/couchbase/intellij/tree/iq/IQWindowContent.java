@@ -128,6 +128,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     public boolean onLogout(@Nullable Throwable reason) {
         this.removeAll();
         this.add(new LoginPanel(credentials, this));
+        this.setEnabled(true);
         this.updateUI();
         return true;
     }
@@ -147,6 +148,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
 
         final boolean CBIQ_FORCE_TERMS_DIALOG = System.getenv().containsKey("CB_IQ_FORCE_TERMS_DIALOG");
         if (CBIQ_FORCE_TERMS_DIALOG || !credentials.checkTermsAccepted(organization.getId())) {
+            this.setEnabled(false);
             CapellaIqTermsDialog termsDialog = getCapellaIqTermsDialog(organization);
             termsDialog.show();
             return;
@@ -156,6 +158,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
 
     private void showIq(CapellaOrganization organization) {
         this.removeAll();
+        this.setEnabled(true);
         this.updateUI();
         SwingUtilities.invokeLater(() -> {
             IQStorage.getInstance().getState().setActiveOrganization(organization.getId());

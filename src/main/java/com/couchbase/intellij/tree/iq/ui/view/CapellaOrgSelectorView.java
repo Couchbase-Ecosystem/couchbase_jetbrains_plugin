@@ -45,8 +45,8 @@ public class CapellaOrgSelectorView extends JPanel {
         add(cancel, gbc);
 
         select.addActionListener(e -> {
-            CapellaOrganization org = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
-            listener.onOrgSelected(org);
+                CapellaOrganization org = organizationList.getData().get(orgSelector.getSelectedIndex()).getData();
+                listener.onOrgSelected(org);
         });
 
         cancel.addActionListener(e -> {
