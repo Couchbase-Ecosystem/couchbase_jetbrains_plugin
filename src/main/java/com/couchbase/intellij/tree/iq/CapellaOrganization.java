@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.iq;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -32,7 +33,7 @@ public class CapellaOrganization {
             isTermsAcceptedForOrg = value;
         }
 
-        public boolean isTermsAcceptedForOrg() {
+        public boolean getIsTermsAcceptedForOrg() {
             return isTermsAcceptedForOrg;
         }
     }

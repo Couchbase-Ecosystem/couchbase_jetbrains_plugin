@@ -118,7 +118,7 @@ public class IQCredentials {
                 .map(CapellaOrganizationList.Entry::getData)
                 .filter(org -> Objects.equals(orgId, org.getId()))
                 .filter(org -> org.getIq() != null)
-                .anyMatch(org -> org.getIq().getOther().isTermsAcceptedForOrg());
+                .anyMatch(org -> org.getIq().getOther().getIsTermsAcceptedForOrg());
    }
 
     public boolean doLogin() {

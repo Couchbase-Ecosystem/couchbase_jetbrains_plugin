@@ -29,7 +29,7 @@ public class CapellaOrgSelectorView extends JPanel {
         ComboBox orgSelector = new ComboBox<>(organizationList.getData().stream()
                 .map(org -> org.getData())
                 .filter(data -> data.getIq() != null && data.getIq().isEnabled())
-                .map(data -> String.format("%s%s", data.getName(), !data.getIq().getOther().isTermsAcceptedForOrg() ? " (*)" : ""))
+                .map(data -> String.format("%s%s", data.getName(), !data.getIq().getOther().getIsTermsAcceptedForOrg() ? " (*)" : ""))
                 .toArray(String[]::new));
 
         gbc.gridy++;
