@@ -14,10 +14,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
+import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
@@ -25,22 +23,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.lang.reflect.Type;
 
 public class CouchbaseRestAPI {
 
-    public static String getMetaDocument(String bucket, String scope, String collection, String id ) throws Exception {
+    public static String getMetaDocument(String bucket, String scope, String collection, String id) throws Exception {
         String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/"
-                        +bucket+"/scopes/"+scope+"/collections/"+collection+"/docs/"+id, ActiveCluster.getInstance().getClusterURL());
+                + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs/" + id, ActiveCluster.getInstance().getClusterURL());
 
         JsonObject object = JsonObject.fromJson(result);
         object.removeKey("json");
         return object.toString();
     }
-    public static List<String> listKVDocuments(String bucket, String scope, String collection, int skip, int limit ) throws Exception {
+
+    public static List<String> listKVDocuments(String bucket, String scope, String collection, int skip, int limit) throws Exception {
         String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/"
-                        +bucket+"/scopes/"+scope+"/collections/"+collection+"/docs?skip="+skip+"&limit="+limit+"&include_doc=false",
+                        + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs?skip=" + skip + "&limit=" + limit + "&include_doc=false",
                 ActiveCluster.getInstance().getClusterURL());
 
         Gson gson = new Gson();
@@ -50,6 +50,7 @@ public class CouchbaseRestAPI {
                 .map(KVRow::getId)
                 .collect(Collectors.toList());
     }
+
     public static Map<String, Integer> getCollectionCounts(String bucket, String scope) throws Exception {
 
         String payload = "[\n" +
@@ -64,11 +65,11 @@ public class CouchbaseRestAPI {
                 "      },\n" +
                 "      {\n" +
                 "        \"label\": \"bucket\",\n" +
-                "        \"value\": \""+bucket+"\"\n" +
+                "        \"value\": \"" + bucket + "\"\n" +
                 "      },\n" +
                 "      {\n" +
                 "        \"label\": \"scope\",\n" +
-                "        \"value\": \""+scope+"\"\n" +
+                "        \"value\": \"" + scope + "\"\n" +
                 "      }\n" +
                 "    ],\n" +
                 "    \"nodesAggregation\": \"sum\"\n" +
@@ -185,18 +186,27 @@ public class CouchbaseRestAPI {
         return callEndpoint(true, endpoint, serverURL, null);
     }
 
-    private static String callEndpoint(boolean isGet, String endpoint, String serverURL, String data) throws Exception {
+    public static CompletableFuture<String> callFTS(boolean isScoped, String bucket, String scope, String indexName, String query) throws Exception {
+        String endpoint = (ActiveCluster.getInstance().isSSLEnabled() ? "18094" : "8094");
 
+        if (isScoped) {
+            endpoint += "/api/bucket/" + bucket + "/scope/" + scope + "/index/" + indexName + "/query";
+        } else {
+            endpoint += "/api/index/" + indexName + "/query";
+        }
+        return callEndpointAllowErrors(false, endpoint, ActiveCluster.searchNodes().get(0), query);
+    }
+
+    private static HttpURLConnection setupConnection(boolean isGet, String endpoint, String serverURL, String data) throws Exception {
         String userpass = ActiveCluster.getInstance().getUsername() + ":" + ActiveCluster.getInstance().getPassword();
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
 
         String urlContent = (ActiveCluster.getInstance().isSSLEnabled() ? "https://" : "http://") + serverURL + ":" + endpoint;
         URL url = new URL(urlContent);
-        InputStream stream;
 
-        HttpURLConnection conn =  null;
+        HttpURLConnection conn;
         if (ActiveCluster.getInstance().isSSLEnabled()) {
-            conn  = (HttpsURLConnection) url.openConnection();
+            conn = (HttpsURLConnection) url.openConnection();
             TrustManager[] trustAllCerts = new TrustManager[]{
                     new X509TrustManager() {
                         public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -217,9 +227,10 @@ public class CouchbaseRestAPI {
             conn = (HttpURLConnection) url.openConnection();
         }
 
-        conn.setRequestMethod(isGet?"GET":"POST");
+        conn.setRequestMethod(isGet ? "GET" : "POST");
         conn.setRequestProperty("Authorization", basicAuth);
-        if(!isGet) {
+
+        if (!isGet) {
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
@@ -229,17 +240,45 @@ public class CouchbaseRestAPI {
             }
         }
 
-        stream = conn.getInputStream();
-
-
-        BufferedReader in = new BufferedReader(new InputStreamReader(stream));
-        String inputLine;
-        StringBuilder content = new StringBuilder();
-        while ((inputLine = in.readLine()) != null) {
-            content.append(inputLine);
-        }
-        in.close();
-
-        return content.toString();
+        return conn;
     }
+
+    private static String readResponse(HttpURLConnection conn) throws IOException {
+        try (InputStream stream = (conn.getResponseCode() >= 400) ? conn.getErrorStream() : conn.getInputStream();
+             BufferedReader in = new BufferedReader(new InputStreamReader(stream))) {
+
+            StringBuilder content = new StringBuilder();
+            String inputLine;
+
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+
+            return content.toString();
+        }
+    }
+
+    public static String callEndpoint(boolean isGet, String endpoint, String serverURL, String data) throws Exception {
+        HttpURLConnection conn = setupConnection(isGet, endpoint, serverURL, data);
+
+        if (conn.getResponseCode() != 200) {
+            throw new Exception("HTTP error code: " + conn.getResponseCode());
+        }
+
+        return readResponse(conn);
+    }
+
+    public static CompletableFuture<String> callEndpointAllowErrors(boolean isGet, String endpoint, String serverURL, String data) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpURLConnection conn = setupConnection(isGet, endpoint, serverURL, data);
+                return readResponse(conn);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, executor);
+    }
+
+    private static final ExecutorService executor = Executors.newFixedThreadPool(10);
+
 }

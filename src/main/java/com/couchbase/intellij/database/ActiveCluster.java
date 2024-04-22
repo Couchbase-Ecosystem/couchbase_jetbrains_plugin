@@ -40,6 +40,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
      * Connection listeners are invoked only when a new cluster connection is established
      */
     private final List<Runnable> newConnectionListener = new ArrayList<>();
+
+    private static List<String> searchNodes;
     private Cluster cluster;
     private SavedCluster savedCluster;
     private String password;
@@ -65,10 +67,6 @@ public class ActiveCluster implements CouchbaseClusterEntity {
      */
     private static final List<Consumer<ActiveCluster>> clusterListeners = new ArrayList<>();
 
-    /**
-     * Subscribers are invoked every time context is changed on this cluster
-     */
-    private final List<Consumer<Optional<QueryContext>>> queryContextListeners = new ArrayList<>();
     private Integer queryLimit = 200;
 
     protected ActiveCluster() {
@@ -83,6 +81,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         if (INSTANCE != null && INSTANCE.isPresent() && INSTANCE.getValue().cluster != null) {
             listener.accept(INSTANCE.getValue());
         }
+    }
+
+    public static void subscribeNew(Consumer<ActiveCluster> listener) {
+        clusterListeners.add(listener);
     }
 
     public void setQueryContext(@Nullable QueryContext context) {
@@ -101,6 +103,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     public void registerNewConnectionListener(Runnable runnable) {
         this.newConnectionListener.add(runnable);
+    }
+
+    public void deregisterNewConnectionListener(Runnable runnable) {
+        this.newConnectionListener.remove(runnable);
     }
 
     public Cluster get() {
@@ -200,6 +206,14 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     setVersion(overview.getNodes().get(0).getVersion()
                             .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
 
+                    if (hasSearchService()) {
+                        searchNodes = new ArrayList<>();
+                        searchNodes.addAll(overview.getNodes().stream()
+                                .filter(e -> e.getServices().contains("fts"))
+                                .map(e -> e.getHostname().substring(0, e.getHostname().indexOf(":")))
+                                .collect(Collectors.toSet()));
+                    }
+
                     //Notify Listeners that we connected to a new cluster.
                     //NOTE: Only singletons can register here, otherwise we will get a memory leak
                     CompletableFuture.runAsync(() -> {
@@ -259,6 +273,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.buckets = null;
         this.disconnectListener = null;
         this.permissions = null;
+        this.searchNodes = null;
     }
 
     public String getUsername() {
@@ -455,6 +470,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return CBConfigUtil.hasQueryService(services);
     }
 
+    public boolean hasSearchService() {
+        return CBConfigUtil.hasSearchService(services);
+    }
+
     public boolean isCapella() {
         return savedCluster != null && savedCluster.getUrl().contains("cloud.couchbase.com");
     }
@@ -472,5 +491,9 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     public @Nullable Integer getQueryLimit() {
         return this.queryLimit;
+    }
+
+    public static List<String> searchNodes() {
+        return searchNodes;
     }
 }

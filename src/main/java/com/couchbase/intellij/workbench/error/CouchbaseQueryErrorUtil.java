@@ -16,4 +16,13 @@ public class CouchbaseQueryErrorUtil {
         String json = ex.getMessage().substring(ex.getMessage().indexOf("{"));
         return new Gson().fromJson(json, CouchbaseQueryResultError.class);
     }
+
+    public static CouchbaseQueryResultError parseQueryError(String message) {
+        String json = "{ \"errors\": [ {\n" +
+                "    \"message\": \"" + message + "\"\n" +
+                "  } ]}";
+        return new Gson().fromJson(json, CouchbaseQueryResultError.class);
+    }
+
+
 }

@@ -8,7 +8,7 @@ public class ScopeNodeDescriptor extends CounterNodeDescriptor {
     private String bucket;
 
     public ScopeNodeDescriptor(String name, String connectionId, String bucket) {
-        super(name, IconLoader.getIcon("/assets/icons/collections.svg", ScopeNodeDescriptor.class));
+        super(name, IconLoader.getIcon("/assets/icons/scope.svg", ScopeNodeDescriptor.class));
         this.connectionId = connectionId;
         this.bucket = bucket;
     }

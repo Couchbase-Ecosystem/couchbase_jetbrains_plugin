@@ -13,6 +13,8 @@ import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.client.java.manager.query.QueryIndex;
+import com.couchbase.client.java.manager.search.SearchIndex;
+import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.*;
@@ -51,6 +53,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.VirtualFileKeys.READ_ONLY;
 
@@ -119,7 +122,15 @@ public class DataLoader {
                         for (ScopeSpec scopeSpec : scopes) {
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(new ScopeNodeDescriptor(scopeSpec.name(), ActiveCluster.getInstance().getId(), bucketName));
 
-                            childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                            if (ActiveCluster.getInstance().hasSearchService()) {
+                                DefaultMutableTreeNode search = new DefaultMutableTreeNode(new SearchNodeDescriptor(scopeSpec.name(), bucketName));
+                                search.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                                childNode.add(search);
+                            }
+
+                            DefaultMutableTreeNode collections = new DefaultMutableTreeNode(new CollectionsNodeDescriptor(scopeSpec.name(), bucketName));
+                            collections.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+                            childNode.add(collections);
 
                             parentNode.add(childNode);
                         }
@@ -144,23 +155,25 @@ public class DataLoader {
 
     public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree) {
         Object userObject = parentNode.getUserObject();
-        if (userObject instanceof ScopeNodeDescriptor) {
+        if (userObject instanceof CollectionsNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 tree.setPaintBusy(true);
                 try {
                     parentNode.removeAllChildren();
-                    ScopeNodeDescriptor scopeDesc = (ScopeNodeDescriptor) userObject;
-                    Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(scopeDesc.getBucket(), scopeDesc.getText());
+                    CollectionsNodeDescriptor colsDesc = (CollectionsNodeDescriptor) userObject;
+                    Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(colsDesc.getBucket(), colsDesc.getScope());
 
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(scopeDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(scopeDesc.getText())).flatMap(scope -> scope.collections().stream()).toList();
-                    scopeDesc.setCounter(formatCount(collections.size()));
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(colsDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(colsDesc.getScope())).flatMap(scope -> scope.collections().stream()).toList();
+
+                    ((ScopeNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject()).setCounter(formatCount(collections.size()));
+
                     if (!collections.isEmpty()) {
                         for (CollectionSpec spec : collections) {
 
-                            String filter = QueryFiltersStorage.getInstance().getValue().getQueryFilter(ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), spec.name());
+                            String filter = QueryFiltersStorage.getInstance().getValue().getQueryFilter(ActiveCluster.getInstance().getId(), colsDesc.getBucket(), colsDesc.getScope(), spec.name());
 
-                            CollectionNodeDescriptor colNodeDesc = new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), scopeDesc.getBucket(), scopeDesc.getText(), filter);
-                            colNodeDesc.setCounter(formatCount(counts.get(scopeDesc.getBucket() + "." + scopeDesc.getText() + "." + spec.name())));
+                            CollectionNodeDescriptor colNodeDesc = new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), colsDesc.getBucket(), colsDesc.getScope(), filter);
+                            colNodeDesc.setCounter(formatCount(counts.get(colsDesc.getBucket() + "." + colsDesc.getScope() + "." + spec.name())));
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(colNodeDesc);
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                             parentNode.add(childNode);
@@ -646,6 +659,69 @@ public class DataLoader {
             return String.format("%.1fk", num / 1000.0);
         } else {
             return String.format("%.2fM", num / 1000000.0);
+        }
+    }
+
+
+    public static void listSearchIndexes(DefaultMutableTreeNode parentNode, Tree tree) {
+        Object userObject = parentNode.getUserObject();
+        if (userObject instanceof SearchNodeDescriptor) {
+            CompletableFuture.runAsync(() -> {
+                tree.setPaintBusy(true);
+                parentNode.removeAllChildren();
+
+                try {
+                    SearchNodeDescriptor searchDesc = (SearchNodeDescriptor) userObject;
+
+                    SearchIndexManager topSearch = ActiveCluster.getInstance().get().searchIndexes();
+                    List<SearchIndex> allIdx = topSearch.getAllIndexes();
+
+                    List<SearchIndex> results = new ArrayList<>();
+
+                    for (SearchIndex idx : allIdx) {
+                        if (!searchDesc.getBucket().equals(idx.sourceName())) {
+                            continue;
+                        }
+
+                        Map<String, Object> mapping = (Map<String, Object>) idx.params().get("mapping");
+                        Map<String, Object> types = (Map<String, Object>) mapping.get("types");
+                        Map<String, Object> docConfig = (Map<String, Object>) idx.params().get("doc_config");
+                        String mode = docConfig.get("mode").toString();
+
+                        if ("type_field".equals(mode) && "_default".equals(searchDesc.getScope())) {
+                            results.add(idx);
+                        } else if (!"type_field".equals(mode) && !types.keySet().stream()
+                                .filter(e -> e.startsWith(searchDesc.getScope() + "."))
+                                .collect(Collectors.toSet()).isEmpty()) {
+                            results.add(idx);
+                        }
+                    }
+
+                    if (!results.isEmpty()) {
+                        for (SearchIndex searchIndex : results) {
+
+                            String fileName = searchIndex.name() + ".json";
+                            VirtualFile virtualFile = new LightVirtualFile(fileName, JsonFileType.INSTANCE, searchIndex.toJson());
+                            virtualFile.putUserData(READ_ONLY, "true");
+
+                            SearchIndexNodeDescriptor node = new SearchIndexNodeDescriptor(searchIndex.name(), searchDesc.getBucket(), searchDesc.getScope(), fileName, virtualFile);
+                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                            parentNode.add(jsonFileNode);
+                        }
+                    } else {
+                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
+                    }
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                        tree.setPaintBusy(false);
+                    });
+
+                } catch (Exception e) {
+                    Log.error(e);
+                } finally {
+                    tree.setPaintBusy(false);
+                }
+            });
         }
     }
 }

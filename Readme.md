@@ -1,4 +1,4 @@
-# Couchbase Jetbrains Plugin
+3# Couchbase Jetbrains Plugin
 
 Welcome to the official Couchbase plugin for the Jetbrains Platform
 

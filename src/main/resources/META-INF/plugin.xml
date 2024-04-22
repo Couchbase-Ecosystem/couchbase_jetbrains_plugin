@@ -30,11 +30,7 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>You can now easily migrate from mongodb to Couchbase!</li>
-          <li>JSON Documents now suggests attribute keys</li>
-          <li>We automatically add limit to your SQL++ Queries</li>
-          <li>Favorite Queries has a new tab called "Built-in Queries"</li>
-          <li>Document Ids can now contain special chars</li>
+          <li>Now the collection listing can use whatever index you have in the collection</li>
           <li>Bug fixes</li>
         </ul>
         ]]>
@@ -129,6 +125,13 @@
         <lang.syntaxHighlighterFactory
                 language="sqlppl"
                 implementationClass="org.intellij.sdk.language.cblite.SqlppLiteSyntaxHighlighterFactory"/>
+
+        <fileType name="Couchbase Search Query"
+                  implementationClass="com.couchbase.intellij.searchworkbench.CBSJsonFileType"
+                  fieldName="INSTANCE"
+                  language="JSON"
+                  extensions="cbs.json"/>
+        <fileEditorProvider implementation="com.couchbase.intellij.searchworkbench.SearchFileEditorProvider"/>
 
         <lang.parserDefinition
                 language="sqlppl"
