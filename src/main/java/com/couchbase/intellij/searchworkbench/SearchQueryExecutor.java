@@ -51,10 +51,27 @@ public class SearchQueryExecutor {
 
         getOutputWindow(project).setStatusAsLoading();
 
+
         long start = 0;
+        //automatically add the limit to the query
         try {
+            JsonObject queryJson = JsonObject.fromJson(query);
+            if (!queryJson.containsKey("size") && !queryJson.containsKey("limit")) {
+                queryJson.put("size", ActiveCluster.getInstance().getQueryLimit());
+            }
+            query = queryJson.toString();
+        } catch (Exception e) {
+            long end = System.currentTimeMillis();
+            getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError("The query is not a valid JSON"), null, false);
+            return false;
+        }
+
+
+        try {
+
+
             start = System.currentTimeMillis();
-            CompletableFuture<String> futureResult = null;
+            CompletableFuture<String> futureResult;
 
             if (indexName.contains(".")) {
                 String[] split = indexName.split("\\.");
@@ -101,15 +118,13 @@ public class SearchQueryExecutor {
                 metricsList.add("-");
                 metricsList.add("-");
 
-                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"), null,
-                        CouchbaseQueryErrorUtil.parseQueryError(jsonObject.getString("error")), null, false);
+                getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError(jsonObject.getString("error")), null, false);
 
             }
 
         } catch (Exception e) {
             long end = System.currentTimeMillis();
-            getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"), null,
-                    CouchbaseQueryErrorUtil.parseQueryError("An error occurred while executing the query: " + e.getMessage()), null, false);
+            getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-", "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError("An error occurred while executing the query: " + e.getMessage()), null, false);
             Log.error(e);
         }
 

@@ -4,7 +4,6 @@ package com.couchbase.intellij.searchworkbench;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.fileEditor.*;
@@ -34,7 +33,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 public class SearchFileEditor implements FileEditor, TextEditor {
-    private final EditorWrapper queryEditor;
     private final VirtualFile file;
     private final Project project;
     private final Map<Key<?>, Object> data = new HashMap<>();
@@ -57,12 +55,14 @@ public class SearchFileEditor implements FileEditor, TextEditor {
 
     private String selectedIdx;
 
+    private TextEditor queryEditor;
+
     SearchFileEditor(Project project, VirtualFile file, String selectedBucket, String selectedIdx) {
         this.file = file;
         this.project = project;
         this.selectedBucket = selectedBucket;
         this.selectedIdx = selectedIdx;
-        this.queryEditor = new EditorWrapper(null, (TextEditor) TextEditorProvider.getInstance().createEditor(project, file));
+        this.queryEditor = (TextEditor) TextEditorProvider.getInstance().createEditor(project, file);
         this.panel = new JPanel(new BorderLayout());
         init();
     }
@@ -83,7 +83,7 @@ public class SearchFileEditor implements FileEditor, TextEditor {
 
         buildToolbar();
         panel.add(queryEditor.getComponent(), BorderLayout.CENTER);
-        queryEditor.getContentComponent().requestFocusInWindow();
+        queryEditor.getComponent().requestFocusInWindow();
         component = panel;
     }
 
@@ -131,7 +131,7 @@ public class SearchFileEditor implements FileEditor, TextEditor {
                                 boolean query = SearchQueryExecutor.executeQuery(queryExecutionChannel,
                                         bucketCombo.getSelectedItem() == null ? null : bucketCombo.getSelectedItem().toString(),
                                         idxCombo.getSelectedItem() == null ? null : idxCombo.getSelectedItem().toString(),
-                                        queryEditor.getDocument().getText(),
+                                        queryEditor.getEditor().getDocument().getText(),
                                         project);
                                 executeGroup.replaceAction(cancelAction, executeAction);
                                 isExecutingQuery = false;
@@ -213,7 +213,7 @@ public class SearchFileEditor implements FileEditor, TextEditor {
         panel.add(topPanel, BorderLayout.NORTH);
 
 
-        Runnable newConnectionListener = () -> {
+        newConnectionListener = () -> {
             bucketCombo.removeAllItems();
             bucketCombo.removeActionListener(bucketComboListener);
             ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet().forEach(bucketCombo::addItem);
@@ -250,7 +250,10 @@ public class SearchFileEditor implements FileEditor, TextEditor {
         if (newConnectionListener != null) {
             ActiveCluster.getInstance().deregisterNewConnectionListener(newConnectionListener);
         }
-        queryEditor.release();
+
+        if (queryEditor != null && queryEditor.getEditor() != null) {
+            EditorFactory.getInstance().releaseEditor(queryEditor.getEditor());
+        }
     }
 
     @Override
@@ -318,11 +321,7 @@ public class SearchFileEditor implements FileEditor, TextEditor {
 
     @Override
     public @NotNull Editor getEditor() {
-        if (queryEditor.textEditor != null) {
-            return queryEditor.textEditor.getEditor();
-        } else {
-            return queryEditor.viewer;
-        }
+        return queryEditor.getEditor();
     }
 
     @Override
@@ -334,34 +333,6 @@ public class SearchFileEditor implements FileEditor, TextEditor {
     public void navigateTo(@NotNull Navigatable navigatable) {
 
     }
-
-    static class EditorWrapper {
-        private final Editor viewer;
-        private final TextEditor textEditor;
-
-        public EditorWrapper(Editor viewer, TextEditor textEditor) {
-            this.textEditor = textEditor;
-            this.viewer = viewer;
-        }
-
-        public JComponent getComponent() {
-            return textEditor == null ? viewer.getComponent() : textEditor.getComponent();
-        }
-
-        public JComponent getContentComponent() {
-            return textEditor == null ? viewer.getContentComponent() : textEditor.getEditor().getContentComponent();
-        }
-
-        public Document getDocument() {
-            return textEditor == null ? viewer.getDocument() : textEditor.getEditor().getDocument();
-        }
-
-        public void release() {
-            EditorFactory.getInstance().releaseEditor(viewer);
-
-        }
-    }
-
 
     private List<String> getIndexByBucket(String bucketName) {
         return ActiveCluster.getInstance().get().searchIndexes()
