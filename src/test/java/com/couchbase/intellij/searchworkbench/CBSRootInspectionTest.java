@@ -196,19 +196,21 @@ public class CBSRootInspectionTest extends JavaCodeInsightFixtureTestCase {
                 {
                     "query": "",
                     "knn": "",
+                    "ctl": 2,
                     "size": "",
-                    "from": 0,
-                    "fields": ["textField"],
-                    "explain": true,
-                    "sort": [
-                    ],
-                    "includeLocations": false,
-                    "score": "none",
-                    "search_after": ["field1Value", "5", "10.033205341869529", "1234"],
-                    "search_before": ["field1Value", "5", "10.033205341869529", "1234"],
-                    "limit": 10,
-                    "offset": 0,
-                    "collections": ["collection1", "collection2"]
+                    "limit": "",
+                    "from": "",
+                    "offset": {},
+                    "highlight": [],
+                    "fields": "textField",
+                    "facets": [],
+                    "explain": 1,
+                    "sort": {},
+                    "includeLocations": 1,
+                    "score": true,
+                    "search_after": {},
+                    "search_before": ",
+                    "collections": "collection1,collection2"
                 }
                 """;
 
@@ -216,10 +218,53 @@ public class CBSRootInspectionTest extends JavaCodeInsightFixtureTestCase {
         assertTrue(highlights.stream()
                 .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_JSON_OBJECT_FOR_KEY + "query")));
         assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_JSON_OBJECT_FOR_KEY + "ctl")));
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_INTEGER_FOR_KEY + "size")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_INTEGER_FOR_KEY + "limit")));
+
+        assertTrue(highlights.stream()
                 .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_ARRAY_FOR_KEY + "knn")));
 
         assertTrue(highlights.stream()
-                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_INTEGER_FOR_KEY + "size")));
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_INTEGER_FOR_KEY + "from")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_INTEGER_FOR_KEY + "offset")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_JSON_OBJECT_FOR_KEY + "highlight")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_ARRAY_FOR_KEY + "fields")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_JSON_OBJECT_FOR_KEY + "facets")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_BOOLEAN_FOR_KEY + "explain")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_ARRAY_FOR_KEY + "sort")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_BOOLEAN_FOR_KEY + "includeLocations")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_STRING_FOR_KEY + "score")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_ARRAY_FOR_KEY + "search_after")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_ARRAY_FOR_KEY + "search_before")));
+
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(CBSJsonKeyInspection.EXPECTED_ARRAY_FOR_KEY + "collections")));
+
+
     }
 
     @NotNull
