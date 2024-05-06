@@ -132,6 +132,12 @@
                   language="JSON"
                   extensions="cbs.json"/>
         <fileEditorProvider implementation="com.couchbase.intellij.searchworkbench.SearchFileEditorProvider"/>
+        <localInspection
+                language="JSON"
+                displayName="Couchbase Search annotation"
+                enabledByDefault="true"
+                groupName="Couchbase inspections"
+                implementationClass="com.couchbase.intellij.searchworkbench.CBSJsonKeyInspection"/>
 
         <lang.parserDefinition
                 language="sqlppl"
