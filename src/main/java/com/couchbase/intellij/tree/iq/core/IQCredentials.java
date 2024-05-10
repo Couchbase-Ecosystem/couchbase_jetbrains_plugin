@@ -7,6 +7,7 @@ import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.Pass;
 
 import java.io.IOException;
@@ -117,7 +118,7 @@ public class IQCredentials {
                 .map(CapellaOrganizationList.Entry::getData)
                 .filter(org -> Objects.equals(orgId, org.getId()))
                 .filter(org -> org.getIq() != null)
-                .anyMatch(org -> org.getIq().getOther().isTermsAcceptedForOrg());
+                .anyMatch(org -> org.getIq().getOther().getIsTermsAcceptedForOrg());
    }
 
     public boolean doLogin() {

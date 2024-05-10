@@ -1,13 +1,18 @@
 package com.couchbase.intellij.tree.iq;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class CapellaOrganization {
     private String id;
     private String name;
+    private String description;
+    private String website;
+    private Map<String, Object> preferences;
 
     private IQ iq;
 
@@ -28,7 +33,7 @@ public class CapellaOrganization {
             isTermsAcceptedForOrg = value;
         }
 
-        public boolean isTermsAcceptedForOrg() {
+        public boolean getIsTermsAcceptedForOrg() {
             return isTermsAcceptedForOrg;
         }
     }

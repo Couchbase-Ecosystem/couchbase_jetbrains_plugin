@@ -26,7 +26,7 @@ public class CapellaOrganizationList {
                         .filter(org -> org.getData().getIq() != null)
                         .filter(org -> org.getData().getIq().isEnabled())
                         .filter(org -> org.getData().getIq().getOther() != null)
-                        .filter(org -> org.getData().getIq().getOther().isTermsAcceptedForOrg())
+                        .filter(org -> org.getData().getIq().getOther().getIsTermsAcceptedForOrg())
                         .collect(Collectors.toList())
         );
         return filteredList;

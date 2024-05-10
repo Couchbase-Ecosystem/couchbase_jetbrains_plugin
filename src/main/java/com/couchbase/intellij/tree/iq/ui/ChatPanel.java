@@ -28,6 +28,7 @@ import io.reactivex.disposables.Disposable;
 import okhttp3.internal.http2.StreamResetException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.reactivestreams.Subscription;
 import retrofit2.HttpException;
 
@@ -168,7 +169,11 @@ public class ChatPanel extends OnePixelSplitter implements ChatMessageListener {
     }
 
     public interface OrganizationListener {
-        void onOrgSelected(CapellaOrganization organization);
+        /**
+         * Accepts the selected by user organization or null if user chose to abort the operation
+         * @param organization
+         */
+        void onOrgSelected(@Nullable CapellaOrganization organization);
     }
 
     private class ContextStackHandler implements ListDataListener {

@@ -5,14 +5,15 @@ import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
+import com.couchbase.intellij.tree.iq.ui.CapellaIqTermsDialog;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.tree.iq.ui.LoginPanel;
 import com.couchbase.intellij.tree.iq.ui.action.editor.ActionsUtil;
+import com.couchbase.intellij.tree.iq.ui.view.CapellaOrgSelectorView;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -85,28 +86,36 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.credentials = credentials;
         this.removeAll();
         try {
-            this.organizationList = CapellaApiMethods.loadOrganizations(credentials.getAuth());
+            this.organizationList = credentials.getOrganizations();
             if (organizationList.getData().isEmpty()) {
                 Notifications.Bus.notify(new Notification(ChatGptBundle.message("group.id"), "No Capella organizations found", "At least one organization is required to use Couchbase IQ. No organizations found.", NotificationType.ERROR));
                 onLogout(null);
                 return;
             }
 
-            if (this.organizationList != null) {
-                this.organizationList = this.organizationList.getOnlyIqEnabledOrgs();
+            CapellaOrganization activeOrg = null;
+            String userSelectedOrg = IQStorage.getInstance().getState().getActiveOrganization();
+            final boolean forceOrgChooser = System.getenv().containsKey("CB_IQ_FORCE_ORG_CHOOSER");
+            if (userSelectedOrg != null && !forceOrgChooser) {
+                // try and load previously selected org
+                activeOrg = organizationList.getData().stream()
+                        .filter(org -> userSelectedOrg.equalsIgnoreCase(org.getData().getId()))
+                        .map(CapellaOrganizationList.Entry::getData)
+                        .findFirst().orElse(null);
             }
 
-            CapellaOrganization activeOrg = organizationList.getData().stream().map(org -> org.getData()).filter(data -> credentials.checkIqIsEnabled(data.getId())).filter(data -> credentials.checkTermsAccepted(data.getId())).findFirst().orElse(null);
-            String orgId = IQStorage.getInstance().getState().getActiveOrganization();
-            if (orgId != null) {
-                activeOrg = organizationList.getData().stream().filter(org -> orgId.equalsIgnoreCase(org.getData().getId())).map(CapellaOrganizationList.Entry::getData).findFirst().orElse(activeOrg);
-            }
-
-            if (activeOrg == null) {
-                Notifications.Bus.notify(new Notification(ChatGptBundle.message("group.id"), "No Capella organizations with iQ enabled found", "At least one organization with enabled iQ feature and accepted terms and conditions is required to use Couchbase IQ. No organizations found.", NotificationType.ERROR));
-                onLogout(null);
-            } else {
+            if (activeOrg != null) {
                 this.onOrgSelected(activeOrg);
+            } else {
+                // try to auto-select an org
+                if (organizationList.getData().size() == 1 && !forceOrgChooser) {
+                    this.onOrgSelected(organizationList.getData().get(0).getData());
+                } else {
+                    this.removeAll();
+                    this.add(new CapellaOrgSelectorView(organizationList, this));
+                    this.updateUI();
+                    return;
+                }
             }
         } catch (Exception e) {
             Log.error("Failed to initialize IQ", e);
@@ -119,26 +128,39 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
     public boolean onLogout(@Nullable Throwable reason) {
         this.removeAll();
         this.add(new LoginPanel(credentials, this));
+        this.setEnabled(true);
         this.updateUI();
         return true;
     }
 
     @Override
     public void onOrgSelected(CapellaOrganization organization) {
+        if (organization == null) {
+            this.onLogout(null);
+            return;
+        }
+
         if (!credentials.checkIqIsEnabled(organization.getId())) {
             Notifications.Bus.notify(new Notification(ChatGptBundle.message("group.id"), "Unable to use this organization", "Capella iQ is not enabled for this organization.", NotificationType.ERROR));
             onLogout(null);
             return;
         }
 
-        if (!credentials.checkTermsAccepted(organization.getId())) {
-            Notifications.Bus.notify(new Notification(ChatGptBundle.message("group.id"), "Unable to use this organization", "Capella iQ terms of use have not been accepted for this organization. Please accept terms of use in Capella", NotificationType.ERROR));
-            onLogout(null);
+        final boolean CBIQ_FORCE_TERMS_DIALOG = System.getenv().containsKey("CB_IQ_FORCE_TERMS_DIALOG");
+        if (CBIQ_FORCE_TERMS_DIALOG || !credentials.checkTermsAccepted(organization.getId())) {
+            this.setEnabled(false);
+            CapellaIqTermsDialog termsDialog = getCapellaIqTermsDialog(organization);
+            termsDialog.show();
             return;
         }
+        showIq(organization);
+    }
+
+    private void showIq(CapellaOrganization organization) {
         this.removeAll();
+        this.setEnabled(true);
         this.updateUI();
-        ApplicationManager.getApplication().invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
             IQStorage.getInstance().getState().setActiveOrganization(organization.getId());
             final String iqUrl = String.format(IQ_URL.get(), organization.getId());
             iqGptConfig = new OpenAISettingsState.OpenAIConfig();
@@ -149,11 +171,35 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             iqGptConfig.setModelName("gpt-4");
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
+
             chatPanel = new ChatPanel(project, iqGptConfig.withSystemPrompt(IQWindowContent::systemPrompt), organizationList, organization, this, this);
             ActionsUtil.refreshActions();
             this.add(chatPanel);
             this.updateUI();
         });
+    }
+
+    @NotNull
+    private CapellaIqTermsDialog getCapellaIqTermsDialog(CapellaOrganization organization) {
+        CapellaIqTermsDialog termsDialog = new CapellaIqTermsDialog(project);
+        termsDialog.setOnDeactivationAction(() -> {
+            if (termsDialog.isAccepted()) {
+                try {
+                    organization.getIq().getOther().setIsTermsAcceptedForOrg(true);
+                    CapellaApiMethods.acceptIqTerms(credentials.getAuth(), organization);
+                    if (credentials.doLogin()) {
+                        showIq(organization);
+                    } else {
+                        onLogout(null);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                return;
+            }
+        });
+        return termsDialog;
     }
 
     public static String systemPrompt() {
