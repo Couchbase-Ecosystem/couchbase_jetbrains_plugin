@@ -14,7 +14,7 @@ public class KnnObjectValidator implements SearchObjectValidator {
         return "knn".equals(key);
     }
 
-    public void validate(JsonObject jsonObject, ProblemsHolder holder) {
+    public void validate(String key, JsonObject jsonObject, ProblemsHolder holder) {
 
 
         for (JsonProperty property : jsonObject.getPropertyList()) {

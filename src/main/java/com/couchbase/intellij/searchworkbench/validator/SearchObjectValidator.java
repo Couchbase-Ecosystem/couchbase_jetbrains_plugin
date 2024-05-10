@@ -8,5 +8,5 @@ public interface SearchObjectValidator {
 
     boolean accept(String key);
 
-    void validate(JsonObject jsonObject, ProblemsHolder holder);
+    void validate(String key, JsonObject jsonObject, ProblemsHolder holder);
 }

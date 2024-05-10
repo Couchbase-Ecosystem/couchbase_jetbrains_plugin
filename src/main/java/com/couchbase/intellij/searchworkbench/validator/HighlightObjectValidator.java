@@ -18,7 +18,7 @@ public class HighlightObjectValidator implements SearchObjectValidator {
         return "highlight".equals(key);
     }
 
-    public void validate(JsonObject jsonObject, ProblemsHolder holder) {
+    public void validate(String key, JsonObject jsonObject, ProblemsHolder holder) {
 
 
         Map<String, Integer> counter = new HashedMap();

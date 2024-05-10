@@ -109,8 +109,7 @@ public class CBSQueryInspectionTest extends JavaCodeInsightFixtureTestCase {
 
         List<HighlightInfo> highlights = getHighlightInfos(json);
 
-        // Check for error-level highlights
-        assertSize(1, highlights);
+        assertSize(2, highlights);
         assertTrue(highlights.stream()
                 .anyMatch(h -> h.getDescription().equals(QueryObjectValidator.getUnexpectedAttUnderQuery("vector"))));
     }
@@ -126,9 +125,9 @@ public class CBSQueryInspectionTest extends JavaCodeInsightFixtureTestCase {
         List<HighlightInfo> highlights = getHighlightInfos(json);
 
         // Check for error-level highlights
-        assertSize(1, highlights);
+        assertSize(2, highlights);
         assertTrue(highlights.stream()
-                .anyMatch(h -> h.getDescription().equals("'query' can't be empty'")));
+                .anyMatch(h -> h.getDescription().equals("'query' can't be empty")));
     }
 
 

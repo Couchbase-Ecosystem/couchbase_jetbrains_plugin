@@ -18,7 +18,7 @@ public class CtlConsistencyObjectValidator implements SearchObjectValidator {
         return "consistency".equals(key);
     }
 
-    public void validate(JsonObject jsonObject, ProblemsHolder holder) {
+    public void validate(String key, JsonObject jsonObject, ProblemsHolder holder) {
         Map<String, Integer> counter = new HashedMap();
 
         String level = null;
@@ -27,7 +27,7 @@ public class CtlConsistencyObjectValidator implements SearchObjectValidator {
             if (!"vectors".equals(property.getName())
                     && !"level".equals(property.getName())
                     && !"results".equals(property.getName())) {
-                holder.registerProblem(property, CBSMessageUtil.getUnexpectedAttUnder(property.getName(), "consistency"), ProblemHighlightType.GENERIC_ERROR);
+                holder.registerProblem(property, CBSValidationUtil.getUnexpectedAttUnder(property.getName(), "consistency"), ProblemHighlightType.GENERIC_ERROR);
             } else {
                 counter.put(property.getName(), counter.getOrDefault(property.getName(), 0) + 1);
             }
@@ -52,19 +52,19 @@ public class CtlConsistencyObjectValidator implements SearchObjectValidator {
 
         for (Map.Entry<String, Integer> entry : counter.entrySet()) {
             if (entry.getValue() > 1) {
-                holder.registerProblem(jsonObject, CBSMessageUtil.singleOptionalKeyOccurrenceMessage(entry.getKey(), "consistency"),
+                holder.registerProblem(jsonObject, CBSValidationUtil.singleOptionalKeyOccurrenceMessage(entry.getKey(), "consistency"),
                         ProblemHighlightType.GENERIC_ERROR);
             }
         }
 
         if (counter.getOrDefault("level", 0) == 0) {
-            holder.registerProblem(jsonObject, CBSMessageUtil.singleRequiredKeyOccurrenceMessage("level", "consistency"),
+            holder.registerProblem(jsonObject, CBSValidationUtil.singleRequiredKeyOccurrenceMessage("level", "consistency"),
                     ProblemHighlightType.GENERIC_ERROR);
         }
 
 
         if ("at_plus".equals(level) && counter.getOrDefault("vectors", 0) == 0) {
-            holder.registerProblem(jsonObject, CBSMessageUtil.singleRequiredKeyOccurrenceMessage("vectors", "consistency"),
+            holder.registerProblem(jsonObject, CBSValidationUtil.singleRequiredKeyOccurrenceMessage("vectors", "consistency"),
                     ProblemHighlightType.GENERIC_ERROR);
         }
 

@@ -1,6 +1,6 @@
 package com.couchbase.intellij.searchworkbench;
 
-import com.couchbase.intellij.searchworkbench.validator.CBSMessageUtil;
+import com.couchbase.intellij.searchworkbench.validator.CBSValidationUtil;
 import com.couchbase.intellij.searchworkbench.validator.CtlConsistencyObjectValidator;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.lang.annotation.HighlightSeverity;
@@ -84,7 +84,7 @@ public class CBSCTLInspectionTest extends JavaCodeInsightFixtureTestCase {
         List<HighlightInfo> highlights = getHighlightInfos(json);
         assertSize(1, highlights);
         assertTrue(highlights.stream()
-                .anyMatch(h -> h.getDescription().equals(CBSMessageUtil.singleRequiredKeyOccurrenceMessage("consistency", "ctl"))));
+                .anyMatch(h -> h.getDescription().equals(CBSValidationUtil.singleRequiredKeyOccurrenceMessage("consistency", "ctl"))));
     }
 
 
@@ -172,7 +172,7 @@ public class CBSCTLInspectionTest extends JavaCodeInsightFixtureTestCase {
         List<HighlightInfo> highlights = getHighlightInfos(json);
         assertSize(1, highlights);
         assertTrue(highlights.stream()
-                .anyMatch(h -> h.getDescription().equals(CBSMessageUtil.singleRequiredKeyOccurrenceMessage("level", "consistency"))));
+                .anyMatch(h -> h.getDescription().equals(CBSValidationUtil.singleRequiredKeyOccurrenceMessage("level", "consistency"))));
     }
 
 
@@ -216,7 +216,7 @@ public class CBSCTLInspectionTest extends JavaCodeInsightFixtureTestCase {
         List<HighlightInfo> highlights = getHighlightInfos(json);
         assertSize(1, highlights);
         assertTrue(highlights.stream()
-                .anyMatch(h -> h.getDescription().equals(CBSMessageUtil.singleRequiredKeyOccurrenceMessage("vectors", "consistency"))));
+                .anyMatch(h -> h.getDescription().equals(CBSValidationUtil.singleRequiredKeyOccurrenceMessage("vectors", "consistency"))));
     }
 
 

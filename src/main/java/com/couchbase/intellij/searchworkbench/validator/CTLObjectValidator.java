@@ -17,14 +17,14 @@ public class CTLObjectValidator implements SearchObjectValidator {
         return "ctl".equals(key);
     }
 
-    public void validate(JsonObject jsonObject, ProblemsHolder holder) {
+    public void validate(String key, JsonObject jsonObject, ProblemsHolder holder) {
 
 
         Map<String, Integer> counter = new HashedMap();
         for (JsonProperty property : jsonObject.getPropertyList()) {
             if (!"consistency".equals(property.getName())
                     && !"timeout".equals(property.getName())) {
-                holder.registerProblem(property, CBSMessageUtil.getUnexpectedAttUnder(property.getName(), "ctl"), ProblemHighlightType.GENERIC_ERROR);
+                holder.registerProblem(property, CBSValidationUtil.getUnexpectedAttUnder(property.getName(), "ctl"), ProblemHighlightType.GENERIC_ERROR);
             } else {
                 counter.put(property.getName(), counter.getOrDefault(property.getName(), 0) + 1);
             }
@@ -32,13 +32,13 @@ public class CTLObjectValidator implements SearchObjectValidator {
 
         for (Map.Entry<String, Integer> entry : counter.entrySet()) {
             if (entry.getValue() > 1) {
-                holder.registerProblem(jsonObject, CBSMessageUtil.singleOptionalKeyOccurrenceMessage(entry.getKey(), "ctl"),
+                holder.registerProblem(jsonObject, CBSValidationUtil.singleOptionalKeyOccurrenceMessage(entry.getKey(), "ctl"),
                         ProblemHighlightType.GENERIC_ERROR);
             }
         }
 
         if (counter.getOrDefault("consistency", 0) == 0) {
-            holder.registerProblem(jsonObject, CBSMessageUtil.singleRequiredKeyOccurrenceMessage("consistency", "ctl"),
+            holder.registerProblem(jsonObject, CBSValidationUtil.singleRequiredKeyOccurrenceMessage("consistency", "ctl"),
                     ProblemHighlightType.GENERIC_ERROR);
         }
     }

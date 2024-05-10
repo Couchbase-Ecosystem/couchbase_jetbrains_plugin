@@ -13,87 +13,20 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CBSJsonKeyInspection extends LocalInspectionTool {
-    /**
-     * Map of objects that can only appear in the top level of the document
-     */
-    private static final Map<String, String> TOP_LEVEL_OBJ = new HashMap<>();
-
-    /**
-     * Map of properties that can only appear in the top level of the document
-     */
-    private static final Map<String, String> TOP_LEVEL_PROP = new HashMap<>();
-    private static final Map<String, String> NESTED_PROP = new HashMap<>();
-    private static final Map<String, String> NESTED_OBJ = new HashMap<>();
-
-    private static final Map<String, String> allAttributes = new HashMap<>();
-
-    private static final List<SearchObjectValidator> validators = new ArrayList<>();
     public static final String EXPECTED_ARRAY_FOR_KEY = "Expected array for key: ";
     public static final String EXPECTED_JSON_OBJECT_FOR_KEY = "Expected JSON object for key: ";
     public static final String EXPECTED_INTEGER_FOR_KEY = "Expected integer for key: ";
     public static final String EXPECTED_STRING_FOR_KEY = "Expected string for key: ";
+
+    public static final String EXPECTED_STRING_VALUE = "Expected string value";
     public static final String EXPECTED_BOOLEAN_FOR_KEY = "Expected boolean for key: ";
-
-    static {
-        TOP_LEVEL_OBJ.put("query", "json");
-        TOP_LEVEL_OBJ.put("knn", "array");
-        TOP_LEVEL_OBJ.put("ctl", "json");
-        TOP_LEVEL_OBJ.put("highlight", "json");
-        TOP_LEVEL_OBJ.put("facets", "json");
-    }
-
-    static {
-        TOP_LEVEL_PROP.put("knn", "array");
-        TOP_LEVEL_PROP.put("size", "integer");
-        TOP_LEVEL_PROP.put("from", "integer");
-        TOP_LEVEL_PROP.put("fields", "array");
-        TOP_LEVEL_PROP.put("explain", "boolean");
-        TOP_LEVEL_PROP.put("sort", "array");
-        TOP_LEVEL_PROP.put("includeLocations", "boolean");
-        TOP_LEVEL_PROP.put("score", "string");
-        TOP_LEVEL_PROP.put("search_after", "array");
-        TOP_LEVEL_PROP.put("search_before", "array");
-        TOP_LEVEL_PROP.put("limit", "integer");
-        TOP_LEVEL_PROP.put("offset", "integer");
-        TOP_LEVEL_PROP.put("collections", "array");
-    }
-
-    static {
-        NESTED_OBJ.put("consistency", "json");
-        NESTED_OBJ.put("vectors", "json");
-    }
-
-    static {
-        NESTED_PROP.put("query", "string");
-        NESTED_PROP.put("field", "string");
-        NESTED_PROP.put("vector", "array");
-        NESTED_PROP.put("timeout", "integer");
-        NESTED_PROP.put("k", "integer");
-        NESTED_PROP.put("fields", "array");
-        NESTED_PROP.put("style", "string");
-        NESTED_PROP.put("results", "string");
-        NESTED_PROP.put("level", "string");
-
-    }
-
-    static {
-        allAttributes.putAll(TOP_LEVEL_OBJ);
-        allAttributes.putAll(TOP_LEVEL_PROP);
-        allAttributes.putAll(NESTED_OBJ);
-        allAttributes.putAll(NESTED_PROP);
-    }
-
-    static {
-        validators.add(new RootObjectValidator());
-        validators.add(new QueryObjectValidator());
-        validators.add(new KnnObjectValidator());
-        validators.add(new HighlightObjectValidator());
-        validators.add(new CTLObjectValidator());
-        validators.add(new CtlConsistencyObjectValidator());
-    }
+    public static final String LAT_LON_VALUE_MESSAGE = "Each item of the array must be in the format 'lat,lon'";
 
 
     @Override
@@ -109,10 +42,91 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
     }
 
     private static class JsonInspectionVisitor extends JsonElementVisitor {
+
+        private final Map<String, String> allAttributes;
+
+        private final List<SearchObjectValidator> validators;
+
+
         private final ProblemsHolder holder;
 
         public JsonInspectionVisitor(ProblemsHolder holder) {
+
             this.holder = holder;
+
+            allAttributes = new HashMap<>();
+
+            allAttributes.put("ctl", "json");
+            allAttributes.put("highlight", "json");
+            allAttributes.put("facets", "json");
+            allAttributes.put("knn", "array");
+            allAttributes.put("size", "integer");
+            allAttributes.put("from", "integer");
+            allAttributes.put("fields", "array");
+            allAttributes.put("explain", "boolean");
+            allAttributes.put("sort", "array");
+            allAttributes.put("includeLocations", "boolean");
+            allAttributes.put("score", "string");
+            allAttributes.put("search_after", "array");
+            allAttributes.put("search_before", "array");
+            allAttributes.put("limit", "integer");
+            allAttributes.put("offset", "integer");
+            allAttributes.put("collections", "array");
+            allAttributes.put("consistency", "json");
+            allAttributes.put("vectors", "json");
+            allAttributes.put("match_all", "json");
+            allAttributes.put("match_none", "json");
+            allAttributes.put("must", "json");
+            allAttributes.put("must_not", "json");
+            allAttributes.put("should", "json");
+            allAttributes.put("shape", "json");
+            allAttributes.put("field", "string");
+            allAttributes.put("vector", "array");
+            allAttributes.put("timeout", "integer");
+            allAttributes.put("k", "integer");
+            allAttributes.put("style", "string");
+            allAttributes.put("results", "string");
+            allAttributes.put("level", "string");
+            allAttributes.put("match", "string");
+            allAttributes.put("analyzer", "string");
+            allAttributes.put("operator", "string");
+            allAttributes.put("boost", "integer");
+            allAttributes.put("fuzziness", "integer");
+            allAttributes.put("prefix_length", "integer");
+            allAttributes.put("match_phrase", "string");
+            allAttributes.put("bool", "boolean");
+            allAttributes.put("prefix", "string");
+            allAttributes.put("term", "string");
+            allAttributes.put("regexp", "string");
+            allAttributes.put("terms", "array");
+            allAttributes.put("wildcard", "string");
+            allAttributes.put("cidr", "string");
+            allAttributes.put("inclusive_min", "boolean");
+            allAttributes.put("inclusive_max", "boolean");
+            allAttributes.put("inclusive_start", "boolean");
+            allAttributes.put("inclusive_end", "boolean");
+            allAttributes.put("start", "string");
+            allAttributes.put("end", "string");
+            allAttributes.put("conjuncts", "array");
+            allAttributes.put("disjuncts", "array");
+            allAttributes.put("relation", "string");
+            allAttributes.put("type", "string");
+            allAttributes.put("coordinates", "array");
+            allAttributes.put("radius", "string");
+            allAttributes.put("geometries", "array");
+
+            validators = new ArrayList<>();
+            validators.add(new RootObjectValidator());
+            validators.add(new QueryObjectValidator());
+            validators.add(new KnnObjectValidator());
+            validators.add(new HighlightObjectValidator());
+            validators.add(new CTLObjectValidator());
+            validators.add(new CtlConsistencyObjectValidator());
+            validators.add(new MatchAllNoneObjectValidator());
+            validators.add(new QueryTypeObjectValidator());
+            validators.add(new BooleanObjectValidator());
+            validators.add(new GeometryObjectValidator());
+            validators.add(new ShapeObjectValidator());
         }
 
         @Override
@@ -140,7 +154,7 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
 
             for (SearchObjectValidator validator : validators) {
                 if (validator.accept(type)) {
-                    validator.validate(jsonObject, holder);
+                    validator.validate(type, jsonObject, holder);
                 }
             }
         }
@@ -154,36 +168,57 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
                 } else {
                     validateType(property, "string");
                 }
+            } else if ("location".equals(key) || "top_left".equals(key) || "bottom_right".equals(key)) {
+                if (property.getValue() instanceof JsonArray) {
+                    if (((JsonArray) property.getValue()).getValueList().size() != 2) {
+                        holder.registerProblem(property, getLocationArrayMessage(key), ProblemHighlightType.GENERIC_ERROR);
+                    }
+                } else if (property.getValue() instanceof JsonObject) {
+                    List<String> attrs = ((JsonObject) property.getValue()).getPropertyList().stream().map(JsonProperty::getName).toList();
+                    if (!(attrs.size() == 2 && attrs.contains("lat") && attrs.contains("lon"))) {
+                        holder.registerProblem(property, getLocationObjectMessage(key), ProblemHighlightType.GENERIC_ERROR);
+                    }
+
+                } else {
+                    holder.registerProblem(property, getLocationTypeMessage(key), ProblemHighlightType.GENERIC_ERROR);
+                }
+
+            } else if ("min".equals(key) || "max".equals(key)) {
+                if (!(property.getValue() instanceof JsonStringLiteral) && !(property.getValue() instanceof JsonNumberLiteral)) {
+                    holder.registerProblem(property, "'" + key + "' should be an integer for a numeric range query or a string for term range query", ProblemHighlightType.GENERIC_ERROR);
+                }
+            } else if ("distance".equals(key) || "radius".equals(key)) {
+                if (!(property.getValue() instanceof JsonStringLiteral)) {
+                    holder.registerProblem(property, EXPECTED_STRING_FOR_KEY + key, ProblemHighlightType.GENERIC_ERROR);
+                } else {
+                    String value = ((JsonStringLiteral) property.getValue()).getValue();
+                    if (!(value.endsWith("mm") || value.endsWith("cm") || value.endsWith("in")
+                            || value.endsWith("yd") || value.endsWith("ft") || value.endsWith("km")
+                            || value.endsWith("mi") || value.endsWith("nm") || value.endsWith("m"))) {
+                        holder.registerProblem(property, getDistanceUnitMessage(key), ProblemHighlightType.GENERIC_ERROR);
+                    }
+                }
+
+                //https://docs.couchbase.com/server/current/search/search-request-params.html#geopoint-queries-polygon
+            } else if ("polygon_points".equals(key)) {
+                if (!(property.getValue() instanceof JsonArray)) {
+                    holder.registerProblem(property, EXPECTED_ARRAY_FOR_KEY + key, ProblemHighlightType.GENERIC_ERROR);
+                } else {
+                    List<JsonValue> values = ((JsonArray) property.getValue()).getValueList();
+                    for (JsonValue value : values) {
+                        if (!(value instanceof JsonStringLiteral)) {
+                            holder.registerProblem(value, EXPECTED_STRING_VALUE, ProblemHighlightType.GENERIC_ERROR);
+                        } else {
+                            String valueString = ((JsonStringLiteral) value).getValue();
+                            if (!valueString.contains(",")) {
+                                holder.registerProblem(value, LAT_LON_VALUE_MESSAGE, ProblemHighlightType.GENERIC_ERROR);
+                            }
+                        }
+                    }
+                }
             } else {
                 validateType(property, allAttributes.get(key));
             }
-//                boolean fieldTypeVal = false;
-//                if (TOP_LEVEL_PROP.containsKey(key)) {
-//                    validateType(property, TOP_LEVEL_PROP.get(key));
-//                }
-//
-//                if (isTopLevel(property)) {
-//                    validateType(property, TOP_LEVEL_PROP.get(key));
-//                } else {
-//                    validateType(property, NESTED_PROP.get(key));
-//                }
-//                String expectedType = TOP_LEVEL_KEYS.get(key);
-//                validateType(property, key, expectedType, value);
-//
-//                if ("query".equals(key)) {
-//                    validateQueryType(property); // Determine type for 'query' based on context
-//                } else if ("conjuncts".equals(key) || "disjuncts".equals(key)) {
-//                    validateConjunctsDisjuncts(property); // Ensure they're arrays and under 'query'
-//                } else if (!TOP_LEVEL_KEYS.containsKey(key)) {
-//                    holder.registerProblem(property, "Invalid key: " + key, ProblemHighlightType.GENERIC_ERROR);
-//                }
-
-        }
-
-
-        private void validateTopLevelKey(JsonProperty property, String key) {
-            String expectedType = TOP_LEVEL_OBJ.get(key);
-            validateType(property, expectedType);
         }
 
         private void validateType(JsonProperty property, String expectedType) {
@@ -215,14 +250,6 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
                         if (!(value instanceof JsonArray)) {
                             holder.registerProblem(property, EXPECTED_ARRAY_FOR_KEY + key, ProblemHighlightType.GENERIC_ERROR);
                         }
-//                        else {
-//                            // Validate specific keys that must be arrays of strings or empty arrays
-//                            if (key.equals("fields") || key.equals("search_after") || key.equals("search_before") || key.equals("collections")) {
-//                                validateArrayOfStrings(property, (JsonArray) value); // Ensure it's an array of strings
-//                            } else if (key.equals("knn")) {
-//                                validateKnnArray(property, (JsonArray) value);
-//                            }
-//                        }
                         break;
                 }
             }
@@ -242,81 +269,6 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
             }
         }
 
-
-        private void validateKnnArray(JsonProperty property, JsonArray jsonArray) {
-            for (JsonValue element : jsonArray.getValueList()) {
-                if (!(element instanceof JsonObject)) {
-                    holder.registerProblem(
-                            property,
-                            "Expected array of objects or empty array for key: " + property.getName(),
-                            ProblemHighlightType.GENERIC_ERROR
-                    );
-                    return; // Stop if any non-object is found
-                }
-
-                JsonObject jsonObject = (JsonObject) element;
-                Set<String> requiredKeys = new HashSet<>(Set.of("k", "field", "vector"));
-                Set<String> encounteredKeys = new HashSet<>();
-
-                for (JsonProperty prop : jsonObject.getPropertyList()) {
-                    String key = prop.getName();
-                    if (encounteredKeys.contains(key)) {
-                        holder.registerProblem(
-                                prop,
-                                "Key '" + key + "' should not be repeated within the same entity",
-                                ProblemHighlightType.GENERIC_ERROR
-                        );
-                        return; // Stop if key repetition is found
-                    }
-
-                    encounteredKeys.add(key);
-                    if (requiredKeys.contains(key)) {
-                        validateRequiredKnnKey(prop, key);
-                        requiredKeys.remove(key); // Key validated
-                    } else {
-                        holder.registerProblem(
-                                prop,
-                                "Unexpected key: " + key,
-                                ProblemHighlightType.GENERIC_ERROR
-                        );
-                    }
-                }
-
-                if (!requiredKeys.isEmpty()) {
-                    holder.registerProblem(
-                            property,
-                            "Missing required keys in 'knn' object: " + requiredKeys,
-                            ProblemHighlightType.GENERIC_ERROR
-                    );
-                }
-            }
-        }
-
-
-        private void validateRequiredKnnKey(JsonProperty prop, String key) {
-            JsonValue value = prop.getValue();
-
-            switch (key) {
-                case "k":
-                    if (!(value instanceof JsonNumberLiteral)) {
-                        holder.registerProblem(prop, "Expected integer for key: " + key, ProblemHighlightType.GENERIC_ERROR);
-                    }
-                    break;
-                case "field":
-                    if (!(value instanceof JsonStringLiteral)) {
-                        holder.registerProblem(prop, "Expected string for key: " + key, ProblemHighlightType.GENERIC_ERROR);
-                    }
-                    break;
-                case "vector":
-                    if (!(value instanceof JsonArray)) {
-                        holder.registerProblem(prop, "Expected array for key: " + key, ProblemHighlightType.GENERIC_ERROR);
-                    } else {
-                        validateArrayOfDoubles(prop, (JsonArray) value); // Validate it's an array of doubles
-                    }
-                    break;
-            }
-        }
-
         private void validateArrayOfDoubles(JsonProperty property, JsonArray jsonArray) {
             for (JsonValue element : jsonArray.getValueList()) {
                 if (!(element instanceof JsonNumberLiteral)) {
@@ -325,7 +277,7 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
                             "Expected array of doubles for key: " + property.getName(),
                             ProblemHighlightType.GENERIC_ERROR
                     );
-                    return; // Stop if any non-double is found
+                    return;
                 }
             }
         }
@@ -344,60 +296,29 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
         }
 
 
-        private void validateQueryType(JsonProperty property) {
-            JsonValue value = property.getValue();
-
-            if (isTopLevel(property)) {
-                // 'query' at top-level must be a JSON object
-                if (!(value instanceof JsonObject)) {
-                    holder.registerProblem(property, "'query' at top-level must be a JSON object", ProblemHighlightType.GENERIC_ERROR);
-                }
-            } else if (isUnderQuery(property)) {
-                // 'query' nested within 'query' must be a string
-                if (!(value instanceof JsonStringLiteral)) {
-                    holder.registerProblem(property, "'query' nested within 'query' must be a string", ProblemHighlightType.GENERIC_ERROR);
-                }
-            } else {
-                // If it's neither top-level nor nested under 'query', it's invalid
-                holder.registerProblem(property, "'query' outside of 'query' context", ProblemHighlightType.GENERIC_ERROR);
-            }
-        }
-
         private boolean isTopLevel(JsonProperty property) {
             PsiElement parent = property.getParent(); // Get the immediate parent
             return parent instanceof JsonObject && parent.getParent() instanceof JsonFile; // Only true for top-level
         }
-
-        private void validateConjunctsDisjuncts(JsonProperty property) {
-            JsonValue value = property.getValue();
-
-            if (!(value instanceof JsonArray)) {
-                holder.registerProblem(property, "'conjuncts' and 'disjuncts' must be arrays", ProblemHighlightType.GENERIC_ERROR);
-            }
-
-            // Ensure they are under 'query'
-            if (!isUnderQuery(property)) {
-                holder.registerProblem(property, "'conjuncts' and 'disjuncts' must be within 'query'", ProblemHighlightType.GENERIC_ERROR);
-            }
-        }
-
-        private boolean isUnderQuery(JsonProperty property) {
-            PsiElement parent = property.getParent(); // Start from the immediate parent
-            while (parent != null) {
-                if (parent instanceof JsonProperty) { // Check if it's a JsonProperty
-                    JsonProperty jsonParent = (JsonProperty) parent;
-                    if ("query".equals(jsonParent.getName())) { // Check if the name is 'query'
-                        return true; // Found 'query' as an ancestor
-                    }
-                }
-                parent = parent.getParent();
-            }
-            return false;
-        }
     }
 
     @NotNull
-    public static String getUnexpectedAttNameMsg(String key) {
-        return "Unexpected attribute name \"" + key + "\"";
+    public static String getLocationTypeMessage(String key) {
+        return "'" + key + "' must be an array or a json object";
+    }
+
+    @NotNull
+    public static String getLocationObjectMessage(String key) {
+        return "'" + key + "' should contain 2 attributes:'lat' and 'lon'";
+    }
+
+    @NotNull
+    public static String getLocationArrayMessage(String key) {
+        return "'" + key + "' array must contain 2 float values: lon and lat";
+    }
+
+    public static String getDistanceUnitMessage(String key) {
+        return "'" + key + "' value must end with the unit mm,cm,in,yd,ft,km,mi,nm or m. Ex: '10m'";
+
     }
 }

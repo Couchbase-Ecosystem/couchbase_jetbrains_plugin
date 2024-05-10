@@ -11,7 +11,7 @@ import java.util.Set;
 
 /**
  * Validates the query object https://docs.couchbase.com/server/current/search/search-request-params.html#query-object
- * it expects other validators to check if specific fields are present.
+ * it expects other validators to check if the attributes are valid
  */
 public class QueryObjectValidator implements SearchObjectValidator {
 
@@ -22,7 +22,7 @@ public class QueryObjectValidator implements SearchObjectValidator {
         validQueryKeys = new HashSet<>(Arrays.asList("must", "query", "must_not", "should", "disjuncts", "conjuncts",
                 "match", "field", "analyzer", "operator", "match_phrase", "bool",
                 "prefix", "regexp", "term", "fuzziness", "terms", "wildcard", "min",
-                "max", "inclusive_min", "inclusive_max", "start",
+                "max", "inclusive_min", "inclusive_max", "start", "prefix_length",
                 "end", "inclusive_start", "inclusive_end", "cidr", "location", "distance", "top_left", "bottom_right",
                 "polygon_points", "geometry", "match_all", "match_none", "analyzer", "boost"));
     }
@@ -31,15 +31,11 @@ public class QueryObjectValidator implements SearchObjectValidator {
         return "query".equals(key);
     }
 
-    public void validate(JsonObject jsonObject, ProblemsHolder holder) {
+    public void validate(String key, JsonObject jsonObject, ProblemsHolder holder) {
         for (JsonProperty property : jsonObject.getPropertyList()) {
             if (!validQueryKeys.contains(property.getName())) {
                 holder.registerProblem(property, getUnexpectedAttUnderQuery(property.getName()), ProblemHighlightType.GENERIC_ERROR);
             }
-        }
-
-        if (jsonObject.getPropertyList().isEmpty()) {
-            holder.registerProblem(jsonObject, "'query' can't be empty'", ProblemHighlightType.GENERIC_ERROR);
         }
     }
 

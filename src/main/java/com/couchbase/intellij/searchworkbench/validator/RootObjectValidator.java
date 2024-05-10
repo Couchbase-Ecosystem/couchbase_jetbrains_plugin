@@ -29,7 +29,7 @@ public class RootObjectValidator implements SearchObjectValidator {
         return key == null;
     }
 
-    public void validate(JsonObject jsonObject, ProblemsHolder holder) {
+    public void validate(String key, JsonObject jsonObject, ProblemsHolder holder) {
         if (jsonObject.getPropertyList().isEmpty()) {
             holder.registerProblem(jsonObject, "Your search query can't be empty", ProblemHighlightType.GENERIC_ERROR);
         } else {
