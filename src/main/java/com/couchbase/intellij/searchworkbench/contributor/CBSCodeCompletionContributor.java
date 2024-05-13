@@ -1,8 +1,5 @@
-package org.intellij.sdk.language;
+package com.couchbase.intellij.searchworkbench.contributor;
 
-import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.json.JsonElementTypes;
@@ -18,17 +15,34 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.util.ProcessingContext;
+import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-public class JsonKeyCompletionContributor extends CompletionContributor {
-    public JsonKeyCompletionContributor() {
+public class CBSCodeCompletionContributor extends CompletionContributor {
+
+
+    private final List<CBSContributor> contributors = Arrays.asList(new KnnCbsContributor(),
+            new HighlightCbsContributor(),
+            new CtlCbsContributor(),
+            new ConsistencyCbsContributor(),
+            new QueryCbsContributor(),
+            new BooleanCbsContributor(),
+            new LocationCbsContributor(),
+            new GeometryCbsContributor(),
+            new ShapeCbsContributor()
+    );
+    public static final List<String> topLevelKeywords = Arrays.asList("query", "knn", "ctl", "size", "limit",
+            "from", "offset", "highlight", "fields", "facets", "explain", "sort", "includeLocations", "score",
+            "search_after", "search_before", "collections");
+
+    public CBSCodeCompletionContributor() {
         extend(CompletionType.BASIC,
                 PlatformPatterns.psiElement().withLanguage(JsonLanguage.INSTANCE),
-                new CompletionProvider<CompletionParameters>() {
+                new CompletionProvider<>() {
                     @Override
                     protected void addCompletions(@NotNull CompletionParameters parameters,
                                                   @NotNull ProcessingContext context,
@@ -39,41 +53,58 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
                         PsiFile file = parameters.getOriginalFile();
                         VirtualFile virtualFile = PsiUtilCore.getVirtualFile(file);
 
-                        if (virtualFile == null) {
+                        if (virtualFile == null || !virtualFile.getName().toLowerCase().endsWith(".cbs.json")) {
                             return;
                         }
-
-                        if (ActiveCluster.getInstance().get() == null
-                                || !ActiveCluster.getInstance().getId().equals(virtualFile.getUserData(VirtualFileKeys.CONN_ID))) {
-                            return;
-                        }
-
-                        // Ensure we are inside an object.
-                        if (!isInJsonObjectContext(position)) return;
-
 
                         JsonObject jsonObject = PsiTreeUtil.getParentOfType(position, JsonObject.class);
                         if (jsonObject == null) return;
+                        if (!isInJsonObjectContext(position)) return;
+
+                        boolean isKey = isKey(position);
+                        String attributeName = null;
+
+                        if (!isKey) {
+                            attributeName = getAttributeName(position);
+                        }
 
                         List<String> existingKeys = jsonObject.getPropertyList().stream()
                                 .map(JsonProperty::getName)
                                 .toList();
 
-                        //String[] suggestions = {"val1", "val2", "val3", "val4", "val5", "val6", "val7"};
+                        List<String> suggestions = new ArrayList<>();
+                        if (jsonObject.getParent() instanceof JsonFile) {
 
-                        final String bucketName = virtualFile.getUserData(VirtualFileKeys.BUCKET);
-                        final String scopeName = virtualFile.getUserData(VirtualFileKeys.SCOPE);
-                        final String colName = virtualFile.getUserData(VirtualFileKeys.COLLECTION);
+                            if (!isKey) {
+                                if ("score".equals(attributeName)) {
+                                    suggestions = Arrays.asList("none");
+                                }
+                            } else {
+                                suggestions = topLevelKeywords.stream().filter(e -> !existingKeys.contains(e)).toList();
+                            }
+                        } else {
 
+                            String type;
+                            if (jsonObject.getParent() instanceof JsonProperty) {
+                                type = ((JsonProperty) jsonObject.getParent()).getName();
+                            } else if (jsonObject.getParent() instanceof JsonArray) {
+                                type = ((JsonProperty) jsonObject.getParent().getParent()).getName();
+                            } else {
+                                throw new NotImplementedException("type is not supported");
+                            }
 
-                        Set<String> suggestions = ActiveCluster.getInstance().getChild(bucketName)
-                                .flatMap(bucket -> bucket.getChild(scopeName))
-                                .flatMap(scope -> scope.getChild(colName))
-                                .map(col -> ((CouchbaseCollection) col).getAllAttributeNames())
-                                .flatMap(Set::stream)
-                                .collect(Collectors.toSet());
+                            for (CBSContributor contributor : contributors) {
+                                if (contributor.accept(type)) {
+                                    if (isKey) {
+                                        contributor.contributeKey(type, jsonObject, suggestions);
+                                    } else {
+                                        contributor.contributeValue(jsonObject, attributeName, suggestions);
+                                    }
+                                }
+                            }
+                        }
 
-                        // Check if the current position or its parent is a DOUBLE_QUOTED_STRING
+                        //Check if the current position or its parent is a DOUBLE_QUOTED_STRING
                         boolean isWithinQuotes = position.getNode().getElementType() == JsonElementTypes.DOUBLE_QUOTED_STRING
                                 || (position.getParent() != null && position.getParent().getNode().getElementType() == JsonElementTypes.DOUBLE_QUOTED_STRING);
 
@@ -87,8 +118,10 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
                             }
                         }
                     }
-                });
+                }
+        );
     }
+
 
     private boolean isInJsonObjectContext(PsiElement position) {
         // Direct check for position being within an array of primitives, which should return false.
@@ -97,16 +130,13 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
         if (jsonArray != null) {
             // If the position is also within a JsonObject that is a child of the JsonArray, allow suggestions.
             JsonObject jsonObjectWithinArray = PsiTreeUtil.getParentOfType(position, JsonObject.class, false);
-            if (jsonObjectWithinArray != null && jsonArray.equals(jsonObjectWithinArray.getParent())) {
-                return isKey(position);
-            } else {
-                // If we're directly within a JsonArray but not within a JsonObject inside this array, disallow suggestions.
-                return false;
-            }
+            // If we're directly within a JsonArray but not within a JsonObject inside this array, disallow suggestions.
+            return jsonObjectWithinArray != null && jsonArray.equals(jsonObjectWithinArray.getParent());
         }
 
-        return isKey(position);
+        return true;
     }
+
 
     private static boolean isKey(PsiElement position) {
         PsiElement parent = position.getParent();
@@ -124,4 +154,15 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
         }
         return false;
     }
+
+
+    private String getAttributeName(PsiElement position) {
+        JsonProperty property = PsiTreeUtil.getParentOfType(position, JsonProperty.class);
+        if (property != null) {
+            return property.getName();
+        }
+        return null;
+    }
 }
+
+

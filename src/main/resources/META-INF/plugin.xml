@@ -114,6 +114,9 @@
         <completion.contributor language="JSON"
                                 implementationClass="org.intellij.sdk.language.JsonKeyCompletionContributor"/>
 
+        <completion.contributor language="JSON"
+                                implementationClass="com.couchbase.intellij.searchworkbench.contributor.CBSCodeCompletionContributor"/>
+
 
         <fileType name="SQL++ Lite file"
                   implementationClass="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileType"

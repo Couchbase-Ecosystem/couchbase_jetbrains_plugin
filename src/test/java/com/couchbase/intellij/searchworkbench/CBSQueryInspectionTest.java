@@ -1,6 +1,7 @@
 package com.couchbase.intellij.searchworkbench;
 
 import com.couchbase.intellij.searchworkbench.validator.QueryObjectValidator;
+import com.couchbase.intellij.searchworkbench.validator.QueryTypeObjectValidator;
 import com.couchbase.intellij.searchworkbench.validator.RootObjectValidator;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.lang.annotation.HighlightSeverity;
@@ -63,6 +64,24 @@ public class CBSQueryInspectionTest extends JavaCodeInsightFixtureTestCase {
                 .anyMatch(h -> h.getSeverity() == HighlightSeverity.ERROR);
 
         assertFalse(hasErrors); // Should have no errors for valid JSON
+    }
+
+    public void testInvalidQueryAdditionalAttributes() {
+        String json = """
+                {
+                    "query": {
+                        "query": "description:pool name:pool^5",
+                        "fuzziness": 1
+                    
+                    }
+                }
+                """;
+
+        List<HighlightInfo> highlights = getHighlightInfos(json);
+
+        assertSize(1, highlights);
+        assertTrue(highlights.stream()
+                .anyMatch(h -> h.getDescription().equals(QueryTypeObjectValidator.getInvalidFieldWithQueryMessage())));
     }
 
     public void testInvalidQueryTypeTopLevel() {

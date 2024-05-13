@@ -7,6 +7,7 @@ import com.intellij.json.psi.JsonObject;
 import com.intellij.json.psi.JsonProperty;
 import com.intellij.json.psi.JsonStringLiteral;
 import org.apache.commons.collections.map.HashedMap;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +31,10 @@ public class QueryTypeObjectValidator implements SearchObjectValidator {
             holder.registerProblem(jsonObject, "'" + key + "' can't be empty", ProblemHighlightType.GENERIC_ERROR);
         }
 
+
         boolean containsQuery = containsQuery(jsonObject);
         List<String> properties = jsonObject.getPropertyList().stream().map(JsonProperty::getName).toList();
+
         boolean isFieldMissing = !properties.contains("field");
         boolean containsMatchAllNone = properties.contains("match_all") || properties.contains("match_none");
         boolean isBooleanQuery = properties.contains("must") || properties.contains("must_not") || properties.contains("should");
@@ -54,6 +57,11 @@ public class QueryTypeObjectValidator implements SearchObjectValidator {
                 }
             }
         }
+    }
+
+    @NotNull
+    public static String getQuerySingleAttMsg() {
+        return "'query' doesn't support additional attributes";
     }
 
 
