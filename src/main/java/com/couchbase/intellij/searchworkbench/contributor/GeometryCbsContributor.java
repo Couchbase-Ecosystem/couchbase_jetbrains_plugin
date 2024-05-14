@@ -1,5 +1,6 @@
 package com.couchbase.intellij.searchworkbench.contributor;
 
+import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.json.psi.JsonObject;
 
 import java.util.Arrays;
@@ -15,7 +16,7 @@ public class GeometryCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors) {
+    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors, CompletionResultSet result) {
         ContributorUtil.suggestMissing(jsonObject, keys, contributors);
     }
 

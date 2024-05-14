@@ -96,7 +96,7 @@ public class CBSCodeCompletionContributor extends CompletionContributor {
                             for (CBSContributor contributor : contributors) {
                                 if (contributor.accept(type)) {
                                     if (isKey) {
-                                        contributor.contributeKey(type, jsonObject, suggestions);
+                                        contributor.contributeKey(type, jsonObject, suggestions, result);
                                     } else {
                                         contributor.contributeValue(jsonObject, attributeName, suggestions);
                                     }

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.searchworkbench.contributor;
 
+import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.json.psi.JsonObject;
 import com.intellij.json.psi.JsonProperty;
 import com.intellij.json.psi.JsonStringLiteral;
@@ -15,7 +16,7 @@ public class ShapeCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors) {
+    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors, CompletionResultSet result) {
         String type = null;
 
         for (JsonProperty property : jsonObject.getPropertyList()) {

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.searchworkbench.contributor;
 
+import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.json.psi.JsonObject;
 import com.intellij.json.psi.JsonProperty;
 
@@ -14,7 +15,7 @@ public class BooleanCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors) {
+    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors, CompletionResultSet result) {
         List<String> existingKeys = jsonObject.getPropertyList().stream()
                 .map(JsonProperty::getName)
                 .toList();

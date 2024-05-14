@@ -1,5 +1,6 @@
 package com.couchbase.intellij.searchworkbench.contributor;
 
+import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.json.psi.JsonObject;
 import com.intellij.json.psi.JsonProperty;
 
@@ -12,6 +13,7 @@ public class QueryCbsContributor implements CBSContributor {
     public static final List<String> compound = Arrays.asList("disjuncts", "conjuncts");
     public static final List<String> query = Arrays.asList("boost", "conjuncts");
     public static final List<String> match = Arrays.asList("match", "analyzer", "operator", "boost", "fuzziness", "prefix_length", "field");
+    public static final List<String> match_phrase = Arrays.asList("match_phrase", "analyzer", "operator", "boost", "fuzziness", "prefix_length", "field");
     public static final List<String> bool = Arrays.asList("bool", "boost", "field");
     public static final List<String> prefix = Arrays.asList("prefix", "boost", "field");
     public static final List<String> regexp = Arrays.asList("regexp", "boost", "field");
@@ -44,6 +46,7 @@ public class QueryCbsContributor implements CBSContributor {
         allQueryKeys.addAll(compound);
         allQueryKeys.addAll(query);
         allQueryKeys.addAll(match);
+        allQueryKeys.addAll(match_phrase);
         allQueryKeys.addAll(bool);
         allQueryKeys.addAll(prefix);
         allQueryKeys.addAll(regexp);
@@ -66,7 +69,7 @@ public class QueryCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors) {
+    public void contributeKey(String parentKey, JsonObject jsonObject, List<String> contributors, CompletionResultSet result) {
 
         List<String> tempKeys = new ArrayList<>(jsonObject.getPropertyList().stream()
                 .map(JsonProperty::getName)
@@ -81,123 +84,195 @@ public class QueryCbsContributor implements CBSContributor {
 
         if (boolQueries.stream().anyMatch(existingKeys::contains)) {
             contributors.addAll(boolQueries.stream().filter(e -> !existingKeys.contains(e)).toList());
-        } else if (compound.stream().anyMatch(existingKeys::contains)) {
-            contributors.addAll(compound.stream().filter(e -> !existingKeys.contains(e)).toList());
-        } else if (!existingKeys.contains("query")) {
+            addBooleanTemplates(existingKeys, result);
+        } else if (!existingKeys.contains("query") && !compound.stream().anyMatch(existingKeys::contains)) {
             HashSet<String> suggestions = new HashSet<>();
             if (!existingKeys.contains("field")) {
                 suggestions.add("field");
             }
 
             if (existingKeys.isEmpty()) {
+                result.addElement(CBSTemplates.getQueryTemplate(existingKeys));
                 suggestions.add("query");
+                addBooleanTemplates(existingKeys, result);
+                result.addElement(CBSTemplates.getConjunctsTemplate(existingKeys));
+                result.addElement(CBSTemplates.getDisjunctsTemplate(existingKeys));
             }
 
-            suggestions.addAll(getMatchContributors(existingKeys));
-            suggestions.addAll(getBoolContributors(existingKeys));
-            suggestions.addAll(getPrefixContributors(existingKeys));
-            suggestions.addAll(getRegexpContributors(existingKeys));
-            suggestions.addAll(getTermContributors(existingKeys));
-            suggestions.addAll(getTermsContributors(existingKeys));
-            suggestions.addAll(getWildcardContributors(existingKeys));
-            suggestions.addAll(getNumericContributors(existingKeys));
-            suggestions.addAll(getDateContributors(existingKeys));
-            suggestions.addAll(getCidrContributors(existingKeys));
-            suggestions.addAll(getRadiusContributors(existingKeys));
-            suggestions.addAll(getRectangleContributors(existingKeys));
-            suggestions.addAll(getPolygonContributors(existingKeys));
-            suggestions.addAll(getGeometryContributors(existingKeys));
+            suggestions.addAll(getMatchContributors(existingKeys, result));
+            suggestions.addAll(getMatchPhraseContributors(existingKeys, result));
+            suggestions.addAll(getBoolContributors(existingKeys, result));
+            suggestions.addAll(getPrefixContributors(existingKeys, result));
+            suggestions.addAll(getRegexpContributors(existingKeys, result));
+            suggestions.addAll(getTermContributors(existingKeys, result));
+            suggestions.addAll(getTermsContributors(existingKeys, result));
+            suggestions.addAll(getWildcardContributors(existingKeys, result));
+            suggestions.addAll(getNumericContributors(existingKeys, result));
+            suggestions.addAll(getDateContributors(existingKeys, result));
+            suggestions.addAll(getCidrContributors(existingKeys, result));
+            suggestions.addAll(getRadiusContributors(existingKeys, result));
+            suggestions.addAll(getRectangleContributors(existingKeys, result));
+            suggestions.addAll(getPolygonContributors(existingKeys, result));
+            suggestions.addAll(getGeometryContributors(existingKeys, result));
 
-
-            List<String> suggestions2 = suggestions.stream().filter(e -> !existingKeys.contains(e)).toList();
-            System.out.println(suggestions2);
-            contributors.addAll(suggestions2);
+            contributors.addAll(suggestions.stream().filter(e -> !existingKeys.contains(e)).toList());
         }
     }
 
+    public void addBooleanTemplates(List<String> existingKeys, CompletionResultSet result) {
+        if (!existingKeys.contains("must")) {
+            result.addElement(CBSTemplates.getMustTemplate());
+        }
 
-    private List<String> getGeometryContributors(List<String> existingKeys) {
-        return genericContributor(geometry, existingKeys);
+        if (!existingKeys.contains("must_not")) {
+            result.addElement(CBSTemplates.getMustNotTemplate());
+        }
+
+        if (!existingKeys.contains("should")) {
+            result.addElement(CBSTemplates.getShouldTemplate());
+        }
     }
 
-    private List<String> getPolygonContributors(List<String> existingKeys) {
-        return genericContributor(polygon, existingKeys);
+    private List<String> getGeometryContributors(List<String> existingKeys, CompletionResultSet result) {
+        if (geometry.containsAll(existingKeys)) {
+            result.addElement(CBSTemplates.getPointGeoJsonTemplate(existingKeys));
+            result.addElement(CBSTemplates.getLineStringTemplate(existingKeys));
+            result.addElement(CBSTemplates.getPolygonTemplate(existingKeys));
+            result.addElement(CBSTemplates.getMultiPointTemplate(existingKeys));
+            result.addElement(CBSTemplates.getMultiLineStringTemplate(existingKeys));
+            result.addElement(CBSTemplates.getMultiPolygonTemplate(existingKeys));
+            result.addElement(CBSTemplates.getEnvelopeTemplate(existingKeys));
+            result.addElement(CBSTemplates.getCircleTemplate(existingKeys));
+            result.addElement(CBSTemplates.getGeometryCollectionTemplate(existingKeys));
+        }
+
+        return genericContributor(geometry, existingKeys, result);
     }
 
-    private List<String> getRectangleContributors(List<String> existingKeys) {
-        return genericContributor(rectangle, existingKeys);
+    private List<String> getPolygonContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(polygon, existingKeys, result,
+                getSingleTemplate("polygon_query", "Polygon-Based Geopoint Queries\n", new ArrayList<>(polygon)));
     }
 
-    private List<String> getRadiusContributors(List<String> existingKeys) {
-        return genericContributor(radius, existingKeys);
+    private List<String> getRectangleContributors(List<String> existingKeys, CompletionResultSet result) {
+        if (rectangle.containsAll(existingKeys)) {
+            result.addElement(CBSTemplates.getRectangleTemplate(existingKeys));
+        }
+        return genericContributor(rectangle, existingKeys, result);
     }
 
-    private List<String> genericContributor(List<String> keys, List<String> existingKeys) {
+    private List<String> getRadiusContributors(List<String> existingKeys, CompletionResultSet result) {
+        if (radius.containsAll(existingKeys)) {
+            result.addElement(CBSTemplates.getRadiusTemplate(existingKeys));
+        }
+        return genericContributor(radius, existingKeys, result);
+    }
+
+    private List<String> genericContributor(List<String> keys, List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(keys, existingKeys, result, new ArrayList<>());
+    }
+
+    private List<String> genericContributor(List<String> keys, List<String> existingKeys,
+                                            CompletionResultSet result, List<CBSTemplateDef> templateDefs) {
         if (keys.containsAll(existingKeys)) {
+            if (!templateDefs.isEmpty()) {
+                for (CBSTemplateDef def : templateDefs) {
+                    def.getAttrs().removeAll(existingKeys);
+                    def.getAttrs().remove("boost");
+                    result.addElement(CBSTemplates.getGenericTemplate(def.getKey(), def.getDesc(), def.getAttrs()));
+                }
+            }
+
             return keys;
         } else {
             return new ArrayList<>();
         }
     }
 
-    private List<String> getMatchContributors(List<String> existingKeys) {
-        return genericContributor(match, existingKeys);
+    private List<String> getMatchContributors(List<String> existingKeys, CompletionResultSet result) {
+        List<CBSTemplateDef> templates = Arrays.asList(
+                new CBSTemplateDef("match_query", "Simple match query search", new ArrayList<>(Arrays.asList("field", "match"))),
+                new CBSTemplateDef("match_query_all", "Match query search with all attributes", new ArrayList<>(match))
+        );
+
+        return genericContributor(match, existingKeys, result, templates);
     }
 
-    private List<String> getBoolContributors(List<String> existingKeys) {
-        return genericContributor(bool, existingKeys);
+    private List<String> getMatchPhraseContributors(List<String> existingKeys, CompletionResultSet result) {
+        List<CBSTemplateDef> templates = Arrays.asList(
+                new CBSTemplateDef("match_phrase_query", "Simple match phrase query search", new ArrayList<>(Arrays.asList("field", "match_phrase"))),
+                new CBSTemplateDef("match_phrase_query_all", "Match phrase query search with all attributes", new ArrayList<>(match_phrase))
+        );
+
+        return genericContributor(match_phrase, existingKeys, result, templates);
     }
 
-    private List<String> getCidrContributors(List<String> existingKeys) {
-        return genericContributor(cidr, existingKeys);
+    private List<String> getBoolContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(bool, existingKeys, result,
+                getSingleTemplate("bool_query", "Boolean query", new ArrayList<>(bool)));
     }
 
-    private List<String> getPrefixContributors(List<String> existingKeys) {
-        return genericContributor(prefix, existingKeys);
+    private List<String> getCidrContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(cidr, existingKeys, result,
+                getSingleTemplate("cidr_query", "CIDR query", new ArrayList<>(cidr)));
     }
 
-    private List<String> getRegexpContributors(List<String> existingKeys) {
-        return genericContributor(regexp, existingKeys);
+    private List<String> getPrefixContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(prefix, existingKeys, result,
+                getSingleTemplate("prefix_query", "Prefix query", new ArrayList<>(prefix)));
     }
 
-    private List<String> getTermContributors(List<String> existingKeys) {
-        return genericContributor(term, existingKeys);
+    private List<String> getRegexpContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(regexp, existingKeys, result,
+                getSingleTemplate("regex_query", "Regex query", new ArrayList<>(regexp)));
     }
 
-    private List<String> getTermsContributors(List<String> existingKeys) {
-        return genericContributor(terms, existingKeys);
+    private List<String> getTermContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(term, existingKeys, result,
+                getSingleTemplate("term_query", "Term query", new ArrayList<>(term)));
     }
 
-    private List<String> getWildcardContributors(List<String> existingKeys) {
-        return genericContributor(wildcard, existingKeys);
+    private List<String> getTermsContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(terms, existingKeys, result,
+                getSingleTemplate("terms_query", "Terms query", new ArrayList<>(terms)));
     }
 
-    private List<String> getNumericContributors(List<String> existingKeys) {
-        return genericContributor(numeric, existingKeys);
+    private List<String> getWildcardContributors(List<String> existingKeys, CompletionResultSet result) {
+        return genericContributor(wildcard, existingKeys, result,
+                getSingleTemplate("wildcard_query", "Wildcard query", new ArrayList<>(wildcard)));
     }
 
-    private List<String> getDateContributors(List<String> existingKeys) {
-        return genericContributor(date, existingKeys);
+    private List<CBSTemplateDef> getSingleTemplate(String key, String desc, List<String> fields) {
+        return Arrays.asList(
+                new CBSTemplateDef(key, desc, new ArrayList<>(fields))
+        );
+    }
+
+    private List<String> getNumericContributors(List<String> existingKeys, CompletionResultSet result) {
+        List<CBSTemplateDef> templates = Arrays.asList(
+                new CBSTemplateDef("numeric_range", "Simple numeric range search", new ArrayList<>(Arrays.asList("field", "start", "end"))),
+                new CBSTemplateDef("numeric_range_all", "Data numeric search with all attributes", new ArrayList<>(numeric))
+        );
+        return genericContributor(numeric, existingKeys, result, templates);
+    }
+
+    private List<String> getDateContributors(List<String> existingKeys, CompletionResultSet result) {
+        List<CBSTemplateDef> templates = Arrays.asList(
+                new CBSTemplateDef("date_range", "Simple data range search", new ArrayList<>(Arrays.asList("field", "start", "end"))),
+                new CBSTemplateDef("date_range_all", "Data range search with all attributes", new ArrayList<>(date))
+        );
+
+        return genericContributor(date, existingKeys, result, templates);
     }
 
 
     @Override
     public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
-
+        if ("operator".equals(attributeKey)) {
+            contributors.add("or");
+            contributors.add("and");
+        }
     }
-
-
-    //ContributorUtil.suggestMissing(jsonObject, keys, contributors);
 }
-
-//    @Override
-//    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
-////        if ("level".equals(attributeKey)) {
-////            contributors.add("at_plus");
-////            contributors.add("not_bounded");
-////        } else if ("results".equals(attributeKey)) {
-////            contributors.add("complete");
-////        }
-//    }
 
 
