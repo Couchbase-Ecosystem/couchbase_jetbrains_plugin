@@ -245,7 +245,7 @@ public class CoordinatesDialog extends DialogWrapper {
                 || (block.getType() == null && OPT_POLYGON.equals(chartCombobox.getSelectedItem()))) {
             content = "{\n" +
                     "\"type\": \"Polygon\", \n" +
-                    "\"coordinates\": " + messageRouterHandler.getShapes().get(0).getValue() +
+                    "\"coordinates\": [" + messageRouterHandler.getShapes().get(0).getValue() + "]" +
                     " \n}";
         } else if (GeoQueryConstants.ENVELOPE.equals(block.getType())
                 || (block.getType() == null && OPT_RECTANGLE.equals(chartCombobox.getSelectedItem()))) {
@@ -268,8 +268,8 @@ public class CoordinatesDialog extends DialogWrapper {
         } else if (GeoQueryConstants.MULTI_POLYGON.equals(block.getType()) || (block.getType() == null && OPT_MULTI_POLYGON.equals(chartCombobox.getSelectedItem()))) {
             content = "{\n" +
                     "\"type\": \"MultiPolygon\", \n" +
-                    "\"coordinates\": [" + messageRouterHandler.getShapes().stream()
-                    .map(Shape::getValue).collect(Collectors.joining(", ")) + "]" +
+                    "\"coordinates\": [[" + messageRouterHandler.getShapes().stream()
+                    .map(Shape::getValue).collect(Collectors.joining(", ")) + "]]" +
                     " \n}";
         }
 
