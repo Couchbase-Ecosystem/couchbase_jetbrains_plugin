@@ -81,6 +81,13 @@ public class CBSCodeCompletionContributor extends CompletionContributor {
                                 }
                             } else {
                                 suggestions = topLevelKeywords.stream().filter(e -> !existingKeys.contains(e)).toList();
+
+                                if (!existingKeys.contains("highlight")) {
+                                    result.addElement(CBSTemplates.getHighlightTemplate());
+                                }
+                                if (!existingKeys.contains("knn")) {
+                                    result.addElement(CBSTemplates.getKNNTemplate());
+                                }
                             }
                         } else {
 

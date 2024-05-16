@@ -810,12 +810,12 @@ public class TreeRightClickListener {
                         String fileName = "search" + searchWorkbenchCounter + ".cbs.json";
                         String fileContent = """
                                 {
-                                    "query": {
+                                  "query": {
                                         "query": "your_query_here"
-                                    },
-                                    "fields": ["*"]
+                                  },
+                                  "fields": ["*"]
                                 }
-                                """;
+                                        """;
                         VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("cbs.json"), fileContent);
                         virtualFile.putUserData(VirtualFileKeys.BUCKET, idx.getBucket());
                         virtualFile.putUserData(VirtualFileKeys.SEARCH_INDEX, idx.getIndexName());

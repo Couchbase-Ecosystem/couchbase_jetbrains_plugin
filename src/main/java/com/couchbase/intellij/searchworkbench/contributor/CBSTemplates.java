@@ -420,4 +420,113 @@ public class CBSTemplates {
                 });
     }
 
+
+    public static LookupElement getHighlightTemplate() {
+        return LookupElementBuilder.create("highlight")
+                .withTypeText("Highlight Options")
+                .withBoldness(true)
+                .withIcon(AllIcons.Json.Object)
+                .withInsertHandler((context, item) -> {
+                    Editor editor = context.getEditor();
+                    Project project = context.getProject();
+
+                    int startOffset = editor.getCaretModel().getOffset() - "highlight".length();
+
+                    Document document = editor.getDocument();
+                    document.deleteString(startOffset, startOffset + "highlight".length());
+
+                    TemplateManager templateManager = TemplateManager.getInstance(project);
+                    Template template = templateManager.createTemplate("highlight", "JSON");
+                    template.setToReformat(true);
+
+                    template.addTextSegment("\"highlight\" : {\n");
+                    template.addTextSegment("\"style\" : \n");
+                    template.addVariable("style", new TextExpression(""), true);
+                    template.addTextSegment(",\n");
+                    template.addTextSegment("\"fields\" : [\n");
+                    template.addVariable("fields", new TextExpression(""), true);
+                    template.addTextSegment("]\n}");
+                    TemplateManager.getInstance(project).startTemplate(editor, template);
+                });
+    }
+
+    public static LookupElement getKNNTemplate() {
+        return LookupElementBuilder.create("knn")
+                .withTypeText("Knn filter")
+                .withBoldness(true)
+                .withIcon(AllIcons.Json.Object)
+                .withInsertHandler((context, item) -> {
+                    Editor editor = context.getEditor();
+                    Project project = context.getProject();
+
+                    int startOffset = editor.getCaretModel().getOffset() - "knn".length();
+
+                    Document document = editor.getDocument();
+                    document.deleteString(startOffset, startOffset + "knn".length());
+
+                    TemplateManager templateManager = TemplateManager.getInstance(project);
+                    Template template = templateManager.createTemplate("knn", "JSON");
+                    template.setToReformat(true);
+
+                    template.addTextSegment("\"knn\" : [\n");
+                    template.addTextSegment("{\n");
+                    template.addTextSegment("\"k\" : ");
+                    template.addVariable("k", new TextExpression(""), true);
+                    template.addTextSegment(",\n");
+                    template.addTextSegment("\"field\" :");
+                    template.addVariable("field", new TextExpression(""), true);
+                    template.addTextSegment(",\n");
+                    template.addTextSegment("\"vector\" : ");
+                    template.addVariable("vector", new TextExpression(""), true);
+                    template.addTextSegment("\n}");
+                    template.addTextSegment("\n]");
+                    TemplateManager.getInstance(project).startTemplate(editor, template);
+                });
+    }
+
+    public static LookupElement getVectorTemplate(List<String> existingKeys) {
+        return LookupElementBuilder.create("vector_query")
+                .withTypeText("Vector search filter")
+                .withBoldness(true)
+                .withIcon(AllIcons.Json.Object)
+                .withInsertHandler((context, item) -> {
+                    Editor editor = context.getEditor();
+                    Project project = context.getProject();
+
+                    int startOffset = editor.getCaretModel().getOffset() - "vector_query".length();
+
+                    Document document = editor.getDocument();
+                    document.deleteString(startOffset, startOffset + "vector_query".length());
+
+                    TemplateManager templateManager = TemplateManager.getInstance(project);
+                    Template template = templateManager.createTemplate("vector_query", "JSON");
+                    template.setToReformat(true);
+
+                    boolean needsComma = false;
+
+                    if (!existingKeys.contains("field")) {
+                        template.addTextSegment("\"field\" : ");
+                        template.addVariable("field", new TextExpression(""), true);
+                        needsComma = true;
+                    }
+
+                    if (!existingKeys.contains("k")) {
+                        if (needsComma) {
+                            template.addTextSegment(",\n");
+                        }
+                        template.addTextSegment("\"k\" : ");
+                        template.addVariable("k", new TextExpression(""), true);
+                        needsComma = true;
+                    }
+
+                    if (!existingKeys.contains("vector")) {
+                        if (needsComma) {
+                            template.addTextSegment(",\n");
+                        }
+                        template.addTextSegment("\"vector\" : ");
+                        template.addVariable("vector", new TextExpression(""), true);
+                    }
+                    TemplateManager.getInstance(project).startTemplate(editor, template);
+                });
+    }
 }

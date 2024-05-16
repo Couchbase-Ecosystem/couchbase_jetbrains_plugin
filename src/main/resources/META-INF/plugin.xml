@@ -151,6 +151,12 @@
 
     <actions>
 
+        <action id="CouchbaseSearchTools.AddCoordinates"
+                class="com.couchbase.intellij.searchworkbench.actions.AddCoordinatesAction"
+                text="Add Coordinates" description="Add geo coordinates to the JSON object">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+
         <action id="PillowFightAction"
                 class="com.couchbase.intellij.actions.PillowFightAction"
                 text="Couchbase Pillow Fight"

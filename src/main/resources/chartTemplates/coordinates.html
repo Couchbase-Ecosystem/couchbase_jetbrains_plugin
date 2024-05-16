@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Map with JSON Data</title>
+    <title>Interactive Map with JSON Data</title>
+    <link rel="stylesheet" href="JS_LIB_PATH_leaflet.css"/>
+    <script src="JS_LIB_PATH_leaflet.js"></script>
+    <link rel="stylesheet" href="JS_LIB_PATH_leaflet.draw.css"/>
+    <script src="JS_LIB_PATH_leaflet.draw.js"></script>
+
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #mapid {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-popup-content {
+            max-height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+<div id="mapid"></div>
+
+<script>
+    // Initialize map
+    var myMap = L.map('mapid').setView([51.505, -0.09], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(myMap);
+
+    var drawnItems = new L.FeatureGroup();
+    myMap.addLayer(drawnItems);
+
+    var drawControl = new L.Control.Draw({
+        draw: {
+            SHAPE_CHOICE
+        },
+        edit: {
+            featureGroup: drawnItems
+        }
+    });
+    myMap.addControl(drawControl);
+
+    // Global flag to allow multiple shapes
+    var allowMultipleShapes = ALLOW_MULTIPLE;
+
+    // Function to create a popup content string
+    function createPopupContent(jsonObj) {
+        function formatValue(value) {
+            if (Array.isArray(value)) {
+                return value.map(item => formatValue(item)).join('<br>');
+            } else if (typeof value === 'object' && value !== null) {
+                return createPopupContent(value); // Recursive call for nested objects
+            } else {
+                return String(value); // Convert non-string types to string
+            }
+        }
+
+        return Object.keys(jsonObj).map(key => {
+            const value = formatValue(jsonObj[key]);
+            return `<strong>${key}</strong>: ${value}`;
+        }).join('<br>');
+    }
+
+    // Functions to interact with shapes
+    function addCircle(lat, lon, radius) {
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addCircle",
+                data: {lat: lat, lon: lon, radius: radius}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function addPolygon(latlng) {
+        var doubleArray = latlng[0].map(obj => [obj.lat, obj.lng]);
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addPolygon",
+                data: {latlng: doubleArray}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function addLine(latlng) {
+        var doubleArray = latlng.map(obj => [obj.lat, obj.lng]);
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addLine",
+                data: {latlng: doubleArray}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function addRectangle(bounds) {
+        var doubleArray = bounds.map(obj => [obj.lat, obj.lng]);
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addRectangle",
+                data: {bounds: doubleArray}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function addPoint(lat, lon) {
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "addPoint",
+                data: {lat: lat, lon: lon}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    }
+
+    function clearAllShapes() {
+        drawnItems.clearLayers();
+    }
+
+    myMap.on('draw:deleted', function (e) {
+        clearAllShapes();
+        window.javaQuery({
+            request: JSON.stringify({
+                action: "removeShape",
+                data: {}
+            }),
+            onSuccess: function (response) {
+                console.log('Java responded:', response);
+            },
+            onFailure: function (errorCode, errorMessage) {
+                console.error('Error:', errorMessage);
+            }
+        });
+    });
+
+    myMap.on('draw:created', function (e) {
+        var type = e.layerType, layer = e.layer;
+        if (!allowMultipleShapes) {
+            clearAllShapes();
+        }
+        drawnItems.addLayer(layer);
+
+        var latlngs = layer.getLatLngs ? layer.getLatLngs() : [layer.getLatLng()];
+
+        if (type === 'circle') {
+            var center = layer.getLatLng();
+            var radius = layer.getRadius();
+            addCircle(center.lat, center.lng, radius);
+        } else if (type === 'polygon') {
+            addPolygon(latlngs);
+        } else if (type === 'polyline') {
+            addLine(latlngs);
+        } else if (type === 'rectangle') {
+            var bounds = layer.getBounds();
+            var rectangleLatLngs = [
+                bounds.getNorthWest(),
+                bounds.getSouthEast()
+            ];
+            addRectangle(rectangleLatLngs);
+        } else if (type === 'circlemarker') {
+            var center = layer.getLatLng();
+            addPoint(center.lat, center.lng);
+        }
+    });
+
+    // Add a button or some interface to toggle allowMultipleShapes
+    var toggleButton = document.createElement('button');
+    toggleButton.textContent = 'Toggle Multiple Shapes';
+    toggleButton.onclick = function () {
+        allowMultipleShapes = !allowMultipleShapes;
+        alert('Allow Multiple Shapes: ' + allowMultipleShapes);
+    };
+    document.body.appendChild(toggleButton);
+</script>
+</body>
+</html>

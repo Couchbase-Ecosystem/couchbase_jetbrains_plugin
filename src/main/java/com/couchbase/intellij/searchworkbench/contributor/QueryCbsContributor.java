@@ -151,7 +151,7 @@ public class QueryCbsContributor implements CBSContributor {
 
     private List<String> getPolygonContributors(List<String> existingKeys, CompletionResultSet result) {
         return genericContributor(polygon, existingKeys, result,
-                getSingleTemplate("polygon_query", "Polygon-Based Geopoint Queries\n", new ArrayList<>(polygon)));
+                getSingleTemplate("polygon_points_query", "Polygon-Based Geopoint Queries\n", new ArrayList<>(polygon)));
     }
 
     private List<String> getRectangleContributors(List<String> existingKeys, CompletionResultSet result) {
@@ -250,7 +250,7 @@ public class QueryCbsContributor implements CBSContributor {
 
     private List<String> getNumericContributors(List<String> existingKeys, CompletionResultSet result) {
         List<CBSTemplateDef> templates = Arrays.asList(
-                new CBSTemplateDef("numeric_range", "Simple numeric range search", new ArrayList<>(Arrays.asList("field", "start", "end"))),
+                new CBSTemplateDef("numeric_range", "Simple numeric range search", new ArrayList<>(Arrays.asList("field", "min", "max"))),
                 new CBSTemplateDef("numeric_range_all", "Data numeric search with all attributes", new ArrayList<>(numeric))
         );
         return genericContributor(numeric, existingKeys, result, templates);
