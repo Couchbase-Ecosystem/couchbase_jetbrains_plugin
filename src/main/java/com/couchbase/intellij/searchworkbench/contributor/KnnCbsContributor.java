@@ -9,7 +9,7 @@ import java.util.List;
 
 public class KnnCbsContributor implements CBSContributor {
 
-    public static final List<String> keys = Arrays.asList("k", "field", "vector");
+    public static final List<String> keys = Arrays.asList("k", "field", "vector", "boost");
 
     @Override
     public boolean accept(String parentKey) {

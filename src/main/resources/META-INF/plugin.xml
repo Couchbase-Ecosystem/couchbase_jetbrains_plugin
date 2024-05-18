@@ -72,6 +72,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.config.CouchbaseSettingsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.chat.ChatGptHandler"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.intents.IntentProcessor"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceFactory"/>
@@ -147,13 +148,25 @@
 
         <completion.contributor language="sqlppl"
                                 implementationClass="org.intellij.sdk.language.completion.cblite.SqlppLiteCompletionContributor"/>
+
+        <applicationConfigurable instance="com.couchbase.intellij.config.CouchbaseConfigurable"/>
+
     </extensions>
 
     <actions>
 
+        <action id="CouchbaseSearchTools.Separator" class="com.intellij.openapi.actionSystem.Separator">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        
         <action id="CouchbaseSearchTools.AddCoordinates"
                 class="com.couchbase.intellij.searchworkbench.actions.AddCoordinatesAction"
                 text="Add Coordinates" description="Add geo coordinates to the JSON object">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="CouchbaseSearchTools.AddEmbedding"
+                class="com.couchbase.intellij.searchworkbench.actions.AddEmbeddingAction"
+                text="Add Embedding" description="Generate embeddings for a given text">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
 

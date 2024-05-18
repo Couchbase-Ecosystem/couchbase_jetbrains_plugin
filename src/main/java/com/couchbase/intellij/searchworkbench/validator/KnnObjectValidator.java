@@ -20,7 +20,8 @@ public class KnnObjectValidator implements SearchObjectValidator {
         for (JsonProperty property : jsonObject.getPropertyList()) {
             if (!"k".equals(property.getName())
                     && !"field".equals(property.getName())
-                    && !"vector".equals(property.getName())) {
+                    && !"vector".equals(property.getName())
+                    && !"boost".equals(property.getName())) {
                 holder.registerProblem(property, getUnexpectedAttUnderKnn(property.getName()), ProblemHighlightType.GENERIC_ERROR);
             }
         }
