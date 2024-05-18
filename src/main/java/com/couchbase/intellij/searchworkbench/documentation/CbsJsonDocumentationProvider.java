@@ -1,11 +1,11 @@
 package com.couchbase.intellij.searchworkbench.documentation;
 
+import com.couchbase.intellij.workbench.chart.ChartUtil;
 import com.intellij.json.JsonFileType;
 import com.intellij.json.psi.JsonArray;
 import com.intellij.json.psi.JsonFile;
 import com.intellij.json.psi.JsonProperty;
 import com.intellij.lang.documentation.DocumentationProvider;
-import com.intellij.openapi.util.NlsContexts;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiFileFactory;
@@ -24,7 +24,17 @@ public class CbsJsonDocumentationProvider implements DocumentationProvider {
             if (element instanceof JsonProperty) {
                 JsonProperty property = (JsonProperty) element;
                 String key = property.getName();
-                return getDocumentationForKey(key);
+
+                String type = null;
+                if (property.getParent() != null && property.getParent().getParent() instanceof JsonFile) {
+                    type = null;
+                } else if (property.getParent() != null && property.getParent().getParent() instanceof JsonProperty) {
+                    type = ((JsonProperty) property.getParent().getParent()).getName();
+                } else if (property.getParent().getParent() instanceof JsonArray) {
+                    type = ((JsonProperty) property.getParent().getParent().getParent()).getName();
+                }
+
+                return getDocumentationForKey(key, type);
             }
         }
         return null;
@@ -35,43 +45,126 @@ public class CbsJsonDocumentationProvider implements DocumentationProvider {
         return file != null && file.getName().endsWith(".cbs.json");
     }
 
-
-    private String getDocumentationForKey(String key) {
+    private String getDocumentationForKey(String key, String type) {
         // Provide documentation for each key
         switch (key) {
-            case "key1":
-                return "Documentation for key1: This key does ...";
-            case "key2":
-                return "Documentation for key2: This key is used for ...";
-            // Add more keys as necessary
+            case "query":
+                if (type == null) {
+                    return ChartUtil.loadResourceAsString("/docs/search/query.html");
+                } else {
+                    return ChartUtil.loadResourceAsString("/docs/search/query_string.html");
+                }
+            case "must":
+                return ChartUtil.loadResourceAsString("/docs/search/must.html");
+            case "must_not":
+                return ChartUtil.loadResourceAsString("/docs/search/must_not.html");
+            case "should":
+                return ChartUtil.loadResourceAsString("/docs/search/should.html");
+            case "conjuncts":
+                return ChartUtil.loadResourceAsString("/docs/search/conjuncts.html");
+            case "disjuncts":
+                return ChartUtil.loadResourceAsString("/docs/search/disjuncts.html");
+            case "match":
+                return ChartUtil.loadResourceAsString("/docs/search/match.html");
+            case "match_phrase":
+                return ChartUtil.loadResourceAsString("/docs/search/match_phrase.html");
+            case "bool":
+                return ChartUtil.loadResourceAsString("/docs/search/bool.html");
+            case "prefix":
+                return ChartUtil.loadResourceAsString("/docs/search/prefix.html");
+            case "regexp":
+                return ChartUtil.loadResourceAsString("/docs/search/regexp.html");
+            case "term":
+                return ChartUtil.loadResourceAsString("/docs/search/term.html");
+            case "terms":
+                return ChartUtil.loadResourceAsString("/docs/search/terms.html");
+            case "wildcard":
+                return ChartUtil.loadResourceAsString("/docs/search/wildcard.html");
+            case "min":
+                return ChartUtil.loadResourceAsString("/docs/search/min.html");
+            case "max":
+                return ChartUtil.loadResourceAsString("/docs/search/max.html");
+            case "inclusive_max":
+                return ChartUtil.loadResourceAsString("/docs/search/inclusive_max.html");
+            case "inclusive_min":
+                return ChartUtil.loadResourceAsString("/docs/search/inclusive_min.html");
+            case "start":
+                return ChartUtil.loadResourceAsString("/docs/search/start.html");
+            case "end":
+                return ChartUtil.loadResourceAsString("/docs/search/end.html");
+            case "inclusive_start":
+                return ChartUtil.loadResourceAsString("/docs/search/inclusive_start.html");
+            case "inclusive_end":
+                return ChartUtil.loadResourceAsString("/docs/search/inclusive_end.html");
+            case "cidr":
+                return ChartUtil.loadResourceAsString("/docs/search/cidr.html");
+            case "knn":
+                return ChartUtil.loadResourceAsString("/docs/search/knn.html");
+            case "k":
+                return ChartUtil.loadResourceAsString("/docs/search/k.html");
+            case "vector":
+                return ChartUtil.loadResourceAsString("/docs/search/vector.html");
+            case "distance":
+                return ChartUtil.loadResourceAsString("/docs/search/distance.html");
+            case "location":
+                return ChartUtil.loadResourceAsString("/docs/search/location.html");
+            case "lat":
+                return ChartUtil.loadResourceAsString("/docs/search/lat.html");
+            case "lon":
+                return ChartUtil.loadResourceAsString("/docs/search/lon.html");
+            case "top_left":
+                return ChartUtil.loadResourceAsString("/docs/search/top_left.html");
+            case "bottom_right":
+                return ChartUtil.loadResourceAsString("/docs/search/bottom_right.html");
+            case "polygon_points":
+                return ChartUtil.loadResourceAsString("/docs/search/polygon_points.html");
+            case "geometry":
+                return ChartUtil.loadResourceAsString("/docs/search/geometry.html");
+            case "shape":
+                return ChartUtil.loadResourceAsString("/docs/search/shape.html");
+            case "type":
+                if ("shape".equals(type)) {
+                    return ChartUtil.loadResourceAsString("/docs/search/type_shape.html");
+                } else {
+                    return ChartUtil.loadResourceAsString("/docs/search/type_facet.html");
+                }
+            case "coordinates":
+                return ChartUtil.loadResourceAsString("/docs/search/coordinates.html");
+            case "relation":
+                return ChartUtil.loadResourceAsString("/docs/search/relation.html");
+            case "geometries":
+                return ChartUtil.loadResourceAsString("/docs/search/geometries.html");
+            case "radius":
+                return ChartUtil.loadResourceAsString("/docs/search/radius.html");
+            case "match_all":
+                return ChartUtil.loadResourceAsString("/docs/search/match_all.html");
+            case "match_none":
+                return ChartUtil.loadResourceAsString("/docs/search/match_none.html");
+            case "analyzer":
+                return ChartUtil.loadResourceAsString("/docs/search/analyzer.html");
+            case "boost":
+                return ChartUtil.loadResourceAsString("/docs/search/boost.html");
+            case "field":
+                return ChartUtil.loadResourceAsString("/docs/search/field.html");
+            case "fuzziness":
+                return ChartUtil.loadResourceAsString("/docs/search/fuzziness.html");
+            case "operator":
+                return ChartUtil.loadResourceAsString("/docs/search/operator.html");
+            case "prefix_length":
+                return ChartUtil.loadResourceAsString("/docs/search/prefix_length.html");
+            case "size":
+            case "limit":
+                return ChartUtil.loadResourceAsString("/docs/search/limit.html");
+            case "from":
+            case "offset":
+                return ChartUtil.loadResourceAsString("/docs/search/offset.html");
+            case "fields":
+                return ChartUtil.loadResourceAsString("/docs/search/fields.html");
             default:
                 return "No documentation available for this key.";
         }
     }
 
-    @Override
-    public @Nullable
-    @NlsContexts.PopupTitle String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {
-        if (element instanceof JsonProperty) {
-            JsonProperty property = (JsonProperty) element;
-            String key = property.getName();
-            return getQuickInfoForKey(key);
-        }
-        return null;
-    }
-
-    private String getQuickInfoForKey(String key) {
-        // Provide quick navigate info for each key
-        switch (key) {
-            case "key1":
-                return "Quick info for key1: This key is used for ...";
-            case "key2":
-                return "Quick info for key2: This key represents ...";
-            // Add more keys as necessary
-            default:
-                return "No quick info available for this key.";
-        }
-    }
 
     @Override
     public @Nullable List<String> getUrlFor(PsiElement element, PsiElement originalElement) {
@@ -80,12 +173,12 @@ public class CbsJsonDocumentationProvider implements DocumentationProvider {
             String key = property.getName();
 
             String type;
-            if (property.getParent() instanceof JsonFile) {
+            if (property.getParent() != null && property.getParent().getParent() instanceof JsonFile) {
                 type = null;
-            } else if (property.getParent() instanceof JsonProperty) {
-                type = ((JsonProperty) property.getParent()).getName();
-            } else if (property.getParent() instanceof JsonArray) {
+            } else if (property.getParent() != null && property.getParent().getParent() instanceof JsonProperty) {
                 type = ((JsonProperty) property.getParent().getParent()).getName();
+            } else if (property.getParent().getParent() instanceof JsonArray) {
+                type = ((JsonProperty) property.getParent().getParent().getParent()).getName();
             } else {
                 throw new NotImplementedException("type is not supported");
             }
@@ -158,7 +251,36 @@ public class CbsJsonDocumentationProvider implements DocumentationProvider {
                 return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#additional-query-properties");
             case "ctl":
                 return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#ctl");
-                
+            case "consistency":
+            case "level":
+            case "results":
+                return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#consistency");
+            case "vectors":
+                return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#vectors");
+            case "highlight":
+            case "style":
+                return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#highlight");
+            case "fields":
+                if ("highlight".equals(type)) {
+                    return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#highlight");
+                } else {
+                    return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html");
+                }
+            case "size":
+            case "limit":
+            case "from":
+            case "offset":
+            case "includeLocations":
+            case "explain":
+            case "score":
+            case "search_after":
+            case "search_before":
+            case "collections":
+                return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html");
+            case "sort":
+                return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#sort");
+            case "relation":
+                return Collections.singletonList("https://docs.couchbase.com/server/current/search/search-request-params.html#geojson-queries-point");
             default:
                 return null;
         }
