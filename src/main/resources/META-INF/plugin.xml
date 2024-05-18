@@ -151,6 +151,11 @@
 
         <applicationConfigurable instance="com.couchbase.intellij.config.CouchbaseConfigurable"/>
 
+        <lang.documentationProvider
+                language="JSON"
+                implementationClass="com.couchbase.intellij.searchworkbench.documentation.CbsJsonDocumentationProvider"/>
+
+
     </extensions>
 
     <actions>
@@ -158,7 +163,7 @@
         <action id="CouchbaseSearchTools.Separator" class="com.intellij.openapi.actionSystem.Separator">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
         </action>
-        
+
         <action id="CouchbaseSearchTools.AddCoordinates"
                 class="com.couchbase.intellij.searchworkbench.actions.AddCoordinatesAction"
                 text="Add Coordinates" description="Add geo coordinates to the JSON object">
