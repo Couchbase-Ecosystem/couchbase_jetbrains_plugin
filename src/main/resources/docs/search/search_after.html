@@ -1,0 +1,21 @@
+<html>
+Use <strong style="color: #6aab73">search_after</strong> with <strong style="color: #6aab73">from</strong>/<strong
+        style="color: #6aab73">offset</strong> and sort to control pagination in search results.<br><br>
+
+Give a value for each string or JSON object in the <strong style="color: #6aab73">sort</strong> array to the <strong
+        style="color: #6aab73">search_after</strong> array. The Search Service starts
+search result pagination after the document with those values.<br><br>
+
+You must provide the values in the same order that they appear in the <strong style="color: #6aab73">sort</strong>
+array.<br><br>
+
+For example, if you had a set of 10 documents to sort based on _id values of 1-10, with <strong style="color: #6aab73">from</strong>
+set to 2 and <strong style="color: #6aab73">search_after</strong> set to 8, documents 9-10 appear on the same page.
+<br>
+<br>
+<hr style="border: 0; height: 1px; background-color: dimgray;">
+<br>
+<strong>Note</strong>: If you use <strong style="color: #6aab73">search_after</strong> in a search request, you can’t
+use <strong style="color: #6aab73">search_before</strong>. Both properties are included in the example code to show the
+correct syntax.
+</html>

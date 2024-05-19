@@ -47,6 +47,11 @@ public class RootObjectValidator implements SearchObjectValidator {
                 holder.registerProblem(jsonObject, getQueryOrKnnReqMessage(), ProblemHighlightType.GENERIC_ERROR);
             }
 
+            if (counter.getOrDefault("search_before", 0) == 1
+                    && counter.getOrDefault("search_after", 0) == 1) {
+                holder.registerProblem(jsonObject, "'search_before' and 'search_after' can't be used in the same query", ProblemHighlightType.GENERIC_ERROR);
+            }
+
             for (Map.Entry<String, Integer> entry : counter.entrySet()) {
                 if (entry.getValue() > 1) {
                     holder.registerProblem(jsonObject, getSingleOccurrenceErrorMessage(entry.getKey()), ProblemHighlightType.GENERIC_ERROR);

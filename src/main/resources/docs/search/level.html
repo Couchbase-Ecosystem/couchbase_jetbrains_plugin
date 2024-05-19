@@ -1,0 +1,13 @@
+<html>
+
+Set the consistency to bounded or unbounded consistency:<br><br>
+
+&rarr; <strong style="color: #6aab73">at_plus</strong>: The Search query executes but requires that the Search index
+matches the timestamp of the last document update.
+You must provide a <strong style="color: #6aab73">vectors</strong> object<br><br>
+
+&rarr; <strong style="color: #6aab73">not_bounded</strong>: The Search query executes without a consistency requirement.
+<strong style="color: #6aab73">not_bounded</strong> is faster than <strong style="color: #6aab73">at_plus</strong>, as
+it doesn't rely on a <strong style="color: #6aab73">vectors</strong> object or wait for the Search index to match the
+Data Service index.<br><br>
+</html>

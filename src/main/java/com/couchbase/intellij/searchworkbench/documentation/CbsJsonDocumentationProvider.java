@@ -160,6 +160,38 @@ public class CbsJsonDocumentationProvider implements DocumentationProvider {
                 return ChartUtil.loadResourceAsString("/docs/search/offset.html");
             case "fields":
                 return ChartUtil.loadResourceAsString("/docs/search/fields.html");
+            case "facets":
+                return ChartUtil.loadResourceAsString("/docs/search/facets.html");
+            case "explain":
+                return ChartUtil.loadResourceAsString("/docs/search/explain.html");
+            case "sort":
+                return ChartUtil.loadResourceAsString("/docs/search/sort.html");
+            case "includeLocations":
+                return ChartUtil.loadResourceAsString("/docs/search/includeLocations.html");
+            case "score":
+                return ChartUtil.loadResourceAsString("/docs/search/score.html");
+            case "search_after":
+                return ChartUtil.loadResourceAsString("/docs/search/search_after.html");
+            case "search_before":
+                return ChartUtil.loadResourceAsString("/docs/search/search_before.html");
+            case "collections":
+                return ChartUtil.loadResourceAsString("/docs/search/collections.html");
+            case "ctl":
+                return ChartUtil.loadResourceAsString("/docs/search/ctl.html");
+            case "timeout":
+                return ChartUtil.loadResourceAsString("/docs/search/timeout.html");
+            case "consistency":
+                return ChartUtil.loadResourceAsString("/docs/search/consistency.html");
+            case "vectors":
+                return ChartUtil.loadResourceAsString("/docs/search/vectors.html");
+            case "level":
+                return ChartUtil.loadResourceAsString("/docs/search/level.html");
+            case "results":
+                return ChartUtil.loadResourceAsString("/docs/search/results.html");
+            case "highlight":
+                return ChartUtil.loadResourceAsString("/docs/search/highlight.html");
+            case "style":
+                return ChartUtil.loadResourceAsString("/docs/search/style.html");
             default:
                 return "No documentation available for this key.";
         }
