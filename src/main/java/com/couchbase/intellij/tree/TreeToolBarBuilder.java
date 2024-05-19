@@ -64,6 +64,44 @@ public class TreeToolBarBuilder {
 
         newWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_query.svg", CouchbaseWindowContent.class));
 
+
+        AnAction newSearchWorkbench = new AnAction("New Search Workbench") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    try {
+                        Project project = e.getProject();
+                        TreeRightClickListener.searchWorkbenchCounter++;
+                        String fileName = "search" + TreeRightClickListener.searchWorkbenchCounter + ".cbs.json";
+                        String fileContent = """
+                                {
+                                  "query": {
+                                        "query": "your_query_here"
+                                  },
+                                  "fields": ["*"]
+                                }
+                                        """;
+                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("cbs.json"), fileContent);
+                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                        fileEditorManager.openFile(virtualFile, true);
+                    } catch (Exception ex) {
+                        Log.error(ex);
+                        ex.printStackTrace();
+                    }
+                });
+            }
+
+            @Override
+            public void update(AnActionEvent e) {
+                boolean shouldEnable = ActiveCluster.getInstance().hasSearchService();
+                e.getPresentation().setEnabled(shouldEnable);
+                e.getPresentation().setVisible(shouldEnable);
+            }
+        };
+
+        newSearchWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/search_workbench.svg", CouchbaseWindowContent.class));
+
+
         AnAction addConnectionAction = new AnAction("Add New Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -139,6 +177,7 @@ public class TreeToolBarBuilder {
         leftActionGroup.addSeparator();
 
         leftActionGroup.add(newWorkbench);
+        leftActionGroup.add(newSearchWorkbench);
         leftActionGroup.addSeparator();
 
 

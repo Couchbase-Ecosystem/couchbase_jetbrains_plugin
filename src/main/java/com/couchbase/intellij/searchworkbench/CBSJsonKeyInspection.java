@@ -38,8 +38,9 @@ public class CBSJsonKeyInspection extends LocalInspectionTool {
             return new JsonInspectionVisitor(holder);
         }
 
-        return null;
+        return new JsonElementVisitor();
     }
+    
 
     private static class JsonInspectionVisitor extends JsonElementVisitor {
 

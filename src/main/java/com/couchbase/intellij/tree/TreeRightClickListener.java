@@ -63,7 +63,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
 
-    private static int searchWorkbenchCounter = 0;
+    public static int searchWorkbenchCounter = 0;
 
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
