@@ -99,7 +99,7 @@ public class TreeToolBarBuilder {
             }
         };
 
-        newSearchWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/search_workbench.svg", CouchbaseWindowContent.class));
+        newSearchWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/search_workbench2.svg", CouchbaseWindowContent.class));
 
 
         AnAction addConnectionAction = new AnAction("Add New Connection") {
