@@ -28,7 +28,9 @@ public class KnnCbsContributor implements CBSContributor {
 
     @Override
     public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors, Map<String, String> fields) {
-        //do nothing
+        if (attributeKey.equals("field")) {
+            contributors.addAll(fields.keySet());
+        }
     }
 
 }
