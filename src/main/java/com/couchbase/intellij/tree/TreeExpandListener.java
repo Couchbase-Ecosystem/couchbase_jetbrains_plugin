@@ -19,7 +19,7 @@ public class TreeExpandListener {
                 DataLoader.listBuckets(expandedTreeNode, tree);
             } else if (expandedTreeNode.getUserObject() instanceof BucketNodeDescriptor) {
                 DataLoader.listScopes(expandedTreeNode, tree);
-            } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
+            } else if (expandedTreeNode.getUserObject() instanceof CollectionsNodeDescriptor) {
                 DataLoader.listCollections(expandedTreeNode, tree);
             } else if (expandedTreeNode.getUserObject() instanceof CollectionNodeDescriptor) {
                 DataLoader.listDocuments(expandedTreeNode, tree, 0);
@@ -27,8 +27,12 @@ public class TreeExpandListener {
                 DataLoader.showSchema(expandedTreeNode, (DefaultTreeModel) tree.getModel(), tree);
             } else if (expandedTreeNode.getUserObject() instanceof TooltipNodeDescriptor) {
                 // Do Nothing
+            } else if (expandedTreeNode.getUserObject() instanceof ScopeNodeDescriptor) {
+                // Do Nothing
             } else if (expandedTreeNode.getUserObject() instanceof IndexesNodeDescriptor) {
                 DataLoader.listIndexes(expandedTreeNode, tree);
+            } else if (expandedTreeNode.getUserObject() instanceof SearchNodeDescriptor) {
+                DataLoader.listSearchIndexes(expandedTreeNode, tree);
             } else {
                 throw new UnsupportedOperationException("Not implemented yet");
             }

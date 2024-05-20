@@ -1,6 +1,5 @@
 package org.intellij.sdk.language.completion;
 
-import com.couchbase.client.core.projections.PathElement;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
@@ -12,10 +11,8 @@ import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.ui.TreeActions;
 import com.intellij.util.ProcessingContext;
 import generated.GeneratedTypes;
-import generated.psi.Alias;
 import generated.psi.KeyspaceRef;
 import generated.psi.Statement;
 import generated.psi.impl.AliasImpl;
@@ -61,7 +58,7 @@ public class Utils {
         public boolean accepts(@NotNull PsiElement psiElement, ProcessingContext context) {
             boolean fileDetected = false;
             PsiElement prevSibling = null;
-            if ((psiElement.getParent() instanceof PsiErrorElement && psiElement.getParent().getParent() instanceof PsiFile) ) {
+            if ((psiElement.getParent() instanceof PsiErrorElement && psiElement.getParent().getParent() instanceof PsiFile)) {
                 prevSibling = psiElement.getParent().getPrevSibling();
                 fileDetected = true;
             } else if (psiElement.getParent() instanceof PsiFile) {
@@ -285,6 +282,7 @@ public class Utils {
             if (!isFakeInitializer(element)) {
                 result.add(0, getIdentifier(element).replaceAll("(?i)intellijidearulezzz", ""));
             }
+
             if (element.getPrevSibling() != null && element.getPrevSibling().getNode().getElementType() == GeneratedTypes.BACKTICK) {
                 element = element.getPrevSibling();
             }
@@ -345,8 +343,8 @@ public class Utils {
                     .filter(c -> c.getName().equalsIgnoreCase(s));
         } else {
             options = ActiveCluster.getInstance().navigate(context)
-              .flatMap(scope -> scope.getChildren().stream())
-              .map(c -> (CouchbaseCollection) c);
+                    .flatMap(scope -> scope.getChildren().stream())
+                    .map(c -> (CouchbaseCollection) c);
         }
 
         Set<List<String>> matches = options

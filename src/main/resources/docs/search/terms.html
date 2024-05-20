@@ -1,0 +1,15 @@
+<html>
+Use the <strong style="color: #6aab73">terms</strong> array to run a phrase query. The Search Service searches for the
+strings you provide in the <strong style="color: #6aab73">terms</strong> array in the specified order.<br><br>
+
+Unlike the match_phrase property, the <strong style="color: #6aab73">terms</strong> array does not use any analyzers on
+the contents of your query text.<br><br>
+
+For example, set the <strong style="color: #6aab73">terms</strong> array to ["nice", "view"]. The Search Service looks
+for any occurrences of nice in a document that are followed by an occurrence of view.<br><br>
+
+To use a phrase query:<br>
+&rarr;You must set the field property in your search query.<br>
+&rarr;You must have Include Term Vectors enabled or the include_term_vectors property set to true on the field you want
+to search.
+</html>

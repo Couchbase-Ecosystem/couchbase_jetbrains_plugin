@@ -1,0 +1,93 @@
+<html>
+
+An array of coordinate floating point values that define the GeoJSON shape.<br><br>
+The Search Service uses the first value in the coordinates array as the longitude value.
+
+<h4>Point Query</h4>
+For a <strong style="color: #6aab73">Point</strong> query, set the <strong style="color: #6aab73">coordinates</strong>
+array to a single array with a longitude
+and latitude value<br><br>
+
+<h4>LineString Query</h4>
+For a <strong style="color: #6aab73">LineString</strong> query, the <strong style="color: #6aab73">coordinates</strong>
+array can contain multiple coordinate point arrays.<br><br>
+
+<h4>Polygon Query</h4>
+
+An array that contains an outer array, and arrays of 2 coordinate floating point values that define the GeoJSON Polygon
+shape.<br><br>
+
+The Search Service uses the first value in any nested <strong style="color: #6aab73">coordinates</strong> array as the
+longitude value for the
+coordinate.<br><br>
+
+The Search Service also follows strict GeoJSON syntax, and expects exterior coordinates in a polygon to be in
+counterclockwise order.<br><br>
+
+<h4>MultiPoint Query</h4>
+An array that contains arrays of 2 coordinate floating point values that define the GeoJSON MultiPoint shape.<br><br>
+
+<h4>MultiLineString Query</h4>
+
+An array that contains nested arrays, each with their own nested arrays of 2 coordinate floating point values.<br><br>
+
+For example, the following coordinates array defines 2 LineStrings with start and end points:<br><br>
+<pre>
+    "coordinates": [
+    [
+        [1.954764, 50.962097], [3.029578, 49.868547]
+    ],
+
+    [
+        [3.029578, 49.868547], [-0.387444, 48.545836]
+    ]
+]
+</pre>
+
+The innermost arrays define the individual points for a LineString in the MultiLineString shape.<br><br>
+
+<h4>MultiPolygon Query</h4>
+An array that contains arrays that describe a GeoJSON Polygon shape.<br><br>
+
+Each inner array that describes a Polygon can contain multiple arrays with 2 coordinate floating point values. These
+innermost arrays describe the coordinates of the Polygon.<br><br>
+
+The Search Service also follows strict GeoJSON syntax, and expects exterior coordinates in a polygon to be in
+counterclockwise order<br>
+
+
+<h4>GeometryCollection Query</h4>
+
+An array or array of arrays that describes a GeoJSON shape.<br><br>
+
+The exact structure of the arrays depends on the shape:<br><br>
+
+&rarr;Point<br>
+&rarr;LineString<br>
+&rarr;Polygon<br>
+&rarr;MultiPoint<br>
+&rarr;MultiLineString<br>
+&rarr;MultiPolygon<br>
+
+For any array that contains only floating point values, the Search Service uses the first value as the
+longitude.<br><br>
+The Search Service also follows strict GeoJSON syntax, and expects exterior coordinates in a polygon to be in
+counterclockwise order.
+
+
+<h4>Circle Query</h4>
+An array of coordinate floating point values that define the center point of the Circle.<br><br>
+
+Set the <strong style="color: #6aab73">coordinates</strong> array to a single array with a longitude and latitude value.
+
+<h4>Envelope Query</h4>
+
+An array of 2 different arrays that contain coordinate floating point values.<br><br>
+
+The first <strong style="color: #6aab73">coordinates</strong> nested array contains the minimum longitude and maximum
+latitude, or the top-left corner of the
+rectangle.<br><br>
+
+The second nested array contains the maximum longitude and minimum latitude, or the bottom-right corner.<br><br>
+
+</html>

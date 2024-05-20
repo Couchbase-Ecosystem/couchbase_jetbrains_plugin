@@ -1,7 +1,9 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.InferHelper;
@@ -61,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 
 public class TreeRightClickListener {
 
+    public static int searchWorkbenchCounter = 0;
+
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
         int row = tree.getClosestRowForLocation(e.getX(), e.getY());
@@ -76,6 +80,8 @@ public class TreeRightClickListener {
             handleCollectionRightClick(project, e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
         } else if (userObject instanceof FileNodeDescriptor) {
             handleDocumentRightClick(project, e, clickedNode, (FileNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof SearchIndexNodeDescriptor) {
+            handleSearchIndexRightClick(project, e, clickedNode, (SearchIndexNodeDescriptor) userObject, tree);
         } else if (userObject instanceof IndexNodeDescriptor) {
             handleIndexRightClick(project, e, clickedNode, (IndexNodeDescriptor) userObject, tree);
         } else if (userObject instanceof SchemaDataNodeDescriptor) {
@@ -784,6 +790,84 @@ public class TreeRightClickListener {
                 }
             };
             actionGroup.add(simpleExport);
+        }
+
+        showPopup(e, tree, actionGroup);
+    }
+
+
+    private static void handleSearchIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, SearchIndexNodeDescriptor idx, Tree tree) {
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
+
+
+        AnAction newWorkbench = new AnAction("New Search Workbench") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    try {
+                        Project project = e.getProject();
+                        searchWorkbenchCounter++;
+                        String fileName = "search" + searchWorkbenchCounter + ".cbs.json";
+                        String fileContent = """
+                                {
+                                  "query": {
+                                        "query": "your_query_here"
+                                  },
+                                  "fields": ["*"]
+                                }
+                                        """;
+                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("cbs.json"), fileContent);
+                        virtualFile.putUserData(VirtualFileKeys.BUCKET, idx.getBucket());
+                        virtualFile.putUserData(VirtualFileKeys.SEARCH_INDEX, idx.getIndexName());
+                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                        fileEditorManager.openFile(virtualFile, true);
+                    } catch (Exception ex) {
+                        Log.error(ex);
+                        ex.printStackTrace();
+                    }
+                });
+            }
+        };
+
+        actionGroup.add(newWorkbench);
+
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            AnAction deleteDoc = new AnAction("Delete Index") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the index <strong>" + idx.getIndexName() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
+                    if (result != Messages.YES) {
+                        return;
+                    }
+
+                    try {
+                        SearchIndexManager idxManager = ActiveCluster.getInstance().get().searchIndexes();
+                        idxManager.dropIndex(idx.getIndexName());
+
+                        if (idx.getVirtualFile() != null) {
+                            try {
+                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+                                fileEditorManager.closeFile(idx.getVirtualFile());
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                Log.debug("Could not close the file", ex);
+                            }
+                        }
+
+                        DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                        if (parentNode != null) {
+                            ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
+                        }
+                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        Log.error("An error occurred while trying to delete the index " + idx.getIndexName(), ex);
+                        Messages.showErrorDialog("Could not delete the index. Please check the logs for more.", "Couchbase Plugin Error");
+                    }
+
+                }
+            };
+            actionGroup.add(deleteDoc);
         }
 
         showPopup(e, tree, actionGroup);

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
@@ -121,10 +122,19 @@ public class CouchbaseWindowContent extends JPanel {
                             } else {
                                 Log.debug("virtual file is null");
                             }
-                        } else if (userObject instanceof IndexNodeDescriptor) {
-                            IndexNodeDescriptor descriptor = (IndexNodeDescriptor) userObject;
+                        } else if (userObject instanceof IndexNodeDescriptor descriptor) {
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
+                                OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
+                                FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
+
+                            } else {
+                                Log.debug("virtual file is null");
+                            }
+                        } else if (userObject instanceof SearchIndexNodeDescriptor descriptor) {
+                            VirtualFile virtualFile = descriptor.getVirtualFile();
+                            if (virtualFile != null) {
+                                DocumentFormatter.formatFile(project, virtualFile);
                                 OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
                                 FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
 

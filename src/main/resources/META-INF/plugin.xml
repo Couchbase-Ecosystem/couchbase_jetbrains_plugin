@@ -30,11 +30,7 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>You can now easily migrate from mongodb to Couchbase!</li>
-          <li>JSON Documents now suggests attribute keys</li>
-          <li>We automatically add limit to your SQL++ Queries</li>
-          <li>Favorite Queries has a new tab called "Built-in Queries"</li>
-          <li>Document Ids can now contain special chars</li>
+          <li>Now the collection listing can use whatever index you have in the collection</li>
           <li>Bug fixes</li>
         </ul>
         ]]>
@@ -76,6 +72,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.config.CouchbaseSettingsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.chat.ChatGptHandler"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.intents.IntentProcessor"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.spi.OpenAiServiceFactory"/>
@@ -118,6 +115,8 @@
         <completion.contributor language="JSON"
                                 implementationClass="org.intellij.sdk.language.JsonKeyCompletionContributor"/>
 
+        <completion.contributor language="JSON"
+                                implementationClass="com.couchbase.intellij.searchworkbench.contributor.CBSCodeCompletionContributor"/>
 
         <fileType name="SQL++ Lite file"
                   implementationClass="com.couchbase.intellij.tree.cblite.sqlppl.SQLPPLiteFileType"
@@ -130,15 +129,51 @@
                 language="sqlppl"
                 implementationClass="org.intellij.sdk.language.cblite.SqlppLiteSyntaxHighlighterFactory"/>
 
+        <fileType name="Couchbase Search Query"
+                  implementationClass="com.couchbase.intellij.searchworkbench.CBSJsonFileType"
+                  fieldName="INSTANCE"
+                  language="JSON"
+                  extensions="cbs.json"/>
+        <fileEditorProvider implementation="com.couchbase.intellij.searchworkbench.SearchFileEditorProvider"/>
+        <localInspection
+                language="JSON"
+                displayName="Couchbase Search annotation"
+                enabledByDefault="true"
+                groupName="Couchbase inspections"
+                implementationClass="com.couchbase.intellij.searchworkbench.CBSJsonKeyInspection"/>
+
         <lang.parserDefinition
                 language="sqlppl"
                 implementationClass="org.intellij.sdk.language.cblite.SqlppLiteParserDefinition"/>
 
         <completion.contributor language="sqlppl"
                                 implementationClass="org.intellij.sdk.language.completion.cblite.SqlppLiteCompletionContributor"/>
+
+        <applicationConfigurable instance="com.couchbase.intellij.config.CouchbaseConfigurable"/>
+
+        <lang.documentationProvider
+                language="JSON"
+                implementationClass="com.couchbase.intellij.searchworkbench.documentation.CbsJsonDocumentationProvider"/>
+
+
     </extensions>
 
     <actions>
+
+        <action id="CouchbaseSearchTools.Separator" class="com.intellij.openapi.actionSystem.Separator">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+
+        <action id="CouchbaseSearchTools.AddCoordinates"
+                class="com.couchbase.intellij.searchworkbench.actions.AddCoordinatesAction"
+                text="Add Coordinates" description="Add geo coordinates to the JSON object">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
+        <action id="CouchbaseSearchTools.AddEmbedding"
+                class="com.couchbase.intellij.searchworkbench.actions.AddEmbeddingAction"
+                text="Add Embedding" description="Generate embeddings for a given text">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+        </action>
 
         <action id="PillowFightAction"
                 class="com.couchbase.intellij.actions.PillowFightAction"

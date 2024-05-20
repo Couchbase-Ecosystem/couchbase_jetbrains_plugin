@@ -1,0 +1,20 @@
+<html>
+Use the <strong style="color: #6aab73">operator</strong> property to modify the behavior of a match query:<br><br>
+
+&rarr; <strong style="color: #6aab73">"and"</strong>: Any spaces between terms in the match property are interpreted as
+the AND
+operator. Documents must match all of the terms in the query.<br><br>
+
+&rarr; <strong style="color: #6aab73">"or"</strong>: Any spaces between terms in the match property are interpreted as
+the OR
+operator. Documents must match at least
+one of the terms in the query.<br><br>
+
+For example, if you set a <strong style="color: #6aab73">match</strong> property to the value "good great" and the
+<strong style="color: #6aab73">operator</strong> property to "and", the Search Service only returns matches for
+documents that contain good and great.<br><br>
+
+If you set the <strong style="color: #6aab73">operator</strong> property to "or", a document only needs to contain one
+of the terms from the <strong style="color: #6aab73">match</strong> property: good or great.<br><br>
+
+</html>

@@ -1,6 +1,6 @@
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.17.2"
+    id("org.jetbrains.intellij") version "1.17.3"
 }
 
 group = "com.couchbase"
@@ -60,6 +60,7 @@ dependencies {
     testImplementation("org.testcontainers:couchbase:1.19.7")
     testImplementation("org.testcontainers:junit-jupiter:1.19.7")
 
+
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -68,7 +69,7 @@ intellij {
     version.set("2023.3.5")
     type.set("IC") // Target IDE Platform
 
-    plugins.set(listOf(/* Plugin Dependencies */))
+    plugins.set(listOf("com.intellij.java"))
 }
 
 tasks {
@@ -92,4 +93,13 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
+
+    val patchArgs =
+        listOf("--add-exports java.desktop/sun.awt=ALL-UNNAMED --add-opens java.desktop/java.awt=ALL-UNNAMED")
+
+    test {
+        jvmArgs(patchArgs)
+    }
 }
+
+

@@ -23,9 +23,16 @@ public class CBConfigUtil {
     }
 
     public static boolean hasQueryService(List<String> services) {
-        if(services == null) {
+        if (services == null) {
             return false;
         }
         return services.contains("n1ql");
+    }
+
+    public static boolean hasSearchService(List<String> services) {
+        if (services == null) {
+            return false;
+        }
+        return services.contains("fts");
     }
 }
