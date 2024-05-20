@@ -1,6 +1,7 @@
 package com.couchbase.intellij.searchworkbench;
 
 
+import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -201,8 +202,23 @@ public class SearchFileEditor implements FileEditor, TextEditor {
             getIndexByBucket(bucketId).forEach(idxCombo::addItem);
             idxCombo.setSelectedItem(null);
             idxCombo.setEnabled(true);
+
+            ApplicationManager.getApplication().runWriteAction(() -> {
+                file.putUserData(VirtualFileKeys.BUCKET, null);
+                file.putUserData(VirtualFileKeys.SEARCH_INDEX, null);
+            });
         };
         bucketCombo.addActionListener(bucketComboListener);
+
+        ActionListener idxComboListener = e -> {
+            ApplicationManager.getApplication().runWriteAction(() -> {
+                if (idxCombo.getSelectedItem() != null) {
+                    file.putUserData(VirtualFileKeys.BUCKET, bucketCombo.getSelectedItem().toString());
+                    file.putUserData(VirtualFileKeys.SEARCH_INDEX, idxCombo.getSelectedItem().toString());
+                }
+            });
+        };
+        idxCombo.addActionListener(idxComboListener);
 
 
         JPanel leftPanel = new JPanel(new BorderLayout());

@@ -5,6 +5,7 @@ import com.intellij.json.psi.JsonObject;
 import com.intellij.json.psi.JsonProperty;
 
 import java.util.List;
+import java.util.Map;
 
 public class BooleanCbsContributor implements CBSContributor {
 
@@ -30,7 +31,7 @@ public class BooleanCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
+    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors, Map<String, String> fields) {
     }
 
 }

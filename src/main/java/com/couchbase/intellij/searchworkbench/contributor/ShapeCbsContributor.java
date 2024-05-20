@@ -7,6 +7,7 @@ import com.intellij.json.psi.JsonStringLiteral;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ShapeCbsContributor implements CBSContributor {
 
@@ -50,7 +51,7 @@ public class ShapeCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
+    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors, Map<String, String> fields) {
         if ("type".equals(attributeKey)) {
             contributors.add("Point");
             contributors.add("LineString");

@@ -6,6 +6,7 @@ import com.intellij.json.psi.JsonProperty;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class KnnCbsContributor implements CBSContributor {
 
@@ -26,7 +27,7 @@ public class KnnCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
+    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors, Map<String, String> fields) {
         //do nothing
     }
 

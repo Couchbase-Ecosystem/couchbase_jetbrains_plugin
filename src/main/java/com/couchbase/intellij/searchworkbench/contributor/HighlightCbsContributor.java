@@ -5,6 +5,7 @@ import com.intellij.json.psi.JsonObject;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class HighlightCbsContributor implements CBSContributor {
 
@@ -21,7 +22,7 @@ public class HighlightCbsContributor implements CBSContributor {
     }
 
     @Override
-    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
+    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors, Map<String, String> fields) {
         if ("style".equals(attributeKey)) {
             contributors.add("ansi");
             contributors.add("html");

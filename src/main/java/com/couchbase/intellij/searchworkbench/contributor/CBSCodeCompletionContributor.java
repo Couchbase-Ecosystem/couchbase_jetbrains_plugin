@@ -1,5 +1,6 @@
 package com.couchbase.intellij.searchworkbench.contributor;
 
+import com.couchbase.intellij.VirtualFileKeys;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.json.JsonElementTypes;
@@ -18,9 +19,7 @@ import com.intellij.util.ProcessingContext;
 import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class CBSCodeCompletionContributor extends CompletionContributor {
 
@@ -99,13 +98,19 @@ public class CBSCodeCompletionContributor extends CompletionContributor {
                             } else {
                                 throw new NotImplementedException("type is not supported");
                             }
-
                             for (CBSContributor contributor : contributors) {
                                 if (contributor.accept(type)) {
                                     if (isKey) {
                                         contributor.contributeKey(type, jsonObject, suggestions, result);
                                     } else {
-                                        contributor.contributeValue(jsonObject, attributeName, suggestions);
+                                        Map<String, String> fields;
+                                        if ("field".equals(attributeName) && virtualFile.getUserData(VirtualFileKeys.BUCKET) != null && virtualFile.getUserData(VirtualFileKeys.SEARCH_INDEX) != null) {
+                                            fields = FieldsContributor.getFieldNames(virtualFile.getUserData(VirtualFileKeys.BUCKET),
+                                                    virtualFile.getUserData(VirtualFileKeys.SEARCH_INDEX));
+                                        } else {
+                                            fields = new HashMap<>();
+                                        }
+                                        contributor.contributeValue(jsonObject, attributeName, suggestions, fields);
                                     }
                                 }
                             }
@@ -131,13 +136,9 @@ public class CBSCodeCompletionContributor extends CompletionContributor {
 
 
     private boolean isInJsonObjectContext(PsiElement position) {
-        // Direct check for position being within an array of primitives, which should return false.
-        // First, check if the position is within a JsonArray. If so, we need to further determine the context.
         JsonArray jsonArray = PsiTreeUtil.getParentOfType(position, JsonArray.class);
         if (jsonArray != null) {
-            // If the position is also within a JsonObject that is a child of the JsonArray, allow suggestions.
             JsonObject jsonObjectWithinArray = PsiTreeUtil.getParentOfType(position, JsonObject.class, false);
-            // If we're directly within a JsonArray but not within a JsonObject inside this array, disallow suggestions.
             return jsonObjectWithinArray != null && jsonArray.equals(jsonObjectWithinArray.getParent());
         }
 

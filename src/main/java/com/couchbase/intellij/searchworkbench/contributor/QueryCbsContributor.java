@@ -267,10 +267,12 @@ public class QueryCbsContributor implements CBSContributor {
 
 
     @Override
-    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors) {
+    public void contributeValue(JsonObject jsonObject, String attributeKey, List<String> contributors, Map<String, String> fields) {
         if ("operator".equals(attributeKey)) {
             contributors.add("or");
             contributors.add("and");
+        } else if (attributeKey.equals("field")) {
+            contributors.addAll(fields.keySet());
         }
     }
 }
