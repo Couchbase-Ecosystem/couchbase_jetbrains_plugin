@@ -1,0 +1,126 @@
+{
+  "name": "test",
+  "type": "fulltext-index",
+  "params": {
+    "doc_config": {
+      "docid_prefix_delim": "",
+      "docid_regexp": "",
+      "mode": "scope.collection.type_field",
+      "type_field": "type"
+    },
+    "mapping": {
+      "default_analyzer": "standard",
+      "default_datetime_parser": "dateTimeOptional",
+      "default_field": "_all2",
+      "default_mapping": {
+        "dynamic": true,
+        "enabled": false
+      },
+      "default_type": "_default",
+      "docvalues_dynamic": false,
+      "index_dynamic": true,
+      "store_dynamic": true,
+      "type_field": "_type",
+      "types": {
+        "inventory.airline": {
+          "dynamic": true,
+          "enabled": true,
+          "properties": {
+            "someChild": {
+              "dynamic": true,
+              "enabled": true,
+              "properties": {
+                "name": {
+                  "enabled": true,
+                  "dynamic": false,
+                  "fields": [
+                    {
+                      "index": true,
+                      "name": "namea",
+                      "type": "text"
+                    }
+                  ]
+                }
+              }
+            },
+            "country": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "index": true,
+                  "name": "country",
+                  "type": "text"
+                }
+              ]
+            },
+            "type": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "index": true,
+                  "name": "type",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        "inventory.landmark": {
+          "dynamic": true,
+          "enabled": true,
+          "properties": {
+            "country": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "index": true,
+                  "name": "country",
+                  "type": "text"
+                }
+              ]
+            },
+            "name": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "index": true,
+                  "name": "name",
+                  "type": "text"
+                }
+              ]
+            },
+            "type": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "index": true,
+                  "name": "type",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "store": {
+      "indexType": "scorch",
+      "segmentVersion": 15
+    }
+  },
+  "sourceType": "gocbcore",
+  "sourceName": "travel-sample",
+  "sourceUUID": "7954ccfe1a5775cc805bf2f70662f891",
+  "sourceParams": {},
+  "planParams": {
+    "maxPartitionsPerPIndex": 64,
+    "indexPartitions": 1,
+    "numReplicas": 0
+  },
+  "uuid": "7eda93f7ec7f1bc3"
+}

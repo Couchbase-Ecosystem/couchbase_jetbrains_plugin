@@ -1,0 +1,104 @@
+{
+  "name": "non_scoped_test",
+  "type": "fulltext-index",
+  "params": {
+    "mapping": {
+      "types": {
+        "airline": {
+          "enabled": true,
+          "dynamic": true,
+          "properties": {
+            "child": {
+              "enabled": true,
+              "dynamic": true,
+              "properties": {
+                "secondChild": {
+                  "enabled": true,
+                  "dynamic": true,
+                  "properties": {
+                    "country": {
+                      "enabled": true,
+                      "dynamic": false,
+                      "fields": [
+                        {
+                          "name": "country",
+                          "type": "text",
+                          "store": false,
+                          "index": true,
+                          "include_term_vectors": false,
+                          "include_in_all": false,
+                          "docvalues": false
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "country": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "name": "country",
+                  "type": "text",
+                  "store": false,
+                  "index": true,
+                  "include_term_vectors": false,
+                  "include_in_all": false,
+                  "docvalues": false
+                }
+              ]
+            },
+            "name": {
+              "enabled": true,
+              "dynamic": false,
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "text",
+                  "store": false,
+                  "index": true,
+                  "include_term_vectors": false,
+                  "include_in_all": false,
+                  "docvalues": false
+                }
+              ]
+            }
+          }
+        }
+      },
+      "default_mapping": {
+        "enabled": true,
+        "dynamic": true
+      },
+      "default_type": "_default",
+      "default_analyzer": "standard",
+      "default_datetime_parser": "dateTimeOptional",
+      "default_field": "_all",
+      "store_dynamic": false,
+      "index_dynamic": true,
+      "docvalues_dynamic": false
+    },
+    "store": {
+      "indexType": "scorch",
+      "kvStoreName": ""
+    },
+    "doc_config": {
+      "mode": "type_field",
+      "type_field": "type",
+      "docid_prefix_delim": "",
+      "docid_regexp": ""
+    }
+  },
+  "sourceType": "couchbase",
+  "sourceName": "travel-sample",
+  "sourceUUID": "7954ccfe1a5775cc805bf2f70662f891",
+  "sourceParams": {},
+  "planParams": {
+    "maxPartitionsPerPIndex": 1024,
+    "numReplicas": 0,
+    "indexPartitions": 1
+  },
+  "uuid": ""
+}
