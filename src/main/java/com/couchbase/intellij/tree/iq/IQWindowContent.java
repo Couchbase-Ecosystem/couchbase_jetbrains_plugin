@@ -5,6 +5,7 @@ import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.storage.IQStorage;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
+import com.couchbase.intellij.tree.iq.spi.iq.CouchbaseIQServiceProvider;
 import com.couchbase.intellij.tree.iq.ui.CapellaIqTermsDialog;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.tree.iq.ui.LoginPanel;
@@ -168,7 +169,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
             OpenAISettingsState.getInstance().setEnableInitialMessage(true);
             iqGptConfig.setApiKey(credentials.getAuth().getJwt());
             iqGptConfig.setEnableStreamResponse(false);
-            iqGptConfig.setModelName("gpt-4");
+            iqGptConfig.setModelName(CouchbaseIQServiceProvider.MODEL);
             iqGptConfig.setApiEndpointUrl(iqUrl);
             iqGptConfig.setEnableCustomApiEndpointUrl(true);
 

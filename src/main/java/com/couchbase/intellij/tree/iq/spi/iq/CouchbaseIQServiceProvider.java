@@ -21,6 +21,10 @@ import java.util.concurrent.ExecutorService;
 
 public class CouchbaseIQServiceProvider implements OpenAiServiceProvider {
 
+//    public static final String MODEL = "gpt-4-1106-preview";
+//    public static final String MODEL = "text-embedding-ada-002";
+    public static final String MODEL = "gpt-4-turbo-preview";
+
     @Override
     public boolean supportsEndpoint(String url) {
         try {
@@ -46,6 +50,7 @@ public class CouchbaseIQServiceProvider implements OpenAiServiceProvider {
         ObjectMapper mapper = OpenAiService.defaultObjectMapper();
         OkHttpClient client = OpenAiService.defaultClient(token, timeout)
                 .newBuilder()
+                .addInterceptor(new IQChatSettingsTransformer())
                 .addInterceptor(new IQAuthenticationInterceptor())
                 .addInterceptor(loggingInterceptor)
                 .build();

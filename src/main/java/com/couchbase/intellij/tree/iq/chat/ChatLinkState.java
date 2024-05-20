@@ -1,10 +1,11 @@
 package com.couchbase.intellij.tree.iq.chat;
 
 import com.didalgo.gpt3.ChatFormatDescriptor;
+import com.didalgo.gpt3.Encoding;
 import com.didalgo.gpt3.GPT3Tokenizer;
-import com.didalgo.gpt3.ModelType;
 import com.couchbase.intellij.tree.iq.core.TextSubstitutor;
 import com.couchbase.intellij.tree.iq.text.TextContent;
+import com.didalgo.gpt3.ModelType;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
@@ -113,7 +114,7 @@ public class ChatLinkState implements ConversationContext {
             // hard-coded as I couldn't find API to set it
             int maxTokens = 4097;
             var tokenizer = model.getTokenizer();
-            var chatFormatDescriptor = model.getChatFormatDescriptor();
+            var chatFormatDescriptor =  new ChatFormatDescriptor.Of(Encoding.forModel(model.modelName()), 3, 3, -1 , 3);
             int removed = dropOldestMessagesToStayWithinTokenLimit(chatMessages, maxTokens, tokenizer, chatFormatDescriptor);
             while (removed-- > 0)
                 this.chatMessages.remove(0);

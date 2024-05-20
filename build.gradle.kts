@@ -45,7 +45,7 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 
-    implementation("com.didalgo:gpt3-tokenizer:0.1.5")
+    implementation("com.didalgo:gpt3-tokenizer:0.1.7")
     implementation("com.fifesoft:rsyntaxtextarea:3.3.3")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
