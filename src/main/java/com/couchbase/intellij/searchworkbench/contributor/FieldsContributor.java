@@ -24,6 +24,11 @@ public class FieldsContributor {
                 if (isDynamic) {
                     List<String> cols = SearchIndexParser.listCollections(index);
                     for (String prop : cols) {
+
+                        if(!SearchIndexParser.isCollectionDynamicallyIndexed(index, prop)) {
+                            continue;
+                        }
+
                         if (prop.contains(".")) {
                             String[] parts = prop.split("\\.");
                             Map<String, String> additionalFields = getCollectionFields(bucket, parts[0], parts[1]);

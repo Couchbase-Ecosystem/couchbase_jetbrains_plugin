@@ -11,7 +11,7 @@ public class SearchIndexCache {
 
     private static Map<String, String> cache = new HashMap<>();
     private static long lastUpdate = 0;
-    private static final long ttl = 1000 * 60 * 20;
+    private static final long ttl = 1000 * 60 * 5;
 
     public static String getIndex(String bucket, String key) {
 
