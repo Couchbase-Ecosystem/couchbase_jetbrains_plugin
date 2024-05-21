@@ -25,7 +25,8 @@ public class BooleanObjectValidator implements SearchObjectValidator {
                 holder.registerProblem(jsonObject, getMustConjunctsErrorMessage(), ProblemHighlightType.GENERIC_ERROR);
             }
         } else if ("must_not".equals(key)) {
-            if (attrs.size() != 1 || !attrs.contains("disjuncts")) {
+            if ( !((attrs.size() == 1 && attrs.contains("disjuncts"))
+                    || (attrs.size() == 2 && attrs.contains("disjuncts") && attrs.contains("min"))) ) {
                 holder.registerProblem(jsonObject, getMustNotDisjunctsErrorMessage(), ProblemHighlightType.GENERIC_ERROR);
             }
         } else {

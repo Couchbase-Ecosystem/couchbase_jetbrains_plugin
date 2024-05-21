@@ -56,6 +56,14 @@ public class SearchIndexParser {
         return indexDynamicNode.asBoolean(false);
     }
 
+    public static boolean isCollectionDynamicallyIndexed(String index, String collection) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode rootNode = objectMapper.readTree(index);
+        JsonNode indexDynamicNode = rootNode.path("params").path("mapping").path("types").path(collection).path("dynamic");
+        return indexDynamicNode.asBoolean(false);
+    }
+
+
     public static String getDefaultField(String index) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode rootNode = objectMapper.readTree(index);

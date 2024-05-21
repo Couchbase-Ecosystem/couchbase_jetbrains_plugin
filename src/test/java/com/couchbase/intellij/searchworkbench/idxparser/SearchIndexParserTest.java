@@ -6,8 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SearchIndexParserTest {
 
@@ -25,6 +24,7 @@ public class SearchIndexParserTest {
         List<String> expected = List.of("_default._default");
         assertEquals(expected, SearchIndexParser.listCollections(fileContent));
         assertEquals("_all", SearchIndexParser.getDefaultField(fileContent));
+        assertFalse(SearchIndexParser.isCollectionDynamicallyIndexed(fileContent, "_default._default"));
     }
 
     @Test
@@ -41,6 +41,8 @@ public class SearchIndexParserTest {
         List<String> expected = Arrays.asList("inventory.airline", "inventory.landmark");
         assertEquals(expected, SearchIndexParser.listCollections(fileContent));
         assertEquals("_all2", SearchIndexParser.getDefaultField(fileContent));
+        assertTrue(SearchIndexParser.isCollectionDynamicallyIndexed(fileContent, "inventory.airline"));
+        assertTrue(SearchIndexParser.isCollectionDynamicallyIndexed(fileContent, "inventory.landmark"));
     }
 
 
