@@ -259,7 +259,7 @@ select-clause ::= SELECT hint-comment? projection
 projection ::= ( ALL | DISTINCT )? ( result-expr ( COMMA result-expr )* |
                ( RAW | ELEMENT | VALUE ) expr ( AS? alias )? )
 
-result-expr ::= ( path DOT )? ASTERISK | expr ( AS? alias )?
+result-expr ::= (( path DOT )? ASTERISK) | expr ( AS? alias )?
 
 path ::= identifier-ref ( LBRACKET expr RBRACKET )* ( DOT identifier-ref ( LBRACKET expr RBRACKET )* )*
 
@@ -543,12 +543,12 @@ option-property ::= QUOTED_OPTION COLON ( QUOTED_BUILD | QUOTED_PROBE | NULL )
 
 expr ::= (
             (
+                function-call |
                 path |
                 json-value |
                 literal |
                 identifier-ref |
                 nested-expr |
-                function-call |
                 subquery-expr
             ) (
                 comparison-term |
@@ -586,9 +586,9 @@ bool ::= TRUE | FALSE
 
 identifier-or-star ::= identifier-ref | ASTERISK
 
-identifier-ref ::= IDENTIFIER | escaped-identifier
+identifier-ref ::= IDENTIFIER | TYPE | escaped-identifier
 
-escaped-identifier ::= BACKTICK IDENTIFIER BACKTICK
+escaped-identifier ::= BACKTICK (IDENTIFIER | TYPE) BACKTICK
 
 arithmetic-term ::= PLUS expr |
                     ASTERISK expr |
@@ -681,13 +681,13 @@ function-call ::= (builtin-function |
                   window-function) ( DOT path )?
 
 function-name ::= identifier-ref
-aggregate-function-name ::= FUNCS | identifier-ref
-window-function-name ::= FUNCS | identifier-ref
+aggregate-function-name ::= FUNCS | TYPE | identifier-ref
+window-function-name ::= FUNCS | TYPE | identifier-ref
 
 
 ordinary-function ::= function-name LPAREN ( expr ( COMMA expr )* )? RPAREN
 
-builtin-function ::= FUNCS LPAREN ( expr ( COMMA expr )* )? RPAREN
+builtin-function ::= (FUNCS | TYPE) LPAREN ( expr ( COMMA expr )* )? RPAREN
 
 aggregate-function ::= aggregate-function-name LPAREN ( aggregate-quantifier? expr |
                        ( path DOT )? ASTERISK ) RPAREN filter-clause? over-clause?

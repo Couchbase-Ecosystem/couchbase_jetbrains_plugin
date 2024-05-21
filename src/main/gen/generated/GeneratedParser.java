@@ -158,12 +158,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FUNCS | identifier-ref
+  // FUNCS | TYPE | identifier-ref
   public static boolean aggregate_function_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "aggregate_function_name")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, AGGREGATE_FUNCTION_NAME, "<aggregate function name>");
     r = consumeToken(b, FUNCS);
+    if (!r) r = consumeToken(b, TYPE);
     if (!r) r = identifier_ref(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -186,7 +187,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean alias(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "alias")) return false;
-    if (!nextTokenIs(b, "<alias>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, ALIAS, "<alias>");
     r = identifier_ref(b, l + 1);
@@ -383,7 +383,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                ansi-merge-predicate ansi-merge-actions
   public static boolean ansi_merge(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ansi_merge")) return false;
-    if (!nextTokenIs(b, "<ansi merge>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, ANSI_MERGE, "<ansi merge>");
     r = target_keyspace(b, l + 1);
@@ -596,7 +595,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean ansi_nest_rhs(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ansi_nest_rhs")) return false;
-    if (!nextTokenIs(b, "<ansi nest rhs>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, ANSI_NEST_RHS, "<ansi nest rhs>");
     r = keyspace_ref(b, l + 1);
@@ -889,7 +887,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean bucket_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "bucket_ref")) return false;
-    if (!nextTokenIs(b, "<bucket ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, BUCKET_REF, "<bucket ref>");
     r = identifier_ref(b, l + 1);
@@ -946,16 +943,26 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FUNCS LPAREN ( expr ( COMMA expr )* )? RPAREN
+  // (FUNCS | TYPE) LPAREN ( expr ( COMMA expr )* )? RPAREN
   public static boolean builtin_function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "builtin_function")) return false;
-    if (!nextTokenIs(b, FUNCS)) return false;
+    if (!nextTokenIs(b, "<builtin function>", FUNCS, TYPE)) return false;
     boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, FUNCS, LPAREN);
+    Marker m = enter_section_(b, l, _NONE_, BUILTIN_FUNCTION, "<builtin function>");
+    r = builtin_function_0(b, l + 1);
+    r = r && consumeToken(b, LPAREN);
     r = r && builtin_function_2(b, l + 1);
     r = r && consumeToken(b, RPAREN);
-    exit_section_(b, m, BUILTIN_FUNCTION, r);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // FUNCS | TYPE
+  private static boolean builtin_function_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "builtin_function_0")) return false;
+    boolean r;
+    r = consumeToken(b, FUNCS);
+    if (!r) r = consumeToken(b, TYPE);
     return r;
   }
 
@@ -1030,7 +1037,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean collection_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "collection_ref")) return false;
-    if (!nextTokenIs(b, "<collection ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, COLLECTION_REF, "<collection ref>");
     r = identifier_ref(b, l + 1);
@@ -2194,14 +2200,25 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // BACKTICK IDENTIFIER BACKTICK
+  // BACKTICK (IDENTIFIER | TYPE) BACKTICK
   public static boolean escaped_identifier(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "escaped_identifier")) return false;
     if (!nextTokenIs(b, BACKTICK)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, BACKTICK, IDENTIFIER, BACKTICK);
+    r = consumeToken(b, BACKTICK);
+    r = r && escaped_identifier_1(b, l + 1);
+    r = r && consumeToken(b, BACKTICK);
     exit_section_(b, m, ESCAPED_IDENTIFIER, r);
+    return r;
+  }
+
+  // IDENTIFIER | TYPE
+  private static boolean escaped_identifier_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "escaped_identifier_1")) return false;
+    boolean r;
+    r = consumeToken(b, IDENTIFIER);
+    if (!r) r = consumeToken(b, TYPE);
     return r;
   }
 
@@ -2290,12 +2307,12 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // (
   //             (
+  //                 function-call |
   //                 path |
   //                 json-value |
   //                 literal |
   //                 identifier-ref |
   //                 nested-expr |
-  //                 function-call |
   //                 subquery-expr
   //             ) (
   //                 comparison-term |
@@ -2317,12 +2334,12 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   // (
+  //                 function-call |
   //                 path |
   //                 json-value |
   //                 literal |
   //                 identifier-ref |
   //                 nested-expr |
-  //                 function-call |
   //                 subquery-expr
   //             ) (
   //                 comparison-term |
@@ -2341,22 +2358,22 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // path |
+  // function-call |
+  //                 path |
   //                 json-value |
   //                 literal |
   //                 identifier-ref |
   //                 nested-expr |
-  //                 function-call |
   //                 subquery-expr
   private static boolean expr_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "expr_0_0")) return false;
     boolean r;
-    r = path(b, l + 1);
+    r = function_call(b, l + 1);
+    if (!r) r = path(b, l + 1);
     if (!r) r = json_value(b, l + 1);
     if (!r) r = literal(b, l + 1);
     if (!r) r = identifier_ref(b, l + 1);
     if (!r) r = nested_expr(b, l + 1);
-    if (!r) r = function_call(b, l + 1);
     if (!r) r = subquery_expr(b, l + 1);
     return r;
   }
@@ -2520,7 +2537,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )? use-clause?
   public static boolean from_keyspace(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "from_keyspace")) return false;
-    if (!nextTokenIs(b, "<from keyspace>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, FROM_KEYSPACE, "<from keyspace>");
     r = keyspace_ref(b, l + 1);
@@ -2871,7 +2887,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean function_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "function_name")) return false;
-    if (!nextTokenIs(b, "<function name>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, FUNCTION_NAME, "<function name>");
     r = identifier_ref(b, l + 1);
@@ -2883,7 +2898,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // ( namespace-ref COLON ( bucket-ref DOT scope-ref DOT )? )? identifier-ref
   public static boolean function_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "function_ref")) return false;
-    if (!nextTokenIs(b, "<function ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, FUNCTION_REF, "<function ref>");
     r = function_ref_0(b, l + 1);
@@ -3383,13 +3397,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // IDENTIFIER | escaped-identifier
+  // IDENTIFIER | TYPE | escaped-identifier
   public static boolean identifier_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "identifier_ref")) return false;
-    if (!nextTokenIs(b, "<identifier ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, IDENTIFIER_REF, "<identifier ref>");
     r = consumeToken(b, IDENTIFIER);
+    if (!r) r = consumeToken(b, TYPE);
     if (!r) r = escaped_identifier(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -3562,7 +3576,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean index_join_rhs(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "index_join_rhs")) return false;
-    if (!nextTokenIs(b, "<index join rhs>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, INDEX_JOIN_RHS, "<index join rhs>");
     r = keyspace_ref(b, l + 1);
@@ -3654,7 +3667,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean index_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "index_name")) return false;
-    if (!nextTokenIs(b, "<index name>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, INDEX_NAME, "<index name>");
     r = identifier_ref(b, l + 1);
@@ -3702,7 +3714,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean index_nest_rhs(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "index_nest_rhs")) return false;
-    if (!nextTokenIs(b, "<index nest rhs>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, INDEX_NEST_RHS, "<index nest rhs>");
     r = keyspace_ref(b, l + 1);
@@ -3838,7 +3849,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-full | keyspace-prefix | keyspace-partial
   public static boolean index_path(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "index_path")) return false;
-    if (!nextTokenIs(b, "<index path>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, INDEX_PATH, "<index path>");
     r = keyspace_full(b, l + 1);
@@ -4618,7 +4628,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // namespace-ref COLON bucket-ref DOT scope-ref DOT collection-ref
   public static boolean keyspace_full(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "keyspace_full")) return false;
-    if (!nextTokenIs(b, "<keyspace full>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, KEYSPACE_FULL, "<keyspace full>");
     r = namespace_ref(b, l + 1);
@@ -4650,7 +4659,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // collection-ref
   public static boolean keyspace_partial(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "keyspace_partial")) return false;
-    if (!nextTokenIs(b, "<keyspace partial>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, KEYSPACE_PARTIAL, "<keyspace partial>");
     r = collection_ref(b, l + 1);
@@ -4662,7 +4670,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // ( namespace-ref COLON )? bucket-ref ( DOT scope-ref DOT collection-ref )?
   public static boolean keyspace_path(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "keyspace_path")) return false;
-    if (!nextTokenIs(b, "<keyspace path>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, KEYSPACE_PATH, "<keyspace path>");
     r = keyspace_path_0(b, l + 1);
@@ -4714,7 +4721,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // ( namespace-ref COLON )? bucket-ref
   public static boolean keyspace_prefix(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "keyspace_prefix")) return false;
-    if (!nextTokenIs(b, "<keyspace prefix>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, KEYSPACE_PREFIX, "<keyspace prefix>");
     r = keyspace_prefix_0(b, l + 1);
@@ -4769,7 +4775,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-path | keyspace-partial
   public static boolean keyspace_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "keyspace_ref")) return false;
-    if (!nextTokenIs(b, "<keyspace ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, KEYSPACE_REF, "<keyspace ref>");
     r = keyspace_path(b, l + 1);
@@ -5041,7 +5046,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean lookup_join_rhs(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "lookup_join_rhs")) return false;
-    if (!nextTokenIs(b, "<lookup join rhs>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, LOOKUP_JOIN_RHS, "<lookup join rhs>");
     r = keyspace_ref(b, l + 1);
@@ -5111,7 +5115,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                  lookup-merge-actions
   public static boolean lookup_merge(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "lookup_merge")) return false;
-    if (!nextTokenIs(b, "<lookup merge>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, LOOKUP_MERGE, "<lookup merge>");
     r = target_keyspace(b, l + 1);
@@ -5271,7 +5274,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean lookup_nest_rhs(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "lookup_nest_rhs")) return false;
-    if (!nextTokenIs(b, "<lookup nest rhs>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, LOOKUP_NEST_RHS, "<lookup nest rhs>");
     r = keyspace_ref(b, l + 1);
@@ -5397,7 +5399,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean merge_source_keyspace(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "merge_source_keyspace")) return false;
-    if (!nextTokenIs(b, "<merge source keyspace>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, MERGE_SOURCE_KEYSPACE, "<merge source keyspace>");
     r = keyspace_ref(b, l + 1);
@@ -5578,7 +5579,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "name")) return false;
-    if (!nextTokenIs(b, "<name>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, NAME, "<name>");
     r = identifier_ref(b, l + 1);
@@ -5590,7 +5590,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean name_var(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "name_var")) return false;
-    if (!nextTokenIs(b, "<name var>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, NAME_VAR, "<name var>");
     r = identifier_ref(b, l + 1);
@@ -5602,7 +5601,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean namespace_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "namespace_ref")) return false;
-    if (!nextTokenIs(b, "<namespace ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, NAMESPACE_REF, "<namespace ref>");
     r = identifier_ref(b, l + 1);
@@ -5936,7 +5934,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // function-name LPAREN ( expr ( COMMA expr )* )? RPAREN
   public static boolean ordinary_function(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ordinary_function")) return false;
-    if (!nextTokenIs(b, "<ordinary function>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, ORDINARY_FUNCTION, "<ordinary function>");
     r = function_name(b, l + 1);
@@ -6145,7 +6142,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref ( LBRACKET expr RBRACKET )* ( DOT identifier-ref ( LBRACKET expr RBRACKET )* )*
   public static boolean path(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "path")) return false;
-    if (!nextTokenIs(b, "<path>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, PATH, "<path>");
     r = identifier_ref(b, l + 1);
@@ -6413,7 +6409,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //             ( COMMA ( name-var COLON )? var ( IN | WITHIN ) expr )*
   public static boolean range_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "range_expr")) return false;
-    if (!nextTokenIs(b, "<range expr>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, RANGE_EXPR, "<range expr>");
     r = range_expr_0(b, l + 1);
@@ -6618,7 +6613,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // ( path DOT )? ASTERISK | expr ( AS? alias )?
+  // (( path DOT )? ASTERISK) | expr ( AS? alias )?
   public static boolean result_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "result_expr")) return false;
     boolean r;
@@ -6919,7 +6914,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )? ansi-join-hints?
   public static boolean rhs_keyspace(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "rhs_keyspace")) return false;
-    if (!nextTokenIs(b, "<rhs keyspace>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, RHS_KEYSPACE, "<rhs keyspace>");
     r = keyspace_ref(b, l + 1);
@@ -6986,7 +6980,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean role(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "role")) return false;
-    if (!nextTokenIs(b, "<role>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, ROLE, "<role>");
     r = identifier_ref(b, l + 1);
@@ -7061,7 +7054,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean savepointname(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "savepointname")) return false;
-    if (!nextTokenIs(b, "<savepointname>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, SAVEPOINTNAME, "<savepointname>");
     r = identifier_ref(b, l + 1);
@@ -7073,7 +7065,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean scope_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "scope_ref")) return false;
-    if (!nextTokenIs(b, "<scope ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, SCOPE_REF, "<scope ref>");
     r = identifier_ref(b, l + 1);
@@ -7711,7 +7702,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // keyspace-ref ( AS? alias )?
   public static boolean target_keyspace(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "target_keyspace")) return false;
-    if (!nextTokenIs(b, "<target keyspace>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, TARGET_KEYSPACE, "<target keyspace>");
     r = keyspace_ref(b, l + 1);
@@ -8626,7 +8616,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean user(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "user")) return false;
-    if (!nextTokenIs(b, "<user>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, USER, "<user>");
     r = identifier_ref(b, l + 1);
@@ -8751,7 +8740,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean var(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "var")) return false;
-    if (!nextTokenIs(b, "<var>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, VAR, "<var>");
     r = identifier_ref(b, l + 1);
@@ -8812,7 +8800,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // window-name AS LPAREN window-definition RPAREN
   public static boolean window_declaration(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "window_declaration")) return false;
-    if (!nextTokenIs(b, "<window declaration>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, WINDOW_DECLARATION, "<window declaration>");
     r = window_name(b, l + 1);
@@ -9077,12 +9064,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FUNCS | identifier-ref
+  // FUNCS | TYPE | identifier-ref
   public static boolean window_function_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "window_function_name")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, WINDOW_FUNCTION_NAME, "<window function name>");
     r = consumeToken(b, FUNCS);
+    if (!r) r = consumeToken(b, TYPE);
     if (!r) r = identifier_ref(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -9118,7 +9106,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean window_name(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "window_name")) return false;
-    if (!nextTokenIs(b, "<window name>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, WINDOW_NAME, "<window name>");
     r = identifier_ref(b, l + 1);
@@ -9202,7 +9189,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   // identifier-ref
   public static boolean window_ref(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "window_ref")) return false;
-    if (!nextTokenIs(b, "<window ref>", BACKTICK, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, WINDOW_REF, "<window ref>");
     r = identifier_ref(b, l + 1);

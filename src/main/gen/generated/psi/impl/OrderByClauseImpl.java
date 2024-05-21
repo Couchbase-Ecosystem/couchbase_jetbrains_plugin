@@ -7,9 +7,9 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
-import static generated.cblite.GeneratedTypes.*;
+import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
-import generated.psi.cblite.*;
+import generated.psi.*;
 
 public class OrderByClauseImpl extends SqlppPSIWrapper implements OrderByClause {
 
@@ -29,8 +29,8 @@ public class OrderByClauseImpl extends SqlppPSIWrapper implements OrderByClause 
 
   @Override
   @NotNull
-  public List<OrderingClause> getOrderingClauseList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, OrderingClause.class);
+  public List<OrderingTerm> getOrderingTermList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, OrderingTerm.class);
   }
 
 }

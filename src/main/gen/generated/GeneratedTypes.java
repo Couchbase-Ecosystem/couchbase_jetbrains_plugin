@@ -468,6 +468,7 @@ public interface GeneratedTypes {
   IElementType TRAN = new SqlppTokenType("TRAN");
   IElementType TRANSACTION = new SqlppTokenType("TRANSACTION");
   IElementType TRUE = new SqlppTokenType("TRUE");
+  IElementType TYPE = new SqlppTokenType("TYPE");
   IElementType UNBOUNDED = new SqlppTokenType("UNBOUNDED");
   IElementType UNION = new SqlppTokenType("UNION");
   IElementType UNNEST = new SqlppTokenType("UNNEST");

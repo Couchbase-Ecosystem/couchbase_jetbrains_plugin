@@ -473,7 +473,7 @@ Backtick = "`"
     "TOSTRING" { return GeneratedTypes.FUNCS; }
     "TRIM" { return GeneratedTypes.FUNCS; }
     "TRUNC" { return GeneratedTypes.FUNCS; }
-    "TYPE" { return GeneratedTypes.FUNCS; }
+    "TYPE" { return GeneratedTypes.TYPE; }
     "TYPENAME" { return GeneratedTypes.FUNCS; }
     "UPPER" { return GeneratedTypes.FUNCS; }
     "UUID" { return GeneratedTypes.FUNCS; }
