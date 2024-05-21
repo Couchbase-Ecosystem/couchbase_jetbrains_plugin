@@ -31,7 +31,8 @@ public class IQAuthenticationInterceptor implements Interceptor {
             JsonObject body = JsonObject.fromJson(response.body().string());
             if (!body.containsKey("error") && body.containsKey("message")) {
                 OpenAiError error = new OpenAiError(new OpenAiError.OpenAiErrorDetails(body.getString("message"), "", "", String.valueOf(body.getInt("code"))));
-                throw new OpenAiHttpException(error, null, body.getInt("code"));
+                Integer code = body.containsKey("code") ? body.getInt("code") : -1;
+                throw new OpenAiHttpException(error, null, code);
             }
         }
         return response;

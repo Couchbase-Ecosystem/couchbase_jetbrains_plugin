@@ -5,6 +5,7 @@ import com.couchbase.intellij.tree.iq.chat.ChatLinkState;
 import com.couchbase.intellij.tree.iq.chat.ConfigurationPage;
 import com.couchbase.intellij.tree.iq.core.IQCredentials;
 import com.couchbase.intellij.tree.iq.settings.OpenAISettingsState;
+import com.couchbase.intellij.tree.iq.spi.iq.CouchbaseIQServiceProvider;
 import com.couchbase.intellij.tree.iq.ui.ChatPanel;
 import com.couchbase.intellij.workbench.Log;
 import org.mockito.Mockito;
@@ -25,7 +26,7 @@ public abstract class AbstractCapellaTest extends AbstractIQTest {
         OpenAISettingsState.getInstance().setEnableInitialMessage(false);
         iqGptConfig.setApiKey(credentials.getAuth().getJwt());
         iqGptConfig.setEnableStreamResponse(false);
-        iqGptConfig.setModelName("gpt-4");
+        iqGptConfig.setModelName(CouchbaseIQServiceProvider.MODEL);
         iqGptConfig.setApiEndpointUrl(iqUrl);
         iqGptConfig.setEnableCustomApiEndpointUrl(true);
         ConfigurationPage cp = iqGptConfig.withSystemPrompt(IQWindowContent::systemPrompt);
