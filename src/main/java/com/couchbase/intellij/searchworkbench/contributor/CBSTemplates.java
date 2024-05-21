@@ -364,6 +364,29 @@ public class CBSTemplates {
     }
 
 
+    public static LookupElement getEmptyTemplate(String name, String desc) {
+        return LookupElementBuilder.create(name)
+                .withTypeText(desc)
+                .withBoldness(true)
+                .withIcon(AllIcons.Json.Object)
+                .withInsertHandler((context, item) -> {
+                    Editor editor = context.getEditor();
+                    Project project = context.getProject();
+
+                    int startOffset = editor.getCaretModel().getOffset() - name.length();
+
+                    Document document = editor.getDocument();
+                    document.deleteString(startOffset, startOffset + name.length());
+
+                    TemplateManager templateManager = TemplateManager.getInstance(project);
+                    Template template = templateManager.createTemplate(name, "JSON");
+                    template.setToReformat(true);
+                    template.addTextSegment("\"" + name + "\" : {}");
+                    TemplateManager.getInstance(project).startTemplate(editor, template);
+                });
+    }
+
+
     public static LookupElement getConjunctsTemplate(List<String> existingKeys) {
         return LookupElementBuilder.create("conjuncts")
                 .withTypeText("Query conjunction")

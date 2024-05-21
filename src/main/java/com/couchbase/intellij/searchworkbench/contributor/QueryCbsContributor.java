@@ -93,6 +93,8 @@ public class QueryCbsContributor implements CBSContributor {
 
             if (existingKeys.isEmpty()) {
                 result.addElement(CBSTemplates.getQueryTemplate(existingKeys));
+                result.addElement(CBSTemplates.getEmptyTemplate("match_all", "match_all template"));
+                result.addElement(CBSTemplates.getEmptyTemplate("match_none", "match_all template"));
                 suggestions.add("query");
                 addBooleanTemplates(existingKeys, result);
                 result.addElement(CBSTemplates.getConjunctsTemplate(existingKeys));
