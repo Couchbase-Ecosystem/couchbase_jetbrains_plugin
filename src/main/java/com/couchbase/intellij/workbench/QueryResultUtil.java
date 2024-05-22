@@ -20,9 +20,7 @@ public class QueryResultUtil {
             toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
         }
         ApplicationManager.getApplication().invokeLater(() -> {
-            ApplicationManager.getApplication().runWriteAction(() -> {
                 toolWindow.show();
-            });
         }, ModalityState.any());
         
         if (resultWindow == null) {

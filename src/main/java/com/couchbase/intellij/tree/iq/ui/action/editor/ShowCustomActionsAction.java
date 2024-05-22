@@ -40,7 +40,6 @@ public class ShowCustomActionsAction extends GenericEditorAction {
 
         private List<AnAction> initialization() {
             List<AnAction> anActionList = new ArrayList<>();
-            anActionList.add(new CustomPromptAction());
             anActionList.add(new Separator());
             return anActionList;
         }

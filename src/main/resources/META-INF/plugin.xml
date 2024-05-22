@@ -30,7 +30,8 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
-          <li>Now the collection listing can use whatever index you have in the collection</li>
+          <li>Adding Couchbase Search and Vector Search Support</li>
+          <li>You can now apply key range filters on documents</li>
           <li>Bug fixes</li>
         </ul>
         ]]>
@@ -39,21 +40,6 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
-
-    <!-- Keep this block here for future reference.-->
-    <!--    <applicationListeners>-->
-    <!--        <listener class=" com.couchbase.intellij.listener.AppLifecycle"-->
-    <!--                  topic="com.intellij.ide.ApplicationInitializedListener"-->
-    <!--                  activeInHeadlessMode="false"-->
-    <!--                  activeInTestMode="true"/>-->
-    <!--        <listener-->
-    <!--                class="com.couchbase.intellij.listener.LifecycleListener"-->
-    <!--                topic="com.intellij.ide.plugins.DynamicPluginListener" activeInTestMode="true"/>-->
-    <!--    </applicationListeners>-->
-    <!--    <applicationListeners>-->
-    <!--    <listener class="com.couchbase.intellij.listener.MyFileDocumentManagerListener"-->
-    <!--              topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>-->
-    <!--</applicationListeners>-->
 
     <projectListeners>
         <listener

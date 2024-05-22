@@ -230,7 +230,7 @@ public class CouchbaseWindowContent extends JPanel {
                     CollectionNodeDescriptor descriptor = (CollectionNodeDescriptor) userObject;
 
                     Icon icon = descriptor.getIcon();
-                    if (descriptor.getQueryFilter() != null && !descriptor.getQueryFilter().trim().isEmpty()) {
+                    if (descriptor.getQueryFilter() != null) {
                         icon = IconLoader.getIcon("/assets/icons/filter.svg", CouchbaseWindowContent.class);
                     }
 

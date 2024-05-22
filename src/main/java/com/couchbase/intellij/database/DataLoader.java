@@ -23,6 +23,7 @@ import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
 import com.couchbase.intellij.tree.RelationshipSettingsManager;
+import com.couchbase.intellij.tree.docfilter.QueryFilterUtil;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
@@ -49,6 +50,7 @@ import utils.IndexUtils;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -133,14 +135,16 @@ public class DataLoader {
                             childNode.add(collections);
 
                             parentNode.add(childNode);
+
                         }
                     } else {
                         parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
-                    }
 
+                    }
                     ApplicationManager.getApplication().invokeLater(() -> {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     });
+
                 } catch (Exception e) {
                     Log.error(e);
                     e.printStackTrace();
@@ -163,16 +167,17 @@ public class DataLoader {
                     CollectionsNodeDescriptor colsDesc = (CollectionsNodeDescriptor) userObject;
                     Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(colsDesc.getBucket(), colsDesc.getScope());
 
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(colsDesc.getBucket()).collections().getAllScopes().stream().filter(scope -> scope.name().equals(colsDesc.getScope())).flatMap(scope -> scope.collections().stream()).toList();
+                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(colsDesc.getBucket()).collections()
+                            .getAllScopes().stream().filter(scope -> scope.name().equals(colsDesc.getScope())).flatMap(scope -> scope.collections().stream()).toList();
 
                     ((ScopeNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject()).setCounter(formatCount(collections.size()));
 
                     if (!collections.isEmpty()) {
                         for (CollectionSpec spec : collections) {
 
-                            String filter = QueryFiltersStorage.getInstance().getValue().getQueryFilter(ActiveCluster.getInstance().getId(), colsDesc.getBucket(), colsDesc.getScope(), spec.name());
-
-                            CollectionNodeDescriptor colNodeDesc = new CollectionNodeDescriptor(spec.name(), ActiveCluster.getInstance().getId(), colsDesc.getBucket(), colsDesc.getScope(), filter);
+                            QueryFilter filter = QueryFilterUtil.getQueryFilter(colsDesc.getBucket(), colsDesc.getScope(), spec.name());
+                            CollectionNodeDescriptor colNodeDesc = new CollectionNodeDescriptor(spec.name(),
+                                    ActiveCluster.getInstance().getId(), colsDesc.getBucket(), colsDesc.getScope(), filter);
                             colNodeDesc.setCounter(formatCount(counts.get(colsDesc.getBucket() + "." + colsDesc.getScope() + "." + spec.name())));
                             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(colNodeDesc);
                             childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
@@ -197,6 +202,19 @@ public class DataLoader {
         }
     }
 
+    private static boolean hasKVFilter(QueryFilter filter) {
+
+        if(filter == null || filter.getQuery() != null) {
+            return false;
+        } if( (filter.getDocumentStartKey() != null && !filter.getDocumentStartKey().isEmpty())
+                || (filter.getDocumentEndKey() != null && !filter.getDocumentEndKey().isEmpty())
+                || filter.getOffset() > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public static void listDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset) {
         Object userObject = parentNode.getUserObject();
 
@@ -205,10 +223,14 @@ public class DataLoader {
             try {
                 tree.setPaintBusy(true);
                 //When KV
-                if (!ActiveCluster.getInstance().hasQueryService()) {
+                if (!ActiveCluster.getInstance().hasQueryService() ) {
                     if (newOffset == 0) {
                         //removed loading node
                         parentNode.removeAllChildren();
+
+                        if(colNode.getQueryFilter() != null && colNode.getQueryFilter().getOffset() > 0) {
+                            newOffset = colNode.getQueryFilter().getOffset();
+                        }
                     } else {
                         //removes "Load More" node
                         parentNode.remove(parentNode.getChildCount() - 1);
@@ -224,6 +246,10 @@ public class DataLoader {
                         DefaultMutableTreeNode indexes = new DefaultMutableTreeNode(new IndexesNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText()));
                         indexes.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
                         parentNode.add(indexes);
+
+                        if(colNode.getQueryFilter() != null && colNode.getQueryFilter().getOffset() > 0) {
+                            newOffset = colNode.getQueryFilter().getOffset();
+                        }
                     } else {
                         //removes "Load More" node
                         parentNode.remove(parentNode.getChildCount() - 1);
@@ -232,59 +258,44 @@ public class DataLoader {
 
                     //selects the attribute that needs to be used according to the index
                     String idxField = getIndexedField(colNode);
-                    if (idxField == null) {
-                        throw new IndexFailureException(null);
-                    }
-                    String filter = colNode.getQueryFilter();
-                    String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias WHERE " + idxField + " IS NOT MISSING " + ((filter == null || filter.isEmpty()) ? "" : (" and " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
-                    final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
-                    InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
+                    if(hasKVFilter(colNode.getQueryFilter()) || idxField == null) {
+                        loadKVDocuments(parentNode, tree, newOffset, colNode);
+                    } else {
+                        String filter = colNode.getQueryFilter() != null ? colNode.getQueryFilter().getQuery() : null;
+                        String query = "Select meta(couchbaseAlias).id as cbFileNameId, meta(couchbaseAlias).type as cbMetaType  from `" + colNode.getText() + "` as couchbaseAlias WHERE " + idxField + " IS NOT MISSING "
+                                + ((filter == null || filter.isEmpty()) ? "" : (" and " + filter)) + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : "  order by meta(couchbaseAlias).id ") + (newOffset == 0 ? "" : " OFFSET " + newOffset) + " limit 10";
 
-                    if (!results.isEmpty()) {
-                        for (JsonObject obj : results) {
-                            String docId = obj.getString("cbFileNameId");
-                            String type = obj.getString("cbMetaType");
-                            String fileName = docId + ".json";
-                            FileNodeDescriptor.FileType fileType = "base64".equals(type) ? FileNodeDescriptor.FileType.BINARY : FileNodeDescriptor.FileType.JSON;
-                            if (fileType == FileNodeDescriptor.FileType.BINARY) {
-                                fileName = docId;
+                        final List<JsonObject> results = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).query(query).rowsAsObject();
+                        InferHelper.invalidateInferCacheIfOlder(colNode.getBucket(), colNode.getScope(), colNode.getText(), TimeUnit.MINUTES.toMillis(5));
+
+                        if (!results.isEmpty()) {
+                            for (JsonObject obj : results) {
+                                String docId = obj.getString("cbFileNameId");
+                                String type = obj.getString("cbMetaType");
+                                String fileName = docId + ".json";
+                                FileNodeDescriptor.FileType fileType = "base64".equals(type) ? FileNodeDescriptor.FileType.BINARY : FileNodeDescriptor.FileType.JSON;
+                                if (fileType == FileNodeDescriptor.FileType.BINARY) {
+                                    fileName = docId;
+                                }
+                                FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId, fileType, null);
+                                DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
+                                parentNode.add(jsonFileNode);
                             }
-                            FileNodeDescriptor node = new FileNodeDescriptor(fileName, colNode.getBucket(), colNode.getScope(), colNode.getText(), docId, fileType, null);
-                            DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
-                            parentNode.add(jsonFileNode);
-                        }
 
-                        if (results.size() == 10) {
-                            DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
-                            parentNode.add(loadMoreNode);
+                            if (results.size() == 10) {
+                                DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                                parentNode.add(loadMoreNode);
+                            }
+                        } else if (newOffset == 0) {
+                            parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
                         }
-                    } else if (newOffset == 0) {
-                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                        });
                     }
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                    });
-                }
-            } catch (PlanningFailureException | IndexFailureException ex) {
-                //This catch handles when the user has no indexes in the collection
-                if (newOffset == 0) {
-                    parentNode.removeAllChildren();
-                    MissingIndexNodeDescriptor idx = new MissingIndexNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
-                    MissingIndexFootNoteNodeDescriptor footIdx = new MissingIndexFootNoteNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText());
-                    parentNode.add(new DefaultMutableTreeNode(idx));
-                    parentNode.add(new DefaultMutableTreeNode(footIdx));
-                } else {
-                    //removes "Load More" node
-                    parentNode.remove(parentNode.getChildCount() - 1);
                 }
 
-                try {
-                    loadKVDocuments(parentNode, tree, newOffset, colNode);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.debug("Could not load documents from KV", e);
-                }
             } catch (Exception e) {
                 Log.error(e);
                 e.printStackTrace();
@@ -332,16 +343,21 @@ public class DataLoader {
     }
 
     private static void loadKVDocuments(DefaultMutableTreeNode parentNode, Tree tree, int newOffset, CollectionNodeDescriptor colNode) throws Exception {
-        List<String> docIds = CouchbaseRestAPI.listKVDocuments(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset, 10);
+        String startKey = colNode.getQueryFilter()!=null?colNode.getQueryFilter().getDocumentStartKey(): null;
+        String endKey = colNode.getQueryFilter()!=null?colNode.getQueryFilter().getDocumentEndKey(): null;
+
+        List<String> docIds = CouchbaseRestAPI.listKVDocuments(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset, 10, startKey, endKey);
 
         if (!docIds.isEmpty()) {
             for (String id : docIds) {
-                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(), colNode.getText(), id, FileNodeDescriptor.FileType.UNKNOWN, null);
+                FileNodeDescriptor node = new FileNodeDescriptor(id, colNode.getBucket(), colNode.getScope(),
+                        colNode.getText(), id, FileNodeDescriptor.FileType.UNKNOWN, null);
                 DefaultMutableTreeNode jsonFileNode = new DefaultMutableTreeNode(node);
                 parentNode.add(jsonFileNode);
             }
             if (docIds.size() == 10) {
-                DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(), colNode.getScope(), colNode.getText(), newOffset + 10));
+                DefaultMutableTreeNode loadMoreNode = new DefaultMutableTreeNode(new LoadMoreNodeDescriptor(colNode.getBucket(),
+                        colNode.getScope(), colNode.getText(), newOffset + 10));
                 parentNode.add(loadMoreNode);
             }
 
