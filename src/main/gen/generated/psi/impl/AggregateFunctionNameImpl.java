@@ -29,6 +29,12 @@ public class AggregateFunctionNameImpl extends SqlppPSIWrapper implements Aggreg
 
   @Override
   @Nullable
+  public FnNames getFnNames() {
+    return findChildByClass(FnNames.class);
+  }
+
+  @Override
+  @Nullable
   public IdentifierRef getIdentifierRef() {
     return findChildByClass(IdentifierRef.class);
   }

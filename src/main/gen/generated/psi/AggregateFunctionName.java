@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface AggregateFunctionName extends PsiElement {
 
   @Nullable
+  FnNames getFnNames();
+
+  @Nullable
   IdentifierRef getIdentifierRef();
 
 }

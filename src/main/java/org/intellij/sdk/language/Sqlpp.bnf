@@ -586,9 +586,13 @@ bool ::= TRUE | FALSE
 
 identifier-or-star ::= identifier-ref | ASTERISK
 
-identifier-ref ::= IDENTIFIER | TYPE | escaped-identifier
+fn-names ::= FUNCS | grammar-funcs
 
-escaped-identifier ::= BACKTICK (IDENTIFIER | TYPE) BACKTICK
+grammar-funcs ::= TYPE | TITLE | SUM
+
+identifier-ref ::= IDENTIFIER | grammar-funcs | escaped-identifier
+
+escaped-identifier ::= BACKTICK (IDENTIFIER | grammar-funcs) BACKTICK
 
 arithmetic-term ::= PLUS expr |
                     ASTERISK expr |
@@ -681,13 +685,13 @@ function-call ::= (builtin-function |
                   window-function) ( DOT path )?
 
 function-name ::= identifier-ref
-aggregate-function-name ::= FUNCS | TYPE | identifier-ref
-window-function-name ::= FUNCS | TYPE | identifier-ref
+aggregate-function-name ::= fn-names | identifier-ref
+window-function-name ::= fn-names | identifier-ref
 
 
 ordinary-function ::= function-name LPAREN ( expr ( COMMA expr )* )? RPAREN
 
-builtin-function ::= (FUNCS | TYPE) LPAREN ( expr ( COMMA expr )* )? RPAREN
+builtin-function ::= fn-names LPAREN ( expr ( COMMA expr )* )? RPAREN
 
 aggregate-function ::= aggregate-function-name LPAREN ( aggregate-quantifier? expr |
                        ( path DOT )? ASTERISK ) RPAREN filter-clause? over-clause?

@@ -29,6 +29,12 @@ public class WindowFunctionNameImpl extends SqlppPSIWrapper implements WindowFun
 
   @Override
   @Nullable
+  public FnNames getFnNames() {
+    return findChildByClass(FnNames.class);
+  }
+
+  @Override
+  @Nullable
   public IdentifierRef getIdentifierRef() {
     return findChildByClass(IdentifierRef.class);
   }

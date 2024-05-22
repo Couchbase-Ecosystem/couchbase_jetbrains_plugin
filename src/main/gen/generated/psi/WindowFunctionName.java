@@ -8,6 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface WindowFunctionName extends PsiElement {
 
   @Nullable
+  FnNames getFnNames();
+
+  @Nullable
   IdentifierRef getIdentifierRef();
 
 }

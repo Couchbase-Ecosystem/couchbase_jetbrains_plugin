@@ -303,6 +303,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitFnNames(@NotNull FnNames o) {
+    visitPsiElement(o);
+  }
+
   public void visitFromClause(@NotNull FromClause o) {
     visitPsiElement(o);
   }
@@ -348,6 +352,10 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitFunctionRef(@NotNull FunctionRef o) {
+    visitPsiElement(o);
+  }
+
+  public void visitGrammarFuncs(@NotNull GrammarFuncs o) {
     visitPsiElement(o);
   }
 

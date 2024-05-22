@@ -33,4 +33,10 @@ public class IdentifierRefImpl extends SqlppPSIWrapper implements IdentifierRef 
     return findChildByClass(EscapedIdentifier.class);
   }
 
+  @Override
+  @Nullable
+  public GrammarFuncs getGrammarFuncs() {
+    return findChildByClass(GrammarFuncs.class);
+  }
+
 }

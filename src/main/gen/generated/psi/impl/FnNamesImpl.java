@@ -11,14 +11,14 @@ import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class BuiltinFunctionImpl extends SqlppPSIWrapper implements BuiltinFunction {
+public class FnNamesImpl extends SqlppPSIWrapper implements FnNames {
 
-  public BuiltinFunctionImpl(@NotNull ASTNode node) {
+  public FnNamesImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitBuiltinFunction(this);
+    visitor.visitFnNames(this);
   }
 
   @Override
@@ -28,15 +28,9 @@ public class BuiltinFunctionImpl extends SqlppPSIWrapper implements BuiltinFunct
   }
 
   @Override
-  @NotNull
-  public List<Expr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
-  }
-
-  @Override
-  @NotNull
-  public FnNames getFnNames() {
-    return findNotNullChildByClass(FnNames.class);
+  @Nullable
+  public GrammarFuncs getGrammarFuncs() {
+    return findChildByClass(GrammarFuncs.class);
   }
 
 }

@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface EscapedIdentifier extends PsiElement {
+public interface FnNames extends PsiElement {
 
   @Nullable
   GrammarFuncs getGrammarFuncs();

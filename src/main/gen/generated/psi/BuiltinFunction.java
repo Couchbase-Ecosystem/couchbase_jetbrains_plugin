@@ -10,4 +10,7 @@ public interface BuiltinFunction extends PsiElement {
   @NotNull
   List<Expr> getExprList();
 
+  @NotNull
+  FnNames getFnNames();
+
 }

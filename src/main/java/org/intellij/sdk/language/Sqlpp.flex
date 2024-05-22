@@ -448,9 +448,9 @@ Backtick = "`"
     "STR_TO_UTC" { return GeneratedTypes.FUNCS; }
     "STR_TO_ZONE_NAME" { return GeneratedTypes.FUNCS; }
     "SUBSTR" { return GeneratedTypes.FUNCS; }
-    "SUM" { return GeneratedTypes.FUNCS; }
+    "SUM" { return GeneratedTypes.SUM; }
     "TAN" { return GeneratedTypes.FUNCS; }
-    "TITLE" { return GeneratedTypes.FUNCS; }
+    "TITLE" { return GeneratedTypes.TITLE; }
     "TO_ARRAY" { return GeneratedTypes.FUNCS; }
     "TO_ATOM" { return GeneratedTypes.FUNCS; }
     "TO_BOOL" { return GeneratedTypes.FUNCS; }
