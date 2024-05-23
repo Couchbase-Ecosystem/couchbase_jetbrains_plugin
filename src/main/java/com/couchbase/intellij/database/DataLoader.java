@@ -308,6 +308,9 @@ public class DataLoader {
     }
 
     public static String getIndexedField(CollectionNodeDescriptor colNode) {
+        if(!ActiveCluster.getInstance().hasQueryService()) {
+            return null;
+        }
         List<QueryIndex> idxs = ActiveCluster.getInstance().get().bucket(colNode.getBucket()).scope(colNode.getScope()).collection(colNode.getText()).queryIndexes().getAllIndexes();
         String filter = null;
         for (QueryIndex idx : idxs) {
