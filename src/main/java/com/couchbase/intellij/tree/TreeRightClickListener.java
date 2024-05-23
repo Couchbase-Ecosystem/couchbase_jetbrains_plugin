@@ -672,44 +672,43 @@ public class TreeRightClickListener {
             actionGroup.add(createDocument);
         }
 
-        if (ActiveCluster.getInstance().hasQueryService()) {
-            actionGroup.addSeparator();
-            String filter = "Add Document Filter";
-            boolean hasDeleteFilter = false;
-            if (col.getQueryFilter() != null) {
-                filter = "Edit Document Filter";
-                hasDeleteFilter = true;
+        actionGroup.addSeparator();
+        String filter = "Add Document Filter";
+        boolean hasDeleteFilter = false;
+        if (col.getQueryFilter() != null) {
+            filter = "Edit Document Filter";
+            hasDeleteFilter = true;
+        }
+        AnAction menuItem = new AnAction(filter) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+
+                CollectionNodeDescriptor desc = new CollectionNodeDescriptor(
+                        col.getText(), null, col.getBucket(), col.getScope(), null);
+                String field = DataLoader.getIndexedField(desc);
+
+                DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText(), field != null);
+                dialog.show();
             }
-            AnAction menuItem = new AnAction(filter) {
+        };
+        actionGroup.add(menuItem);
+
+        if (hasDeleteFilter) {
+            AnAction clearDocFilter = new AnAction("Clear Document Filter") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
+                    QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(),
+                            col.getBucket(), col.getScope(), col.getText(), null);
 
-                    CollectionNodeDescriptor desc = new CollectionNodeDescriptor(
-                            col.getText(), null, col.getBucket(), col.getScope(), null);
-                    String field = DataLoader.getIndexedField(desc);
-
-                    DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText(), field != null);
-                    dialog.show();
+                    col.setQueryFilter(null);
+                    TreePath treePath = new TreePath(clickedNode.getPath());
+                    tree.collapsePath(treePath);
+                    tree.expandPath(treePath);
                 }
             };
-            actionGroup.add(menuItem);
-
-            if (hasDeleteFilter) {
-                AnAction clearDocFilter = new AnAction("Clear Document Filter") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(),
-                                col.getBucket(), col.getScope(), col.getText(), null);
-
-                        col.setQueryFilter(null);
-                        TreePath treePath = new TreePath(clickedNode.getPath());
-                        tree.collapsePath(treePath);
-                        tree.expandPath(treePath);
-                    }
-                };
-                actionGroup.add(clearDocFilter);
-            }
+            actionGroup.add(clearDocFilter);
         }
+
 
         actionGroup.addSeparator();
         AnAction refreshDocuments = new AnAction("Refresh Documents") {
