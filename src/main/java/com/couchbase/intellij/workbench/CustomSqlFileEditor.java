@@ -169,7 +169,6 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         }
                     };
 
-                    executeAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, queryEditor.getComponent());
                     executeGroup.replaceAction(this, cancelAction);
                     isExecutingQuery = true;
 
@@ -214,6 +213,14 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             }
         };
 
+        KeyStroke keyStroke;
+        if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+            keyStroke = KeyStroke.getKeyStroke("meta ENTER");
+        } else {
+            keyStroke = KeyStroke.getKeyStroke("control ENTER");
+        }
+        CustomShortcutSet shortcutSet = new CustomShortcutSet(keyStroke);
+        executeAction.registerCustomShortcutSet(shortcutSet, queryEditor.getComponent());
         executeGroup.add(executeAction);
 
         executeGroup.addSeparator();

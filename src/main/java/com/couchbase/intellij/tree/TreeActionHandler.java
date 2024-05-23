@@ -19,6 +19,7 @@ import javax.swing.border.Border;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import java.util.Enumeration;
 import java.util.concurrent.CompletableFuture;
 
@@ -114,6 +115,11 @@ public class TreeActionHandler {
 
                     ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(selectedNode);
                     ((DefaultTreeModel) tree.getModel()).reload();
+
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        TreePath path = new TreePath(finalNewActiveNode.getPath());
+                        tree.expandPath(path);
+                    });
 
                     if (connectionListener != null) {
                         connectionListener.consume(null);

@@ -15,7 +15,6 @@ public class ActionsUtil {
         if (existingActionGroup instanceof DefaultActionGroup group) {
             group.removeAll();
             group.add(new TokenCountAction());
-            group.add(new CustomPromptAction());
             group.addSeparator();
             group.add(new ExplainAction());
             group.add(new FindBugAction());

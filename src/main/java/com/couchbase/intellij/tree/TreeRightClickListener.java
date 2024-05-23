@@ -676,7 +676,7 @@ public class TreeRightClickListener {
             actionGroup.addSeparator();
             String filter = "Add Document Filter";
             boolean hasDeleteFilter = false;
-            if (col.getQueryFilter() != null && !col.getQueryFilter().trim().isEmpty()) {
+            if (col.getQueryFilter() != null) {
                 filter = "Edit Document Filter";
                 hasDeleteFilter = true;
             }
@@ -688,15 +688,8 @@ public class TreeRightClickListener {
                             col.getText(), null, col.getBucket(), col.getScope(), null);
                     String field = DataLoader.getIndexedField(desc);
 
-                    if (field != null) {
-                        DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText());
-                        dialog.show();
-                    } else {
-                        ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(
-                                "Filters can only be applied to collections that have at least one index.",
-                                "Document Filters"
-                        ));
-                    }
+                    DocumentFilterDialog dialog = new DocumentFilterDialog(tree, clickedNode, col.getBucket(), col.getScope(), col.getText(), field != null);
+                    dialog.show();
                 }
             };
             actionGroup.add(menuItem);
@@ -705,7 +698,8 @@ public class TreeRightClickListener {
                 AnAction clearDocFilter = new AnAction("Clear Document Filter") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(), col.getBucket(), col.getScope(), col.getText(), null);
+                        QueryFiltersStorage.getInstance().getValue().saveQueryFilter(ActiveCluster.getInstance().getId(),
+                                col.getBucket(), col.getScope(), col.getText(), null);
 
                         col.setQueryFilter(null);
                         TreePath treePath = new TreePath(clickedNode.getPath());

@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.node;
 
+import com.couchbase.intellij.persistence.QueryFilter;
 import com.intellij.openapi.util.IconLoader;
 
 public class CollectionNodeDescriptor extends CounterNodeDescriptor {
@@ -8,9 +9,9 @@ public class CollectionNodeDescriptor extends CounterNodeDescriptor {
     private String bucket;
     private String scope;
 
-    private String queryFilter;
+    private QueryFilter queryFilter;
 
-    public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope, String queryFilter) {
+    public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope, QueryFilter queryFilter) {
         super(name, IconLoader.getIcon("/assets/icons/collection.svg", ScopeNodeDescriptor.class));
         this.connectionId = connectionId;
         this.bucket = bucket;
@@ -42,11 +43,11 @@ public class CollectionNodeDescriptor extends CounterNodeDescriptor {
         this.scope = scope;
     }
 
-    public String getQueryFilter() {
+    public QueryFilter getQueryFilter() {
         return queryFilter;
     }
 
-    public void setQueryFilter(String queryFilter) {
+    public void setQueryFilter(QueryFilter queryFilter) {
         this.queryFilter = queryFilter;
     }
 }

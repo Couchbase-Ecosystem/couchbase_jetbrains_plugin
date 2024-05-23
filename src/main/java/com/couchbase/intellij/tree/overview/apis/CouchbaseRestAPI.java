@@ -38,9 +38,18 @@ public class CouchbaseRestAPI {
         return object.toString();
     }
 
-    public static List<String> listKVDocuments(String bucket, String scope, String collection, int skip, int limit) throws Exception {
+    public static List<String> listKVDocuments(String bucket, String scope, String collection, int skip, int limit, String start, String end) throws Exception {
+        String filters = "";
+        if(start != null) {
+            filters += "&startkey=\""+start+"\"";
+        }
+
+        if(end != null) {
+            filters+="&endkey=\""+end+"\"";
+        }
+
         String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/"
-                        + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs?skip=" + skip + "&limit=" + limit + "&include_doc=false",
+                        + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs?skip=" + skip + "&limit=" + limit + filters+"&include_doc=false",
                 ActiveCluster.getInstance().getClusterURL());
 
         Gson gson = new Gson();
