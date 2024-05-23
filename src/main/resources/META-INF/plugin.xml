@@ -32,6 +32,7 @@
         <ul>
           <li>Adding Couchbase Search and Vector Search Support</li>
           <li>You can now apply key range filters on documents</li>
+          <li>Support for named parameters</li>
           <li>Bug fixes</li>
         </ul>
         ]]>
