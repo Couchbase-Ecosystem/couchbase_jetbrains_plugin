@@ -84,6 +84,7 @@ public interface GeneratedTypes {
   IElementType EXPR = new SqlppElementType("EXPR");
   IElementType FIELD_EXPR = new SqlppElementType("FIELD_EXPR");
   IElementType FILTER_CLAUSE = new SqlppElementType("FILTER_CLAUSE");
+  IElementType FN_NAMES = new SqlppElementType("FN_NAMES");
   IElementType FROM_CLAUSE = new SqlppElementType("FROM_CLAUSE");
   IElementType FROM_GENERIC = new SqlppElementType("FROM_GENERIC");
   IElementType FROM_KEYSPACE = new SqlppElementType("FROM_KEYSPACE");
@@ -96,6 +97,7 @@ public interface GeneratedTypes {
   IElementType FUNCTION_CALL = new SqlppElementType("FUNCTION_CALL");
   IElementType FUNCTION_NAME = new SqlppElementType("FUNCTION_NAME");
   IElementType FUNCTION_REF = new SqlppElementType("FUNCTION_REF");
+  IElementType GRAMMAR_FUNCS = new SqlppElementType("GRAMMAR_FUNCS");
   IElementType GRANT_STATEMENT = new SqlppElementType("GRANT_STATEMENT");
   IElementType GROUP_BY_CLAUSE = new SqlppElementType("GROUP_BY_CLAUSE");
   IElementType GROUP_TERM = new SqlppElementType("GROUP_TERM");
@@ -464,8 +466,10 @@ public interface GeneratedTypes {
   IElementType START = new SqlppTokenType("START");
   IElementType STATISTICS = new SqlppTokenType("STATISTICS");
   IElementType STRING_CHAR = new SqlppTokenType("STRING_CHAR");
+  IElementType SUM = new SqlppTokenType("SUM");
   IElementType THEN = new SqlppTokenType("THEN");
   IElementType TIES = new SqlppTokenType("TIES");
+  IElementType TITLE = new SqlppTokenType("TITLE");
   IElementType TO = new SqlppTokenType("TO");
   IElementType TRAN = new SqlppTokenType("TRAN");
   IElementType TRANSACTION = new SqlppTokenType("TRANSACTION");
@@ -716,6 +720,9 @@ public interface GeneratedTypes {
       else if (type == FILTER_CLAUSE) {
         return new FilterClauseImpl(node);
       }
+      else if (type == FN_NAMES) {
+        return new FnNamesImpl(node);
+      }
       else if (type == FROM_CLAUSE) {
         return new FromClauseImpl(node);
       }
@@ -751,6 +758,9 @@ public interface GeneratedTypes {
       }
       else if (type == FUNCTION_REF) {
         return new FunctionRefImpl(node);
+      }
+      else if (type == GRAMMAR_FUNCS) {
+        return new GrammarFuncsImpl(node);
       }
       else if (type == GRANT_STATEMENT) {
         return new GrantStatementImpl(node);

@@ -25,6 +25,7 @@ EXPONENT = ([eE][-+]?[0-9]+)
 NBR = (-?{INTGR}{FRACTION}?{EXPONENT}?)
 
 IDT = [a-zA-Z_][0-9a-zA-Z_\-$]*
+DOLLAR = "$"
 HEX = [0-9a-fA-F]
 CHR = (\\[\\\/bfnrt]|\\u{HEX}{HEX}{HEX}{HEX})
 ASTERISK = \*
@@ -451,7 +452,7 @@ Backtick = "`"
     "SUBSTR" { return GeneratedTypes.FUNCS; }
     "SUM" { return GeneratedTypes.FUNCS; }
     "TAN" { return GeneratedTypes.FUNCS; }
-    "TITLE" { return GeneratedTypes.FUNCS; }
+    "TITLE" { return GeneratedTypes.TITLE; }
     "TO_ARRAY" { return GeneratedTypes.FUNCS; }
     "TO_ATOM" { return GeneratedTypes.FUNCS; }
     "TO_BOOL" { return GeneratedTypes.FUNCS; }

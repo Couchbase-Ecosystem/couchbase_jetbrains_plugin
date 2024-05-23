@@ -11,32 +11,20 @@ import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class IdentifierRefImpl extends SqlppPSIWrapper implements IdentifierRef {
+public class GrammarFuncsImpl extends SqlppPSIWrapper implements GrammarFuncs {
 
-  public IdentifierRefImpl(@NotNull ASTNode node) {
+  public GrammarFuncsImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitIdentifierRef(this);
+    visitor.visitGrammarFuncs(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof Visitor) accept((Visitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public EscapedIdentifier getEscapedIdentifier() {
-    return findChildByClass(EscapedIdentifier.class);
-  }
-
-  @Override
-  @Nullable
-  public GrammarFuncs getGrammarFuncs() {
-    return findChildByClass(GrammarFuncs.class);
   }
 
 }
