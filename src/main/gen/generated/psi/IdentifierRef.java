@@ -10,4 +10,7 @@ public interface IdentifierRef extends PsiElement {
   @Nullable
   EscapedIdentifier getEscapedIdentifier();
 
+  @Nullable
+  GrammarFuncs getGrammarFuncs();
+
 }

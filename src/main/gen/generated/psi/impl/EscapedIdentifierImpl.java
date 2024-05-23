@@ -27,4 +27,10 @@ public class EscapedIdentifierImpl extends SqlppPSIWrapper implements EscapedIde
     else super.accept(visitor);
   }
 
+  @Override
+  @Nullable
+  public GrammarFuncs getGrammarFuncs() {
+    return findChildByClass(GrammarFuncs.class);
+  }
+
 }
