@@ -188,6 +188,7 @@ public interface GeneratedTypes {
   IElementType MERGE_UPDATE = new SqlppElementType("MERGE_UPDATE");
   IElementType MULTIPLE_HINTS = new SqlppElementType("MULTIPLE_HINTS");
   IElementType NAME = new SqlppElementType("NAME");
+  IElementType NAMED_ARG = new SqlppElementType("NAMED_ARG");
   IElementType NAMESPACE_REF = new SqlppElementType("NAMESPACE_REF");
   IElementType NAME_VAR = new SqlppElementType("NAME_VAR");
   IElementType NESTED_EXPR = new SqlppElementType("NESTED_EXPR");
@@ -324,6 +325,7 @@ public interface GeneratedTypes {
   IElementType DELETE = new SqlppTokenType("DELETE");
   IElementType DESC = new SqlppTokenType("DESC");
   IElementType DISTINCT = new SqlppTokenType("DISTINCT");
+  IElementType DOLLAR = new SqlppTokenType("DOLLAR");
   IElementType DOT = new SqlppTokenType("DOT");
   IElementType DOUBLE_EQUAL = new SqlppTokenType("DOUBLE_EQUAL");
   IElementType DQUOTE = new SqlppTokenType("DQUOTE");
@@ -1025,6 +1027,9 @@ public interface GeneratedTypes {
       }
       else if (type == NAME) {
         return new NameImpl(node);
+      }
+      else if (type == NAMED_ARG) {
+        return new NamedArgImpl(node);
       }
       else if (type == NAMESPACE_REF) {
         return new NamespaceRefImpl(node);

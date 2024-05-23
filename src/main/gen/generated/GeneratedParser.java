@@ -2311,6 +2311,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 path |
   //                 json-value |
   //                 literal |
+  //                 named-arg |
   //                 identifier-ref |
   //                 nested-expr |
   //                 subquery-expr
@@ -2338,6 +2339,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 path |
   //                 json-value |
   //                 literal |
+  //                 named-arg |
   //                 identifier-ref |
   //                 nested-expr |
   //                 subquery-expr
@@ -2362,6 +2364,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 path |
   //                 json-value |
   //                 literal |
+  //                 named-arg |
   //                 identifier-ref |
   //                 nested-expr |
   //                 subquery-expr
@@ -2372,6 +2375,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     if (!r) r = path(b, l + 1);
     if (!r) r = json_value(b, l + 1);
     if (!r) r = literal(b, l + 1);
+    if (!r) r = named_arg(b, l + 1);
     if (!r) r = identifier_ref(b, l + 1);
     if (!r) r = nested_expr(b, l + 1);
     if (!r) r = subquery_expr(b, l + 1);
@@ -5594,6 +5598,18 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b, l, _NONE_, NAME_VAR, "<name var>");
     r = identifier_ref(b, l + 1);
     exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // DOLLAR IDENTIFIER
+  public static boolean named_arg(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "named_arg")) return false;
+    if (!nextTokenIs(b, DOLLAR)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeTokens(b, 0, DOLLAR, IDENTIFIER);
+    exit_section_(b, m, NAMED_ARG, r);
     return r;
   }
 
