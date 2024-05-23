@@ -339,6 +339,15 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         ActionToolbar favToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, favoriteActionGroup, true);
         favToolbar.setTargetComponent(panel);
 
+        favoriteActionGroup.add(new AnAction("Named Parameters", "Named parameters",
+                IconLoader.getIcon("/assets/icons/named_param.svg", CustomSqlFileEditor.class)) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                NamedParameterDialog dialog = new NamedParameterDialog(project);
+                dialog.show();
+            }
+        });
+
         favoriteActionGroup.add(new AnAction("Favorite Query", "Favorite query", IconLoader.getIcon("/assets/icons/star-empty.svg", CustomSqlFileEditor.class)) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -348,7 +357,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         });
 
         favoriteActionGroup.addSeparator();
-        favoriteActionGroup.add(new AnAction("Query Options", "Query Options", IconLoader.getIcon("/assets/icons/gear.svg", CustomSqlFileEditor.class)) {
+        favoriteActionGroup.add(new AnAction("Query Options", "Query options", IconLoader.getIcon("/assets/icons/gear.svg", CustomSqlFileEditor.class)) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (ActiveCluster.getInstance().getCluster() != null) {

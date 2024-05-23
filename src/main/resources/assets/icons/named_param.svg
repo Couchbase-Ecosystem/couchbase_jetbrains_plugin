@@ -1,0 +1,10 @@
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <!-- Tag Shape -->
+    <polygon points="1,2 11,2 14,6 14,15 1,15" fill="none" stroke="#b8babc" stroke-width="1.5"/>
+
+    <!-- Tag Hole -->
+    <circle cx="2.7" cy="3.5" r="0.5" fill="none" stroke="#b8babc" stroke-width="1.5"/>
+
+    <!-- Letter "p" -->
+    <text x="7.5" y="8" font-family="Arial" font-size="11" fill="#b8babc" text-anchor="middle" dominant-baseline="middle">p</text>
+</svg>

@@ -57,6 +57,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.NamedParamsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.config.CouchbaseSettingsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.chat.ChatGptHandler"/>
