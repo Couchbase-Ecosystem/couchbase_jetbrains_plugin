@@ -547,6 +547,7 @@ expr ::= (
                 path |
                 json-value |
                 literal |
+                named-arg |
                 identifier-ref |
                 nested-expr |
                 subquery-expr
@@ -585,6 +586,8 @@ single-quoted-string-character ::= (
 bool ::= TRUE | FALSE
 
 identifier-or-star ::= identifier-ref | ASTERISK
+
+named-arg ::= DOLLAR IDENTIFIER
 
 identifier-ref ::= IDENTIFIER | TYPE | escaped-identifier
 

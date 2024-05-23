@@ -723,6 +723,10 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitNamedArg(@NotNull NamedArg o) {
+    visitPsiElement(o);
+  }
+
   public void visitNamespaceRef(@NotNull NamespaceRef o) {
     visitPsiElement(o);
   }

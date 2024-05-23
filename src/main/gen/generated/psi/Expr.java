@@ -38,6 +38,9 @@ public interface Expr extends PsiElement {
   List<LogicalTerm> getLogicalTermList();
 
   @Nullable
+  NamedArg getNamedArg();
+
+  @Nullable
   NestedExpr getNestedExpr();
 
   @Nullable
