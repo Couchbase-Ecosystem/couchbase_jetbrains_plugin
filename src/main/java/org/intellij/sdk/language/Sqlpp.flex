@@ -42,6 +42,7 @@ SLASH = "/"
 BACKSLASH = \\
 QUOTE = \'
 DQUOTE = \"
+DOLLAR = "$"
 
 
 Backtick = "`"
@@ -492,6 +493,7 @@ Backtick = "`"
       {SLASH} { return GeneratedTypes.SLASH; }
       {QUOTE} { yybegin(SingleQuotedString); return GeneratedTypes.QUOTE; }
       {DQUOTE} { yybegin(DoubleQuotedString); return GeneratedTypes.DQUOTE; }
+      {DOLLAR} { return GeneratedTypes.DOLLAR; }
 
   {WHITE_SPACE} { return TokenType.WHITE_SPACE; }
 

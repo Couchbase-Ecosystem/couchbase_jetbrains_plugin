@@ -89,6 +89,12 @@ public class ExprImpl extends SqlppPSIWrapper implements Expr {
 
   @Override
   @Nullable
+  public NamedArg getNamedArg() {
+    return findChildByClass(NamedArg.class);
+  }
+
+  @Override
+  @Nullable
   public NestedExpr getNestedExpr() {
     return findChildByClass(NestedExpr.class);
   }
