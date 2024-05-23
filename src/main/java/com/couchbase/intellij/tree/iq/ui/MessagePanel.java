@@ -1,18 +1,24 @@
 package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.text.TextFragment;
-import com.couchbase.intellij.tree.iq.ui.view.*;
+import com.couchbase.intellij.tree.iq.ui.view.CollapsiblePanelFactory;
+import com.couchbase.intellij.tree.iq.ui.view.HyperlinkHandler;
+import com.couchbase.intellij.tree.iq.ui.view.LanguageDetector;
+import com.couchbase.intellij.tree.iq.ui.view.RSyntaxTextAreaView;
 import com.couchbase.intellij.tree.iq.util.StandardLanguage;
 import com.intellij.openapi.project.Project;
-import com.intellij.util.ui.*;
+import com.intellij.util.ui.ExtendableHTMLViewFactory;
+import com.intellij.util.ui.HTMLEditorKitBuilder;
+import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.HyperlinkEvent;
-import javax.swing.text.*;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.Element;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.View;
 import javax.swing.text.html.HTML;
-import javax.swing.text.html.HTMLDocument;
-import javax.swing.text.html.StyleSheet;
 import java.awt.*;
 
 public class MessagePanel extends HtmlPanel implements MessageRenderer {
