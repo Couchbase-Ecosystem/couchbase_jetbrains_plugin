@@ -32,6 +32,7 @@
         <ul>
           <li>Adding Couchbase Search and Vector Search Support</li>
           <li>You can now apply key range filters on documents</li>
+          <li>Support for named parameters</li>
           <li>Bug fixes</li>
         </ul>
         ]]>
@@ -57,6 +58,7 @@
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.NamedParamsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.config.CouchbaseSettingsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.tree.iq.chat.ChatGptHandler"/>

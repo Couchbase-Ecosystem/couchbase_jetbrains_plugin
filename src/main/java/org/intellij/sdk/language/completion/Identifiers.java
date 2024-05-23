@@ -4,8 +4,8 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.workbench.Log;
+import com.couchbase.intellij.workbench.NamedParametersUtil;
 import com.intellij.codeInsight.completion.*;
-import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
@@ -28,118 +28,81 @@ import java.util.stream.Stream;
 
 public class Identifiers extends CompletionProvider<CompletionParameters> {
 
-    public Identifiers(CompletionContributor with) {
-        // match any identifier inside an expression
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(ExprImpl.class),
-                this
-        );
-        // match any identifier at error position inside function call argument list
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .inFile(
-                                PlatformPatterns.psiFile(SqlppFile.class)
-                        )
-                        .afterSiblingSkipping(
-                                PlatformPatterns.not(PlatformPatterns.psiElement(GeneratedTypes.LPAREN)),
-                                PlatformPatterns.psiElement(GeneratedTypes.LPAREN)
-                                        .afterSibling(PlatformPatterns.psiElement(GeneratedTypes.FUNCS))
-                        ),
-                this
-        );
-        // match any identifier at error position immediately after a backtick
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new PatternCondition<PsiElement>("backtick") {
-
-                            @Override
-                            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
-                                if (element.getPrevSibling() != null) {
-                                    if ("`".equals(element.getPrevSibling().getText())) {
-                                        return true;
-                                    } else if (element.getPrevSibling() instanceof PsiErrorElement) {
-                                        PsiElement tick = element.getPrevSibling().getPrevSibling();
-                                        return tick != null && "`".equals(tick.getText());
-                                    }
-                                }
-                                return false;
-                            }
-                        }),
-                this
-        );
-
-        // match any identifier after a dot
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new PatternCondition<PsiElement>("dot") {
-                            @Override
-                            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
-                                if (PlatformPatterns.psiElement(GeneratedTypes.DOT).accepts(element.getPrevSibling())
-                                        || PlatformPatterns.psiElement(IdentifierRef.class).accepts(element.getParent())) {
-                                    return true;
-                                } else if (element.getPrevSibling() instanceof PsiErrorElement) {
-                                    return ".".equals(element.getPrevSibling().getText());
-                                }
-                                return false;
-                            }
-                        }),
-                this
-        );
-        // escaped dot
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new PatternCondition<PsiElement>("escaped dot") {
-                            @Override
-                            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
-                                return element.getPrevSibling() instanceof PsiErrorElement && element.getPrevSibling().getLastChild().getNode().getElementType() == GeneratedTypes.DOT;
-                            }
-                        }),
-                this
-        );
-
-        // match identifiers after specific keywords
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER)
-                        .with(new PatternCondition<PsiElement>("after keywords") {
-                            @Override
-                            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
-                                while (element.getPrevSibling() instanceof PsiWhiteSpace) {
-                                    element = element.getPrevSibling();
-                                }
-                                return PlatformPatterns.psiElement(GeneratedTypes.SET).accepts(element.getPrevSibling())
-                                        || PlatformPatterns.psiElement(GeneratedTypes.INTO).accepts(element.getPrevSibling());
-                            }
-                        }),
-                this
-        );
-
-        // after failed expression
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement()
-                        .inFile(PlatformPatterns.psiFile(SqlppFile.class))
-                        .with(Utils.AFTER_FAILED_EXPR),
-                this
-        );
-
-        // inside from terms
-        with.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(FromTerms.class),
-                this
-        );
-    }
-
     private static final BiPredicate<Integer, CouchbaseClusterEntity> passer = (depth, entity) -> depth <= 3;
     private static final BiPredicate<Integer, CouchbaseClusterEntity> emptyPathPasser = (depth, entity) -> depth <= 5;
 
-    private static boolean appendRecursively(int depth, CouchbaseClusterEntity entity, CompletionResultSet result, BiPredicate<Integer, CouchbaseClusterEntity> filter) {
+    public Identifiers(CompletionContributor with) {
+        // match any identifier inside an expression
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(ExprImpl.class), this);
+        // match any identifier at error position inside function call argument list
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inFile(PlatformPatterns.psiFile(SqlppFile.class)).afterSiblingSkipping(PlatformPatterns.not(PlatformPatterns.psiElement(GeneratedTypes.LPAREN)), PlatformPatterns.psiElement(GeneratedTypes.LPAREN).afterSibling(PlatformPatterns.psiElement(GeneratedTypes.FUNCS))), this);
+        // match any identifier at error position immediately after a backtick
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).with(new PatternCondition<PsiElement>(
+                        "backtick") {
+
+            @Override
+            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
+                if (element.getPrevSibling() != null) {
+                    if ("`".equals(element.getPrevSibling().getText())) {
+                        return true;
+                    } else if (element.getPrevSibling() instanceof PsiErrorElement) {
+                        PsiElement tick = element.getPrevSibling().getPrevSibling();
+                        return tick != null && "`".equals(tick.getText());
+                    }
+                }
+                return false;
+            }
+        }), this);
+
+        // match any identifier after a dot
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).with(new PatternCondition<PsiElement>("dot") {
+            @Override
+            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
+                if (PlatformPatterns.psiElement(GeneratedTypes.DOT).accepts(element.getPrevSibling()) || PlatformPatterns.psiElement(IdentifierRef.class).accepts(element.getParent())) {
+                    return true;
+                } else if (element.getPrevSibling() instanceof PsiErrorElement) {
+                    return ".".equals(element.getPrevSibling().getText());
+                }
+                return false;
+            }
+        }), this);
+        // escaped dot
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).with(new PatternCondition<PsiElement>("escaped"
+                        + " dot") {
+            @Override
+            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
+                return element.getPrevSibling() instanceof PsiErrorElement && element.getPrevSibling().getLastChild().getNode().getElementType() == GeneratedTypes.DOT;
+            }
+        }), this);
+
+        // match identifiers after specific keywords
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).with(new PatternCondition<PsiElement>("after " + "keywords") {
+            @Override
+            public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
+                while (element.getPrevSibling() instanceof PsiWhiteSpace) {
+                    element = element.getPrevSibling();
+                }
+                return PlatformPatterns.psiElement(GeneratedTypes.SET).accepts(element.getPrevSibling()) || PlatformPatterns.psiElement(GeneratedTypes.INTO).accepts(element.getPrevSibling());
+            }
+        }), this);
+
+        // after failed expression
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement().inFile(PlatformPatterns.psiFile(SqlppFile.class)).with(Utils.AFTER_FAILED_EXPR), this);
+
+        // inside from terms
+        with.extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement(GeneratedTypes.IDENTIFIER).inside(FromTerms.class), this);
+    }
+
+    private static boolean appendRecursively(int depth, CouchbaseClusterEntity entity, CompletionResultSet result,
+                                             BiPredicate<Integer, CouchbaseClusterEntity> filter) {
         boolean found = false;
         String name = entity.getName();
         if (name != null && (filter == null || filter.test(depth, entity))) {
@@ -155,7 +118,8 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
     }
 
     @Override
-    protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
+    protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context,
+                                  @NotNull CompletionResultSet result) {
         ActiveCluster cluster = ActiveCluster.getInstance();
         if (cluster == null || cluster.getCluster() == null) {
             return;
@@ -171,17 +135,21 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         Log.debug("Open context: " + openContext);
 
         if (!completePath.isEmpty()) {
-            if (!appendAliases(element, cluster, completePath, result) &&
-                    0 == Utils.findEntities(cluster, openContext, editorContext == null ? (List<String>)Collections.EMPTY_LIST : editorContext.toList(), statementContexts, completePath)
-                            .peek(e -> Log.debug("potential path target: " + e.path()))
-                            .filter(entity -> completeForPath(entity, Collections.EMPTY_LIST, result))
-                            .count()) {
+            if (!appendAliases(element, cluster, completePath, result) && 0 == Utils.findEntities(cluster,
+                    openContext, editorContext == null ? (List<String>) Collections.EMPTY_LIST :
+                            editorContext.toList(), statementContexts, completePath).peek(e -> Log.debug("potential " + "path target: " + e.path())).filter(entity -> completeForPath(entity, Collections.EMPTY_LIST, result)).count()) {
                 Log.debug("failed path completion");
                 completePath = Collections.EMPTY_LIST;
             }
         }
 
         if (completePath.isEmpty()) {
+
+            List<String> namedParams =
+                    NamedParametersUtil.getAllNamedParameters(element.getProject()).keySet().stream().map(e -> "$" + e).collect(Collectors.toList());
+
+            namedParams.forEach(e -> result.addElement(LookupElementBuilder.create(e)));
+
             Log.debug("Empty path completion");
             appendAliases(element, cluster, Collections.EMPTY_LIST, result);
             if (editorContext == null && openContext) {
@@ -191,8 +159,8 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
 
             if (!statementContexts.isEmpty()) {
                 Log.debug("STATEMENT context completion");
-                Utils.findEntities(cluster, openContext, editorContext == null ? Collections.EMPTY_LIST : editorContext.toList(), statementContexts, Collections.EMPTY_LIST)
-                        .forEach(entity -> completeForPath((CouchbaseClusterEntity) entity, Collections.EMPTY_LIST, result));
+                Utils.findEntities(cluster, openContext, editorContext == null ? Collections.EMPTY_LIST :
+                        editorContext.toList(), statementContexts, Collections.EMPTY_LIST).forEach(entity -> completeForPath((CouchbaseClusterEntity) entity, Collections.EMPTY_LIST, result));
             }
 
             if (editorContext != null && Utils.isOpenContext(element)) {
@@ -202,7 +170,8 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         }
     }
 
-    private boolean appendAliases(PsiElement element, ActiveCluster cluster, List<String> path, CompletionResultSet result) {
+    private boolean appendAliases(PsiElement element, ActiveCluster cluster, List<String> path,
+                                  CompletionResultSet result) {
         Log.debug("appending aliases");
         String name = path.size() > 0 ? path.get(0) : null;
         return 0 < Utils.findAlias(element, name).filter(alias -> {
@@ -236,20 +205,13 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
         boolean found = false;
         if (to == null || to.isEmpty()) {
             if (from.getChildren() != null) {
-                long suggested = from.getChildren().stream()
-                        .flatMap(e -> {
-                            if (e.getName() == null) {
-                                return e.getChildren().stream();
-                            } else {
-                                return Stream.of(e);
-                            }
-                        })
-                        .map(CouchbaseClusterEntity::getName)
-                        .filter(Objects::nonNull)
-                        .map(LookupElementBuilder::create)
-                        .peek(e -> Log.debug(String.format("Complete option: %s", e.getLookupString())))
-                        .peek(result::addElement)
-                        .count();
+                long suggested = from.getChildren().stream().flatMap(e -> {
+                    if (e.getName() == null) {
+                        return e.getChildren().stream();
+                    } else {
+                        return Stream.of(e);
+                    }
+                }).map(CouchbaseClusterEntity::getName).filter(Objects::nonNull).map(LookupElementBuilder::create).peek(e -> Log.debug(String.format("Complete option: %s", e.getLookupString()))).peek(result::addElement).count();
                 return true;
             }
         } else {
@@ -257,11 +219,9 @@ public class Identifiers extends CompletionProvider<CompletionParameters> {
             if (name != null) {
                 Set<? extends CouchbaseClusterEntity> children = from.getChildren() == null ? Collections.EMPTY_SET :
                         from.getChildren().stream()
-                                // ignore elements with no name
-                                .flatMap(e -> e.getName() == null ? e.getChildren() == null ? Stream.empty() : e.getChildren().stream() : Stream.of(e))
-                                .filter(Objects::nonNull)
-                                .filter(e -> e.getName().startsWith(name))
-                                .collect(Collectors.toSet());
+                        // ignore elements with no name
+                        .flatMap(e -> e.getName() == null ? e.getChildren() == null ? Stream.empty() :
+                                e.getChildren().stream() : Stream.of(e)).filter(Objects::nonNull).filter(e -> e.getName().startsWith(name)).collect(Collectors.toSet());
                 for (CouchbaseClusterEntity child : children) {
                     if (name.equals(child.getName())) {
                         List<String> subList = new ArrayList<>(to);
