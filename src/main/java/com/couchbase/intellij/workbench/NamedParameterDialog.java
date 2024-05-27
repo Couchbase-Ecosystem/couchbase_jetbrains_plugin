@@ -26,6 +26,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class NamedParameterDialog extends DialogWrapper {
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
@@ -39,8 +40,8 @@ public class NamedParameterDialog extends DialogWrapper {
     private final EditorEx editor;
     private final EditorEx editorBuiltIn;
     private final Map<String, String> editorContentMap = new HashMap<>();
+    private final JLabel errorLabel;
     private Map<String, String> projectNamedParams;
-    private JLabel errorLabel;
 
 
     protected NamedParameterDialog(Project project) {
@@ -142,7 +143,12 @@ public class NamedParameterDialog extends DialogWrapper {
                 String selectedValue = list.getSelectedValue();
                 if (selectedValue != null) {
                     NamedParams params = NamedParamsStorage.getInstance().getValue();
-                    String content = params.getParams().getOrDefault(selectedValue, "");
+                    String content;
+                    if (editorContentMap.containsKey(selectedValue)) {
+                        content = editorContentMap.get(selectedValue);
+                    } else {
+                        content = params.getParams().getOrDefault(selectedValue, "");
+                    }
                     ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(content));
                     editor.setViewer(false);
                 } else {
@@ -153,12 +159,14 @@ public class NamedParameterDialog extends DialogWrapper {
         });
 
         NamedParams params = NamedParamsStorage.getInstance().getValue();
-        params.getParams().forEach((key, value) -> addItem(key));
+        TreeMap<String, String> sortedMap = new TreeMap<>(params.getParams());
+        sortedMap.forEach((key, value) -> addItem(key));
 
         try {
             projectNamedParams = NamedParametersUtil.readProjectNamedParameters(project);
+            TreeMap<String, String> treeMap = new TreeMap<>(projectNamedParams);
 
-            for (String name : projectNamedParams.keySet()) {
+            for (String name : treeMap.keySet()) {
                 builtinListModel.addElement(name);
             }
 
@@ -166,7 +174,11 @@ public class NamedParameterDialog extends DialogWrapper {
                 if (!evt.getValueIsAdjusting()) {
                     JBList list = (JBList) evt.getSource();
                     if (list.getSelectedIndex() != -1) {
-                        ApplicationManager.getApplication().runWriteAction(() -> editorBuiltIn.getDocument().setText(projectNamedParams.get(list.getSelectedValue().toString())));
+                        ApplicationManager.getApplication().runWriteAction(() -> {
+
+                            editorBuiltIn.getDocument().setText(projectNamedParams.get(list.getSelectedValue().toString()));
+
+                        });
                     }
                 }
             });
