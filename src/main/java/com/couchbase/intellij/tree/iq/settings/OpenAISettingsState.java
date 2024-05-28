@@ -151,9 +151,11 @@ public class OpenAISettingsState implements PersistentStateComponent<OpenAISetti
         }
 
         public void setApiKey(String apiKey) {
-            var credentialAttributes = createCredentialAttributes(getModelPage());
-            PasswordSafe.getInstance().setPassword(credentialAttributes, apiKey);
-            setApiKeyMasked(maskText(apiKey));
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                var credentialAttributes = createCredentialAttributes(getModelPage());
+                PasswordSafe.getInstance().setPassword(credentialAttributes, apiKey);
+                setApiKeyMasked(maskText(apiKey));
+            });
         }
 
         private static String maskText(String text) {
