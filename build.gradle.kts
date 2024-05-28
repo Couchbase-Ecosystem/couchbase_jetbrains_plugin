@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.1.1"
+version = "1.1.2"
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -80,7 +80,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("233.*")
+        sinceBuild.set("232.10227.8")
         untilBuild.set("246.*")
     }
 
