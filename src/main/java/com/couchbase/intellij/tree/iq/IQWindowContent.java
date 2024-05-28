@@ -143,7 +143,9 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
 
         if (!credentials.checkIqIsEnabled(organization.getId())) {
             Notifications.Bus.notify(new Notification(ChatGptBundle.message("group.id"), "Unable to use this organization", "Capella iQ is not enabled for this organization.", NotificationType.ERROR));
-            onLogout(null);
+            if (chatPanel == null) {
+                onLogout(null);
+            }
             return;
         }
 

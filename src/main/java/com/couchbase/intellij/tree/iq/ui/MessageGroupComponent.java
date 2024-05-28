@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.CustomSqlFileEditor.NO_QUERY_CONTEXT_SELECTED;
 
@@ -204,10 +205,11 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
     private JPanel createSettingsPanel(CapellaOrganizationList organizationList, ChatPanel.LogoutListener logoutListener) {
         JPanel panel = new NonOpaquePanel(new GridLayout(0, 1));
         JPanel orgPanel = new NonOpaquePanel(new BorderLayout());
+
+
         orgSelector = new ComboBox<>(organizationList.getData().stream()
-                .map(org -> org.getData())
-                .filter(data -> data.getIq() != null && data.getIq().isEnabled())
-                .map(data -> data.getName())
+                .map(CapellaOrganizationList.Entry::getData)
+                .map(CapellaOrganization::getName)
                 .toArray(String[]::new));
 
         orgSelector.setSelectedIndex(organizationList.indexOf(organization));
