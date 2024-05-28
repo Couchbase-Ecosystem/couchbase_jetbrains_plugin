@@ -28,7 +28,6 @@ public class CapellaOrgSelectorView extends JPanel {
         add(new JLabel(SELECT_ORG_LABEL), gbc);
         ComboBox orgSelector = new ComboBox<>(organizationList.getData().stream()
                 .map(org -> org.getData())
-                .filter(data -> data.getIq() != null && data.getIq().isEnabled())
                 .map(data -> String.format("%s%s", data.getName(), !data.getIq().getOther().getIsTermsAcceptedForOrg() ? " (*)" : ""))
                 .toArray(String[]::new));
 

@@ -87,7 +87,7 @@ public class IQWindowContent extends JPanel implements LoginPanel.Listener, Chat
         this.credentials = credentials;
         this.removeAll();
         try {
-            this.organizationList = credentials.getOrganizations();
+            this.organizationList = credentials.getOrganizations().getOnlyIqEnabledOrgs();
             if (organizationList.getData().isEmpty()) {
                 Notifications.Bus.notify(new Notification(ChatGptBundle.message("group.id"), "No Capella organizations found", "At least one organization is required to use Couchbase IQ. No organizations found.", NotificationType.ERROR));
                 onLogout(null);
