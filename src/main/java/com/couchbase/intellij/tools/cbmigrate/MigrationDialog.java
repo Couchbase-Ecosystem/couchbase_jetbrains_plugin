@@ -30,25 +30,18 @@ import java.util.Set;
 public class MigrationDialog extends DialogWrapper {
 
     public static final String ALL_COLLECTIONS_IN_THE_DATABASE = "All collections in the database";
-    private final Project project;
-
-    private JPanel cardPanel;
-    private CardLayout cardLayout;
-
-    protected JBTextField mongoDBTextField;
-
-    protected ComboBox<String> databaseComboBox;
-    protected JComboCheckBox collectionsComboBox;
-
-    protected ComboBox<String> targetBucketCombo;
-    protected ComboBox<String> targetScopeCombo;
-
-    protected List<ScopeSpec> targetScopeItems;
-
     protected static final Color ERROR_COLOR = Color.decode("#FF4444");
     protected static final Color SUCCESS_COLOR = Color.decode("#00C851");
     protected static final Color ESTABILISHING_COLOR = Color.decode("#FFA726");
-
+    private final Project project;
+    protected JBTextField mongoDBTextField;
+    protected ComboBox<String> databaseComboBox;
+    protected JComboCheckBox collectionsComboBox;
+    protected ComboBox<String> targetBucketCombo;
+    protected ComboBox<String> targetScopeCombo;
+    protected List<ScopeSpec> targetScopeItems;
+    private JPanel cardPanel;
+    private CardLayout cardLayout;
     private MongoConnection mongoConnection;
 
     public MigrationDialog(Project project) {
@@ -227,7 +220,8 @@ public class MigrationDialog extends DialogWrapper {
             if (databaseComboBox.getSelectedItem() == null) {
                 return;
             }
-            List<String> collectionNames = mongoConnection.getCollectionNames(databaseComboBox.getSelectedItem().toString());
+            List<String> collectionNames =
+                    mongoConnection.getCollectionNames(databaseComboBox.getSelectedItem().toString());
             collectionsComboBox.removeAllItems();
             collectionsComboBox.addItem(ALL_COLLECTIONS_IN_THE_DATABASE);
             for (String collectionName : collectionNames) {
@@ -426,13 +420,11 @@ public class MigrationDialog extends DialogWrapper {
             String selectedBucket = (String) targetBucketCombo.getSelectedItem();
             if (selectedBucket != null) {
                 targetScopeItems = new ArrayList<>();
-                targetScopeItems.addAll(ActiveCluster.getInstance().get().bucket(selectedBucket)
-                        .collections().getAllScopes());
+                targetScopeItems.addAll(ActiveCluster.getInstance().get().bucket(selectedBucket).collections().getAllScopes());
 
                 targetScopeCombo.removeAllItems();
 
-                String[] scopes = targetScopeItems.stream()
-                        .map(ScopeSpec::name).distinct().toArray(String[]::new);
+                String[] scopes = targetScopeItems.stream().map(ScopeSpec::name).distinct().toArray(String[]::new);
                 targetScopeCombo.setModel(new DefaultComboBoxModel<>(scopes));
             }
         });
@@ -547,29 +539,20 @@ public class MigrationDialog extends DialogWrapper {
                 selectedCols = collectionsComboBox.getSelectedItems();
             }
 
-            List<CBMigrate.CBMigrateCommandBuilder> builders = new ArrayList<>();
+            List<CBMigrateMongo.CBMigrateCommandBuilder> builders = new ArrayList<>();
 
             for (String collection : selectedCols) {
-                CBMigrate.CBMigrateCommandBuilder builder = new CBMigrate.CBMigrateCommandBuilder()
-                        .setMongoDBURI(mongoDBConnectionString)
-                        .setMongoDBDatabase(databaseName)
-                        .setMongoDBCollection(collection)
-                        .setCBBucket(targetBucket)
-                        .setCBScope(targetScope)
-                        .setCBCollection(collection)
-                        .setCBCluster(clusterURL)
-                        .setCBUsername(username)
-                        .setCBPassword(password)
-                        .setCBGenerateKey("%_id%");
+                CBMigrateMongo.CBMigrateCommandBuilder builder =
+                        new CBMigrateMongo.CBMigrateCommandBuilder().setMongoDBURI(mongoDBConnectionString).setMongoDBDatabase(databaseName).setMongoDBCollection(collection).setCBBucket(targetBucket).setCBScope(targetScope).setCBCollection(collection).setCBCluster(clusterURL).setCBUsername(username).setCBPassword(password).setCBGenerateKey("%_id%");
                 builders.add(builder);
             }
 
-            CBMigrate.migrateMultipleCollections(project, builders);
+            CBMigrateMongo.migrateMultipleCollections(project, builders);
             super.doOKAction();
         } catch (Exception e) {
             Log.error("Error migrating data: " + e.getMessage(), e);
-            ApplicationManager.getApplication().invokeLater(
-                    () -> Messages.showErrorDialog(project, "Error migrating data: " + e.getMessage(), "Error"));
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(project, "Error migrating " +
+                    "data: " + e.getMessage(), "Error"));
         }
     }
 

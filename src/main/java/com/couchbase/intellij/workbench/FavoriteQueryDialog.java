@@ -40,6 +40,7 @@ public class FavoriteQueryDialog extends DialogWrapper {
     private final EditorEx editor;
     private final EditorEx editorBuiltIn;
     private final Document document;
+    private JTabbedPane tabbedPane;
 
     private JEditorPane queryDesc;
 
@@ -58,11 +59,13 @@ public class FavoriteQueryDialog extends DialogWrapper {
         editorSettings.setIndentGuidesShown(false);
 
         final Document builtinDoc = EditorFactory.getInstance().createDocument("");
-        editorBuiltIn = (EditorEx) EditorFactory.getInstance().createEditor(builtinDoc, null, SQLPPFileType.INSTANCE, false);
+        editorBuiltIn = (EditorEx) EditorFactory.getInstance().createEditor(builtinDoc, null, SQLPPFileType.INSTANCE,
+                false);
 
         list.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                                                          boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 5)); // Set left padding
                 return this;
@@ -83,7 +86,8 @@ public class FavoriteQueryDialog extends DialogWrapper {
                                 listModel.remove(index);
                             }
                             List<FavoriteQuery> favList = FavoriteQueryStorage.getInstance().getValue().getList();
-                            favList = favList.stream().filter(f -> !f.getName().equals(value)).collect(Collectors.toList());
+                            favList =
+                                    favList.stream().filter(f -> !f.getName().equals(value)).collect(Collectors.toList());
                             FavoriteQueryStorage.getInstance().getValue().setList(favList);
                             ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(""));
                         }
@@ -113,7 +117,9 @@ public class FavoriteQueryDialog extends DialogWrapper {
         FavoriteQueryStorage.getInstance().getValue().getList().forEach(e -> addItem(e.getName()));
 
         try {
-            InputStream inputStream = FavoriteQueryDialog.class.getClassLoader().getResourceAsStream("builtinQueries/defaultFavoriteQueries.json");
+            InputStream inputStream =
+                    FavoriteQueryDialog.class.getClassLoader().getResourceAsStream("builtinQueries" +
+                            "/defaultFavoriteQueries.json");
             ObjectMapper objectMapper = new ObjectMapper();
             queries = objectMapper.readValue(inputStream, new TypeReference<List<BuiltinQuery>>() {
             });
@@ -135,7 +141,8 @@ public class FavoriteQueryDialog extends DialogWrapper {
 
             builtinList.setCellRenderer(new DefaultListCellRenderer() {
                 @Override
-                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                              boolean isSelected, boolean cellHasFocus) {
                     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                     setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 5));
                     return this;
@@ -159,7 +166,7 @@ public class FavoriteQueryDialog extends DialogWrapper {
     @Override
     protected JComponent createCenterPanel() {
 
-        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane = new JTabbedPane();
 
         JPanel yourQueriesPanel = new JPanel(new BorderLayout());
         yourQueriesPanel.add(scrollPane, BorderLayout.WEST);
@@ -170,7 +177,8 @@ public class FavoriteQueryDialog extends DialogWrapper {
         HyperlinkLabel hyperlinkLabel = new HyperlinkLabel("Help us to expand this list");
         hyperlinkLabel.addHyperlinkListener(e -> {
             try {
-                Desktop.getDesktop().browse(new URI("https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues"));
+                Desktop.getDesktop().browse(new URI("https://github.com/couchbaselabs/couchbase_jetbrains_plugin" +
+                        "/issues"));
             } catch (Exception ex) {
                 Log.error(ex);
             }
@@ -213,9 +221,17 @@ public class FavoriteQueryDialog extends DialogWrapper {
             @Override
             protected void doAction(ActionEvent e) {
                 ApplicationManager.getApplication().runWriteAction(() -> {
-                    if (!editor.getDocument().getText().isEmpty()) {
-                        document.setText(editor.getDocument().getText());
-                        close(0);
+
+                    if (tabbedPane.getSelectedIndex() == 1) {
+                        if (!editorBuiltIn.getDocument().getText().isEmpty()) {
+                            document.setText(editorBuiltIn.getDocument().getText());
+                            close(0);
+                        }
+                    } else {
+                        if (!editor.getDocument().getText().isEmpty()) {
+                            document.setText(editor.getDocument().getText());
+                            close(0);
+                        }
                     }
                 });
             }
