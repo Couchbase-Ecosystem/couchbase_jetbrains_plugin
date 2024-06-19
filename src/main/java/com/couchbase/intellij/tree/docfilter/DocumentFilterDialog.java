@@ -3,7 +3,6 @@ package com.couchbase.intellij.tree.docfilter;
 import com.couchbase.client.core.error.CouchbaseException;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.QueryFilter;
-import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.SQLPPQueryUtils;
@@ -15,7 +14,6 @@ import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
@@ -25,7 +23,6 @@ import utils.ColorHelper;
 import utils.TemplateUtil;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
@@ -40,19 +37,16 @@ public class DocumentFilterDialog extends DialogWrapper {
     private final String scope;
     private final Tree tree;
     private final DefaultMutableTreeNode clickedNode;
+    private final boolean hasIndex;
     private EditorEx editor;
     private JLabel resultsLabel;
     private JLabel errorLabel;
-
     private JBTextField startingDocumentIdField;
     private JBTextField endingDocumentIdField;
     private JSpinner offsetField;
-
     private JRadioButton queryRadioButton;
     private JRadioButton keyValueRadioButton;
-
     private QueryFilter queryFilter;
-    private final boolean hasIndex;
 
     public DocumentFilterDialog(Tree tree, DefaultMutableTreeNode clickedNode, String bucket, String scope, String collectionName, boolean hasIndex) {
         super(false);
@@ -118,10 +112,7 @@ public class DocumentFilterDialog extends DialogWrapper {
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                String content = "<html><div style='margin: 10 10 10 10'>Complete the query with filters you would like to apply: <br>" +
-                        "<strong>Ex:</strong> country = <span style='color:" + fontStringColor + "'>'United States'</span><br>" +
-                        "<ul> <li>If you don't provide an <span style='color:" + fontKeywordColor + "'>ORDER BY</span>, the documents will be sorted by the document's id.</li>" +
-                        "<li>Your filter should not include a <span style='color:" + fontKeywordColor + "'>LIMIT</span> or <span style='color:" + fontKeywordColor + "'>OFFSET</span></div></html>";
+                String content = "<html><div style='margin: 10 10 10 10'>Complete the query with filters you would like to apply: <br>" + "<strong>Ex:</strong> country = <span style='color:" + fontStringColor + "'>'United States'</span><br>" + "<ul> <li>If you don't provide an <span style='color:" + fontKeywordColor + "'>ORDER BY</span>, the documents will be sorted by the document's id.</li>" + "<li>Your filter should not include a <span style='color:" + fontKeywordColor + "'>LIMIT</span> or <span style='color:" + fontKeywordColor + "'>OFFSET</span></div></html>";
                 TemplateUtil.showGotItTooltip(e.getComponent(), content);
             }
         });
@@ -130,9 +121,8 @@ public class DocumentFilterDialog extends DialogWrapper {
         queryPanel.add(infoPanel, BorderLayout.NORTH);
 
         JPanel labelPanel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel("<html><pre><strong style=\"color:" + fontKeywordColor + ";\">SELECT</strong>" +
-                " meta().id <strong style=\"color:" + fontKeywordColor + "\">FROM</strong> `" + collectionName + "` <strong style=color:\""
-                + fontKeywordColor + "\">WHERE</strong></pre></html>");
+        JLabel label = new JLabel(
+                "<html><pre><strong style=\"color:" + fontKeywordColor + ";\">SELECT</strong>" + " meta().id <strong style=\"color:" + fontKeywordColor + "\">FROM</strong> `" + collectionName + "` <strong style=color:\"" + fontKeywordColor + "\">WHERE</strong></pre></html>");
         label.setBorder(JBUI.Borders.emptyLeft(45));
         label.setVerticalAlignment(JLabel.TOP);
         labelPanel.add(label, BorderLayout.CENTER);
@@ -149,12 +139,15 @@ public class DocumentFilterDialog extends DialogWrapper {
 
         startingDocumentIdField = new JBTextField(20);
         endingDocumentIdField = new JBTextField(20);
-        offsetField = new JSpinner(new SpinnerNumberModel(queryFilter == null ? 0 : queryFilter.getOffset(), 0, 2147483648L, 1));
+        offsetField = new JSpinner(
+                new SpinnerNumberModel(queryFilter == null ? 0 : queryFilter.getOffset(), 0, 2147483648L, 1));
 
 
         if (queryFilter != null) {
-            startingDocumentIdField.setText(queryFilter.getDocumentStartKey() != null ? queryFilter.getDocumentStartKey() : "");
-            endingDocumentIdField.setText(queryFilter.getDocumentEndKey() != null ? queryFilter.getDocumentEndKey() : "");
+            startingDocumentIdField.setText(
+                    queryFilter.getDocumentStartKey() != null ? queryFilter.getDocumentStartKey() : "");
+            endingDocumentIdField.setText(
+                    queryFilter.getDocumentEndKey() != null ? queryFilter.getDocumentEndKey() : "");
             offsetField.setValue(Double.valueOf(queryFilter.getOffset()));
         }
 
@@ -270,9 +263,14 @@ public class DocumentFilterDialog extends DialogWrapper {
                         return;
                     }
 
-                    results = CouchbaseRestAPI.listKVDocuments(bucket, scope, collectionName, ((Double) offsetField.getValue()).intValue(), 10,
-                            "".equals(startingDocumentIdField.getText().trim()) ? null : startingDocumentIdField.getText().trim(),
-                            "".equals(endingDocumentIdField.getText().trim()) ? null : endingDocumentIdField.getText().trim()).size();
+                    results = CouchbaseRestAPI.listKVDocuments(bucket, scope, collectionName,
+                                                               ((Double) offsetField.getValue()).intValue(), 10,
+                                                               "".equals(startingDocumentIdField.getText()
+                                                                                                .trim()) ? null : startingDocumentIdField
+                                                                       .getText().trim(), "".equals(
+                                                              endingDocumentIdField.getText().trim()) ? null : endingDocumentIdField.getText()
+                                                                                                                                    .trim())
+                                              .size();
                 } else {
                     if (!validateFilterKeywords(filter)) {
                         resultsLabel.setText("");
@@ -314,9 +312,13 @@ public class DocumentFilterDialog extends DialogWrapper {
                         return;
                     }
 
-                    CouchbaseRestAPI.listKVDocuments(bucket, scope, collectionName, ((Double) offsetField.getValue()).intValue(), 10,
-                            "".equals(startingDocumentIdField.getText().trim()) ? null : startingDocumentIdField.getText().trim(),
-                            "".equals(endingDocumentIdField.getText().trim()) ? null : endingDocumentIdField.getText().trim()).size();
+                    CouchbaseRestAPI.listKVDocuments(bucket, scope, collectionName,
+                                                     ((Double) offsetField.getValue()).intValue(), 10, "".equals(
+                                    startingDocumentIdField.getText().trim()) ? null : startingDocumentIdField.getText()
+                                                                                                              .trim(),
+                                                     "".equals(endingDocumentIdField.getText()
+                                                                                    .trim()) ? null : endingDocumentIdField
+                                                             .getText().trim()).size();
                 } else {
                     String filter = editor.getDocument().getText();
                     if (!validateFilterKeywords(filter)) {
@@ -347,8 +349,12 @@ public class DocumentFilterDialog extends DialogWrapper {
 
             if (keyValueRadioButton.isSelected()) {
                 queryFilter.setQuery(null);
-                queryFilter.setDocumentStartKey(startingDocumentIdField.getText().trim().isEmpty() ? null : startingDocumentIdField.getText().trim());
-                queryFilter.setDocumentEndKey(endingDocumentIdField.getText().trim().isEmpty() ? null : endingDocumentIdField.getText().trim());
+                queryFilter.setDocumentStartKey(
+                        startingDocumentIdField.getText().trim().isEmpty() ? null : startingDocumentIdField.getText()
+                                                                                                           .trim());
+                queryFilter.setDocumentEndKey(
+                        endingDocumentIdField.getText().trim().isEmpty() ? null : endingDocumentIdField.getText()
+                                                                                                       .trim());
                 queryFilter.setOffset(((Double) offsetField.getValue()).intValue());
             } else {
                 queryFilter.setQuery(editor.getDocument().getText());
@@ -414,10 +420,14 @@ public class DocumentFilterDialog extends DialogWrapper {
     }
 
     private boolean validateKVFilters() {
-        if (endingDocumentIdField.getText().trim().isEmpty()
-                && startingDocumentIdField.getText().trim().isEmpty()
-                && ((Double) offsetField.getValue()).intValue() == 0) {
+        if (endingDocumentIdField.getText().trim().isEmpty() && startingDocumentIdField.getText().trim()
+                                                                                       .isEmpty() && ((Double) offsetField.getValue()).intValue() == 0) {
             errorLabel.setText("You must specify at least one filtering value");
+            return false;
+        }
+
+        if (((Double) offsetField.getValue()).intValue() > 1000) {
+            errorLabel.setText("The offset should be less than 1000");
             return false;
         }
         return true;
@@ -425,14 +435,9 @@ public class DocumentFilterDialog extends DialogWrapper {
 
     private int validateQueryFilters(String bucket, String scope, String collectionName, String filter) {
 
-        String query = "SELECT * FROM `" + collectionName + "` WHERE "
-                + filter
-                + (SQLPPQueryUtils.hasOrderBy(filter) ? "" : " ORDER BY meta().id")
-                + " LIMIT 10 OFFSET 0";
-        return ActiveCluster.getInstance().get()
-                .bucket(bucket)
-                .scope(scope)
-                .query(query).rowsAsObject().size();
+        String query = "SELECT * FROM `" + collectionName + "` WHERE " + filter + (SQLPPQueryUtils.hasOrderBy(
+                filter) ? "" : " ORDER BY meta().id") + " LIMIT 10 OFFSET 0";
+        return ActiveCluster.getInstance().get().bucket(bucket).scope(scope).query(query).rowsAsObject().size();
     }
 
 }

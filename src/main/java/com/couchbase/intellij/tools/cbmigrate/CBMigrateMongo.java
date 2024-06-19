@@ -15,9 +15,9 @@ import java.util.List;
 
 import static utils.ProcessUtils.printOutput;
 
-public class CBMigrate {
+public class CBMigrateMongo {
 
-    private CBMigrate() {
+    private CBMigrateMongo() {
     }
 
     public static class CBMigrateCommandBuilder {
