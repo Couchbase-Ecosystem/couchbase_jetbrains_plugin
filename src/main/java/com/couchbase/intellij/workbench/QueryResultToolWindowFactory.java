@@ -35,9 +35,9 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.ui.table.JBTable;
 import com.intellij.ui.tabs.JBTabs;
+import com.intellij.ui.tabs.JBTabsFactory;
 import com.intellij.ui.tabs.TabInfo;
 import com.intellij.ui.tabs.TabsListener;
-import com.intellij.ui.tabs.impl.JBTabsImpl;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
@@ -96,10 +96,17 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
     }
 
+    public static void removeAllActionListeners(JMenuItem menuItem) {
+        ActionListener[] listeners = menuItem.getActionListeners();
+        for (ActionListener listener : listeners) {
+            menuItem.removeActionListener(listener);
+        }
+    }
+
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         this.project = project;
-        JBTabs tabs = new JBTabsImpl(project);
+        JBTabs tabs = JBTabsFactory.createTabs(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
         table.setCellSelectionEnabled(true);
@@ -158,7 +165,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             }
         });
 
-        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("QueryResultToolbar", executeGroup, true);
+        ActionToolbar toolbar = ActionManager.getInstance()
+                                             .createActionToolbar("QueryResultToolbar", executeGroup, true);
         toolbar.getComponent().setBorder(JBUI.Borders.emptyRight(10));
         toolbar.setTargetComponent(topPanel);
 
@@ -182,8 +190,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         topPanel.add(rightPanel, BorderLayout.EAST);
 
 
-        VirtualFile virtualFile = new LightVirtualFile("query_result", FileTypeManager.getInstance().getFileTypeByExtension("json"),
-                "{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
+        VirtualFile virtualFile = new LightVirtualFile("query_result",
+                                                       FileTypeManager.getInstance().getFileTypeByExtension("json"),
+                                                       "{\n\"No data to display\": \"Hit 'execute' in the query editor to run a statement.\"\n}");
         Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
         editor = (EditorEx) EditorFactory.getInstance().createEditor(document, project, JsonFileType.INSTANCE, true);
         EditorSettings editorSettings = editor.getSettings();
@@ -196,7 +205,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         latestExplain = getEmptyExplain();
 
 
-        JBTabs resultTabs = new JBTabsImpl(project);
+        JBTabs resultTabs = JBTabsFactory.createTabs(project);
         resultTabs.addTab(new TabInfo(editor.getComponent()).setText("JSON"));
         resultTabs.addTab(new TabInfo(new JBScrollPane(table)).setText("Table"));
 
@@ -208,7 +217,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             explainTab = new TabInfo(explainPanel).setText("Explain");
             resultTabs.addTab(explainTab);
         } catch (Exception e) {
-            Log.error("Failed to load the explain tab. Double check if the JRE that you are running your IDE has support for JCEF. https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef");
+            Log.error(
+                    "Failed to load the explain tab. Double check if the JRE that you are running your IDE has support for JCEF. https://plugins.jetbrains.com/docs/intellij/jcef.html#enabling-jcef");
         }
 
         JPanel charts = new JPanel(new BorderLayout());
@@ -288,11 +298,12 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 console.clear();
             }
         };
-        clearAction.getTemplatePresentation().setIcon(
-                IconLoader.getIcon("/assets/icons/clear.svg", QueryResultToolWindowFactory.class));
+        clearAction.getTemplatePresentation()
+                   .setIcon(IconLoader.getIcon("/assets/icons/clear.svg", QueryResultToolWindowFactory.class));
         actionGroup.add(clearAction);
 
-        ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ConsoleToolbar", actionGroup, true);
+        ActionToolbar actionToolbar = ActionManager.getInstance()
+                                                   .createActionToolbar("ConsoleToolbar", actionGroup, true);
         JPanel actionPanel = new JPanel(new FlowLayout());
         actionPanel.add(actionToolbar.getComponent());
 
@@ -384,11 +395,14 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
                 removeAllActionListeners(csvMenuItem);
                 removeAllActionListeners(jsonMenuItem);
-                csvMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
-                jsonMenuItem.addActionListener(actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(convertedResults)));
+                csvMenuItem.addActionListener(
+                        actionEvent -> FileExporter.exportResultToCSV(project, model.tableModelToCSV()));
+                jsonMenuItem.addActionListener(
+                        actionEvent -> FileExporter.exportResultToJson(project, gson.toJson(convertedResults)));
 
 
-                statusIcon.setIcon(IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
+                statusIcon.setIcon(
+                        IconLoader.getIcon("/assets/icons/check_mark_big.svg", QueryResultToolWindowFactory.class));
                 ApplicationManager.getApplication().runWriteAction(() -> {
                     editor.getDocument().setText(gson.toJson(convertedResults));
                 });
@@ -476,9 +490,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                     for (Component component : popupMenu.getComponents()) {
                         if (component instanceof JMenuItem) {
                             JMenuItem menuItem = (JMenuItem) component;
-                            if (menuItem.getText().equals("SQL++ UPSERT") ||
-                                    menuItem.getText().equals("SQL++ INSERT") ||
-                                    menuItem.getText().equals("SQL++ UPDATE")) {
+                            if (menuItem.getText().equals("SQL++ UPSERT") || menuItem.getText()
+                                                                                     .equals("SQL++ INSERT") || menuItem
+                                    .getText().equals("SQL++ UPDATE")) {
                                 popupMenu.remove(menuItem);
                             }
 
@@ -494,8 +508,10 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
             } else {
                 cachedResults = null;
-                statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
-                ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
+                statusIcon.setIcon(
+                        IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
+                ApplicationManager.getApplication()
+                                  .runWriteAction(() -> editor.getDocument().setText(gson.toJson(error.getErrors())));
             }
         });
     }
@@ -507,7 +523,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             }
             statusIcon.setIcon(new AnimatedIcon.Default());
 
-            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
+            ApplicationManager.getApplication().runWriteAction(
+                    () -> editor.getDocument().setText("{ \"status\": \"Executing Statement\"}"));
         });
     }
 
@@ -516,15 +533,10 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
             for (JLabel label : queryStatsList) {
                 label.setText("-");
             }
-            statusIcon.setIcon(IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
-            ApplicationManager.getApplication().runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Query cancelled\"}"));
+            statusIcon.setIcon(
+                    IconLoader.getIcon("/assets/icons/warning-circle-big.svg", QueryResultToolWindowFactory.class));
+            ApplicationManager.getApplication()
+                              .runWriteAction(() -> editor.getDocument().setText("{ \"status\": \"Query cancelled\"}"));
         });
-    }
-
-    public static void removeAllActionListeners(JMenuItem menuItem) {
-        ActionListener[] listeners = menuItem.getActionListeners();
-        for (ActionListener listener : listeners) {
-            menuItem.removeActionListener(listener);
-        }
     }
 }
