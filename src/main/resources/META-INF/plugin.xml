@@ -30,6 +30,7 @@
         <![CDATA[
         <h2>New Features</h2>
         <ul>
+          <li>You can now import data from DynamoDB</li>
           <li>Adding Couchbase Search and Vector Search Support</li>
           <li>You can now apply key range filters on documents</li>
           <li>Support for named parameters</li>
