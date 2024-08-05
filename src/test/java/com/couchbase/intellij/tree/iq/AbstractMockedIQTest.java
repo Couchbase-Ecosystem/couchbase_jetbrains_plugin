@@ -64,7 +64,11 @@ public abstract class AbstractMockedIQTest extends AbstractIQTest {
 
     @Override
     protected void tearDown() throws Exception {
-        server.close();
+        try {
+            server.close();
+        } catch (Exception e) {
+            // noop
+        }
     }
 
     protected void enqueueResponse(String text) {

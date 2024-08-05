@@ -374,7 +374,12 @@ public class DataLoader {
     }
 
     public static boolean stubsAvailable(String bucket, String scope, String collection) {
-        return ActiveCluster.getInstance().getChild(bucket).flatMap(b -> b.getChild(scope)).flatMap(s -> s.getChild(collection)).map(col -> ((CouchbaseCollection) col).generateDocument()).filter(Objects::nonNull).findAny().isPresent();
+        return ActiveCluster.getInstance()
+                .getChild(bucket)
+                .flatMap(b -> b.getChild(scope))
+                .flatMap(s -> s.getChild(collection))
+                .map(col -> ((CouchbaseCollection) col).generateDocument())
+                .anyMatch(Objects::nonNull);
     }
 
     /**
