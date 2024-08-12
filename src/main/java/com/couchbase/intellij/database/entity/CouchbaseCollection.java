@@ -5,23 +5,23 @@ import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.InferHelper;
+import com.couchbase.intellij.utils.Subscribable;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class CouchbaseCollection implements CouchbaseClusterEntity {
     private CollectionSpec spec;
     private CouchbaseScope parent;
-    private Set<CouchbaseDocumentFlavor> children;
+    private Subscribable<Set<CouchbaseDocumentFlavor>> children = new Subscribable<>();
 
     private AtomicBoolean updating = new AtomicBoolean(false);
 
@@ -79,11 +79,11 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
         final String path = path();
         if (schema != null) {
             JsonArray content = schema.getArray("content");
-            children = IntStream.range(0, content.size()).boxed()
+            children.set(IntStream.range(0, content.size()).boxed()
                     .map(content::getObject)
                     .map(flavor -> new CouchbaseDocumentFlavor(this, flavor))
                     .peek(CouchbaseDocumentFlavor::updateSchema)
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toSet()));
         } else {
             Log.debug("nada data for schemata " + path);
         }
@@ -96,10 +96,14 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
 
     @Override
     public Set<CouchbaseDocumentFlavor> getChildren() {
-        if (children == null) {
+        if (!children.isPresent()) {
             updateSchema();
         }
-        return children;
+        try {
+            return children.get(1000);
+        } catch (InterruptedException e) {
+            return null;
+        }
     }
 
     public JsonObject generateDocument() {
@@ -119,7 +123,8 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
     public JsonArray toJson() {
         JsonArray result = JsonArray.create();
         if (children != null) {
-            children.stream().map(CouchbaseDocumentFlavor::toJson)
+            children.get().stream().flatMap(Collection::stream)
+                    .map(CouchbaseDocumentFlavor::toJson)
                     .forEach(result::add);
         }
         return result;
@@ -130,11 +135,8 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
         Set<String> attributeNames = new HashSet<>();
 
         // Check if children are not null
-        if (this.children != null) {
-            for (CouchbaseDocumentFlavor flavor : this.children) {
-                collectAttributeNames(flavor, attributeNames);
-            }
-        }
+        this.children.get().stream().flatMap(Collection::stream)
+                .forEach(flavor -> collectAttributeNames(flavor, attributeNames));
 
         return attributeNames;
     }

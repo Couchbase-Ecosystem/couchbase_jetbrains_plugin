@@ -46,7 +46,7 @@ public interface CouchbaseClusterEntity {
         }
         Stream<? extends CouchbaseClusterEntity> childrenStream = getChildren().stream();
         if (this.getName() != null) {
-            childrenStream = Streams.concat(Stream.of(this), childrenStream);
+            childrenStream = Streams.concat(childrenStream, Stream.of(this));
         }
         return childrenStream
                 .flatMap(c -> c.getName() == null ? c.getChildren().stream() : Stream.of(c))

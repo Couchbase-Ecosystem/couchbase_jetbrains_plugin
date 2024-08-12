@@ -3,7 +3,9 @@ package com.couchbase.intellij.utils;
 import cn.hutool.core.stream.StreamUtil;
 
 import java.lang.ref.WeakReference;
+import java.time.Duration;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -21,19 +23,16 @@ public class Subscribable<T> {
     }
 
     public void set(T value) {
-        this.value = Optional.ofNullable(value);
-        subscribers = subscribers.entrySet().stream()
-                .filter(subscriber -> subscriber.getKey() != null
-                        && subscriber.getKey().get() != null
-                        && subscriber.getValue() != null)
-                .filter(subscriber -> {
-                    try {
-                        return subscriber.getValue().apply(this.value);
-                    } catch (Throwable e) {
-                        return false;
-                    }
-                })
-                .collect(Collectors.toMap(s -> s.getKey(), s -> s.getValue()));
+        synchronized (this) {
+            this.value = Optional.ofNullable(value);
+            subscribers = subscribers.entrySet().stream().filter(subscriber -> subscriber.getKey() != null && subscriber.getKey().get() != null && subscriber.getValue() != null).filter(subscriber -> {
+                try {
+                    return subscriber.getValue().apply(this.value);
+                } catch (Throwable e) {
+                    return false;
+                }
+            }).collect(Collectors.toMap(s -> s.getKey(), s -> s.getValue()));
+        }
     }
 
     /**
@@ -58,7 +57,31 @@ public class Subscribable<T> {
     }
 
     public Optional<T> get() {
-        return value;
+        try {
+            return Optional.of(get(0));
+        } catch (InterruptedException e) {
+            return Optional.empty();
+        }
+    }
+
+    public T get(long millis) throws InterruptedException {
+        synchronized (this) {
+            if (!value.isPresent()) {
+                wait(millis);
+            }
+            return value.get();
+        }
+    }
+
+    public void get(Consumer<Optional<T>> subscriber) {
+        if (isPresent()) {
+            subscriber.accept(value);
+        } else {
+            subscribe(subscriber, t -> {
+                subscriber.accept(t);
+                return false;
+            });
+        }
     }
 
     public boolean isPresent() {
