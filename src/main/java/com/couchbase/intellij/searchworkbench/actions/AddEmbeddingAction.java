@@ -1,6 +1,7 @@
 package com.couchbase.intellij.searchworkbench.actions;
 
 import com.couchbase.intellij.embeddings.EmbeddingModelDialog;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -41,4 +42,8 @@ public class AddEmbeddingAction extends AnAction {
         e.getPresentation().setEnabledAndVisible(isEnabled);
     }
 
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
 }
