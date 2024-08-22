@@ -43,7 +43,9 @@ public class TreeToolBarBuilder {
                         Project project = e.getProject();
                         workbenchCounter++;
                         String fileName = "workbench" + workbenchCounter + ".sqlpp";
-                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlpp"), "");
+                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance()
+                                                                                                .getFileTypeByExtension(
+                                                                                                        "sqlpp"), "");
                         // Open the file in the editor
                         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                         fileEditorManager.openFile(virtualFile, true);
@@ -60,9 +62,15 @@ public class TreeToolBarBuilder {
                 e.getPresentation().setEnabled(shouldEnable);
                 e.getPresentation().setVisible(shouldEnable);
             }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.EDT;
+            }
         };
 
-        newWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_query.svg", CouchbaseWindowContent.class));
+        newWorkbench.getTemplatePresentation()
+                    .setIcon(IconLoader.getIcon("/assets/icons/new_query.svg", CouchbaseWindowContent.class));
 
 
         AnAction newSearchWorkbench = new AnAction("New Search Workbench") {
@@ -81,7 +89,10 @@ public class TreeToolBarBuilder {
                                   "fields": ["*"]
                                 }
                                         """;
-                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("cbs.json"), fileContent);
+                        VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance()
+                                                                                                .getFileTypeByExtension(
+                                                                                                        "cbs.json"),
+                                                                       fileContent);
                         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
                         fileEditorManager.openFile(virtualFile, true);
                     } catch (Exception ex) {
@@ -97,9 +108,15 @@ public class TreeToolBarBuilder {
                 e.getPresentation().setEnabled(shouldEnable);
                 e.getPresentation().setVisible(shouldEnable);
             }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.EDT;
+            }
         };
 
-        newSearchWorkbench.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/search_workbench2.svg", CouchbaseWindowContent.class));
+        newSearchWorkbench.getTemplatePresentation().setIcon(
+                IconLoader.getIcon("/assets/icons/search_workbench2.svg", CouchbaseWindowContent.class));
 
 
         AnAction addConnectionAction = new AnAction("Add New Connection") {
@@ -110,7 +127,8 @@ public class TreeToolBarBuilder {
                 dialog.show();
             }
         };
-        addConnectionAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/new_database.svg", CouchbaseWindowContent.class));
+        addConnectionAction.getTemplatePresentation()
+                           .setIcon(IconLoader.getIcon("/assets/icons/new_database.svg", CouchbaseWindowContent.class));
 
         AnAction cbshellAction = new AnAction("Open New CB Shell") {
             @Override
@@ -119,11 +137,13 @@ public class TreeToolBarBuilder {
                 if (ActiveCluster.getInstance().get() != null) {
                     CBShell.openNewTerminal();
                 } else {
-                    Messages.showErrorDialog("You need to connect to a cluster first before running CB Shell", "Couchbase Plugin Error");
+                    Messages.showErrorDialog("You need to connect to a cluster first before running CB Shell",
+                                             "Couchbase Plugin Error");
                 }
             }
         };
-        cbshellAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/cbshell.svg", CouchbaseWindowContent.class));
+        cbshellAction.getTemplatePresentation()
+                     .setIcon(IconLoader.getIcon("/assets/icons/cbshell.svg", CouchbaseWindowContent.class));
 
         AnAction ellipsisAction = new AnAction("More Options") {
             @Override
@@ -143,9 +163,11 @@ public class TreeToolBarBuilder {
 
                     if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         try {
-                            Desktop.getDesktop().browse(new URI("https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues"));
+                            Desktop.getDesktop().browse(new URI(
+                                    "https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues"));
                         } catch (IOException | URISyntaxException ex) {
-                            Log.error("Could not open the project's home: https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues");
+                            Log.error(
+                                    "Could not open the project's home: https://github.com/couchbaselabs/couchbase_jetbrains_plugin/issues");
                         }
                     }
                 });
@@ -156,7 +178,8 @@ public class TreeToolBarBuilder {
 
                     if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         try {
-                            Desktop.getDesktop().browse(new URI("https://www.youtube.com/watch?v=RiHLyop_KUM&ab_channel=Couchbase"));
+                            Desktop.getDesktop()
+                                   .browse(new URI("https://www.youtube.com/watch?v=RiHLyop_KUM&ab_channel=Couchbase"));
                         } catch (IOException | URISyntaxException ex) {
                             Log.error("Could not open the plugin's tour video");
                         }
@@ -169,7 +192,8 @@ public class TreeToolBarBuilder {
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
             }
         };
-        ellipsisAction.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/ellipsis_horizontal.svg", CouchbaseWindowContent.class));
+        ellipsisAction.getTemplatePresentation().setIcon(
+                IconLoader.getIcon("/assets/icons/ellipsis_horizontal.svg", CouchbaseWindowContent.class));
         ellipsisAction.getTemplatePresentation().setDescription("More options");
 
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
@@ -193,7 +217,8 @@ public class TreeToolBarBuilder {
         leftActionToolbar.setTargetComponent(toolBarPanel);
         toolBarPanel.add(leftActionToolbar.getComponent(), BorderLayout.WEST);
 
-        ActionToolbar rightActionToolbar = ActionManager.getInstance().createActionToolbar("MoreOptions", rightActionGroup, true);
+        ActionToolbar rightActionToolbar = ActionManager.getInstance()
+                                                        .createActionToolbar("MoreOptions", rightActionGroup, true);
         rightActionToolbar.setTargetComponent(toolBarPanel);
         toolBarPanel.add(rightActionToolbar.getComponent(), BorderLayout.EAST);
         ActiveCluster.getInstance().registerNewConnectionListener(() -> {
@@ -207,7 +232,8 @@ public class TreeToolBarBuilder {
     }
 
     public void showGotItTooltip() {
-        GotItTooltip tooltip = new GotItTooltip(UUID.randomUUID().toString(), "Click here to connect to a new Couchbase Cluster", null);
+        GotItTooltip tooltip = new GotItTooltip(UUID.randomUUID().toString(),
+                                                "Click here to connect to a new Couchbase Cluster", null);
         tooltip.show(leftActionToolbar.getComponent(), GotItTooltip.BOTTOM_MIDDLE);
     }
 }

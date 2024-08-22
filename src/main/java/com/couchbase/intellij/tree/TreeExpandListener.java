@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.tree.node.*;
+import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.treeStructure.Tree;
 
@@ -48,7 +49,7 @@ public class TreeExpandListener {
             } else if (expandedTreeNode.getUserObject() instanceof SearchNodeDescriptor) {
                 DataLoader.listSearchIndexes(expandedTreeNode, tree);
             } else {
-                throw new UnsupportedOperationException("Not implemented yet");
+                Log.debug("Tree not implemented yet " + expandedTreeNode.getUserObject());
             }
         }
     }
