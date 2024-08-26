@@ -22,35 +22,17 @@ public class FileConfigInitializer {
         String configPath = toolsPath + File.separator + "config";
         createFolder(configPath);
 
-        //initCBShell(configPath);
         initExplain(toolsPath, configPath);
         initJSDependencies(toolsPath, configPath);
     }
-
-//NOTE: LEAVE THIS CODE COMMENTED FOR NOW
-//    public static void initCBShell(String configPath) throws Exception {
-//        String path = configPath + File.separator + "cbshell";
-//        Path dest = Paths.get(path);
-//
-//        if (!Files.exists(dest)) {
-//            Log.debug("Copying CBShell autopass.sh script");
-//            createFolder(path);
-//            copyFile("/tools/cbshell.zip", Paths.get(configPath + File.separator + "cbshell.zip"));
-//            unzipFile(configPath + File.separator + "cbshell.zip", configPath);
-//            makeFilesExecutable(new File(path));
-//        } else {
-//            Log.debug("The script for cbshell is already copied to the config");
-//        }
-//
-//        CBFolders.getInstance().setCbShellPath(path);
-//    }
 
     public static void initExplain(String toolsPath, String configPath) throws Exception {
 
         String path = configPath + File.separator + "explain";
 
         if (!EXPLAIN_VERSION.equals(getPropertyValue(toolsPath, EXPLAIN_KEY))) {
-            Log.info("A new version of Couchbase Explain is available. Removing local version and downloading the new one");
+            Log.info(
+                    "A new version of Couchbase Explain is available. Removing local version and downloading the new one");
             DependenciesUtil.deleteFolder(path);
         }
 
@@ -84,7 +66,8 @@ public class FileConfigInitializer {
         String path = configPath + File.separator + "js_dependencies";
 
         if (!JS_DEPENDENCIES_VERSION.equals(getPropertyValue(toolsPath, JS_DEPENDENCIES_KEY))) {
-            Log.info("A new version of Couchbase JS Dependencies is available. Removing local version and downloading the new one");
+            Log.info(
+                    "A new version of Couchbase JS Dependencies is available. Removing local version and downloading the new one");
             DependenciesUtil.deleteFolder(path);
         }
 

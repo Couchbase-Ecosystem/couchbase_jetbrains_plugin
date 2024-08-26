@@ -58,9 +58,12 @@ dependencies {
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
+    implementation("com.googlecode.lanterna:lanterna:3.1.1")
+
+    implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
 
     testImplementation("org.testcontainers:couchbase:1.19.7")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.7")
+
 
 
 }
@@ -71,7 +74,7 @@ intellij {
     version.set("2024.1")
     type.set("IC") // Target IDE Platform
 
-    plugins.set(listOf("com.intellij.java"))
+    plugins.set(listOf("com.intellij.java", "org.jetbrains.plugins.terminal"))
 }
 
 tasks {

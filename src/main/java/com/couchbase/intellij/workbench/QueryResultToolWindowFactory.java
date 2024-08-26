@@ -86,6 +86,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
     private List<JsonObject> cachedResults;
 
+    private CbShellEmulator emulator;
+
 
     public QueryResultToolWindowFactory() {
         instance = this;
@@ -249,11 +251,23 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
         TabInfo outputTab = new TabInfo(getConsolePanel()).setText("Log");
         TabInfo queryResultTab = new TabInfo(queryResultPanel).setText("Query Result");
+        TabInfo cbShell = new TabInfo(getCbShellPanel()).setText("CB Shell");
 
 
         tabs.addTab(outputTab);
         tabs.addTab(queryResultTab);
+        tabs.addTab(cbShell);
         tabs.select(queryResultTab, true);
+
+        tabs.addListener(new TabsListener() {
+            @Override
+            public void selectionChanged(TabInfo oldSelection, TabInfo newSelection) {
+                if (newSelection == cbShell) {
+                    emulator.startCLIProcess();
+
+                }
+            }
+        });
 
 
         ContentFactory contentFactory = ContentFactory.getInstance();
@@ -286,6 +300,20 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
                 }
             }
         });
+    }
+
+
+    public JPanel getCbShellPanel() {
+
+
+        JPanel consolePanel = new JPanel(new BorderLayout());
+//        consolePanel.add(panel, BorderLayout.NORTH);
+//        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
+
+        emulator = new CbShellEmulator();
+        consolePanel.add(emulator, BorderLayout.CENTER);
+
+        return consolePanel;
     }
 
     public JPanel getConsolePanel() {
