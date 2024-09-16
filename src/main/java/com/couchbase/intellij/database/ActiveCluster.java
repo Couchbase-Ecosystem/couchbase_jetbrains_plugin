@@ -11,6 +11,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
 import com.couchbase.intellij.utils.Subscribable;
+import com.couchbase.intellij.workbench.CbShellEmulator;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -67,6 +68,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
      */
     private static final List<Consumer<ActiveCluster>> clusterListeners = new ArrayList<>();
 
+    private final List<Runnable> disconnectListeners = new ArrayList<>();
+
     private Integer queryLimit = 200;
 
     protected ActiveCluster() {
@@ -107,6 +110,10 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     public void deregisterNewConnectionListener(Runnable runnable) {
         this.newConnectionListener.remove(runnable);
+    }
+
+    public void onDisconnect(Runnable runnable) {
+        disconnectListeners.add(runnable);
     }
 
     public Cluster get() {
@@ -265,6 +272,13 @@ public class ActiveCluster implements CouchbaseClusterEntity {
             } catch (Exception e) {
                 Log.error(e);
             }
+            disconnectListeners.forEach(r -> {
+                try {
+                    r.run();
+                } catch (Exception e) {
+                    Log.error(e);
+                }
+            });
         }
         this.savedCluster = null;
         this.cluster = null;
@@ -378,12 +392,17 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return buckets;
     }
 
+    private List<Consumer<Exception>> schemaListeners = Collections.synchronizedList(new ArrayList<>());
+
     private void scheduleSchemaUpdate(Consumer<Exception> onComplete) {
 
         if (!hasQueryService()) {
             return;
         }
-        if (!schemaUpdating.get() && System.currentTimeMillis() - lastSchemaUpdate > 60000) {
+        if (schemaUpdating.get()) {
+            schemaListeners.add(onComplete);
+        } else if (System.currentTimeMillis() - lastSchemaUpdate > 60000) {
+            schemaListeners.add(onComplete);
             schemaUpdating.set(true);
 
             ProgressManager.getInstance().run(new Task.Backgroundable(null, "Reading Couchbase cluster schema", true) {
@@ -391,19 +410,21 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 public void run(@NotNull ProgressIndicator indicator) {
                     try {
                         doUpdateSchema();
-                        if (onComplete != null) {
-                            onComplete.accept(null);
-                        }
+                        schemaListeners.forEach(l -> l.accept(null));
+                        schemaListeners.clear();
                     } catch (Exception e) {
                         e.printStackTrace();
-                        if (onComplete != null) {
-                            onComplete.accept(e);
-                        }
+                        schemaListeners.forEach(l -> l.accept(e));
+                        schemaListeners.clear();
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog("Could not read cluster schema.", "Couchbase Connection Error"));
                         disconnect();
                     }
                 }
             });
+        } else {
+            if (onComplete != null) {
+                onComplete.accept(null);
+            }
         }
     }
 

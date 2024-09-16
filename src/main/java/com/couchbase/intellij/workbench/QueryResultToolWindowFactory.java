@@ -259,17 +259,6 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         tabs.addTab(cbShell);
         tabs.select(queryResultTab, true);
 
-        tabs.addListener(new TabsListener() {
-            @Override
-            public void selectionChanged(TabInfo oldSelection, TabInfo newSelection) {
-                if (newSelection == cbShell) {
-                    emulator.startCLIProcess();
-
-                }
-            }
-        });
-
-
         ContentFactory contentFactory = ContentFactory.getInstance();
         Content content = contentFactory.createContent(tabs.getComponent(), "", false);
         ContentManager contentManager = toolWindow.getContentManager();
@@ -310,8 +299,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 //        consolePanel.add(panel, BorderLayout.NORTH);
 //        consolePanel.add(console.getComponent(), BorderLayout.CENTER);
 
-        emulator = new CbShellEmulator();
-        consolePanel.add(emulator, BorderLayout.CENTER);
+        emulator = new CbShellEmulator(project, consolePanel);
 
         return consolePanel;
     }
