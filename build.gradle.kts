@@ -57,8 +57,6 @@ dependencies {
     implementation("com.theokanning.openai-gpt3-java:service:0.14.0")
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
-    implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
-    implementation("com.googlecode.lanterna:lanterna:3.1.1")
 
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
 
