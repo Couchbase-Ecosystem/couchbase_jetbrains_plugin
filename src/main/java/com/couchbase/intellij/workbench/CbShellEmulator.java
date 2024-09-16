@@ -77,7 +77,6 @@ public class CbShellEmulator  {
             byte[] buffer = new byte[9];
             is.read(buffer);
             os.write((activeCluster.getPassword() + "\r\n").getBytes(StandardCharsets.UTF_8));
-//            os.write(13);
             os.flush();
             SwingUtilities.invokeLater(() -> {
                 clearTerminal();
@@ -92,13 +91,6 @@ public class CbShellEmulator  {
                         }
                     }
 
-                    Thread.sleep(1000);
-//                    os.write(3);
-//                    os.write(3);
-//                    os.write("clear".getBytes(Charset.defaultCharset()));
-//                    os.write(13);
-                    os.flush();
-                    Thread.sleep(1000);
                     connector = new PtyProcessTtyConnector(process, Charset.defaultCharset());
                     terminalWidget.start(connector);
                     terminalWidget.getTerminalTextBuffer().clearHistory();
