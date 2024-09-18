@@ -24,7 +24,7 @@ public class DependenciesUtil {
     public static final String TOOLS_VERSION = "7.2";
 
     public static final String CBMIGRATE_VERSION = "5";
-    public static final String SHELL_VERSION = "1";
+    public static final String SHELL_VERSION = "4";
     public static final String CBIMPORT_EXPORT_VERSION = "7.6";
     public static final String EXPLAIN_VERSION = "1";
 
@@ -97,21 +97,21 @@ public class DependenciesUtil {
 
         try {
             Files.walkFileTree(path, EnumSet.noneOf(FileVisitOption.class), Integer.MAX_VALUE,
-                    new SimpleFileVisitor<Path>() {
+                               new SimpleFileVisitor<Path>() {
 
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
+                                   @Override
+                                   public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                                       Files.delete(file);
+                                       return FileVisitResult.CONTINUE;
+                                   }
 
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
+                                   @Override
+                                   public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                                       Files.delete(dir);
+                                       return FileVisitResult.CONTINUE;
+                                   }
 
-            });
+                               });
 
         } catch (IOException e) {
             Log.error("An error occurred while deleting a folder: ", e);
