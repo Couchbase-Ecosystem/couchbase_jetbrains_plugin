@@ -21,3 +21,7 @@ jobs:
         with:
           ide-versions: |
             ideaIC:LATEST-EAP-SNAPSHOT
+          failure-levels: |
+            COMPATIBILITY_PROBLEMS
+            INVALID_PLUGIN
+            NOT_DYNAMIC
