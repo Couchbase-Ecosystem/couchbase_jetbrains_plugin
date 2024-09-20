@@ -1,0 +1,33 @@
+name: Plugin compatibility
+on:
+  - push
+  - workflow_dispatch
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 21.x.x
+      - name: Build the plugin using Gradle
+        run: ./gradlew buildPlugin
+      - name: Verify Plugin on IntelliJ Platforms
+        id: verify
+        uses: ChrisCarini/intellij-platform-plugin-verifier-action@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          ide-versions: |
+            ideaIC:LATEST-EAP-SNAPSHOT
+          failure-levels: |
+            COMPATIBILITY_PROBLEMS
+            INVALID_PLUGIN
+            NOT_DYNAMIC
+            DEPRECATED_API_USAGES
+            INTERNAL_API_USAGES
+            OVERRIDE_ONLY_API_USAGES
+            NON_EXTENDABLE_API_USAGES
+            MISSING_DEPENDENCIES
+            INVALID_PLUGIN

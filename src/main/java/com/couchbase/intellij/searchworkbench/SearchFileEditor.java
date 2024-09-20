@@ -120,7 +120,7 @@ public class SearchFileEditor implements FileEditor, TextEditor {
                         }
                     };
 
-                    executeAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, queryEditor.getComponent());
+                    executeAction.registerCustomShortcutSet(CommonShortcuts.getCtrlEnter(), queryEditor.getComponent());
                     executeGroup.replaceAction(this, cancelAction);
                     isExecutingQuery = true;
 
