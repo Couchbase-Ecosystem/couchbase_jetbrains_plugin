@@ -69,7 +69,7 @@ dependencies {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2024.1")
+    version.set("2024.2")
     type.set("IC") // Target IDE Platform
 
     plugins.set(listOf("com.intellij.java", "org.jetbrains.plugins.terminal"))
@@ -83,7 +83,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("241.14494.240")
+        sinceBuild.set("242.22855.74")
         untilBuild.set("246.*")
     }
 
