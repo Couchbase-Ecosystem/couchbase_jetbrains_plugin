@@ -481,6 +481,9 @@ Backtick = "`"
     "UUID" { return GeneratedTypes.FUNCS; }
     "WEEKDAY_MILLIS" { return GeneratedTypes.FUNCS; }
     "WEEKDAY_STR" { return GeneratedTypes.FUNCS; }
+
+      "/*+" { return GeneratedTypes.BLOCK_HINT_OPEN; }
+      "--+" { return GeneratedTypes.LINE_HINT_COMMENT; }
       {IDT} { return GeneratedTypes.IDENTIFIER; }
       {ASTERISK} { return GeneratedTypes.ASTERISK; }
       {OPEN_BRACKET} { return GeneratedTypes.LBRACKET; }
