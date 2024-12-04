@@ -141,6 +141,9 @@
 
         <applicationConfigurable instance="com.couchbase.intellij.config.CouchbaseConfigurable"/>
 
+        <virtualFileSystem id="couchbase" key="couchbase" implementationClass="com.couchbase.intellij.persistence.CouchbaseFileSystem"
+                           physical="true" />
+
         <lang.documentationProvider
                 language="JSON"
                 implementationClass="com.couchbase.intellij.searchworkbench.documentation.CbsJsonDocumentationProvider"/>

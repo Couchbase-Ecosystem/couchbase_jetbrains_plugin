@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree.iq.ui;
 
 import com.couchbase.intellij.tree.iq.chat.*;
 import com.couchbase.intellij.tree.iq.ui.action.browser.*;
+import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
