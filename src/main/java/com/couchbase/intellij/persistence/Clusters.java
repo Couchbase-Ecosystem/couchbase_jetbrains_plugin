@@ -1,6 +1,7 @@
 package com.couchbase.intellij.persistence;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class Clusters {
@@ -41,6 +42,21 @@ public class Clusters {
 
     public void setInferCacheUpdateTimes(Map<String, Map<String, Long>> inferCacheUpdateTimes) {
         this.inferCacheUpdateTimes = inferCacheUpdateTimes;
+    }
+
+    public static enum Options {
+        LIVE_POLLING,
+        LIVE_RELOAD;
+        public static HashSet<String> defaults() {
+            HashSet<String> set = new HashSet<>();
+            set.add(LIVE_POLLING.toString());
+            return set;
+        }
+
+        @Override
+        public String toString() {
+            return name().toLowerCase();
+        }
     }
 }
 

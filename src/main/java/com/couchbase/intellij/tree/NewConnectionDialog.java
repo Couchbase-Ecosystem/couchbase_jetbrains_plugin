@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.ClusterAlreadyExistsException;
+import com.couchbase.intellij.persistence.Clusters;
 import com.couchbase.intellij.persistence.DuplicatedClusterNameAndUserException;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
@@ -31,8 +32,10 @@ import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class NewConnectionDialog extends DialogWrapper {
 
@@ -56,14 +59,21 @@ public class NewConnectionDialog extends DialogWrapper {
     private JBTextField apiKeyField;
     private JPasswordField apiSecretField;
     private JPanel wrapperPanel;
+    private JCheckBox liveReload;
 
     private DefaultMutableTreeNode clickedNode;
+    private Set<String> options;
 
     public NewConnectionDialog(Project project, Tree tree, SavedCluster savedCluster, DefaultMutableTreeNode clickedNode) {
         super(false);
         this.tree = tree;
         this.project = project;
         this.savedCluster = savedCluster;
+        if (savedCluster != null) {
+            options = savedCluster.options().collect(Collectors.toSet());
+        } else {
+            options = Clusters.Options.defaults();
+        }
         this.clickedNode = clickedNode;
         createUIComponents();
 
@@ -177,7 +187,7 @@ public class NewConnectionDialog extends DialogWrapper {
                         getBaseUrl(hostTextField.getText()), getQueryParams(hostTextField.getText()),
                         enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
                         defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText(),
-                        ldapAuthCheckbox.isSelected());
+                        ldapAuthCheckbox.isSelected(), options);
                 messageLabel.setText("Connection was successful");
                 TreeActionHandler.connectToCluster(project, sc, tree, null);
                 close(DialogWrapper.CANCEL_EXIT_CODE);
@@ -568,10 +578,65 @@ public class NewConnectionDialog extends DialogWrapper {
         thirdPanel.setBorder(JBUI.Borders.empty(10));
         thirdPanel.add(topThirdPanel, BorderLayout.NORTH);
         thirdPanel.add(consoleScrollPane, BorderLayout.CENTER);
+        tabbedPane.addTab("Connection", createAdvancedConnectionPanel());
         tabbedPane.addTab("Troubleshooting", thirdPanel);
         tabbedPane.setBorder(JBUI.Borders.emptyTop(10));
 
         return tabbedPane;
+    }
+
+    private Component createAdvancedConnectionPanel() {
+        ScrollPane sp = new ScrollPane();
+        JBPanel panel = new JBPanel(new GridBagLayout());
+
+        JBCheckBox liveEditing = new JBCheckBox("Keep opened documents synchronized");
+        liveEditing.setToolTipText("Requires document polling to be enabled. If selected, changes to Couchbase documents opened in IDE will be " +
+                                           "auto-saved onto the cluster and vice-versa.\n" +
+                                           "If not selected, then editing a document that got changed " +
+                                           "on the cluster will trigger an alert.");
+        if (options.contains("live_polling")) {
+            liveEditing.setSelected(options.contains("live_reload"));
+        } else {
+            liveEditing.setEnabled(false);
+        }
+        liveEditing.addChangeListener(e -> {
+            if (liveEditing.isSelected()) {
+                options.add("live_reload");
+            } else {
+                options.remove("live_reload");
+            }
+        });
+
+        JBCheckBox documentPolling = new JBCheckBox("Poll cluster for document changes");
+        documentPolling.setToolTipText("If selected, the plugin will periodically poll the cluster for changes in opened documents.");
+        documentPolling.setSelected(options.contains("live_polling"));
+        documentPolling.addChangeListener(e -> {
+            if (documentPolling.isSelected()) {
+                options.add("live_polling");
+            } else {
+                options.remove("live_polling");
+                options.remove("live_reload");
+                liveEditing.setSelected(false);
+            }
+            liveEditing.setEnabled(documentPolling.isSelected());
+        });
+
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = JBUI.insets(5);
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.weightx = 1;
+        gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        panel.add(documentPolling, gbc);
+        gbc.gridx++;
+        panel.add(liveEditing, gbc);
+        JPanel tbWrapPanel = new JPanel(new BorderLayout());
+        tbWrapPanel.setPreferredSize(new Dimension(400, 80));
+        tbWrapPanel.add(panel, BorderLayout.NORTH);
+        sp.add(tbWrapPanel);
+        return sp;
     }
 
     private JPanel createCouchbaseBanner() {

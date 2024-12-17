@@ -554,7 +554,7 @@ public class DataLoader {
 
     }
 
-    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket, Boolean ldap) {
+    public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket, Boolean ldap, Set<String> options) {
         String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
         sc.setId(key);
@@ -565,6 +565,7 @@ public class DataLoader {
         sc.setUrl(adjustClusterProtocol(url, isSSL));
         sc.setDefaultBucket(defaultBucket);
         sc.setLDAP(ldap);
+        sc.options(options);
 
         Clusters clusters = ClustersStorage.getInstance().getValue();
 

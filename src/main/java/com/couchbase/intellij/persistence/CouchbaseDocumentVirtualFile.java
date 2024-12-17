@@ -43,6 +43,7 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     private final String name;
     private long size;
     private FileType type;
+    private boolean desynchronized = false;
 
     private final Project project;
 
@@ -206,6 +207,7 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     }
 
     private void updateFromCluster(byte[] newContent) {
+        desynchronized = false;
         int newContentHash = Arrays.hashCode(newContent);
         if (this.contentHash != newContentHash) {
             boolean first = this.mtime == 0;
@@ -248,5 +250,18 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     void setSize(long length) {
         this.size = length;
+    }
+
+    public boolean checkUpdatedOnCluster() {
+        GetResult gr = fetch();
+        return contentHash != Arrays.hashCode(fetchContent(gr));
+    }
+
+    public void setDesynchronized(boolean desynchronized) {
+        this.desynchronized = desynchronized;
+    }
+
+    public boolean isDesynchronized() {
+        return desynchronized;
     }
 }
