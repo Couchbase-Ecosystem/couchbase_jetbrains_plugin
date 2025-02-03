@@ -69,7 +69,10 @@ public class JsonCoordinateIdentifierTest {
     @Test
     public void testIdentifyRootQuery() throws Exception {
         int offset = radiusExample.indexOf("\"query\"");
-        Assert.assertEquals(null, identifier.getCoordinateObject(radiusExample, offset));
+        JsonFilterBlock block = identifier.getCoordinateObject(radiusExample, offset);
+        Assert.assertEquals(null, block.getType());
+        Assert.assertEquals(0, block.getStart());
+        Assert.assertEquals(0, block.getEnd());
     }
 
     @Test

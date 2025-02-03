@@ -162,7 +162,7 @@ public class CBSBooleanInspectionTest extends JavaCodeInsightFixtureTestCase {
                                       "max": 3
                                   }
                               ],
-                              "min": 1
+                              "max": 1
                           }
                       }
                 }
