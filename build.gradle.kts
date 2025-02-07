@@ -57,10 +57,11 @@ dependencies {
     implementation("com.theokanning.openai-gpt3-java:service:0.14.0")
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
+
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
 
     testImplementation("org.testcontainers:couchbase:1.19.7")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.7")
+
 
 
 }
@@ -68,22 +69,22 @@ dependencies {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2024.1")
+    version.set("2024.2")
     type.set("IC") // Target IDE Platform
 
-    plugins.set(listOf("com.intellij.java"))
+    plugins.set(listOf("com.intellij.java", "org.jetbrains.plugins.terminal"))
 }
 
 tasks {
     // Set the JVM compatibility versions
     withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
 
     patchPluginXml {
-        sinceBuild.set("241.14494.240")
-        untilBuild.set("246.*")
+        sinceBuild.set("242.22855.74")
+        untilBuild.set("242.*")
     }
 
     signPlugin {
