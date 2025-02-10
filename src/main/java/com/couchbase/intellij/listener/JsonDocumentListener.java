@@ -2,6 +2,7 @@ package com.couchbase.intellij.listener;
 
 import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.java.Collection;
+import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.GetResult;
 import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.intellij.DocumentFormatter;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
+import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -65,7 +67,16 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                     GetResult getResult = collection.get(file.getUserData(VirtualFileKeys.ID));
 
                     if ("true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) {
-                        return true;
+                        return false;
+                    }
+
+                    // file type is json and is not valid
+                    if (file.getFileType() == JsonFileType.INSTANCE) {
+                        try {
+                            JsonObject.fromJson(document.getText());
+                        } catch (Exception e) {
+                            return false;
+                        }
                     }
 
                     //cas is null or different from the one in the server

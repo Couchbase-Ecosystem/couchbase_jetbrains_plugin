@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree.iq.ui.context.stack;
 import com.intellij.ide.IdeEventQueue;
 import com.intellij.ide.ui.UISettings;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
@@ -301,7 +302,9 @@ public class ListStackImpl extends WizardStack implements ListStack {
             AnAction openAction = ActionManager.getInstance().getAction("didalgo.chatgpt.OpenInEditorAction");
             if (openAction != null && selectedValue != null) {
                 var dataContext = Map.of(PlatformDataKeys.SELECTED_ITEM.getName(), selectedValue, CommonDataKeys.PROJECT.getName(), getProject());
-                openAction.actionPerformed(AnActionEvent.createFromDataContext(ActionPlaces.UNKNOWN, null, dataContext::get));
+                // replaces direct action call with documented by JB method to comply with plugin checker
+                // https://plugins.jetbrains.com/docs/intellij/basic-action-system.html#executing-actions-programmatically
+                ActionUtil.invokeAction(openAction, dataContext::get, null, null, null);
             }
         }
     }

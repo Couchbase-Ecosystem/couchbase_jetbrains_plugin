@@ -7,6 +7,7 @@ import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -32,6 +33,7 @@ import java.awt.event.MouseEvent;
 import java.net.URI;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class CouchbaseWindowContent extends JPanel {
 
@@ -117,8 +119,8 @@ public class CouchbaseWindowContent extends JPanel {
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                                fileEditorManager.openFile(virtualFile, true);
-
+                                FileEditor[] editor = fileEditorManager.openFile(virtualFile, true);
+                                CouchbaseDocumentEditorRefresher.attach(editor[0]);
                             } else {
                                 Log.debug("virtual file is null");
                             }
@@ -149,6 +151,11 @@ public class CouchbaseWindowContent extends JPanel {
                         } else if (userObject instanceof MissingIndexFootNoteNodeDescriptor) {
                             MissingIndexFootNoteNodeDescriptor node = (MissingIndexFootNoteNodeDescriptor) userObject;
                             createPrimaryIndex(node.getBucket(), node.getScope(), node.getCollection(), clickedPath);
+                        } else if (userObject instanceof ConnectionNodeDescriptor) {
+                            ConnectionNodeDescriptor node = (ConnectionNodeDescriptor) userObject;
+                            if (!node.isActive()) {
+                                TreeActionHandler.connectToCluster(project, node.getSavedCluster(), tree, toolBarPanel);
+                            }
                         }
                     }
 

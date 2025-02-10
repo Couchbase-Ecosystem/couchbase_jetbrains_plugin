@@ -27,6 +27,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.newvfs.RefreshQueue;
 import com.intellij.pom.Navigatable;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiErrorElement;
@@ -44,11 +45,15 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
@@ -668,13 +673,19 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     }
 
-    static class EditorWrapper {
+    public interface FocusHandler extends BiConsumer<FocusEvent, Boolean> {
+
+    }
+
+    class EditorWrapper implements FocusListener {
         private final Editor viewer;
         private final TextEditor textEditor;
+        private final List<FocusHandler> focusListeners = new ArrayList<>();
 
         public EditorWrapper(Editor viewer, TextEditor textEditor) {
             this.textEditor = textEditor;
             this.viewer = viewer;
+            getContentComponent().addFocusListener(this);
         }
 
         public JComponent getComponent() {
@@ -696,6 +707,16 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             if (textEditor != null && textEditor.getEditor() != null) {
                 EditorFactory.getInstance().releaseEditor(textEditor.getEditor());
             }
+        }
+
+        @Override
+        public void focusGained(FocusEvent e) {
+
+        }
+
+        @Override
+        public void focusLost(FocusEvent e) {
+
         }
     }
 }

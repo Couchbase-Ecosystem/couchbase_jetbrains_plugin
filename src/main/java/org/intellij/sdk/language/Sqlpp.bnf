@@ -152,12 +152,13 @@ insert-statement ::= INSERT INTO target-keyspace ( insert-values | insert-select
 
 insert-values ::= ( LPAREN PRIMARY? KEY COMMA VALUE ( COMMA OPTIONS )? RPAREN )? values-clause
 
-values-clause ::= VALUES  LPAREN key-expr COMMA value-expr ( COMMA options )? RPAREN
-            ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA options )? RPAREN )*
+values-clause ::= VALUES  LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN
+            ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN )*
 
 insert-select ::= LPAREN PRIMARY? KEY key-expr ( COMMA VALUE value-expr )?
                    ( COMMA OPTIONS options )? RPAREN select-statement
 
+options ::= obj
 
 merge-statement ::= MERGE INTO ( ansi-merge | lookup-merge ) limit-clause? returning-clause?
 
@@ -525,6 +526,8 @@ indexes-property ::= QUOTED_INDEXES COLON ( NULL
                                      | DQUOTE index DQUOTE
                                      | LBRACKET DQUOTE index DQUOTE ( COMMA DQUOTE index DQUOTE )* RBRACKET )
 
+index ::= index-ref
+
 keyspace-array ::= LBRACKET keyspace-object ( COMMA keyspace-object )* RBRACKET
 
 keyspace-object ::= LBRACE keyspace-property RBRACE
@@ -550,6 +553,7 @@ expr ::= (
                 named-arg |
                 identifier-ref |
                 nested-expr |
+                new-array-expr |
                 subquery-expr
             ) (
                 comparison-term |
@@ -559,7 +563,7 @@ expr ::= (
                 collection-expr
             )*
          ) |
-         case-expr
+         case-expr | ( LPAREN expr RPAREN )
 
 
 
@@ -669,7 +673,7 @@ name-var ::= identifier-ref
 
 
 
-array-expr ::= LBRACKET ( expr ( COMMA expr )* )? RBRACKET
+new-array-expr ::= LBRACKET ( expr ( COMMA expr )* )? RBRACKET
 
 
 
@@ -775,7 +779,7 @@ parameters ::= array-expr
  * Statistics *
  **************/
 
-update-statistics ::= update-statistics-expr | update-statistics-index | update-statistics-delete
+update-statistics ::= update-statistics-expr | update-statistics-indexes | update-statistics-index | update-statistics-delete
 
 update-statistics-expr ::= ( UPDATE STATISTICS FOR? |
                              ANALYZE ( KEYSPACE | COLLECTION)? )

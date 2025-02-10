@@ -3,10 +3,10 @@ package com.couchbase.intellij.persistence;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
 
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SavedCluster {
     private String id;
@@ -28,6 +28,7 @@ public class SavedCluster {
     private Long inferCachePeriod;
 
     private QueryPreferences queryPreferences;
+    private String options;
 
     public Boolean getLDAP() {
         if (ldap == null) {
@@ -109,6 +110,7 @@ public class SavedCluster {
                 ", username='" + username + '\'' +
                 ", sslEnable=" + sslEnable +
                 ", defaultBucket='" + defaultBucket + '\'' +
+                ", options='" +  + '\'' +
                 '}';
     }
 
@@ -208,5 +210,46 @@ public class SavedCluster {
 
     public void setQueryPreferences(QueryPreferences queryPreferences) {
         this.queryPreferences = queryPreferences;
+    }
+
+    public void addOption(String option) {
+        options = Stream.concat(options(), Stream.of(option)).collect(Collectors.joining(","));
+    }
+
+    public void removeOption(String option) {
+        if (this.options != null) {
+            options = options().filter(o -> !o.equals(option)).collect(Collectors.joining(","));
+        }
+    }
+
+    public String getOptions() {
+        return options;
+    }
+
+    public void setOptions(String options) {
+        this.options = options;
+    }
+
+    public void options(Set<String> data) {
+        options = data.stream().collect(Collectors.joining(","));
+    }
+
+    public Stream<String> options() {
+        if (options == null) {
+            return Stream.empty();
+        }
+        return Arrays.stream(options.split(","));
+    }
+
+    public boolean hasOption(Clusters.Options option) {
+        return options().anyMatch(o -> option.name().toLowerCase().equals(o));
+    }
+
+    public void addOption(Clusters.Options option) {
+        addOption(option.name().toLowerCase());
+    }
+
+    public void removeOption(Clusters.Options option) {
+        removeOption(option.name().toLowerCase());
     }
 }
