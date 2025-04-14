@@ -171,14 +171,9 @@ configurations remain protected from accidental alterations while using the plug
 
 MIT. See individual files for details.
 
-## Support
-
-This project is not officially supported by Couchbase, but it is actively maintained by Couchbase Employees. So if you
-find any bugs/issues or would like to suggest anything, feel free to open an issue here on github.
-
 ---
 
-# 📢 Support Policy
+## 📢 Support Policy
 
 We truly appreciate your interest in this project!  
 This project is **community-maintained**, which means it's **not officially supported** by our support team.
