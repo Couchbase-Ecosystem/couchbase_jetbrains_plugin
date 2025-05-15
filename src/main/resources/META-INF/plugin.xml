@@ -42,6 +42,7 @@
         <module name="intellij.json"/>
     </dependencies>
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.json</depends>
 
     <projectListeners>
         <listener
