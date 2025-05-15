@@ -14,7 +14,9 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
@@ -100,9 +102,9 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             }
         });
 
-        ActionToolbarImpl chatPanel = new ActionToolbarImpl("Chat Actions Toolbar", chatActions, true);
+        ActionToolbar chatPanel = ActionManager.getInstance().createActionToolbar("Chat Actions Toolbar", chatActions, true);
         chatPanel.setTargetComponent(this);
-        panel.add(chatPanel, BorderLayout.EAST);
+        panel.add(chatPanel.getComponent(), BorderLayout.EAST);
         mainPanel.add(panel, BorderLayout.NORTH);
 
         myList.setOpaque(true);
@@ -237,7 +239,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
             }
         });
 
-        ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar", toolbarActions, true);
+        ActionToolbar actonPanel = ActionManager.getInstance().createActionToolbar("System Role Toolbar", toolbarActions, true);
         actonPanel.setTargetComponent(this);
         panel.add(orgPanel);
         panel.setBorder(JBUI.Borders.empty(0, 8, 10, 8));
@@ -250,7 +252,7 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         panel.add(enableTelemetry);
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.add(actonPanel, BorderLayout.EAST);
+        bottomPanel.add(actonPanel.getComponent(), BorderLayout.EAST);
         panel.add(bottomPanel);
 
         return panel;
