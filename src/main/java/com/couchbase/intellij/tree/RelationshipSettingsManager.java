@@ -58,12 +58,8 @@ public class RelationshipSettingsManager {
     }
 
     public static void showImportDialog(Project project, Tree tree) {
-        FileChooserDescriptor fcd = new FileChooserDescriptor(true, false, false, false, false, false) {
-            @Override
-            public boolean isFileSelectable(VirtualFile file) {
-                return file != null && !file.isDirectory() && "properties".equals(file.getExtension());
-            }
-        };
+        FileChooserDescriptor fcd = new FileChooserDescriptor(true, false, false, false, false, false)
+                .withFileFilter(file -> file != null && !file.isDirectory() && "properties".equals(file.getExtension()));
         fcd.setTitle("Select Relationship File");
         fcd.setDescription("Choose a .properties file:");
 

@@ -80,17 +80,16 @@ public class ImportCBLDatabaseDialog extends DialogWrapper {
         gbc.gridy = 1;
         gbc.weightx = 0.6;
         databasePathField = new TextFieldWithBrowseButton();
+        FileChooserDescriptor descriptor = new FileChooserDescriptor(false, true, false, false, false, false)
+                .withFileFilter(file -> {
+                    String name = file.getName();
+                    return name.endsWith(".cblite2") || name.endsWith(".cblite3");
+                });
         databasePathField.addBrowseFolderListener(
                 "Select the database location",
                 "Choose a .cblite2 or .cblite3 folder",
                 project,
-                new FileChooserDescriptor(false, true, false, false, false, false) {
-                    @Override
-                    public boolean isFileSelectable(VirtualFile file) {
-                        String name = file.getName();
-                        return name.endsWith(".cblite2") || name.endsWith(".cblite3");
-                    }
-                }
+                descriptor
         );
 
         panel.add(databasePathField,  gbc);

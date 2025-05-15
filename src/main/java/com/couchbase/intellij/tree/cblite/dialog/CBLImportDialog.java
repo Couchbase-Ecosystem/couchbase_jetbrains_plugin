@@ -250,12 +250,9 @@ public class CBLImportDialog extends DialogWrapper {
 
     private void addListeners() {
 
-        datasetField.addBrowseFolderListener("Select a File", "Please select a JSON file", null, new FileChooserDescriptor(true, false, false, false, false, false) {
-            @Override
-            public boolean isFileSelectable(VirtualFile file) {
-                return "json".equalsIgnoreCase(file.getExtension());
-            }
-        });
+        FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false)
+                .withFileFilter(file -> "json".equalsIgnoreCase(file.getExtension()));
+        datasetField.addBrowseFolderListener("Select a File", "Please select a JSON file", null, descriptor);
 
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
