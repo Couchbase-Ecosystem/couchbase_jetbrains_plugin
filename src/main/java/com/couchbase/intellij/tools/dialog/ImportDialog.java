@@ -813,18 +813,16 @@ public class ImportDialog extends DialogWrapper {
 
     protected void addListeners() {
         // Page 1: Dataset
-        datasetField.addBrowseFolderListener("Select the Dataset", "", null,
-                new FileChooserDescriptor(true, false, false, false, false, false) {
-                    @Override
-                    public boolean isFileVisible(VirtualFile file, boolean showHiddenFiles) {
-                        if (!file.isDirectory()) {
-                            String extension = file.getExtension();
-                            return JSON_FILE_FORMAT.equalsIgnoreCase(extension)
-                                    || CSV_FILE_FORMAT.equalsIgnoreCase(extension);
-                        }
+        FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false)
+                .withFileFilter(file -> {
+                    if (file.isDirectory()) {
                         return true;
                     }
+                    String name = file.getName().toLowerCase();
+                    return name.endsWith(JSON_FILE_EXTENSION) || name.endsWith(CSV_FILE_EXTENSION);
                 });
+        datasetField.addBrowseFolderListener("Select File", "Select the file to import", project, descriptor);
+
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
