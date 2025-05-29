@@ -4,6 +4,8 @@ import com.couchbase.client.java.manager.collection.CollectionManager;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
+import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.treeStructure.Tree;
@@ -28,8 +30,7 @@ public class NewCollectionDialog extends DialogWrapper {
     private JLabel errorLabel;
     private JSpinner maxTTL;
 
-    protected NewCollectionDialog(Project project, String bucket, String scope, DefaultMutableTreeNode
-            clickedNode, Tree tree) {
+    protected NewCollectionDialog(Project project, String bucket, String scope, DefaultMutableTreeNode clickedNode, Tree tree) {
         super(project);
         this.bucketName = bucket;
         this.scopeName = scope;
@@ -68,10 +69,9 @@ public class NewCollectionDialog extends DialogWrapper {
         gbc.gridy = 1;
         maxTTL = new JSpinner(new SpinnerNumberModel(0, 0, 2147483648L, 1));
 
-        panel.add(TemplateUtil.createComponentWithBalloon(maxTTL, "The maximum time-to-live (TTL) for all documents in this collection in seconds. If enabled and a document is mutated with no TTL or a TTL greater than the maximum, its TTL will be set to the collection TTL." +
-                "The largest TTL allowed is 2147483647 seconds. A 0 value means TTL is disabled.\n" +
-                "\n" +
-                "NOTE: if collection-level TTL is set, bucket-level TTL is ignored.\n"), gbc);
+        panel.add(TemplateUtil.createComponentWithBalloon(maxTTL,
+                                                          "The maximum time-to-live (TTL) for all documents in this collection in seconds. If enabled and a document is mutated with no TTL or a TTL greater than the maximum, its TTL will be set to the collection TTL." + "The largest TTL allowed is 2147483647 seconds. A 0 value means TTL is disabled.\n" + "\n" + "NOTE: if collection-level TTL is set, bucket-level TTL is ignored.\n"),
+                  gbc);
 
 
         gbc.gridy = 2;
@@ -91,17 +91,16 @@ public class NewCollectionDialog extends DialogWrapper {
         }
 
         if (!textField.getText().matches("[a-zA-Z0-9_]+")) {
-            errorLabel
-                    .setText("Special characters are not allowed in collection creation");
+            errorLabel.setText("Special characters are not allowed in collection creation");
             return;
         }
 
         String collectionName = textField.getText();
-        List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName)
-                .collections().getAllScopes().stream()
-                .filter(scope -> scope.name().equals(scopeName))
-                .flatMap(scope -> scope.collections().stream())
-                .collect(Collectors.toList());
+        List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName).collections()
+                                                        .getAllScopes().stream()
+                                                        .filter(scope -> scope.name().equals(scopeName))
+                                                        .flatMap(scope -> scope.collections().stream())
+                                                        .collect(Collectors.toList());
 
         for (CollectionSpec collection : collections) {
             if (collection.name().equals(collectionName)) {
@@ -117,10 +116,27 @@ public class NewCollectionDialog extends DialogWrapper {
         if (ttl.longValue() <= 0) {
             colManager.createCollection(CollectionSpec.create(collectionName, scopeName));
         } else {
-            colManager.createCollection(CollectionSpec.create(collectionName, scopeName, Duration.ofSeconds(ttl.longValue())));
+            colManager.createCollection(
+                    CollectionSpec.create(collectionName, scopeName, Duration.ofSeconds(ttl.longValue())));
         }
 
-        DataLoader.listCollections(clickedNode, tree);
+        Object userObject = clickedNode.getUserObject();
+        if (userObject instanceof ScopeNodeDescriptor) {
+            int childCount = clickedNode.getChildCount();
+            for (int i = 0; i < childCount; i++) {
+                DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
+                Object childUserObject = childNode.getUserObject();
+
+                if (childUserObject instanceof CollectionsNodeDescriptor) {
+                    DataLoader.listCollections(childNode, tree);
+                    break;
+                }
+            }
+
+
+        } else {
+            DataLoader.listCollections(clickedNode, tree);
+        }
         super.doOKAction();
     }
 

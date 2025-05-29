@@ -1,10 +1,13 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatform
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.17.3"
+    id("org.jetbrains.intellij.platform") version "2.5.0"
 }
 
 group = "com.couchbase"
-version = "1.1.6.1"
+version = "1.1.6.2"
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -17,6 +20,9 @@ repositories {
     mavenCentral()
     gradlePluginPortal()
     maven { url = uri("https://mobile.maven.couchbase.com/maven2/dev/") }
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
@@ -62,47 +68,57 @@ dependencies {
 
     testImplementation("org.testcontainers:couchbase:1.19.7")
 
-
-
+    intellijPlatform {
+        intellijIdeaCommunity("2025.1")
+        bundledPlugin("com.intellij.java")
+        bundledPlugin("com.intellij.modules.json")
+        bundledPlugin("org.jetbrains.plugins.terminal")
+    }
 }
 
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
-intellij {
-    version.set("2024.2")
-    type.set("IC") // Target IDE Platform
-
-    plugins.set(listOf("com.intellij.java", "org.jetbrains.plugins.terminal"))
+intellijPlatform {
+    pluginConfiguration {
+        id = "com.couchbase.couchbase-intellij-plugin"
+        name = "Couchbase"
+        version = "${project.version}"
+        description = """
+            Couchbase is an award-winning distributed NoSQL cloud database that delivers unmatched versatility, performance, scalability, and financial value for all of your cloud, mobile, on-premises, hybrid, distributed cloud, and edge computing applications.<br>
+                        The plugin provides integrated support for Couchbase within the IntelliJ IDEA, making it easier to interact with your Couchbase databases directly from your development environment.<br>
+                        <ul>
+                          <li><strong>Connection Management:</strong> Easily connect to your local or remote Couchbase clusters and manage your connections within the IntelliJ IDEA.</li>
+                          <li><strong>Data Manipulation:</strong> View, add, update, and delete documents in your Couchbase buckets directly from IntelliJ.</li>
+                          <li><strong>SQL++ Support:</strong> Write and execute SQL++ queries from within IntelliJ. The plugin includes syntax highlighting, error checking, and auto-completion features for SQL++ (previously known as N1QL), making it easier to write and debug your queries.</li>
+                        </ul>
+                        For more information visit the
+                        <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
+        """.trimIndent()
+        changeNotes = """
+            1.1.6.2 — adds support for 2025.1
+        """.trimIndent()
+        ideaVersion {
+            sinceBuild = "251.23774.435"
+            untilBuild = "251.*"
+        }
+        vendor {
+            name = "Couchbase"
+            url = "https://www.couchbase.com"
+            email = "devadvocates@couchbase.com"
+        }
+    }
+    pluginVerification {
+        ides{
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
+        }
+    }
 }
-
-tasks {
-    // Set the JVM compatibility versions
-    withType<JavaCompile> {
-        sourceCompatibility = "21"
-        targetCompatibility = "21"
-    }
-
-    patchPluginXml {
-        sinceBuild.set("242.22855.74")
-        untilBuild.set("242.*")
-    }
-
-    signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
-    }
-
-    publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
-    }
-
-    val patchArgs =
-        listOf("--add-exports java.desktop/sun.awt=ALL-UNNAMED --add-opens java.desktop/java.awt=ALL-UNNAMED")
-
-    test {
-        jvmArgs(patchArgs)
-    }
-}
-
+//intellij {
+//    version.set("2025.1")
+//    type.set("IC") // Target IDE Platform
+//
+//    plugins.set(listOf("com.intellij.java", "org.jetbrains.plugins.terminal"))
+//    plugins.add("json")
+//    plugins.add("intellij.json.backend")
+//}
 
