@@ -118,6 +118,10 @@ intellijPlatform {
         }
     }
 }
+
+tasks.wrapper {
+    gradleVersion = "8.14.3"
+}
 //intellij {
 //    version.set("2025.1")
 //    type.set("IC") // Target IDE Platform
