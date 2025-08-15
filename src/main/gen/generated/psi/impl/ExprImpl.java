@@ -59,6 +59,12 @@ public class ExprImpl extends SqlppPSIWrapper implements Expr {
 
   @Override
   @Nullable
+  public Expr getExpr() {
+    return findChildByClass(Expr.class);
+  }
+
+  @Override
+  @Nullable
   public FunctionCall getFunctionCall() {
     return findChildByClass(FunctionCall.class);
   }
@@ -97,6 +103,12 @@ public class ExprImpl extends SqlppPSIWrapper implements Expr {
   @Nullable
   public NestedExpr getNestedExpr() {
     return findChildByClass(NestedExpr.class);
+  }
+
+  @Override
+  @Nullable
+  public NewArrayExpr getNewArrayExpr() {
+    return findChildByClass(NewArrayExpr.class);
   }
 
   @Override

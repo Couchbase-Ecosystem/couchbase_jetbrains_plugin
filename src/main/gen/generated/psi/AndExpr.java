@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface AndExpr extends PsiElement {
 
   @NotNull
-  Cond getCond();
+  Expr getExpr();
 
 }

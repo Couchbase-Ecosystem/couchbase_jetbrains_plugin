@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface ComparisonTerm extends PsiElement {
 
   @Nullable
-  BetweenExpr getBetweenExpr();
-
-  @Nullable
   IsExpr getIsExpr();
 
   @Nullable

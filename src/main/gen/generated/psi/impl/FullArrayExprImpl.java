@@ -28,12 +28,6 @@ public class FullArrayExprImpl extends SqlppPSIWrapper implements FullArrayExpr 
   }
 
   @Override
-  @Nullable
-  public Cond getCond() {
-    return findChildByClass(Cond.class);
-  }
-
-  @Override
   @NotNull
   public List<Expr> getExprList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);

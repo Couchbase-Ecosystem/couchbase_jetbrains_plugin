@@ -7,6 +7,11 @@
   elementTypeHolderClass="generated.GeneratedTypes"
   elementTypeClass="org.intellij.sdk.language.psi.SqlppElementType"
   tokenTypeClass="org.intellij.sdk.language.psi.SqlppTokenType"
+
+  tokens = [
+      line_comment="regexp://.*"
+      block_comment="regexp:/\*(.|\n)*\*/"
+  ]
 }
 
 statement-sequence ::= statement ( SEMICOLON statement )* SEMICOLON?
@@ -79,7 +84,7 @@ array-expr ::= full-array-expr | simple-array-expr
 
 full-array-expr ::= ( ALL | DISTINCT ) ARRAY expr
                     FOR var ( IN | WITHIN ) expr
-                    ( COMMA var ( IN | WITHIN ) expr )* ( WHEN cond )? END
+                    ( COMMA var ( IN | WITHIN ) expr )* ( WHEN expr )? END
 
 simple-array-expr ::= ( ALL | DISTINCT ) expr
 
@@ -156,9 +161,7 @@ values-clause ::= VALUES  LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RP
             ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN )*
 
 insert-select ::= LPAREN PRIMARY? KEY key-expr ( COMMA VALUE value-expr )?
-                   ( COMMA OPTIONS options )? RPAREN select-statement
-
-options ::= obj
+                   ( COMMA OPTIONS obj )? RPAREN select-statement
 
 merge-statement ::= MERGE INTO ( ansi-merge | lookup-merge ) limit-clause? returning-clause?
 
@@ -173,7 +176,7 @@ ansi-merge-predicate ::= ON expr
 ansi-merge-actions ::= merge-update? merge-delete? ansi-merge-insert?
 
 ansi-merge-insert ::= WHEN NOT MATCHED THEN INSERT LPAREN KEY? key-expr
-                      ( COMMA VALUE? value-expr )? ( COMMA OPTIONS? options )? RPAREN where-clause?
+                      ( COMMA VALUE? value-expr )? ( COMMA OPTIONS? obj )? RPAREN where-clause?
 
 lookup-merge ::= target-keyspace USING lookup-merge-source lookup-merge-predicate
                  lookup-merge-actions
@@ -218,7 +221,7 @@ unset-clause ::= UNSET path update-for? (COMMA path update-for?)*
 
 update-for ::= (FOR (name-var COLON)? var (IN | WITHIN) path
                (COMMA (name-var COLON)? var (IN | WITHIN) path)* )+
-               (WHEN cond)? END
+               (WHEN expr)? END
 /* end::update-for[] */
 
 key-expr ::= expr
@@ -418,9 +421,7 @@ let-clause ::= LET alias EQUAL expr ( COMMA alias EQUAL expr )*
 
 
 
-where-clause ::= WHERE cond
-
-cond ::= expr
+where-clause ::= WHERE expr
 
 group-by-clause ::= GROUP BY group-term ( COMMA group-term )*
                     letting-clause? having-clause? | letting-clause
@@ -429,7 +430,7 @@ group-term ::= expr ( (AS)? alias )?
 
 letting-clause ::= LETTING alias EQUAL expr ( COMMA alias EQUAL expr )*
 
-having-clause ::= HAVING cond
+having-clause ::= HAVING expr
 
 
 
@@ -474,7 +475,7 @@ offset-clause ::= OFFSET expr
 
 hint-comment ::= block-hint-comment | line-hint-comment
 
-block-hint-comment ::= BLOCK_HINT_OPEN hints COMMENT_CLOSE
+block-hint-comment ::= BLOCK_HINT_OPEN hints BLOCK_COMMENT_END
 
 line-hint-comment ::= LINE_HINT_OPEN hints
 
@@ -523,10 +524,8 @@ index-array ::= LBRACKET index-object ( COMMA index-object )* RBRACKET
 index-object ::= LBRACE keyspace-property COMMA indexes-property RBRACE
 
 indexes-property ::= QUOTED_INDEXES COLON ( NULL
-                                     | DQUOTE index DQUOTE
-                                     | LBRACKET DQUOTE index DQUOTE ( COMMA DQUOTE index DQUOTE )* RBRACKET )
-
-index ::= index-ref
+                                     | DQUOTE index-ref DQUOTE
+                                     | LBRACKET DQUOTE index-ref DQUOTE ( COMMA DQUOTE index-ref DQUOTE )* RBRACKET )
 
 keyspace-array ::= LBRACKET keyspace-object ( COMMA keyspace-object )* RBRACKET
 
@@ -608,7 +607,6 @@ arithmetic-term ::= PLUS expr |
                     MINUS_SIGN expr
 
 comparison-term ::= relational-expr |
-                    between-expr |
                     like-expr |
                     is-expr
 
@@ -619,9 +617,8 @@ relational-expr ::= DOUBLE_EQUAL expr |
                     MORETHAN expr |
                     MORETHAN_OR_EQUAL expr |
                     LESSTHAN expr |
-                    LESSTHAN_OR_EQUAL expr
-
-between-expr ::= NOT? BETWEEN expr AND expr
+                    LESSTHAN_OR_EQUAL expr |
+                    NOT? BETWEEN (literal | nested-expr) AND (literal | nested-expr)
 
 like-expr ::= NOT? LIKE expr
 
@@ -637,11 +634,11 @@ concatenation-term ::= DBLPIPE expr
 
 logical-term ::= and-expr | or-expr | not-expr
 
-and-expr ::= AND cond
+and-expr ::= AND expr
 
-or-expr ::= OR cond
+or-expr ::= OR expr
 
-not-expr ::= NOT cond
+not-expr ::= NOT expr
 
 
 
@@ -649,7 +646,7 @@ case-expr ::= simple-case-expr | searched-case-expr
 
 simple-case-expr ::= CASE expr (WHEN expr THEN expr)+ (ELSE expr)? END
 
-searched-case-expr ::= CASE (WHEN cond THEN expr)+ (ELSE expr)? END
+searched-case-expr ::= CASE (WHEN expr THEN expr)+ (ELSE expr)? END
 
 
 
@@ -661,7 +658,7 @@ in-expr ::= NOT? IN expr
 
 within-expr ::= NOT? WITHIN expr
 
-range-cond ::= ( ( ANY | SOME ) ( AND EVERY )? | EVERY ) range-expr SATISFIES cond END
+range-cond ::= ( ( ANY | SOME ) ( AND EVERY )? | EVERY ) range-expr SATISFIES expr END
 
 range-expr ::= ( name-var COLON )? var ( IN | WITHIN ) expr
             ( COMMA ( name-var COLON )? var ( IN | WITHIN ) expr )*
@@ -705,7 +702,7 @@ aggregate-function ::= aggregate-function-name LPAREN ( aggregate-quantifier? ex
 
 aggregate-quantifier ::= ALL | DISTINCT
 
-filter-clause ::= FILTER LPAREN WHERE cond RPAREN
+filter-clause ::= FILTER LPAREN WHERE expr RPAREN
 
 window-function ::= window-function-name LPAREN window-function-arguments RPAREN
                     window-function-options? over-clause
@@ -728,12 +725,6 @@ subquery-expr ::= LPAREN select-statement RPAREN
 /************
  * Comments *
  ************/
-
-comment ::= block-comment
-
-block-comment ::= BLOCK_COMMENT_OPEN (  LF )* COMMENT_CLOSE
-
-
 
 tcl-statement ::= begin-transaction
                 | set-transaction
@@ -764,7 +755,7 @@ advise-statement ::= ADVISE INDEX? ( select-statement | update-statement | delet
 
 explain-statement ::= EXPLAIN statement
 
-infer-statement ::= INFER ( COLLECTION | KEYSPACE )? keyspace-ref ( WITH options )?
+infer-statement ::= INFER ( COLLECTION | KEYSPACE )? keyspace-ref ( WITH obj )?
 
 
 /***********************

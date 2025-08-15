@@ -94,7 +94,7 @@ public class SqlppSyntaxHighlighter extends SyntaxHighlighterBase {
             return ESCAPED_IDENTIFIER_KEYS;
         }
 
-        if (tokenType.equals(GeneratedTypes.COMMENT)) {
+        if (SqlppTokenSets.COMMENTS.contains(tokenType)) {
             return COMMENT_KEYS;
         }
 

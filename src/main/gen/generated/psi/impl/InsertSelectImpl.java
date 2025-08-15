@@ -34,6 +34,12 @@ public class InsertSelectImpl extends SqlppPSIWrapper implements InsertSelect {
   }
 
   @Override
+  @Nullable
+  public Obj getObj() {
+    return findChildByClass(Obj.class);
+  }
+
+  @Override
   @NotNull
   public SelectStatement getSelectStatement() {
     return findNotNullChildByClass(SelectStatement.class);

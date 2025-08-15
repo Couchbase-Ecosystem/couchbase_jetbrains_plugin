@@ -29,8 +29,8 @@ public class FilterClauseImpl extends SqlppPSIWrapper implements FilterClause {
 
   @Override
   @NotNull
-  public Cond getCond() {
-    return findNotNullChildByClass(Cond.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

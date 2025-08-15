@@ -5,16 +5,14 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.intellij.tree.node.CollectionNodeDescriptor;
+import org.junit.Rule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
 public class DataLoaderTest {
 
     private static Cluster cluster;
@@ -42,7 +40,7 @@ public class DataLoaderTest {
     private static String secondaryWithDesc = "secondaryWithDesc";
 
 
-    @Container
+    @Rule
     public static CouchbaseContainer couchbaseContainer = new CouchbaseContainer("couchbase/server:latest")
             .withBucket(new BucketDefinition(BUCKET_NAME))
             .withCredentials(USERNAME, PASSWORD);

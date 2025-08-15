@@ -27,4 +27,10 @@ public class IndexesPropertyImpl extends SqlppPSIWrapper implements IndexesPrope
     else super.accept(visitor);
   }
 
+  @Override
+  @Nullable
+  public IndexRef getIndexRef() {
+    return findChildByClass(IndexRef.class);
+  }
+
 }

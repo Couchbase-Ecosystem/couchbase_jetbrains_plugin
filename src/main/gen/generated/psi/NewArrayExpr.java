@@ -5,9 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface Cond extends PsiElement {
+public interface NewArrayExpr extends PsiElement {
 
   @NotNull
-  Expr getExpr();
+  List<Expr> getExprList();
 
 }

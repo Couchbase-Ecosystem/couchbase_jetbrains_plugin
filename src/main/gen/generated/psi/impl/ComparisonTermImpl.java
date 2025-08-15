@@ -29,12 +29,6 @@ public class ComparisonTermImpl extends SqlppPSIWrapper implements ComparisonTer
 
   @Override
   @Nullable
-  public BetweenExpr getBetweenExpr() {
-    return findChildByClass(BetweenExpr.class);
-  }
-
-  @Override
-  @Nullable
   public IsExpr getIsExpr() {
     return findChildByClass(IsExpr.class);
   }

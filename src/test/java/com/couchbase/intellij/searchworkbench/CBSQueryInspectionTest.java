@@ -5,13 +5,13 @@ import com.couchbase.intellij.searchworkbench.validator.QueryTypeObjectValidator
 import com.couchbase.intellij.searchworkbench.validator.RootObjectValidator;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.lang.annotation.HighlightSeverity;
-import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase;
+import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CBSQueryInspectionTest extends JavaCodeInsightFixtureTestCase {
+public class CBSQueryInspectionTest extends CodeInsightFixtureTestCase {
 
     @Override
     protected void setUp() throws Exception {

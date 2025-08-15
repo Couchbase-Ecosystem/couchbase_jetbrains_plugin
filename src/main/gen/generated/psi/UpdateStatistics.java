@@ -16,4 +16,7 @@ public interface UpdateStatistics extends PsiElement {
   @Nullable
   UpdateStatisticsIndex getUpdateStatisticsIndex();
 
+  @Nullable
+  UpdateStatisticsIndexes getUpdateStatisticsIndexes();
+
 }

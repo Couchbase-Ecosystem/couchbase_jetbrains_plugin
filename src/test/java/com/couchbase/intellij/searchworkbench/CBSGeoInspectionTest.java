@@ -5,14 +5,14 @@ import com.couchbase.intellij.searchworkbench.validator.GeometryObjectValidator;
 import com.couchbase.intellij.searchworkbench.validator.ShapeObjectValidator;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.lang.annotation.HighlightSeverity;
-import com.intellij.testFramework.fixtures.JavaCodeInsightFixtureTestCase;
+import com.intellij.testFramework.fixtures.CodeInsightFixtureTestCase;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CBSGeoInspectionTest extends JavaCodeInsightFixtureTestCase {
+public class CBSGeoInspectionTest extends CodeInsightFixtureTestCase {
 
     @Override
     protected void setUp() throws Exception {

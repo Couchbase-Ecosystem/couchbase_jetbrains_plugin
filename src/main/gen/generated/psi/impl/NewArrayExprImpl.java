@@ -11,14 +11,14 @@ import static generated.GeneratedTypes.*;
 import org.intellij.sdk.language.psi.SqlppPSIWrapper;
 import generated.psi.*;
 
-public class CommentImpl extends SqlppPSIWrapper implements Comment {
+public class NewArrayExprImpl extends SqlppPSIWrapper implements NewArrayExpr {
 
-  public CommentImpl(@NotNull ASTNode node) {
+  public NewArrayExprImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull Visitor visitor) {
-    visitor.visitComment(this);
+    visitor.visitNewArrayExpr(this);
   }
 
   @Override
@@ -29,8 +29,8 @@ public class CommentImpl extends SqlppPSIWrapper implements Comment {
 
   @Override
   @NotNull
-  public BlockComment getBlockComment() {
-    return findNotNullChildByClass(BlockComment.class);
+  public List<Expr> getExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
   }
 
 }

@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement;
 public interface UpdateFor extends PsiElement {
 
   @Nullable
-  Cond getCond();
+  Expr getExpr();
 
   @NotNull
   List<NameVar> getNameVarList();

@@ -45,4 +45,10 @@ public class UpdateStatisticsImpl extends SqlppPSIWrapper implements UpdateStati
     return findChildByClass(UpdateStatisticsIndex.class);
   }
 
+  @Override
+  @Nullable
+  public UpdateStatisticsIndexes getUpdateStatisticsIndexes() {
+    return findChildByClass(UpdateStatisticsIndexes.class);
+  }
+
 }

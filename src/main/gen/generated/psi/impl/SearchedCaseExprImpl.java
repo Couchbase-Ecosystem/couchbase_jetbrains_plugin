@@ -29,12 +29,6 @@ public class SearchedCaseExprImpl extends SqlppPSIWrapper implements SearchedCas
 
   @Override
   @NotNull
-  public List<Cond> getCondList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, Cond.class);
-  }
-
-  @Override
-  @NotNull
   public List<Expr> getExprList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, Expr.class);
   }

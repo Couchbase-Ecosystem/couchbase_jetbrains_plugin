@@ -44,6 +44,10 @@ BACKSLASH = \\
 QUOTE = \'
 DQUOTE = \"
 DOLLAR = "$"
+LINE_COMMENT="//" .*
+BLOCK_COMMENT="/*" [^+] !([^]* "*/" [^]*) ("*/")?
+BLOCK_COMMENT_END="*/"
+LF = \n
 
 
 Backtick = "`"
@@ -288,6 +292,7 @@ Backtick = "`"
       "%" { return GeneratedTypes.PERCENT; }
 //      "^" { return GeneratedTypes.CARET; }
       "==" { return GeneratedTypes.DOUBLE_EQUAL; }
+      "<>" { return GeneratedTypes.LESSTHAN_OR_MORETHAN; }
       "<" { return GeneratedTypes.LESSTHAN; }
       ">" { return GeneratedTypes.MORETHAN; }
       "<=" { return GeneratedTypes.LESSTHAN_OR_EQUAL; }
@@ -482,6 +487,9 @@ Backtick = "`"
     "WEEKDAY_MILLIS" { return GeneratedTypes.FUNCS; }
     "WEEKDAY_STR" { return GeneratedTypes.FUNCS; }
 
+      {BLOCK_COMMENT} { return GeneratedTypes.BLOCK_COMMENT; }
+      {LINE_COMMENT} { return GeneratedTypes.LINE_COMMENT; }
+      {BLOCK_COMMENT_END} { return GeneratedTypes.BLOCK_COMMENT_END; }
       "/*+" { return GeneratedTypes.BLOCK_HINT_OPEN; }
       "--+" { return GeneratedTypes.LINE_HINT_COMMENT; }
       {IDT} { return GeneratedTypes.IDENTIFIER; }
