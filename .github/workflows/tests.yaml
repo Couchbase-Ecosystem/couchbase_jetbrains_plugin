@@ -10,7 +10,7 @@ jobs:
           java-version: '21'
           distribution: adopt
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation-action@v3@v3
+        uses: gradle/actions/wrapper-validation-action@v3
       - name: Run the Gradle package task
         uses: gradle/actions/gradle-build-action@v3
         env:
