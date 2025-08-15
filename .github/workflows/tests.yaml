@@ -17,4 +17,4 @@ jobs:
           IQ_ORG_ID: ${{ secrets.IQ_ORG_ID }}
           IQ_ORG_LOGIN: ${{ secrets.IQ_ORG_LOGIN }}
           IQ_ORG_PASSWD: ${{ secrets.IQ_ORG_PASSWD }}
-        run: ./gradlew test package --stacktrace --info
+        run: ./gradlew test buildPlugin --stacktrace --info
