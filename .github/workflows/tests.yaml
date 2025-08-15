@@ -9,14 +9,12 @@ jobs:
         with:
           java-version: '21'
           distribution: adopt
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
       - name: Run the Gradle package task
-        uses: gradle/gradle-build-action@v3
         env:
           CAPELLA_DOMAIN: https://api.dev.nonprod-project-avengers.com
           IQ_ORG_ID: ${{ secrets.IQ_ORG_ID }}
           IQ_ORG_LOGIN: ${{ secrets.IQ_ORG_LOGIN }}
           IQ_ORG_PASSWD: ${{ secrets.IQ_ORG_PASSWD }}
-        with:
-          arguments: test
+        run: ./gradlew test package --stacktrace --info
