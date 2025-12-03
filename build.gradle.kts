@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.1.6.2"
+version = "1.1.6.3"
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -95,11 +95,12 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
+            1.1.6.3 - adds support for 2025.2
             1.1.6.2 — adds support for 2025.1
         """.trimIndent()
         ideaVersion {
             sinceBuild = "251.23774.435"
-            untilBuild = "251.*"
+            untilBuild = "260.*"
         }
         vendor {
             name = "Couchbase"
