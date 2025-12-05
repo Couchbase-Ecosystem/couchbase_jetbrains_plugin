@@ -7,7 +7,13 @@ import com.intellij.psi.PsiElement;
 
 public interface RelationalExpr extends PsiElement {
 
-  @NotNull
+  @Nullable
   Expr getExpr();
+
+  @NotNull
+  List<Literal> getLiteralList();
+
+  @NotNull
+  List<NestedExpr> getNestedExprList();
 
 }

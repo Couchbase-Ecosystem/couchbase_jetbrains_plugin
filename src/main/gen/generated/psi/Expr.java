@@ -23,6 +23,9 @@ public interface Expr extends PsiElement {
   List<ConcatenationTerm> getConcatenationTermList();
 
   @Nullable
+  Expr getExpr();
+
+  @Nullable
   FunctionCall getFunctionCall();
 
   @Nullable
@@ -42,6 +45,9 @@ public interface Expr extends PsiElement {
 
   @Nullable
   NestedExpr getNestedExpr();
+
+  @Nullable
+  NewArrayExpr getNewArrayExpr();
 
   @Nullable
   Path getPath();

@@ -29,8 +29,8 @@ public class AndExprImpl extends SqlppPSIWrapper implements AndExpr {
 
   @Override
   @NotNull
-  public Cond getCond() {
-    return findNotNullChildByClass(Cond.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
 }

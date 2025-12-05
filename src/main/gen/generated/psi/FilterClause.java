@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface FilterClause extends PsiElement {
 
   @NotNull
-  Cond getCond();
+  Expr getExpr();
 
 }

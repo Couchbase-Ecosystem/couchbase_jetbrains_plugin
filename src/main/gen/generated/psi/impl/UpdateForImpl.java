@@ -29,8 +29,8 @@ public class UpdateForImpl extends SqlppPSIWrapper implements UpdateFor {
 
   @Override
   @Nullable
-  public Cond getCond() {
-    return findChildByClass(Cond.class);
+  public Expr getExpr() {
+    return findChildByClass(Expr.class);
   }
 
   @Override

@@ -107,14 +107,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitBetweenExpr(@NotNull BetweenExpr o) {
-    visitPsiElement(o);
-  }
-
-  public void visitBlockComment(@NotNull BlockComment o) {
-    visitPsiElement(o);
-  }
-
   public void visitBlockHintComment(@NotNull BlockHintComment o) {
     visitPsiElement(o);
   }
@@ -155,10 +147,6 @@ public class Visitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitComment(@NotNull Comment o) {
-    visitPsiElement(o);
-  }
-
   public void visitCommitTransaction(@NotNull CommitTransaction o) {
     visitPsiElement(o);
   }
@@ -168,10 +156,6 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitConcatenationTerm(@NotNull ConcatenationTerm o) {
-    visitPsiElement(o);
-  }
-
-  public void visitCond(@NotNull Cond o) {
     visitPsiElement(o);
   }
 
@@ -744,6 +728,10 @@ public class Visitor extends PsiElementVisitor {
   }
 
   public void visitNestedExpr(@NotNull NestedExpr o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNewArrayExpr(@NotNull NewArrayExpr o) {
     visitPsiElement(o);
   }
 

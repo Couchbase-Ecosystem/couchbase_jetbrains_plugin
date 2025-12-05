@@ -35,8 +35,6 @@ public interface GeneratedTypes {
   IElementType ARITHMETIC_TERM = new SqlppElementType("ARITHMETIC_TERM");
   IElementType ARRAY_EXPR = new SqlppElementType("ARRAY_EXPR");
   IElementType BEGIN_TRANSACTION = new SqlppElementType("BEGIN_TRANSACTION");
-  IElementType BETWEEN_EXPR = new SqlppElementType("BETWEEN_EXPR");
-  IElementType BLOCK_COMMENT = new SqlppElementType("BLOCK_COMMENT");
   IElementType BLOCK_HINT_COMMENT = new SqlppElementType("BLOCK_HINT_COMMENT");
   IElementType BODY = new SqlppElementType("BODY");
   IElementType BOOL = new SqlppElementType("BOOL");
@@ -47,11 +45,9 @@ public interface GeneratedTypes {
   IElementType COLLECTION_EXPR = new SqlppElementType("COLLECTION_EXPR");
   IElementType COLLECTION_REF = new SqlppElementType("COLLECTION_REF");
   IElementType COMMA_SEPARATED_JOIN = new SqlppElementType("COMMA_SEPARATED_JOIN");
-  IElementType COMMENT = new SqlppElementType("COMMENT");
   IElementType COMMIT_TRANSACTION = new SqlppElementType("COMMIT_TRANSACTION");
   IElementType COMPARISON_TERM = new SqlppElementType("COMPARISON_TERM");
   IElementType CONCATENATION_TERM = new SqlppElementType("CONCATENATION_TERM");
-  IElementType COND = new SqlppElementType("COND");
   IElementType CREATE_COLLECTION = new SqlppElementType("CREATE_COLLECTION");
   IElementType CREATE_FUNCTION = new SqlppElementType("CREATE_FUNCTION");
   IElementType CREATE_FUNCTION_EXTERNAL = new SqlppElementType("CREATE_FUNCTION_EXTERNAL");
@@ -195,6 +191,7 @@ public interface GeneratedTypes {
   IElementType NAME_VAR = new SqlppElementType("NAME_VAR");
   IElementType NESTED_EXPR = new SqlppElementType("NESTED_EXPR");
   IElementType NEST_CLAUSE = new SqlppElementType("NEST_CLAUSE");
+  IElementType NEW_ARRAY_EXPR = new SqlppElementType("NEW_ARRAY_EXPR");
   IElementType NL_HINT_JSON = new SqlppElementType("NL_HINT_JSON");
   IElementType NL_HINT_SIMPLE = new SqlppElementType("NL_HINT_SIMPLE");
   IElementType NOT_EXPR = new SqlppElementType("NOT_EXPR");
@@ -310,7 +307,8 @@ public interface GeneratedTypes {
   IElementType BACKTICK = new SqlppTokenType("BACKTICK");
   IElementType BEGIN = new SqlppTokenType("BEGIN");
   IElementType BETWEEN = new SqlppTokenType("BETWEEN");
-  IElementType BLOCK_COMMENT_OPEN = new SqlppTokenType("BLOCK_COMMENT_OPEN");
+  IElementType BLOCK_COMMENT = new SqlppTokenType("block_comment");
+  IElementType BLOCK_COMMENT_END = new SqlppTokenType("BLOCK_COMMENT_END");
   IElementType BLOCK_HINT_OPEN = new SqlppTokenType("BLOCK_HINT_OPEN");
   IElementType BUILD = new SqlppTokenType("BUILD");
   IElementType BY = new SqlppTokenType("BY");
@@ -318,7 +316,6 @@ public interface GeneratedTypes {
   IElementType COLLECTION = new SqlppTokenType("COLLECTION");
   IElementType COLON = new SqlppTokenType("COLON");
   IElementType COMMA = new SqlppTokenType("COMMA");
-  IElementType COMMENT_CLOSE = new SqlppTokenType("COMMENT_CLOSE");
   IElementType COMMIT = new SqlppTokenType("COMMIT");
   IElementType COMMITTED = new SqlppTokenType("COMMITTED");
   IElementType CREATE = new SqlppTokenType("CREATE");
@@ -367,7 +364,7 @@ public interface GeneratedTypes {
   IElementType IGNORE = new SqlppTokenType("IGNORE");
   IElementType IN = new SqlppTokenType("IN");
   IElementType INCLUDE = new SqlppTokenType("INCLUDE");
-  IElementType INDEX = new SqlppTokenType("index");
+  IElementType INDEX = new SqlppTokenType("INDEX");
   IElementType INDEX_FTS = new SqlppTokenType("INDEX_FTS");
   IElementType INFER = new SqlppTokenType("INFER");
   IElementType INLINE = new SqlppTokenType("INLINE");
@@ -393,9 +390,9 @@ public interface GeneratedTypes {
   IElementType LET = new SqlppTokenType("LET");
   IElementType LETTING = new SqlppTokenType("LETTING");
   IElementType LEVEL = new SqlppTokenType("LEVEL");
-  IElementType LF = new SqlppTokenType("LF");
   IElementType LIKE = new SqlppTokenType("LIKE");
   IElementType LIMIT = new SqlppTokenType("LIMIT");
+  IElementType LINE_COMMENT = new SqlppTokenType("line_comment");
   IElementType LINE_HINT_OPEN = new SqlppTokenType("LINE_HINT_OPEN");
   IElementType LPAREN = new SqlppTokenType("LPAREN");
   IElementType MATCHED = new SqlppTokenType("MATCHED");
@@ -573,12 +570,6 @@ public interface GeneratedTypes {
       else if (type == BEGIN_TRANSACTION) {
         return new BeginTransactionImpl(node);
       }
-      else if (type == BETWEEN_EXPR) {
-        return new BetweenExprImpl(node);
-      }
-      else if (type == BLOCK_COMMENT) {
-        return new BlockCommentImpl(node);
-      }
       else if (type == BLOCK_HINT_COMMENT) {
         return new BlockHintCommentImpl(node);
       }
@@ -609,9 +600,6 @@ public interface GeneratedTypes {
       else if (type == COMMA_SEPARATED_JOIN) {
         return new CommaSeparatedJoinImpl(node);
       }
-      else if (type == COMMENT) {
-        return new CommentImpl(node);
-      }
       else if (type == COMMIT_TRANSACTION) {
         return new CommitTransactionImpl(node);
       }
@@ -620,9 +608,6 @@ public interface GeneratedTypes {
       }
       else if (type == CONCATENATION_TERM) {
         return new ConcatenationTermImpl(node);
-      }
-      else if (type == COND) {
-        return new CondImpl(node);
       }
       else if (type == CREATE_COLLECTION) {
         return new CreateCollectionImpl(node);
@@ -1052,6 +1037,9 @@ public interface GeneratedTypes {
       }
       else if (type == NEST_CLAUSE) {
         return new NestClauseImpl(node);
+      }
+      else if (type == NEW_ARRAY_EXPR) {
+        return new NewArrayExprImpl(node);
       }
       else if (type == NL_HINT_JSON) {
         return new NlHintJsonImpl(node);

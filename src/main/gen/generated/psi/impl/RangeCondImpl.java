@@ -29,8 +29,8 @@ public class RangeCondImpl extends SqlppPSIWrapper implements RangeCond {
 
   @Override
   @NotNull
-  public Cond getCond() {
-    return findNotNullChildByClass(Cond.class);
+  public Expr getExpr() {
+    return findNotNullChildByClass(Expr.class);
   }
 
   @Override

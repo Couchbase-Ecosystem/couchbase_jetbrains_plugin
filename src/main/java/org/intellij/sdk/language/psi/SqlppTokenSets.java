@@ -7,7 +7,7 @@ import generated.GeneratedTypes;
 
 public interface SqlppTokenSets {
 
-  TokenSet COMMENTS = TokenSet.create(GeneratedTypes.COMMENT);
+  TokenSet COMMENTS = TokenSet.create(GeneratedTypes.LINE_COMMENT, GeneratedTypes.BLOCK_COMMENT);
 
   TokenSet IDENTIFIERS = TokenSet.create(
           GeneratedTypes.IDENTIFIER,

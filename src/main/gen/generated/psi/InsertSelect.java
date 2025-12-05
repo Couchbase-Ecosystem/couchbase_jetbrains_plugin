@@ -10,6 +10,9 @@ public interface InsertSelect extends PsiElement {
   @NotNull
   KeyExpr getKeyExpr();
 
+  @Nullable
+  Obj getObj();
+
   @NotNull
   SelectStatement getSelectStatement();
 

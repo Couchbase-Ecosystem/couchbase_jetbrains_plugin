@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface SearchedCaseExpr extends PsiElement {
 
   @NotNull
-  List<Cond> getCondList();
-
-  @NotNull
   List<Expr> getExprList();
 
 }

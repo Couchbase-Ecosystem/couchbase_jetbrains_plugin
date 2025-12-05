@@ -35,6 +35,12 @@ public class AnsiMergeInsertImpl extends SqlppPSIWrapper implements AnsiMergeIns
 
   @Override
   @Nullable
+  public Obj getObj() {
+    return findChildByClass(Obj.class);
+  }
+
+  @Override
+  @Nullable
   public ValueExpr getValueExpr() {
     return findChildByClass(ValueExpr.class);
   }

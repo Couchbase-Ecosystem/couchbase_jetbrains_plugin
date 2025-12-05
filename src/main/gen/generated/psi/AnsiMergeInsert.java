@@ -11,6 +11,9 @@ public interface AnsiMergeInsert extends PsiElement {
   KeyExpr getKeyExpr();
 
   @Nullable
+  Obj getObj();
+
+  @Nullable
   ValueExpr getValueExpr();
 
   @Nullable

@@ -28,9 +28,21 @@ public class RelationalExprImpl extends SqlppPSIWrapper implements RelationalExp
   }
 
   @Override
-  @NotNull
+  @Nullable
   public Expr getExpr() {
-    return findNotNullChildByClass(Expr.class);
+    return findChildByClass(Expr.class);
+  }
+
+  @Override
+  @NotNull
+  public List<Literal> getLiteralList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, Literal.class);
+  }
+
+  @Override
+  @NotNull
+  public List<NestedExpr> getNestedExprList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, NestedExpr.class);
   }
 
 }

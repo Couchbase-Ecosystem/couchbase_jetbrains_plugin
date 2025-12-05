@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement;
 public interface RangeCond extends PsiElement {
 
   @NotNull
-  Cond getCond();
+  Expr getExpr();
 
   @NotNull
   RangeExpr getRangeExpr();

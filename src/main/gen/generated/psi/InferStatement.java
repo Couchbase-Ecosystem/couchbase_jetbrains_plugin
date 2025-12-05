@@ -10,4 +10,7 @@ public interface InferStatement extends PsiElement {
   @NotNull
   KeyspaceRef getKeyspaceRef();
 
+  @Nullable
+  Obj getObj();
+
 }

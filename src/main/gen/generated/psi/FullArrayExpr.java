@@ -7,9 +7,6 @@ import com.intellij.psi.PsiElement;
 
 public interface FullArrayExpr extends PsiElement {
 
-  @Nullable
-  Cond getCond();
-
   @NotNull
   List<Expr> getExprList();
 

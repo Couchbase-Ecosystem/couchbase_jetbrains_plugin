@@ -33,4 +33,10 @@ public class InferStatementImpl extends SqlppPSIWrapper implements InferStatemen
     return findNotNullChildByClass(KeyspaceRef.class);
   }
 
+  @Override
+  @Nullable
+  public Obj getObj() {
+    return findChildByClass(Obj.class);
+  }
+
 }

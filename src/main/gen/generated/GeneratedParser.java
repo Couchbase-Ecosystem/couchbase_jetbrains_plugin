@@ -253,14 +253,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // AND cond
+  // AND expr
   public static boolean and_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "and_expr")) return false;
     if (!nextTokenIs(b, AND)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, AND);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, AND_EXPR, r);
     return r;
   }
@@ -431,7 +431,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // WHEN NOT MATCHED THEN INSERT LPAREN KEY? key-expr
-  //                       ( COMMA VALUE? value-expr )? ( COMMA OPTIONS? options )? RPAREN where-clause?
+  //                       ( COMMA VALUE? value-expr )? ( COMMA OPTIONS? obj )? RPAREN where-clause?
   public static boolean ansi_merge_insert(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ansi_merge_insert")) return false;
     if (!nextTokenIs(b, WHEN)) return false;
@@ -481,21 +481,21 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ( COMMA OPTIONS? options )?
+  // ( COMMA OPTIONS? obj )?
   private static boolean ansi_merge_insert_9(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ansi_merge_insert_9")) return false;
     ansi_merge_insert_9_0(b, l + 1);
     return true;
   }
 
-  // COMMA OPTIONS? options
+  // COMMA OPTIONS? obj
   private static boolean ansi_merge_insert_9_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ansi_merge_insert_9_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COMMA);
     r = r && ansi_merge_insert_9_0_1(b, l + 1);
-    r = r && consumeToken(b, OPTIONS);
+    r = r && obj(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -798,55 +798,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // NOT? BETWEEN expr AND expr
-  public static boolean between_expr(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "between_expr")) return false;
-    if (!nextTokenIs(b, "<between expr>", BETWEEN, NOT)) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, BETWEEN_EXPR, "<between expr>");
-    r = between_expr_0(b, l + 1);
-    r = r && consumeToken(b, BETWEEN);
-    r = r && expr(b, l + 1);
-    r = r && consumeToken(b, AND);
-    r = r && expr(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
-    return r;
-  }
-
-  // NOT?
-  private static boolean between_expr_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "between_expr_0")) return false;
-    consumeToken(b, NOT);
-    return true;
-  }
-
-  /* ********************************************************** */
-  // BLOCK_COMMENT_OPEN (  LF )* COMMENT_CLOSE
-  public static boolean block_comment(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "block_comment")) return false;
-    if (!nextTokenIs(b, BLOCK_COMMENT_OPEN)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, BLOCK_COMMENT_OPEN);
-    r = r && block_comment_1(b, l + 1);
-    r = r && consumeToken(b, COMMENT_CLOSE);
-    exit_section_(b, m, BLOCK_COMMENT, r);
-    return r;
-  }
-
-  // (  LF )*
-  private static boolean block_comment_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "block_comment_1")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!consumeToken(b, LF)) break;
-      if (!empty_element_parsed_guard_(b, "block_comment_1", c)) break;
-    }
-    return true;
-  }
-
-  /* ********************************************************** */
-  // BLOCK_HINT_OPEN hints COMMENT_CLOSE
+  // BLOCK_HINT_OPEN hints BLOCK_COMMENT_END
   public static boolean block_hint_comment(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "block_hint_comment")) return false;
     if (!nextTokenIs(b, BLOCK_HINT_OPEN)) return false;
@@ -854,7 +806,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     Marker m = enter_section_(b);
     r = consumeToken(b, BLOCK_HINT_OPEN);
     r = r && hints(b, l + 1);
-    r = r && consumeToken(b, COMMENT_CLOSE);
+    r = r && consumeToken(b, BLOCK_COMMENT_END);
     exit_section_(b, m, BLOCK_HINT_COMMENT, r);
     return r;
   }
@@ -1068,18 +1020,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // block-comment
-  public static boolean comment(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "comment")) return false;
-    if (!nextTokenIs(b, BLOCK_COMMENT_OPEN)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = block_comment(b, l + 1);
-    exit_section_(b, m, COMMENT, r);
-    return r;
-  }
-
-  /* ********************************************************** */
   // COMMIT ( WORK | TRAN | TRANSACTION )?
   public static boolean commit_transaction(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "commit_transaction")) return false;
@@ -1111,7 +1051,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // relational-expr |
-  //                     between-expr |
   //                     like-expr |
   //                     is-expr
   public static boolean comparison_term(PsiBuilder b, int l) {
@@ -1119,7 +1058,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, COMPARISON_TERM, "<comparison term>");
     r = relational_expr(b, l + 1);
-    if (!r) r = between_expr(b, l + 1);
     if (!r) r = like_expr(b, l + 1);
     if (!r) r = is_expr(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -1136,17 +1074,6 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, DBLPIPE);
     r = r && expr(b, l + 1);
     exit_section_(b, m, CONCATENATION_TERM, r);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // expr
-  public static boolean cond(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "cond")) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NONE_, COND, "<cond>");
-    r = expr(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -2314,6 +2241,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 named-arg |
   //                 identifier-ref |
   //                 nested-expr |
+  //                 new-array-expr |
   //                 subquery-expr
   //             ) (
   //                 comparison-term |
@@ -2323,13 +2251,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 collection-expr
   //             )*
   //          ) |
-  //          case-expr
+  //          case-expr | ( LPAREN expr RPAREN )
   public static boolean expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "expr")) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, EXPR, "<expr>");
     r = expr_0(b, l + 1);
     if (!r) r = case_expr(b, l + 1);
+    if (!r) r = expr_2(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -2342,6 +2271,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 named-arg |
   //                 identifier-ref |
   //                 nested-expr |
+  //                 new-array-expr |
   //                 subquery-expr
   //             ) (
   //                 comparison-term |
@@ -2367,6 +2297,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                 named-arg |
   //                 identifier-ref |
   //                 nested-expr |
+  //                 new-array-expr |
   //                 subquery-expr
   private static boolean expr_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "expr_0_0")) return false;
@@ -2378,6 +2309,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     if (!r) r = named_arg(b, l + 1);
     if (!r) r = identifier_ref(b, l + 1);
     if (!r) r = nested_expr(b, l + 1);
+    if (!r) r = new_array_expr(b, l + 1);
     if (!r) r = subquery_expr(b, l + 1);
     return r;
   }
@@ -2412,6 +2344,18 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     if (!r) r = concatenation_term(b, l + 1);
     if (!r) r = logical_term(b, l + 1);
     if (!r) r = collection_expr(b, l + 1);
+    return r;
+  }
+
+  // LPAREN expr RPAREN
+  private static boolean expr_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "expr_2")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LPAREN);
+    r = r && expr(b, l + 1);
+    r = r && consumeToken(b, RPAREN);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -2481,14 +2425,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FILTER LPAREN WHERE cond RPAREN
+  // FILTER LPAREN WHERE expr RPAREN
   public static boolean filter_clause(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "filter_clause")) return false;
     if (!nextTokenIs(b, FILTER)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeTokens(b, 0, FILTER, LPAREN, WHERE);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     r = r && consumeToken(b, RPAREN);
     exit_section_(b, m, FILTER_CLAUSE, r);
     return r;
@@ -2763,7 +2707,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // ( ALL | DISTINCT ) ARRAY expr
   //                     FOR var ( IN | WITHIN ) expr
-  //                     ( COMMA var ( IN | WITHIN ) expr )* ( WHEN cond )? END
+  //                     ( COMMA var ( IN | WITHIN ) expr )* ( WHEN expr )? END
   public static boolean full_array_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "full_array_expr")) return false;
     if (!nextTokenIs(b, "<full array expr>", ALL, DISTINCT)) return false;
@@ -2834,20 +2778,20 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( WHEN cond )?
+  // ( WHEN expr )?
   private static boolean full_array_expr_8(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "full_array_expr_8")) return false;
     full_array_expr_8_0(b, l + 1);
     return true;
   }
 
-  // WHEN cond
+  // WHEN expr
   private static boolean full_array_expr_8_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "full_array_expr_8_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, WHEN);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -3376,14 +3320,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // HAVING cond
+  // HAVING expr
   public static boolean having_clause(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "having_clause")) return false;
     if (!nextTokenIs(b, HAVING)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, HAVING);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, HAVING_CLAUSE, r);
     return r;
   }
@@ -4056,8 +4000,8 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // QUOTED_INDEXES COLON ( NULL
-  //                                      | DQUOTE index DQUOTE
-  //                                      | LBRACKET DQUOTE index DQUOTE ( COMMA DQUOTE index DQUOTE )* RBRACKET )
+  //                                      | DQUOTE index-ref DQUOTE
+  //                                      | LBRACKET DQUOTE index-ref DQUOTE ( COMMA DQUOTE index-ref DQUOTE )* RBRACKET )
   public static boolean indexes_property(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "indexes_property")) return false;
     if (!nextTokenIs(b, QUOTED_INDEXES)) return false;
@@ -4070,32 +4014,46 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   // NULL
-  //                                      | DQUOTE index DQUOTE
-  //                                      | LBRACKET DQUOTE index DQUOTE ( COMMA DQUOTE index DQUOTE )* RBRACKET
+  //                                      | DQUOTE index-ref DQUOTE
+  //                                      | LBRACKET DQUOTE index-ref DQUOTE ( COMMA DQUOTE index-ref DQUOTE )* RBRACKET
   private static boolean indexes_property_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "indexes_property_2")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, NULL);
-    if (!r) r = parseTokens(b, 0, DQUOTE, INDEX, DQUOTE);
+    if (!r) r = indexes_property_2_1(b, l + 1);
     if (!r) r = indexes_property_2_2(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // LBRACKET DQUOTE index DQUOTE ( COMMA DQUOTE index DQUOTE )* RBRACKET
+  // DQUOTE index-ref DQUOTE
+  private static boolean indexes_property_2_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "indexes_property_2_1")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DQUOTE);
+    r = r && index_ref(b, l + 1);
+    r = r && consumeToken(b, DQUOTE);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // LBRACKET DQUOTE index-ref DQUOTE ( COMMA DQUOTE index-ref DQUOTE )* RBRACKET
   private static boolean indexes_property_2_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "indexes_property_2_2")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, LBRACKET, DQUOTE, INDEX, DQUOTE);
+    r = consumeTokens(b, 0, LBRACKET, DQUOTE);
+    r = r && index_ref(b, l + 1);
+    r = r && consumeToken(b, DQUOTE);
     r = r && indexes_property_2_2_4(b, l + 1);
     r = r && consumeToken(b, RBRACKET);
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // ( COMMA DQUOTE index DQUOTE )*
+  // ( COMMA DQUOTE index-ref DQUOTE )*
   private static boolean indexes_property_2_2_4(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "indexes_property_2_2_4")) return false;
     while (true) {
@@ -4106,18 +4064,20 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // COMMA DQUOTE index DQUOTE
+  // COMMA DQUOTE index-ref DQUOTE
   private static boolean indexes_property_2_2_4_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "indexes_property_2_2_4_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, COMMA, DQUOTE, INDEX, DQUOTE);
+    r = consumeTokens(b, 0, COMMA, DQUOTE);
+    r = r && index_ref(b, l + 1);
+    r = r && consumeToken(b, DQUOTE);
     exit_section_(b, m, null, r);
     return r;
   }
 
   /* ********************************************************** */
-  // INFER ( COLLECTION | KEYSPACE )? keyspace-ref ( WITH options )?
+  // INFER ( COLLECTION | KEYSPACE )? keyspace-ref ( WITH obj )?
   public static boolean infer_statement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "infer_statement")) return false;
     if (!nextTokenIs(b, INFER)) return false;
@@ -4147,26 +4107,27 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( WITH options )?
+  // ( WITH obj )?
   private static boolean infer_statement_3(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "infer_statement_3")) return false;
     infer_statement_3_0(b, l + 1);
     return true;
   }
 
-  // WITH options
+  // WITH obj
   private static boolean infer_statement_3_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "infer_statement_3_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, WITH, OPTIONS);
+    r = consumeToken(b, WITH);
+    r = r && obj(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
   /* ********************************************************** */
   // LPAREN PRIMARY? KEY key-expr ( COMMA VALUE value-expr )?
-  //                    ( COMMA OPTIONS options )? RPAREN select-statement
+  //                    ( COMMA OPTIONS obj )? RPAREN select-statement
   public static boolean insert_select(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "insert_select")) return false;
     if (!nextTokenIs(b, LPAREN)) return false;
@@ -4209,19 +4170,20 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( COMMA OPTIONS options )?
+  // ( COMMA OPTIONS obj )?
   private static boolean insert_select_5(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "insert_select_5")) return false;
     insert_select_5_0(b, l + 1);
     return true;
   }
 
-  // COMMA OPTIONS options
+  // COMMA OPTIONS obj
   private static boolean insert_select_5_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "insert_select_5_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, COMMA, OPTIONS, OPTIONS);
+    r = consumeTokens(b, 0, COMMA, OPTIONS);
+    r = r && obj(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -5677,6 +5639,60 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // LBRACKET ( expr ( COMMA expr )* )? RBRACKET
+  public static boolean new_array_expr(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "new_array_expr")) return false;
+    if (!nextTokenIs(b, LBRACKET)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LBRACKET);
+    r = r && new_array_expr_1(b, l + 1);
+    r = r && consumeToken(b, RBRACKET);
+    exit_section_(b, m, NEW_ARRAY_EXPR, r);
+    return r;
+  }
+
+  // ( expr ( COMMA expr )* )?
+  private static boolean new_array_expr_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "new_array_expr_1")) return false;
+    new_array_expr_1_0(b, l + 1);
+    return true;
+  }
+
+  // expr ( COMMA expr )*
+  private static boolean new_array_expr_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "new_array_expr_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = expr(b, l + 1);
+    r = r && new_array_expr_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // ( COMMA expr )*
+  private static boolean new_array_expr_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "new_array_expr_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!new_array_expr_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "new_array_expr_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // COMMA expr
+  private static boolean new_array_expr_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "new_array_expr_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, COMMA);
+    r = r && expr(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // QUOTED_USE_NS COLON ( keyspace-array | keyspace-object )
   public static boolean nl_hint_json(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "nl_hint_json")) return false;
@@ -5738,14 +5754,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // NOT cond
+  // NOT expr
   public static boolean not_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "not_expr")) return false;
     if (!nextTokenIs(b, NOT)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, NOT);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, NOT_EXPR, r);
     return r;
   }
@@ -5843,14 +5859,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // OR cond
+  // OR expr
   public static boolean or_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "or_expr")) return false;
     if (!nextTokenIs(b, OR)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, OR);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, OR_EXPR, r);
     return r;
   }
@@ -6383,7 +6399,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // ( ( ANY | SOME ) ( AND EVERY )? | EVERY ) range-expr SATISFIES cond END
+  // ( ( ANY | SOME ) ( AND EVERY )? | EVERY ) range-expr SATISFIES expr END
   public static boolean range_cond(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "range_cond")) return false;
     boolean r;
@@ -6391,7 +6407,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     r = range_cond_0(b, l + 1);
     r = r && range_expr(b, l + 1);
     r = r && consumeToken(b, SATISFIES);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     r = r && consumeToken(b, END);
     exit_section_(b, l, m, r, false, null);
     return r;
@@ -6548,7 +6564,8 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   //                     MORETHAN expr |
   //                     MORETHAN_OR_EQUAL expr |
   //                     LESSTHAN expr |
-  //                     LESSTHAN_OR_EQUAL expr
+  //                     LESSTHAN_OR_EQUAL expr |
+  //                     NOT? BETWEEN (literal | nested-expr) AND (literal | nested-expr)
   public static boolean relational_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "relational_expr")) return false;
     boolean r;
@@ -6561,6 +6578,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     if (!r) r = relational_expr_5(b, l + 1);
     if (!r) r = relational_expr_6(b, l + 1);
     if (!r) r = relational_expr_7(b, l + 1);
+    if (!r) r = relational_expr_8(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -6650,6 +6668,45 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, LESSTHAN_OR_EQUAL);
     r = r && expr(b, l + 1);
     exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // NOT? BETWEEN (literal | nested-expr) AND (literal | nested-expr)
+  private static boolean relational_expr_8(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "relational_expr_8")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = relational_expr_8_0(b, l + 1);
+    r = r && consumeToken(b, BETWEEN);
+    r = r && relational_expr_8_2(b, l + 1);
+    r = r && consumeToken(b, AND);
+    r = r && relational_expr_8_4(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // NOT?
+  private static boolean relational_expr_8_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "relational_expr_8_0")) return false;
+    consumeToken(b, NOT);
+    return true;
+  }
+
+  // literal | nested-expr
+  private static boolean relational_expr_8_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "relational_expr_8_2")) return false;
+    boolean r;
+    r = literal(b, l + 1);
+    if (!r) r = nested_expr(b, l + 1);
+    return r;
+  }
+
+  // literal | nested-expr
+  private static boolean relational_expr_8_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "relational_expr_8_4")) return false;
+    boolean r;
+    r = literal(b, l + 1);
+    if (!r) r = nested_expr(b, l + 1);
     return r;
   }
 
@@ -7114,7 +7171,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // CASE (WHEN cond THEN expr)+ (ELSE expr)? END
+  // CASE (WHEN expr THEN expr)+ (ELSE expr)? END
   public static boolean searched_case_expr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "searched_case_expr")) return false;
     if (!nextTokenIs(b, CASE)) return false;
@@ -7128,7 +7185,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (WHEN cond THEN expr)+
+  // (WHEN expr THEN expr)+
   private static boolean searched_case_expr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "searched_case_expr_1")) return false;
     boolean r;
@@ -7143,13 +7200,13 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // WHEN cond THEN expr
+  // WHEN expr THEN expr
   private static boolean searched_case_expr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "searched_case_expr_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, WHEN);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     r = r && consumeToken(b, THEN);
     r = r && expr(b, l + 1);
     exit_section_(b, m, null, r);
@@ -7936,7 +7993,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // (FOR (name-var COLON)? var (IN | WITHIN) path
   //                (COMMA (name-var COLON)? var (IN | WITHIN) path)* )+
-  //                (WHEN cond)? END
+  //                (WHEN expr)? END
   public static boolean update_for(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "update_for")) return false;
     if (!nextTokenIs(b, FOR)) return false;
@@ -8060,20 +8117,20 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (WHEN cond)?
+  // (WHEN expr)?
   private static boolean update_for_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "update_for_1")) return false;
     update_for_1_0(b, l + 1);
     return true;
   }
 
-  // WHEN cond
+  // WHEN expr
   private static boolean update_for_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "update_for_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, WHEN);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -8141,13 +8198,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // update-statistics-expr | update-statistics-index | update-statistics-delete
+  // update-statistics-expr | update-statistics-indexes | update-statistics-index | update-statistics-delete
   public static boolean update_statistics(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "update_statistics")) return false;
     if (!nextTokenIs(b, "<update statistics>", ANALYZE, UPDATE)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, UPDATE_STATISTICS, "<update statistics>");
     r = update_statistics_expr(b, l + 1);
+    if (!r) r = update_statistics_indexes(b, l + 1);
     if (!r) r = update_statistics_index(b, l + 1);
     if (!r) r = update_statistics_delete(b, l + 1);
     exit_section_(b, l, m, r, false, null);
@@ -8690,8 +8748,8 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // VALUES  LPAREN key-expr COMMA value-expr ( COMMA options )? RPAREN
-  //             ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA options )? RPAREN )*
+  // VALUES  LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN
+  //             ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN )*
   public static boolean values_clause(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause")) return false;
     if (!nextTokenIs(b, VALUES)) return false;
@@ -8708,14 +8766,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( COMMA options )?
+  // ( COMMA OPTIONS )?
   private static boolean values_clause_5(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause_5")) return false;
     values_clause_5_0(b, l + 1);
     return true;
   }
 
-  // COMMA options
+  // COMMA OPTIONS
   private static boolean values_clause_5_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause_5_0")) return false;
     boolean r;
@@ -8725,7 +8783,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA options )? RPAREN )*
+  // ( COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN )*
   private static boolean values_clause_7(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause_7")) return false;
     while (true) {
@@ -8736,7 +8794,7 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA options )? RPAREN
+  // COMMA VALUES? LPAREN key-expr COMMA value-expr ( COMMA OPTIONS )? RPAREN
   private static boolean values_clause_7_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause_7_0")) return false;
     boolean r;
@@ -8760,14 +8818,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ( COMMA options )?
+  // ( COMMA OPTIONS )?
   private static boolean values_clause_7_0_6(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause_7_0_6")) return false;
     values_clause_7_0_6_0(b, l + 1);
     return true;
   }
 
-  // COMMA options
+  // COMMA OPTIONS
   private static boolean values_clause_7_0_6_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "values_clause_7_0_6_0")) return false;
     boolean r;
@@ -8789,14 +8847,14 @@ public class GeneratedParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // WHERE cond
+  // WHERE expr
   public static boolean where_clause(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "where_clause")) return false;
     if (!nextTokenIs(b, WHERE)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, WHERE);
-    r = r && cond(b, l + 1);
+    r = r && expr(b, l + 1);
     exit_section_(b, m, WHERE_CLAUSE, r);
     return r;
   }

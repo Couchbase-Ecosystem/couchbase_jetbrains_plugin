@@ -7,4 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface IndexesProperty extends PsiElement {
 
+  @Nullable
+  IndexRef getIndexRef();
+
 }
