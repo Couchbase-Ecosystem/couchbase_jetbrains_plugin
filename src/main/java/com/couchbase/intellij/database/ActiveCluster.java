@@ -19,12 +19,15 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.ColorUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import utils.CBConfigUtil;
 
 import java.awt.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Duration;
 import java.util.List;
 import java.util.*;
@@ -134,7 +137,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return new PermissionChecker(permissions);
     }
 
-    public void connect(SavedCluster savedCluster, Consumer<Exception> connectListener, Runnable disconnectListener) throws Exception {
+    public void connect(SavedCluster savedCluster, Consumer<Throwable> connectListener, Runnable disconnectListener) throws Exception {
         if (this.cluster != null) {
             disconnect();
         }
@@ -210,15 +213,26 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     setServices(overview.getNodes().stream()
                             .flatMap(node -> node.getServices().stream()).distinct().collect(Collectors.toList()));
 
-                    setVersion(overview.getNodes().get(0).getVersion()
-                            .substring(0, overview.getNodes().get(0).getVersion().indexOf('-')));
+                    final String versionString = overview.getNodes().get(0).getVersion();
+                    if (StringUtils.isNotEmpty(versionString)) {
+                        if (versionString.indexOf('-') > -1) {
+                            setVersion(versionString.substring(0, versionString.indexOf('-')));
+                        } else {
+                            setVersion(versionString);
+                        }
+                        Log.info("Detected cluster version: {}", getVersion());
+                    } else {
+                        throw new RuntimeException("Failed to get cluster version");
+                    }
 
                     if (hasSearchService()) {
                         searchNodes = new ArrayList<>();
                         searchNodes.addAll(overview.getNodes().stream()
                                 .filter(e -> e.getServices().contains("fts"))
+                                .filter(e -> StringUtils.isNotEmpty(e.getHostname()))
                                 .map(e -> e.getHostname().substring(0, e.getHostname().indexOf(":")))
                                 .collect(Collectors.toSet()));
+                        Log.info("Found search nodes: {}", searchNodes.stream().collect(Collectors.joining(", ")));
                     }
 
                     //Notify Listeners that we connected to a new cluster.
@@ -242,11 +256,17 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         connectListener.accept(e);
                     });
                     INSTANCE.set(ActiveCluster.this);
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    StringWriter sw = new StringWriter();
+                    while (e.getCause() != null && e.getCause() != e) {
+                        e = e.getCause();
+                    }
+                    e.printStackTrace(new PrintWriter(sw, true));
                     ApplicationManager.getApplication().invokeLater(() -> Messages.showErrorDialog(
-                            String.format("Error while connecting to cluster '%s': \n %s", savedCluster.getId(), e.getMessage()),
+                            String.format("Error while connecting to cluster '%s': %s", savedCluster.getId(), sw.toString()),
                             "Failed to connect to cluster"
                     ));
+                    Log.error("Error while connecting to Couchbase cluster '" + savedCluster.getId() + "'", e);
                     if (connectListener != null) {
                         connectListener.accept(e);
                     }

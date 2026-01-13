@@ -12,10 +12,12 @@ public class NSLookup {
 
     public static List<String> getServerURL(String url) {
         if (url.contains("cloud.couchbase.com")) {
-            return lookupCapellaServers(url);
-        } else {
-            return List.of(url.replace("couchbases://", "").replace("couchbase://", ""));
+            List<String> servers = lookupCapellaServers(url);
+            if (!servers.isEmpty()) {
+                return servers;
+            }
         }
+        return List.of(url.replace("couchbases://", "").replace("couchbase://", ""));
     }
 
     public static List<String> lookupCapellaServers(String serverURL) {

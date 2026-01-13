@@ -30,7 +30,7 @@ public class TreeActionHandler {
         connectToCluster(project, savedCluster, tree, toolBarPanel, null, null);
     }
 
-    public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Exception> connectionListener, Runnable disconnectListener) {
+    public static void connectToCluster(Project project, SavedCluster savedCluster, Tree tree, JPanel toolBarPanel, Consumer<Throwable> connectionListener, Runnable disconnectListener) {
 
         ApplicationManager.getApplication().invokeLater(() -> {
             tree.setPaintBusy(true);

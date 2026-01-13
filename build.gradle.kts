@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.1.7"
+version = "1.1.8"
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -24,6 +24,11 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
+}
+
+configurations.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    exclude(group = "org.jsoup", module = "jsoup")          // let IDE's jsoup win
 }
 
 dependencies {
@@ -73,6 +78,7 @@ dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2025.1")
         bundledPlugin("com.intellij.java")
+        bundledPlugin("org.jetbrains.completion.full.line")
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("org.jetbrains.plugins.terminal")
         testFramework(TestFrameworkType.Platform)
@@ -98,6 +104,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
+            1.1.8   - fixes issue connecting to Capella clusters via private link endpoint
             1.1.7   - fixes for SQL++ BETWEEN clause and comments grammar 
             1.1.6.3 - adds support for 2025.2
             1.1.6.2 — adds support for 2025.1
