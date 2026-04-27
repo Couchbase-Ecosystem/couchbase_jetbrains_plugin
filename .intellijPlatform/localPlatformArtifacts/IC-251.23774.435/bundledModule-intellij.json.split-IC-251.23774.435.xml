@@ -1,0 +1,10 @@
+<ivy-module version="2.0">
+  <info organisation="bundledModule" module="intellij.json.split" revision="IC-251.23774.435"/>
+  <configurations>
+    <conf name="default" visibility="public"/>
+  </configurations>
+  <publications>
+    <artifact name="intellij.json.split" ext="jar" conf="default" url="plugins/json/lib/modules"/>
+  </publications>
+  <dependencies/>
+</ivy-module>

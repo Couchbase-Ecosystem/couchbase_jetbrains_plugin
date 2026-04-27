@@ -1,0 +1,38 @@
+<ivy-module version="2.0">
+  <info organisation="bundledPlugin" module="org.jetbrains.completion.full.line" revision="IC-251.23774.435"/>
+  <configurations>
+    <conf name="default" visibility="public"/>
+  </configurations>
+  <publications>
+    <artifact name="fullLine" ext="jar" conf="default" url="plugins/fullLine/lib"/>
+    <artifact name="intellij.fullLine.python.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.terraform.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.html.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.rider.csharp.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.ruby.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.css.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.html.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.rider.csharp.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.java.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.js.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.kotlin.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.css.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.rust.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.java.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.rider.cpp.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.php.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.kotlin.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.cpp.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.go.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.python.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.php.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.rider.cpp.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.javascript.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.ml.llm.ruby.completion" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+    <artifact name="intellij.fullLine.go.local" ext="jar" conf="default" url="plugins/fullLine/lib/modules"/>
+  </publications>
+  <dependencies>
+    <dependency org="bundledModule" name="intellij.platform.inline.completion" rev="IC-251.23774.435"/>
+  </dependencies>
+</ivy-module>

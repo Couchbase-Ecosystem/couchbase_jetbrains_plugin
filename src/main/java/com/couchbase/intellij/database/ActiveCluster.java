@@ -7,6 +7,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
+import com.couchbase.intellij.mcp.MCPServerManager;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
@@ -248,6 +249,17 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                         }
                     });
 
+                    // Notify MCP Server Manager about the new connection
+                    // Pass the password already retrieved above to avoid a second macOS Keychain prompt
+                    try {
+                        MCPServerManager mcpManager = MCPServerManager.getInstance();
+                        if (mcpManager != null) {
+                            mcpManager.handleConnectionEstablished(savedCluster, password);
+                        }
+                    } catch (Exception e) {
+                        Log.debug("Failed to notify MCP server manager about connection.", e);
+                    }
+
                     scheduleSchemaUpdate(e -> {
                         if (e == null) {
                             // notify all subscribers
@@ -279,6 +291,16 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     public void disconnect() {
+        // Stop MCP server when disconnecting
+        try {
+            MCPServerManager mcpManager = MCPServerManager.getInstance();
+            if (mcpManager != null) {
+                mcpManager.handleConnectionRemoved();
+            }
+        } catch (Exception e) {
+            Log.debug("Failed to notify MCP server manager about disconnection.", e);
+        }
+
         if (cluster != null) {
             try {
                 cluster.disconnect();

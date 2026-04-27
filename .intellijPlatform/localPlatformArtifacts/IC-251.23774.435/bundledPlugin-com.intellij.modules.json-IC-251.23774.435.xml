@@ -1,0 +1,14 @@
+<ivy-module version="2.0">
+  <info organisation="bundledPlugin" module="com.intellij.modules.json" revision="IC-251.23774.435"/>
+  <configurations>
+    <conf name="default" visibility="public"/>
+  </configurations>
+  <publications>
+    <artifact name="json" ext="jar" conf="default" url="plugins/json/lib"/>
+    <artifact name="intellij.json.split" ext="jar" conf="default" url="plugins/json/lib/modules"/>
+  </publications>
+  <dependencies>
+    <dependency org="bundledModule" name="intellij.json.split" rev="IC-251.23774.435"/>
+    <dependency org="bundledModule" name="intellij.json.split" rev="IC-251.23774.435"/>
+  </dependencies>
+</ivy-module>
