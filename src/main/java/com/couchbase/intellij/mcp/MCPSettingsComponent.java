@@ -52,22 +52,38 @@ public class MCPSettingsComponent {
 
     /**
      * Available tools that can be configured for confirmation or disabling.
+     * This list includes ALL tools from the Couchbase MCP server.
      */
     private static final String[] AVAILABLE_TOOLS = {
-            "execute_query",
+            // Query tools
+            "run_sql_plus_plus_query",
+            "explain_sql_plus_plus_query",
+            "get_index_advisor_recommendations",
+            // Document tools
             "get_document_by_id",
             "upsert_document_by_id",
             "insert_document_by_id",
             "replace_document_by_id",
             "delete_document_by_id",
-            "list_buckets",
-            "list_scopes",
-            "list_collections",
+            // Cluster tools
+            "get_buckets_in_cluster",
+            "get_scopes_in_bucket",
+            "get_collections_in_scope",
+            "get_scopes_and_collections_in_bucket",
+            "get_schema_for_collection",
+            "test_cluster_connection",
+            "get_cluster_health_and_services",
+            "get_server_configuration_status",
+            // Index tools
             "list_indexes",
-            "create_primary_index",
-            "create_index",
-            "drop_index",
-            "get_index_status"
+            // Query analysis tools
+            "get_longest_running_queries",
+            "get_most_frequent_queries",
+            "get_queries_with_large_result_count",
+            "get_queries_with_largest_response_sizes",
+            "get_queries_not_using_covering_index",
+            "get_queries_using_primary_index",
+            "get_queries_not_selective"
     };
 
     public MCPSettingsComponent() {
@@ -103,6 +119,7 @@ public class MCPSettingsComponent {
         // Load current settings
         reset();
     }
+
 
     private JPanel buildPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -300,6 +317,7 @@ public class MCPSettingsComponent {
             disabledToolsModel.addElement(tool);
         }
     }
+
 
     private String getExportsPath() {
         return exportsPathField.getText() != null ? exportsPathField.getText().trim() : "";
