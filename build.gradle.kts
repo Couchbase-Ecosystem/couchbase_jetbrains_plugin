@@ -104,6 +104,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
+            1.1.8.1 - compatibility with intellij 261.*
             1.1.8   - fixes issue connecting to Capella clusters via private link endpoint
             1.1.7   - fixes for SQL++ BETWEEN clause and comments grammar 
             1.1.6.3 - adds support for 2025.2
@@ -111,7 +112,7 @@ intellijPlatform {
         """.trimIndent()
         ideaVersion {
             sinceBuild = "251.23774.435"
-            untilBuild = "260.*"
+            untilBuild = "261.*"
         }
         vendor {
             name = "Couchbase"
