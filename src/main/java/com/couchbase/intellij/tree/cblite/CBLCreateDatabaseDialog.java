@@ -104,15 +104,13 @@ public class CBLCreateDatabaseDialog extends DialogWrapper {
         gbc.weightx = 0.6;
         databasePathField = new TextFieldWithBrowseButton();
         databasePathField.addBrowseFolderListener(
-                "Select the database location",
-                "Choose a folder",
                 project,
                 new FileChooserDescriptor(false, true, false, false, false, false) {
                     @Override
                     public boolean isFileSelectable(VirtualFile file) {
                         return true;
                     }
-                }
+                }.withTitle("Select the database location").withDescription("Choose a folder")
         );
 
         panel.add(databasePathField, gbc);

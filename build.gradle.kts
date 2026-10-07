@@ -113,7 +113,7 @@ intellijPlatform {
         """.trimIndent()
         ideaVersion {
             sinceBuild = "251.23774.435"
-            untilBuild = "262.*"
+            untilBuild = provider { null }
         }
         vendor {
             name = "Couchbase"
@@ -124,6 +124,7 @@ intellijPlatform {
     pluginVerification {
         ides{
             ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
+            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
         }
     }
 }

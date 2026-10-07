@@ -62,7 +62,7 @@ public class CardDialog extends DialogWrapper {
 
 
         directoryField = new TextFieldWithBrowseButton();
-        directoryField.addBrowseFolderListener("Select Directory", "Select the target directory", null, FileChooserDescriptorFactory.createSingleFolderDescriptor(), TextComponentAccessor.TEXT_FIELD_WHOLE_TEXT);
+        directoryField.addBrowseFolderListener(null, FileChooserDescriptorFactory.createSingleFolderDescriptor().withTitle("Select Directory").withDescription("Select the target directory"), TextComponentAccessor.TEXT_FIELD_WHOLE_TEXT);
 
 
         searchField = new JBTextField();
