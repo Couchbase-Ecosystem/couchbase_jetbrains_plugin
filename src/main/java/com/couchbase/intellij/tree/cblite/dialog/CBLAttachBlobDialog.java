@@ -126,7 +126,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
         panel.add(errorLabel, constraints);
 
 
-        fileField.addBrowseFolderListener("Select File", null, project,
+        fileField.addBrowseFolderListener(project,
                 new FileChooserDescriptor(true, false, false, false, false, false) {
                     @Override
                     public boolean isFileSelectable(VirtualFile file) {
@@ -137,7 +137,7 @@ public class CBLAttachBlobDialog extends DialogWrapper {
                         String[] extensions = Objects.requireNonNull(selectedFileType).getExtension().split("\\|");
                         return Arrays.asList(extensions).contains(file.getExtension());
                     }
-                });
+                }.withTitle("Select File"));
 
 
         return panel;

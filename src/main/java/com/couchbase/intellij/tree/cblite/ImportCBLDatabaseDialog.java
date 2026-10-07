@@ -81,8 +81,6 @@ public class ImportCBLDatabaseDialog extends DialogWrapper {
         gbc.weightx = 0.6;
         databasePathField = new TextFieldWithBrowseButton();
         databasePathField.addBrowseFolderListener(
-                "Select the database location",
-                "Choose a .cblite2 or .cblite3 folder",
                 project,
                 new FileChooserDescriptor(false, true, false, false, false, false) {
                     @Override
@@ -90,7 +88,7 @@ public class ImportCBLDatabaseDialog extends DialogWrapper {
                         String name = file.getName();
                         return name.endsWith(".cblite2") || name.endsWith(".cblite3");
                     }
-                }
+                }.withTitle("Select the database location").withDescription("Choose a .cblite2 or .cblite3 folder")
         );
 
         panel.add(databasePathField,  gbc);

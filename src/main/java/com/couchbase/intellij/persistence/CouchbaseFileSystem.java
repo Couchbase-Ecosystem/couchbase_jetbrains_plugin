@@ -62,6 +62,8 @@ public class CouchbaseFileSystem extends NewVirtualFileSystem {
         listeners.remove(listener);
     }
 
+    // Abstract in 2025.1 (sinceBuild), so it can't be removed yet. Newer platforms
+    // no longer call it, and once it's gone this is just an unused method.
     @Override
     public int getRank() {
         return 0;
