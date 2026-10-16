@@ -10,6 +10,10 @@ import java.util.Collection;
 import java.util.function.Consumer;
 
 public class FunctionsTest extends LightPlatformCodeInsightFixture4TestCase {
+
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
     private void assertCompletes(String text) {
         assertCompletes(text, "tostr");
     }

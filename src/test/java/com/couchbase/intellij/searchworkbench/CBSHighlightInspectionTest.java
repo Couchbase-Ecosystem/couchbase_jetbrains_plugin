@@ -12,6 +12,10 @@ import java.util.stream.Collectors;
 //TODO: highlight with vector sear only? -- Need to test
 public class CBSHighlightInspectionTest extends CodeInsightFixtureTestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();

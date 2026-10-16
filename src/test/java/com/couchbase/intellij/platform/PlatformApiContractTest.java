@@ -18,6 +18,10 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase;
  */
 public class PlatformApiContractTest extends BasePlatformTestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     public void testSimpleDataContextCarriesSelectedItemAndProject() {
         Project project = getProject();
         Object selected = new Object();

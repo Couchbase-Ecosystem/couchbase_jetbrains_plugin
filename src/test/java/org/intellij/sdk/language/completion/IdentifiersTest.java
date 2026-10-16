@@ -18,6 +18,10 @@ import java.util.function.Consumer;
 
 public class IdentifiersTest extends LightPlatformCodeInsightFixture4TestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     private void assertCompletes(String text, String complete) {
         assertCompletes(null, text, complete);
     }

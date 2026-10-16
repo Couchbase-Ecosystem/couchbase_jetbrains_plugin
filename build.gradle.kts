@@ -10,10 +10,10 @@ plugins {
 group = "com.couchbase"
 version = "1.1.11"
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -81,7 +81,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 
     intellijPlatform {
-        intellijIdeaCommunity("2025.1")
+        intellijIdeaCommunity("2025.2")
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.completion.full.line")
         bundledPlugin("com.intellij.modules.json")
@@ -109,7 +109,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
-            1.1.11  - dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with intellij up to 272.*
+            1.1.11  - dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with IntelliJ 2025.2 (252) up to 2027.3 (273.*); dropped support for 2025.1
             1.1.10  - compatibility with intellij 262.*
             1.1.9   - compatibility with intellij 261.*
             1.1.8   - fixes issue connecting to Capella clusters via private link endpoint
@@ -118,8 +118,8 @@ intellijPlatform {
             1.1.6.2 — adds support for 2025.1
         """.trimIndent()
         ideaVersion {
-            sinceBuild = "251.23774.435"
-            untilBuild = "272.*"
+            sinceBuild = "252"
+            untilBuild = "273.*"
         }
         vendor {
             name = "Couchbase"
@@ -129,7 +129,7 @@ intellijPlatform {
     }
     pluginVerification {
         ides{
-            create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
             create(IntelliJPlatformType.IntellijIdea, "2026.2")
         }
     }
@@ -146,4 +146,3 @@ tasks.wrapper {
 //    plugins.add("json")
 //    plugins.add("intellij.json.backend")
 //}
-

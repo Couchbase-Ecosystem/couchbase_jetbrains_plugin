@@ -24,6 +24,10 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public abstract class AbstractIQTest extends BasePlatformTestCase {
+
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
     protected static final String IQ_URL = System.getenv("CAPELLA_DOMAIN") + "/v2/organizations/%s/integrations/iq/";
     private static final ChatGptHandler handler = new ChatGptHandler();
     protected static ConversationContext ctx;
