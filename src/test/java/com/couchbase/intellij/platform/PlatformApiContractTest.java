@@ -1,6 +1,8 @@
 package com.couchbase.intellij.platform;
 
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -38,5 +40,22 @@ public class PlatformApiContractTest extends BasePlatformTestCase {
 
         assertSame(selected, event.getData(PlatformDataKeys.SELECTED_ITEM));
         assertSame(ctx, event.getDataContext());
+    }
+
+    public void testPerformActionDumbAwareRunsActionWithTheEventsData() {
+        Object selected = new Object();
+        DataContext ctx = SimpleDataContext.builder().add(PlatformDataKeys.SELECTED_ITEM, selected).build();
+        AnActionEvent event = AnActionEvent.createEvent(ctx, new Presentation(), "ChatGPT", ActionUiKind.NONE, null);
+        Object[] seen = new Object[1];
+        AnAction action = new AnAction() {
+            @Override
+            public void actionPerformed(AnActionEvent e) {
+                seen[0] = e.getData(PlatformDataKeys.SELECTED_ITEM);
+            }
+        };
+
+        ActionUtil.performActionDumbAwareWithCallbacks(action, event);
+
+        assertSame(selected, seen[0]);
     }
 }

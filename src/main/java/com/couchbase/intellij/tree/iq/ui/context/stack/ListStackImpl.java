@@ -309,7 +309,7 @@ public class ListStackImpl extends WizardStack implements ListStack {
                 // https://plugins.jetbrains.com/docs/intellij/basic-action-system.html#executing-actions-programmatically
                 AnActionEvent event = AnActionEvent.createEvent(dataContext,
                         openAction.getTemplatePresentation().clone(), ActionPlaces.UNKNOWN, ActionUiKind.NONE, e);
-                ActionUtil.invokeAction(openAction, event, null);
+                ActionUtil.performActionDumbAwareWithCallbacks(openAction, event);
             }
         }
     }
