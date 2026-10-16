@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
@@ -806,7 +805,7 @@ public class TreeRightClickListener {
                             }
 
                             ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
-                                         .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
+                                         .dropCollection(col.getScope(), col.getText());
                             // Refresh collections
                             DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
                             TreePath treePath = new TreePath(colsTreeNode.getPath());

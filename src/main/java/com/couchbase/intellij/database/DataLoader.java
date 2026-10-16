@@ -534,7 +534,7 @@ public class DataLoader {
             if (!ldap) {
                 options = ClusterOptions.clusterOptions(username, password);
             } else {
-                PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(username).password(password).onlyEnablePlainSaslMechanism().build();
+                PasswordAuthenticator authenticator = PasswordAuthenticator.ldapCompatible(username, password);
 
                 options = ClusterOptions.clusterOptions(authenticator);
             }

@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionManager;
 import com.couchbase.client.java.manager.collection.CollectionSpec;
+import com.couchbase.client.java.manager.collection.CreateCollectionSettings;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
@@ -114,10 +115,10 @@ public class NewCollectionDialog extends DialogWrapper {
 
         Double ttl = Double.parseDouble(maxTTL.getValue().toString());
         if (ttl.longValue() <= 0) {
-            colManager.createCollection(CollectionSpec.create(collectionName, scopeName));
+            colManager.createCollection(scopeName, collectionName);
         } else {
-            colManager.createCollection(
-                    CollectionSpec.create(collectionName, scopeName, Duration.ofSeconds(ttl.longValue())));
+            colManager.createCollection(scopeName, collectionName, CreateCollectionSettings.createCollectionSettings()
+                    .maxExpiry(Duration.ofSeconds(ttl.longValue())));
         }
 
         Object userObject = clickedNode.getUserObject();

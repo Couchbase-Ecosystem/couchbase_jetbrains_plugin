@@ -4,6 +4,7 @@ import com.intellij.ide.IdeEventQueue;
 import com.intellij.ide.ui.UISettings;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
@@ -29,7 +30,6 @@ import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.*;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Objects;
 
 import static java.awt.event.InputEvent.CTRL_MASK;
@@ -301,10 +301,15 @@ public class ListStackImpl extends WizardStack implements ListStack {
             Object selectedValue = myList.getSelectedValue();
             AnAction openAction = ActionManager.getInstance().getAction("didalgo.chatgpt.OpenInEditorAction");
             if (openAction != null && selectedValue != null) {
-                var dataContext = Map.of(PlatformDataKeys.SELECTED_ITEM.getName(), selectedValue, CommonDataKeys.PROJECT.getName(), getProject());
+                DataContext dataContext = SimpleDataContext.builder()
+                        .add(PlatformDataKeys.SELECTED_ITEM, selectedValue)
+                        .add(CommonDataKeys.PROJECT, getProject())
+                        .build();
                 // replaces direct action call with documented by JB method to comply with plugin checker
                 // https://plugins.jetbrains.com/docs/intellij/basic-action-system.html#executing-actions-programmatically
-                ActionUtil.invokeAction(openAction, dataContext::get, null, null, null);
+                AnActionEvent event = AnActionEvent.createEvent(dataContext,
+                        openAction.getTemplatePresentation().clone(), ActionPlaces.UNKNOWN, ActionUiKind.NONE, e);
+                ActionUtil.invokeAction(openAction, event, null);
             }
         }
     }

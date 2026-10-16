@@ -152,9 +152,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                     if (!savedCluster.getLDAP()) {
                         options = ClusterOptions.clusterOptions(savedCluster.getUsername(), password);
                     } else {
-                        PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(savedCluster.getUsername())
-                                .password(password)
-                                .onlyEnablePlainSaslMechanism().build();
+                        PasswordAuthenticator authenticator = PasswordAuthenticator.ldapCompatible(savedCluster.getUsername(), password);
 
                         options = ClusterOptions.clusterOptions(authenticator);
                     }

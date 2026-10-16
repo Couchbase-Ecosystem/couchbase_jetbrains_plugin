@@ -1037,7 +1037,7 @@ public class ImportDialog extends DialogWrapper {
                         String collectionName = entityCreationDialog.getEntityName();
                         ActiveCluster.getInstance().get()
                                 .bucket(targetBucketCombo.getSelectedItem().toString()).collections()
-                                .createCollection(CollectionSpec.create(collectionName, selectedScope));
+                                .createCollection(selectedScope, collectionName);
 
                         targetCollectionCombo.addItem(collectionName);
                         targetCollectionCombo.setSelectedItem(collectionName);

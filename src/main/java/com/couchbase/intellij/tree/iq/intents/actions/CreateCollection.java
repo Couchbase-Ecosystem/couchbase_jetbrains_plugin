@@ -9,7 +9,6 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.manager.bucket.BucketSettings;
 import com.couchbase.client.java.manager.collection.CollectionManager;
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tree.iq.IQWindowContent;
@@ -58,7 +57,7 @@ public class CreateCollection implements ActionInterface {
                 }
 
                 try {
-                    colman.createCollection(CollectionSpec.create(collectionName, scopeName));
+                    colman.createCollection(scopeName, collectionName);
                 } catch (Exception e) {
                     return "Tell the user that there was a problem and collection creation failed with message '" + e.getMessage() + "'";
                 }
