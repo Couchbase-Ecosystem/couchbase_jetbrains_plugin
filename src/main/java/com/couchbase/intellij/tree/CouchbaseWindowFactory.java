@@ -2,9 +2,7 @@ package com.couchbase.intellij.tree;
 
 
 import com.couchbase.intellij.tree.cblite.CBLWindowContent;
-import com.couchbase.intellij.tree.iq.IQWindowContent;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -20,7 +18,6 @@ import java.util.WeakHashMap;
 public class CouchbaseWindowFactory implements ToolWindowFactory {
 
     public static final String CLUSTER_CONTENT = "cluster";
-    public static final String IQ_CONTENT = "iq";
     private static final Map<Project, Map<String, Content>> CONTENTS_BY_PROJECT = new WeakHashMap<>();
 
     private Content cbLite;
@@ -45,13 +42,6 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
             e.printStackTrace();
             Log.error("Failed to start the CBLite Plugin", e);
         }
-        
-
-        IQWindowContent iqWindowContent = new IQWindowContent(project);
-        Content iq = contentFactory.createContent(iqWindowContent, "iQ ᴮᵉᵗᵃ", false);
-        iq.setIcon(AllIcons.General.Tip);
-        toolWindow.getContentManager().addContent(iq);
-        setContent(project, IQ_CONTENT, iq);
     }
 
     protected void setContent(Project project, String key, Content content) {

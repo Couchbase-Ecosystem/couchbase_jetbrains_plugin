@@ -51,31 +51,12 @@ dependencies {
     implementation("software.amazon.awssdk:auth:2.56.0")
     implementation("org.mongodb:mongodb-driver-sync:5.13.0")
 
-    implementation("com.google.code.gson:gson:2.14.0")
-
     implementation("com.opencsv:opencsv:5.12.0") // OpenCSV
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
-    implementation("com.obiscr:openai-auth:1.0.1")
-
 
     testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.14.4")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.14.4")
-
-    implementation("com.didalgo:gpt3-tokenizer:0.1.7")
-    implementation("com.fifesoft:rsyntaxtextarea:3.6.3")
-    implementation("com.google.code.gson:gson:2.14.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
-    implementation("com.squareup.retrofit2:converter-jackson:2.12.0")
-    implementation("com.theokanning.openai-gpt3-java:service:0.14.0")
-    implementation("com.vladsch.flexmark:flexmark:0.64.8")
-    implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
-
-    implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
 
     testImplementation("org.testcontainers:couchbase:1.21.4")
     testImplementation("junit:junit:4.13.2")
@@ -83,9 +64,7 @@ dependencies {
     intellijPlatform {
         intellijIdeaCommunity("2025.2")
         bundledPlugin("com.intellij.java")
-        bundledPlugin("org.jetbrains.completion.full.line")
         bundledPlugin("com.intellij.modules.json")
-        bundledPlugin("org.jetbrains.plugins.terminal")
         testFramework(TestFrameworkType.Platform)
     }
 }
@@ -109,7 +88,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
-            1.1.11  - dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with IntelliJ 2025.2 (252) up to 2027.3 (273.*); dropped support for 2025.1
+            1.1.11  - removes the Capella iQ chat tab and its Capella login; dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with IntelliJ 2025.2 (252) up to 2027.3 (273.*); dropped support for 2025.1
             1.1.10  - compatibility with intellij 262.*
             1.1.9   - compatibility with intellij 261.*
             1.1.8   - fixes issue connecting to Capella clusters via private link endpoint

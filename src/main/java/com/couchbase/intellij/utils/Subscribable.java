@@ -1,7 +1,5 @@
 package com.couchbase.intellij.utils;
 
-import cn.hutool.core.stream.StreamUtil;
-
 import java.lang.ref.WeakReference;
 import java.time.Duration;
 import java.util.*;

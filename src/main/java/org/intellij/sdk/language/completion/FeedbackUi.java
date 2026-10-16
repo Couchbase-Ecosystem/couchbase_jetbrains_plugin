@@ -1,7 +1,6 @@
 package org.intellij.sdk.language.completion;
 
 import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.intellij.tree.iq.ui.MessageComponent;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
@@ -19,6 +18,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class FeedbackUi extends DialogWrapper {
+    private static final String FEEDBACK_ENDPOINT = "https://nms548yy5b.execute-api.us-west-1.amazonaws.com/Prod/";
+    private static final String SECRET = "c0uchbase_is_aw3some";
+
     private Project project;
     private JPanel ratings;
     private JTextArea reasoning;
@@ -37,8 +39,8 @@ public class FeedbackUi extends DialogWrapper {
             body.put("reason", reason);
 
             try {
-                HttpRequest request = HttpRequest.newBuilder(new URI(MessageComponent.FEEDBACK_ENDPOINT))
-                        .header("X-Secret", MessageComponent.SECRET)
+                HttpRequest request = HttpRequest.newBuilder(new URI(FEEDBACK_ENDPOINT))
+                        .header("X-Secret", SECRET)
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body.toBytes()))
                         .build();
 

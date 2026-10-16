@@ -1,7 +1,6 @@
 package com.couchbase.intellij.persistence;
 
 import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.tree.iq.ui.MessageGroupComponent;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.json.JsonFileType;
