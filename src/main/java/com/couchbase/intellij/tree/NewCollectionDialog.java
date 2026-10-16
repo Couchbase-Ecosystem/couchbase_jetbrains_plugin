@@ -5,6 +5,7 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.CreateCollectionSettings;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.database.collections.CollectionListing;
 import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
 import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
 import com.intellij.openapi.project.Project;
@@ -129,16 +130,23 @@ public class NewCollectionDialog extends DialogWrapper {
                 Object childUserObject = childNode.getUserObject();
 
                 if (childUserObject instanceof CollectionsNodeDescriptor) {
-                    DataLoader.listCollections(childNode, tree);
+                    reloadShowing(childNode, collectionName);
                     break;
                 }
             }
 
 
         } else {
-            DataLoader.listCollections(clickedNode, tree);
+            reloadShowing(clickedNode, collectionName);
         }
         super.doOKAction();
+    }
+
+    /** Reloads the list, making sure the new collection is visible even if it falls beyond the loaded pages. */
+    private void reloadShowing(DefaultMutableTreeNode collectionsNode, String collectionName) {
+        CollectionsNodeDescriptor desc = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
+        desc.addSearchAdded(collectionName);
+        DataLoader.listCollections(collectionsNode, tree, Math.max(desc.getPagedLoaded(), CollectionListing.PAGE_SIZE));
     }
 
 }

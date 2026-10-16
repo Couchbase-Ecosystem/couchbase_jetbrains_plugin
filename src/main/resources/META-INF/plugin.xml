@@ -54,6 +54,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.ClustersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
+        <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteQueryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryHistoryStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.RelationshipStorage"/>

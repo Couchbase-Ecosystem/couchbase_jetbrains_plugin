@@ -1,7 +1,10 @@
 package com.couchbase.intellij.tree.node;
 
 import com.couchbase.intellij.persistence.QueryFilter;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.util.IconLoader;
+
+import javax.swing.*;
 
 public class CollectionNodeDescriptor extends CounterNodeDescriptor {
 
@@ -10,6 +13,8 @@ public class CollectionNodeDescriptor extends CounterNodeDescriptor {
     private String scope;
 
     private QueryFilter queryFilter;
+    private final Icon normalIcon;
+    private boolean favorite;
 
     public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope, QueryFilter queryFilter) {
         super(name, IconLoader.getIcon("/assets/icons/collection.svg", ScopeNodeDescriptor.class));
@@ -17,6 +22,16 @@ public class CollectionNodeDescriptor extends CounterNodeDescriptor {
         this.bucket = bucket;
         this.scope = scope;
         this.queryFilter = queryFilter;
+        this.normalIcon = getIcon();
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
+        setIcon(favorite ? AllIcons.Nodes.Favorite : normalIcon);
     }
 
     public String getConnectionId() {

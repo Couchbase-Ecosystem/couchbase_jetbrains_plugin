@@ -16,12 +16,16 @@ import com.couchbase.client.java.manager.query.QueryIndex;
 import com.couchbase.client.java.manager.search.SearchIndex;
 import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.VirtualFileKeys;
+import com.couchbase.intellij.database.collections.CollectionListing;
+import com.couchbase.intellij.database.collections.CollectionSources;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
+import com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage;
 import com.couchbase.intellij.persistence.storage.PasswordStorage;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
+import com.couchbase.intellij.tree.CollectionTreePopulator;
 import com.couchbase.intellij.tree.RelationshipSettingsManager;
 import com.couchbase.intellij.tree.docfilter.QueryFilterUtil;
 import com.couchbase.intellij.tree.node.*;
@@ -159,34 +163,30 @@ public class DataLoader {
     }
 
     public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree) {
+        listCollections(parentNode, tree, CollectionListing.PAGE_SIZE);
+    }
+
+    /**
+     * Lists the collections of the scope, {@code pagedToLoad} alphabetical entries at a time (favorites and
+     * collections pulled in by search are shown on top of those).
+     */
+    public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree, int pagedToLoad) {
         Object userObject = parentNode.getUserObject();
         if (userObject instanceof CollectionsNodeDescriptor) {
             CompletableFuture.runAsync(() -> {
                 tree.setPaintBusy(true);
                 try {
-                    parentNode.removeAllChildren();
                     CollectionsNodeDescriptor colsDesc = (CollectionsNodeDescriptor) userObject;
                     Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(colsDesc.getBucket(), colsDesc.getScope());
+                    String connectionId = ActiveCluster.getInstance().getId();
 
-                    List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(colsDesc.getBucket()).collections()
-                            .getAllScopes().stream().filter(scope -> scope.name().equals(colsDesc.getScope())).flatMap(scope -> scope.collections().stream()).toList();
+                    CollectionListing listing = CollectionTreePopulator.populate(parentNode, colsDesc,
+                            CollectionSources.forScope(colsDesc.getBucket(), colsDesc.getScope()),
+                            FavoriteCollectionsStorage.getInstance().getValue(), connectionId, pagedToLoad, counts,
+                            name -> QueryFilterUtil.getQueryFilter(colsDesc.getBucket(), colsDesc.getScope(), name));
 
-                    ((ScopeNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject()).setCounter(formatCount(collections.size()));
+                    ((ScopeNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject()).setCounter(formatCount(listing.getTotal()));
 
-                    if (!collections.isEmpty()) {
-                        for (CollectionSpec spec : collections) {
-
-                            QueryFilter filter = QueryFilterUtil.getQueryFilter(colsDesc.getBucket(), colsDesc.getScope(), spec.name());
-                            CollectionNodeDescriptor colNodeDesc = new CollectionNodeDescriptor(spec.name(),
-                                    ActiveCluster.getInstance().getId(), colsDesc.getBucket(), colsDesc.getScope(), filter);
-                            colNodeDesc.setCounter(formatCount(counts.get(colsDesc.getBucket() + "." + colsDesc.getScope() + "." + spec.name())));
-                            DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(colNodeDesc);
-                            childNode.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
-                            parentNode.add(childNode);
-                        }
-                    } else {
-                        parentNode.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
-                    }
                     ApplicationManager.getApplication().invokeLater(() -> {
                         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
                     });

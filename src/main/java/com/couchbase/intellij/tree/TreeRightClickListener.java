@@ -5,6 +5,10 @@ import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.database.collections.CollectionListing;
+import com.couchbase.intellij.database.collections.CollectionSources;
+import com.couchbase.intellij.persistence.FavoriteCollections;
+import com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage;
 import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
@@ -465,6 +469,17 @@ public class TreeRightClickListener {
         String bucketName = cols.getBucket();
         String scopeName = cols.getScope();
 
+        AnAction searchCollection = new AnAction("Search Collection...") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new CollectionSearchDialog(project, CollectionSources.forScope(bucketName, scopeName), name -> {
+                    cols.addSearchAdded(name);
+                    DataLoader.listCollections(clickedNode, tree, Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
+                }).show();
+            }
+        };
+        actionGroup.add(searchCollection);
+
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
             // Add "Add New Collection" option
             AnAction addNewCollectionItem = new AnAction("Add New Collection") {
@@ -735,6 +750,20 @@ public class TreeRightClickListener {
             actionGroup.add(createDocument);
         }
 
+        actionGroup.addSeparator();
+        String connectionId = ActiveCluster.getInstance().getId();
+        FavoriteCollections favorites = FavoriteCollectionsStorage.getInstance().getValue();
+        boolean isFavorite = favorites.isFavorite(connectionId, col.getBucket(), col.getScope(), col.getText());
+        AnAction toggleFavorite = new AnAction(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                favorites.setFavorite(connectionId, col.getBucket(), col.getScope(), col.getText(), !isFavorite);
+                DefaultMutableTreeNode collectionsNode = (DefaultMutableTreeNode) clickedNode.getParent();
+                CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
+                DataLoader.listCollections(collectionsNode, tree, Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
+            }
+        };
+        actionGroup.add(toggleFavorite);
         actionGroup.addSeparator();
         String filter = "Add Document Filter";
         boolean hasDeleteFilter = false;
