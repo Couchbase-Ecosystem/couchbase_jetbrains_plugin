@@ -14,6 +14,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
@@ -134,12 +135,8 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
 
             ActiveCluster activeCluster = optionalActiveCluster.get();
             AtomicReference<String> contextLabel = new AtomicReference<>(NO_QUERY_CONTEXT_SELECTED);
-            DefaultActionGroup contextAction = new DefaultActionGroup(contextLabel::get, true) {
-                @Override
-                public boolean displayTextInToolbar() {
-                    return true;
-                }
-            };
+            DefaultActionGroup contextAction = new DefaultActionGroup(contextLabel::get, true);
+            contextAction.getTemplatePresentation().putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true);
 
             AnAction clearContextAction = new AnAction("Clear context") {
                 @Override
@@ -223,19 +220,16 @@ public class MessageGroupComponent extends JBPanel<MessageGroupComponent> implem
         orgPanel.add(new JLabel("Organization:"), BorderLayout.NORTH);
         orgPanel.add(orgSelector, BorderLayout.CENTER);
         DefaultActionGroup toolbarActions = new DefaultActionGroup();
-        toolbarActions.add(new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
+        AnAction logoutAction = new AnAction(() -> "Logout", AllIcons.Actions.Exit) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().invokeLater(() -> {
                     logoutListener.onLogout(null);
                 });
             }
-
-            @Override
-            public boolean displayTextInToolbar() {
-                return true;
-            }
-        });
+        };
+        logoutAction.getTemplatePresentation().putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true);
+        toolbarActions.add(logoutAction);
 
         ActionToolbarImpl actonPanel = new ActionToolbarImpl("System Role Toolbar", toolbarActions, true);
         actonPanel.setTargetComponent(this);

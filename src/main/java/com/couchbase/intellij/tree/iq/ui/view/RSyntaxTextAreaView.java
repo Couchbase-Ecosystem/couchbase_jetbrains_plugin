@@ -12,6 +12,7 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.actionSystem.impl.ActionButton;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -192,7 +193,7 @@ public class RSyntaxTextAreaView extends ComponentView {
 
         Presentation presentation = new Presentation();
         presentation.setIcon(AllIcons.Actions.More);
-        presentation.putClientProperty(ActionButton.HIDE_DROPDOWN_ICON, Boolean.TRUE);
+        presentation.putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, Boolean.TRUE);
         ActionButton myCorner = new ActionButton(actionGroup, presentation, ActionPlaces.UNKNOWN, new Dimension(20, 20)) {
             @Override
             protected DataContext getDataContext() {
@@ -246,7 +247,7 @@ public class RSyntaxTextAreaView extends ComponentView {
         protected ActionButton createActionButton(AnAction action) {
             Presentation presentation = new Presentation();
             presentation.setIcon(AllIcons.Actions.More);
-            presentation.putClientProperty(ActionButton.HIDE_DROPDOWN_ICON, Boolean.TRUE);
+            presentation.putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, Boolean.TRUE);
             ActionButton actionButton = new ActionButton(action, action.getTemplatePresentation().clone(), ActionPlaces.UNKNOWN, new Dimension(20, 20)) {
                 @Override
                 protected DataContext getDataContext() {

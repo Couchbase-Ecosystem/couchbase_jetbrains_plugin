@@ -813,7 +813,7 @@ public class ImportDialog extends DialogWrapper {
 
     protected void addListeners() {
         // Page 1: Dataset
-        datasetField.addBrowseFolderListener("Select the Dataset", "", null,
+        datasetField.addBrowseFolderListener(null,
                 new FileChooserDescriptor(true, false, false, false, false, false) {
                     @Override
                     public boolean isFileVisible(VirtualFile file, boolean showHiddenFiles) {
@@ -824,7 +824,7 @@ public class ImportDialog extends DialogWrapper {
                         }
                         return true;
                     }
-                });
+                }.withTitle("Select the Dataset"));
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {

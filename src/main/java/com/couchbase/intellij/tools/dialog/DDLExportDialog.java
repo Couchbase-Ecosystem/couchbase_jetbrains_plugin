@@ -137,7 +137,7 @@ public class DDLExportDialog extends DialogWrapper {
         c.gridx = 1;
         fileDestination = new TextFieldWithBrowseButton();
         fileDestination.setText(System.getProperty("user.home"));
-        fileDestination.addBrowseFolderListener("Select File Destination", "", null, FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor());
+        fileDestination.addBrowseFolderListener(null, FileChooserDescriptorFactory.createSingleFileOrFolderDescriptor().withTitle("Select File Destination"));
         formPanel.add(fileDestination, c);
 
         panel.add(formPanel, BorderLayout.CENTER);
