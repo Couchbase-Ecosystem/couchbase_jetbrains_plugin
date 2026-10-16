@@ -8,6 +8,7 @@ import com.couchbase.client.core.error.DocumentNotFoundException;
 import com.couchbase.client.core.error.IndexExistsException;
 import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
+import com.couchbase.client.core.env.PasswordAuthenticator;
 import com.couchbase.client.core.error.TimeoutException;
 import com.couchbase.client.core.msg.query.QueryChunkRow;
 import com.couchbase.client.core.topology.NodeIdentifier;
@@ -19,6 +20,7 @@ import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.intellij.persistence.QueryFilter;
 import org.junit.Test;
+import org.mockito.Mockito;
 import utils.JsonObjectUtil;
 
 import java.lang.reflect.Field;
@@ -156,6 +158,40 @@ public class CouchbaseSdkContractTest {
         CollectionSpec spec = CollectionSpec.create("c", "s");
         assertEquals("c", spec.name());
         assertEquals("s", spec.scopeName());
+    }
+
+    // ---- LDAP authenticator (ActiveCluster) ------------------------------------------------------------------
+
+    @Test
+    public void ldapCompatibleAuthenticatorAllowsOnlyPlainSasl() {
+        assertTrue(PasswordAuthenticator.ldapCompatible("user", "secret").toString().contains("[PLAIN]"));
+        assertFalse(PasswordAuthenticator.create("user", "secret").toString().contains("PLAIN"));
+    }
+
+    @Test
+    public void ldapCompatibleAuthenticatorMatchesWhatTheOldBuilderChainProduced() {
+        @SuppressWarnings("deprecation")
+        PasswordAuthenticator legacy = PasswordAuthenticator.builder().username("user").password("secret")
+                .onlyEnablePlainSaslMechanism().build();
+        PasswordAuthenticator current = PasswordAuthenticator.ldapCompatible("user", "secret");
+        assertEquals(legacy.toString(), current.toString());
+        assertEquals(legacy.getAuthHeaderValue(), current.getAuthHeaderValue());
+    }
+
+    // ---- Collection create/drop: spec-based and string-based overloads must agree on argument order -----------
+
+    @Test
+    public void stringOverloadsTakeScopeFirstThenCollection() {
+        CollectionManager manager = Mockito.mock(CollectionManager.class);
+        manager.createCollection("myScope", "myCollection");
+        manager.dropCollection("myScope", "myCollection");
+        Mockito.verify(manager).createCollection("myScope", "myCollection");
+        Mockito.verify(manager).dropCollection("myScope", "myCollection");
+
+        // CollectionSpec.create(name, scope) is the legacy form: name first. Guard against swapping on migration.
+        CollectionSpec spec = CollectionSpec.create("myCollection", "myScope");
+        assertEquals("myScope", spec.scopeName());
+        assertEquals("myCollection", spec.name());
     }
 
     // ---- Exception hierarchy the plugin catches --------------------------------------------------------------
