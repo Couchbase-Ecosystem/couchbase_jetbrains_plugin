@@ -10,7 +10,7 @@ import com.couchbase.client.core.error.IndexFailureException;
 import com.couchbase.client.core.error.PlanningFailureException;
 import com.couchbase.client.core.error.TimeoutException;
 import com.couchbase.client.core.msg.query.QueryChunkRow;
-import com.couchbase.client.core.node.NodeIdentifier;
+import com.couchbase.client.core.topology.NodeIdentifier;
 import com.couchbase.client.java.codec.JacksonJsonSerializer;
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
