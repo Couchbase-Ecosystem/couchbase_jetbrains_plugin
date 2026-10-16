@@ -4,14 +4,17 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("java")
-    id("org.jetbrains.intellij.platform") version "2.7.1"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
 group = "com.couchbase"
-version = "1.1.10"
+version = "1.1.11"
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 sourceSets["main"].java.srcDirs("src/main/gen")
@@ -20,7 +23,10 @@ repositories {
     mavenLocal()
     mavenCentral()
     gradlePluginPortal()
-    maven { url = uri("https://mobile.maven.couchbase.com/maven2/dev/") }
+    maven {
+        url = uri("https://mobile.maven.couchbase.com/maven2/dev/")
+        content { includeGroupByRegex("com\\.couchbase.*") }
+    }
     intellijPlatform {
         defaultRepositories()
     }
@@ -32,46 +38,46 @@ configurations.configureEach {
 }
 
 dependencies {
-    implementation("org.projectlombok:lombok:1.18.28")
+    implementation("org.projectlombok:lombok:1.18.48")
     implementation(files("lib/couchbase-lite-java-ee-3.1.3-7-release.jar"))
-    annotationProcessor("org.projectlombok:lombok:1.18.30")
-    compileOnly("org.projectlombok:lombok:1.18.30")
+    annotationProcessor("org.projectlombok:lombok:1.18.48")
+    compileOnly("org.projectlombok:lombok:1.18.48")
     implementation("com.couchbase.client:java-client:3.13.0")
-    implementation("org.slf4j:slf4j-simple:2.0.7")
-    implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("org.slf4j:slf4j-simple:2.0.20")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
+    implementation("com.google.code.gson:gson:2.14.0")
 
-    implementation("software.amazon.awssdk:dynamodb:2.25.60")
-    implementation("software.amazon.awssdk:auth:2.25.60")
-    implementation("org.mongodb:mongodb-driver-sync:4.11.1")
+    implementation("software.amazon.awssdk:dynamodb:2.56.0")
+    implementation("software.amazon.awssdk:auth:2.56.0")
+    implementation("org.mongodb:mongodb-driver-sync:5.13.0")
 
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.code.gson:gson:2.14.0")
 
-    implementation("com.opencsv:opencsv:5.5.2") // OpenCSV
-    implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.10.0")
+    implementation("com.opencsv:opencsv:5.12.0") // OpenCSV
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
     implementation("com.obiscr:openai-auth:1.0.1")
 
 
     testImplementation("org.mockito:mockito-core:5.24.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.10.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.14.4")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.14.4")
 
     implementation("com.didalgo:gpt3-tokenizer:0.1.7")
-    implementation("com.fifesoft:rsyntaxtextarea:3.3.3")
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.11.0")
-    implementation("com.squareup.retrofit2:converter-jackson:2.9.0")
+    implementation("com.fifesoft:rsyntaxtextarea:3.6.3")
+    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
+    implementation("com.squareup.retrofit2:converter-jackson:2.12.0")
     implementation("com.theokanning.openai-gpt3-java:service:0.14.0")
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
 
     implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
 
-    testImplementation("org.testcontainers:couchbase:1.19.7")
+    testImplementation("org.testcontainers:couchbase:1.21.4")
     testImplementation("junit:junit:4.13.2")
 
     intellijPlatform {
@@ -103,6 +109,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
+            1.1.11  - dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with intellij up to 272.*
             1.1.10  - compatibility with intellij 262.*
             1.1.9   - compatibility with intellij 261.*
             1.1.8   - fixes issue connecting to Capella clusters via private link endpoint
@@ -112,7 +119,7 @@ intellijPlatform {
         """.trimIndent()
         ideaVersion {
             sinceBuild = "251.23774.435"
-            untilBuild = provider { null }
+            untilBuild = "272.*"
         }
         vendor {
             name = "Couchbase"
@@ -122,14 +129,14 @@ intellijPlatform {
     }
     pluginVerification {
         ides{
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
+            create(IntelliJPlatformType.IntellijIdea, "2026.2")
         }
     }
 }
 
 tasks.wrapper {
-    gradleVersion = "8.14.3"
+    gradleVersion = "9.8.1"
 }
 //intellij {
 //    version.set("2025.1")
