@@ -71,8 +71,10 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
     private JPanel topPanel;
 
     private boolean isExecutingQuery = false;
+    private boolean disposed;
     private AnAction executeAction;
     private AnAction cancelAction;
+    private ActionToolbar executeToolbar;
 
     private BlockingQueue<Boolean> queryExecutionChannel;
     private BlockingQueue<Boolean> scriptExecutionChannel;
@@ -132,6 +134,54 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     }
 
+    private void startQueryExecution(DefaultActionGroup group, QueryExecutor.QueryType type, List<String> statements) {
+        if (isExecutingQuery || statements.isEmpty()) return;
+        QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
+        int historyIndex = type == NORMAL ? currentHistoryIndex : -1;
+        BlockingQueue<Boolean> cancellation = new LinkedBlockingQueue<>(1);
+        queryExecutionChannel = cancellation;
+        scriptExecutionChannel = cancellation;
+        QueryResultUtil.getOutputWindow(project);
+        isExecutingQuery = true;
+        cancelAction = new AnAction("Cancel", "Cancel query execution",
+                IconLoader.getIcon("/assets/icons/cancel.svg", CustomSqlFileEditor.class)) {
+            private boolean requested;
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent event) {
+                requested = true;
+                cancellation.offer(true);
+                event.getPresentation().setEnabled(false);
+            }
+            @Override public void update(@NotNull AnActionEvent event) {
+                event.getPresentation().setEnabled(!requested);
+            }
+            @Override public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
+        };
+        group.replaceAction(executeAction, cancelAction);
+        executeToolbar.updateActionsImmediately();
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    if (statements.size() == 1) {
+                        QueryExecutor.executeQuery(cancellation, type, context, statements.getFirst(), historyIndex, project);
+                    } else {
+                        QueryExecutor.executeScript(cancellation, type, context, statements, historyIndex, project);
+                    }
+                } finally {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        if (project.isDisposed() || disposed) return;
+                        currentHistoryIndex = QueryHistoryStorage.getInstance().getValue().getHistory().size() - 1;
+                        historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + (currentHistoryIndex + 1) + ")");
+                        group.replaceAction(cancelAction, executeAction);
+                        executeToolbar.updateActionsImmediately();
+                        isExecutingQuery = false;
+                    });
+                }
+            }
+        });
+    }
+
     private void buildToolbar() {
         DefaultActionGroup executeGroup = new DefaultActionGroup();
 
@@ -145,76 +195,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     return;
                 }
 
-                queryExecutionChannel = new LinkedBlockingQueue<>(1);
-                scriptExecutionChannel = new LinkedBlockingQueue<>(1);
-
-                if (!isExecutingQuery) {
-                    isExecutingQuery = true;
-
-                    cancelAction = new AnAction("Cancel", "Cancel query execution", cancelIcon) {
-                        @Override
-                        public void actionPerformed(@NotNull AnActionEvent e) {
-                            if (queryExecutionChannel.peek() == null) {
-                                try {
-                                    queryExecutionChannel.put(true);
-                                } catch (InterruptedException ex) {
-                                    throw new RuntimeException(ex);
-                                }
-                            }
-                            if (scriptExecutionChannel.peek() == null) {
-                                try {
-                                    scriptExecutionChannel.put(true);
-                                } catch (InterruptedException ex) {
-                                    throw new RuntimeException(ex);
-                                }
-                            }
-
-                            executeGroup.replaceAction(this, executeAction);
-                            isExecutingQuery = false;
-                        }
-                    };
-
-                    executeGroup.replaceAction(this, cancelAction);
-                    isExecutingQuery = true;
-
-                    List<String> statements = getStatements();
-
-                    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
-                        @Override
-                        public void run(@NotNull ProgressIndicator indicator) {
-
-                            ApplicationManager.getApplication().invokeLater(() -> {
-                                boolean query = false;
-                                boolean script = false;
-                                QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
-                                if (statements.size() == 0) {
-                                    return;
-                                } else if (statements.size() == 1) {
-                                    query = QueryExecutor.executeQuery(queryExecutionChannel, NORMAL, context, statements.get(0), currentHistoryIndex, project);
-                                } else {
-                                    script = QueryExecutor.executeScript(scriptExecutionChannel, NORMAL, context, statements, currentHistoryIndex, project);
-
-                                }
-
-                                try {
-                                    if (query || script) {
-                                        int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                                        currentHistoryIndex = historySize - 1;
-                                        ApplicationManager.getApplication().invokeLater(() -> {
-                                            historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                                            historyLabel.revalidate();
-                                        });
-                                    }
-                                } catch (Exception ex) {
-                                    throw new RuntimeException(ex);
-                                }
-
-                                executeGroup.replaceAction(cancelAction, executeAction);
-                                isExecutingQuery = false;
-                            });
-                        }
-                    });
-                }
+                startQueryExecution(executeGroup, NORMAL, getStatements());
             }
         };
 
@@ -240,7 +221,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     }
                     String statement = getFocusedStatement();
 
-                    QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                    startQueryExecution(executeGroup, ADVISE, List.of(statement));
                 });
             }
         });
@@ -254,7 +235,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         return;
                     }
                     String statement = getFocusedStatement();
-                    QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                    startQueryExecution(executeGroup, EXPLAIN, List.of(statement));
                 });
             }
         });
@@ -282,7 +263,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         });
         executeGroup.addSeparator();
 
-        ActionToolbar executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
+        executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
         executeToolbar.setTargetComponent(queryEditor.getComponent());
 
         Icon leftIcon = IconLoader.getIcon("/assets/icons/chevron-left.svg", CustomSqlFileEditor.class);
@@ -515,7 +496,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         option1Group.addSeparator("Buckets");
 
 
-        ActiveCluster.subscribe(activeCluster -> {
+        ActiveCluster.subscribe(this, activeCluster -> {
+            com.intellij.openapi.util.Disposer.register(this, () -> activeCluster.getQueryContext().unsubscribe(this));
             activeCluster.getQueryContext().subscribe(this, queryContext -> {
                 ApplicationManager.getApplication().invokeLater(() -> {
                     if (queryContext.isPresent()) {
@@ -576,6 +558,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     @Override
     public void dispose() {
+        disposed = true;
+        if (queryExecutionChannel != null) queryExecutionChannel.offer(true);
         queryEditor.release();
     }
 

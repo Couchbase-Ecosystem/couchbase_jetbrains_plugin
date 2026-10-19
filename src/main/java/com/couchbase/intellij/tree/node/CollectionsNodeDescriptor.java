@@ -16,13 +16,15 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
     @Getter
     private String scope;
 
-    /** Collections the user pulled into the list through search; kept across refreshes. */
+    /** Search selections for the current expansion; kept during paging and favorite changes. */
     private final List<String> searchAdded = new ArrayList<>();
 
     /** How many collections of the alphabetical sequence are currently loaded. */
     @Setter
     @Getter
     private int pagedLoaded;
+
+    private long loadGeneration;
 
     public CollectionsNodeDescriptor(String scope, String bucket) {
         super("Collections", IconLoader.getIcon("/assets/icons/collections.svg", CollectionsNodeDescriptor.class));
@@ -38,5 +40,20 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
         if (!searchAdded.contains(collection)) {
             searchAdded.add(collection);
         }
+    }
+
+    /** Invalidates any background load and forgets temporary selections when this scope is closed. */
+    public void resetForExpansion() {
+        searchAdded.clear();
+        pagedLoaded = 0;
+        loadGeneration++;
+    }
+
+    public long beginLoad() {
+        return ++loadGeneration;
+    }
+
+    public boolean isCurrentLoad(long generation) {
+        return loadGeneration == generation;
     }
 }

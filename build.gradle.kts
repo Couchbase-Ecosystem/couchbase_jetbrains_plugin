@@ -89,11 +89,33 @@ val uiTest = intellijPlatformTesting.testIde.register("uiTest") {
             !it.name.startsWith("jna-")
         }
         systemProperty("java.awt.headless", "false")
+        systemProperty("cb.certificate.demo", providers.gradleProperty("certificateDemoTests").getOrElse("false"))
         systemProperty("ui.test.artifacts", layout.buildDirectory.dir("reports/uiTest/artifacts").get().asFile)
         maxParallelForks = 1
+        exclude("**/CriticalGuiSmokeTest.class")
         if (providers.gradleProperty("uiTestsWithoutDocker").map(String::toBoolean).getOrElse(false)) {
             exclude("**/*CouchbaseUiTest.class")
         }
+        testLogging {
+            events("passed", "skipped", "failed")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+}
+
+// Allocate actual native window peers on each supported Linux toolkit. No Robot or
+// desktop portal is used; tools/run-critical-gui-tests.py supplies isolated displays.
+val criticalGuiSmokeTest = intellijPlatformTesting.testIde.register("criticalGuiSmokeTest") {
+    sandboxDirectory = layout.buildDirectory.dir("critical-gui-sandbox")
+    task {
+        description = "Opens critical plugin windows using real X11 or Wayland peers."
+        group = "verification"
+        testClassesDirs = uiTestSourceSet.output.classesDirs
+        classpath = (classpath + uiTestSourceSet.runtimeClasspath).filter { !it.name.startsWith("jna-") }
+        include("**/CriticalGuiSmokeTest.class")
+        systemProperty("java.awt.headless", "false")
+        systemProperty("awt.toolkit.name", providers.gradleProperty("guiToolkit").getOrElse("XToolkit"))
+        maxParallelForks = 1
         testLogging {
             events("passed", "skipped", "failed")
             exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

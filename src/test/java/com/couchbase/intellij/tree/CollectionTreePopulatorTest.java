@@ -98,6 +98,41 @@ public class CollectionTreePopulatorTest extends LightPlatformCodeInsightFixture
     }
 
     @Test
+    public void everyFavoriteIsShownEvenWhenThereAreMoreThanTen() {
+        for (int i = 15; i < 30; i++) {
+            favorites.setFavorite("conn", "b", "s", String.format("col%02d", i), true);
+        }
+        populate(FakeCollectionSource.numbered(40), 10);
+        assertEquals(26, node.getChildCount()); // 15 favorites, 10 paged collections, Load More
+        assertEquals("col15", childNames().get(0));
+        assertEquals("col29", childNames().get(14));
+        assertEquals("col00", childNames().get(15));
+        assertEquals(10, desc.getPagedLoaded());
+    }
+
+    @Test
+    public void unfavoritingACollectionOutsideThePageRemovesItFromTheList() {
+        favorites.setFavorite("conn", "b", "s", "col22", true);
+        populate(FakeCollectionSource.numbered(30), 10);
+        assertEquals("col22", childNames().get(0));
+        favorites.setFavorite("conn", "b", "s", "col22", false);
+        populate(FakeCollectionSource.numbered(30), 10);
+        assertFalse(childNames().contains("col22"));
+        assertEquals("col00", childNames().get(0));
+    }
+
+    @Test
+    public void pagingPastAFavoriteAndSearchSelectionNeverDuplicatesThem() {
+        favorites.setFavorite("conn", "b", "s", "col12", true);
+        desc.addSearchAdded("col12");
+        desc.addSearchAdded("col18");
+        populate(FakeCollectionSource.numbered(30), 10);
+        populate(FakeCollectionSource.numbered(30), 20);
+        assertEquals(21, node.getChildCount());
+        assertEquals(childNames().size(), new HashSet<>(childNames()).size());
+    }
+
+    @Test
     public void unfavoritingRestoresNormalIcon() {
         CollectionNodeDescriptor d = new CollectionNodeDescriptor("x", "c", "b", "s", null);
         javax.swing.Icon normal = d.getIcon();

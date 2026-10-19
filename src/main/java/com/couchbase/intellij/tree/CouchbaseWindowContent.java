@@ -13,16 +13,15 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.HyperlinkLabel;
+import com.intellij.ui.PopupHandler;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.MouseInputAdapter;
-import javax.swing.event.TreeExpansionEvent;
-import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
@@ -80,18 +79,27 @@ public class CouchbaseWindowContent extends JPanel {
             add(getTourPanel(), BorderLayout.SOUTH);
         }
 
-        tree.addMouseListener(new MouseInputAdapter() {
+        tree.addMouseListener(new PopupHandler() {
+            @Override
+            public void invokePopup(Component component, int x, int y) {
+                TreePath clickedPath = tree.getPathForLocation(x, y);
+                if (clickedPath != null) {
+                    DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
+                    MouseEvent event = new MouseEvent(tree, MouseEvent.MOUSE_RELEASED,
+                            System.currentTimeMillis(), 0, x, y, 1, true, MouseEvent.BUTTON3);
+                    TreeRightClickListener.handle(tree, project, toolBarPanel, event, clickedNode);
+                }
+            }
+        });
+
+        tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    mouseClicked(e);
-                } else {
+                if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1) {
                     TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
                     if (clickedPath != null) {
                         DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
-                        if (SwingUtilities.isRightMouseButton(e)) {
-                            TreeRightClickListener.handle(tree, project, toolBarPanel, e, clickedNode);
-                        } else if (clickedNode.getUserObject() instanceof LoadMoreCollectionsNodeDescriptor) {
+                        if (clickedNode.getUserObject() instanceof LoadMoreCollectionsNodeDescriptor) {
                             LoadMoreCollectionsNodeDescriptor loadMore = (LoadMoreCollectionsNodeDescriptor) clickedNode.getUserObject();
                             DataLoader.listCollections((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
@@ -110,7 +118,7 @@ public class CouchbaseWindowContent extends JPanel {
                 if (clickedPath != null) {
                     DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
                     Object userObject = clickedNode.getUserObject();
-                    if (e.getClickCount() == 2) {
+                    if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) {
                         if (userObject instanceof FileNodeDescriptor) {
                             FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
                             //always force to load the file from server on read only mode.
@@ -178,18 +186,7 @@ public class CouchbaseWindowContent extends JPanel {
             }
         });
 
-        tree.addTreeExpansionListener(new TreeExpansionListener() {
-            @Override
-            public void treeExpanded(TreeExpansionEvent event) {
-                TreeExpandListener.handle(tree, event);
-            }
-
-
-            @Override
-            public void treeCollapsed(TreeExpansionEvent event) {
-                // No action needed
-            }
-        });
+        tree.addTreeExpansionListener(new TreeExpandListener(tree));
         if (DataLoader.getSavedClusters() == null || DataLoader.getSavedClusters().isEmpty()) {
             Timer timer = new Timer(10000, e -> {
                 ApplicationManager.getApplication().invokeLater(() -> {
@@ -201,6 +198,7 @@ public class CouchbaseWindowContent extends JPanel {
                 });
             });
             timer.setRepeats(false);
+            Disposer.register(project, timer::stop);
             timer.start();
         }
     }

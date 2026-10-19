@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree;
 
 import com.intellij.ui.treeStructure.Tree;
+import org.assertj.swing.edt.GuiActionRunner;
 import org.assertj.swing.fixture.DialogFixture;
 import org.assertj.swing.core.matcher.JButtonMatcher;
 import org.junit.Test;
@@ -8,6 +9,22 @@ import org.junit.Test;
 public class ConnectionDialogUiTest extends DialogUiTestCase {
     private DialogFixture connectionDialog() {
         return showDialog(() -> new NewConnectionDialog(getProject(), new Tree(), null, null));
+    }
+
+    @Test
+    public void certificateModeReplacesPasswordFieldsAndRequiresOnlyTheKeystore() {
+        DialogFixture dialog = connectionDialog();
+        dialog.comboBox("connectionAuthentication").selectItem("Client certificate");
+        dialog.checkBox("connectionSsl").requireSelected().requireDisabled();
+        assertFalse(GuiActionRunner.execute(() -> robot.finder().findByName(dialog.target(), "connectionUsername", javax.swing.text.JTextComponent.class, false).isShowing()));
+        dialog.textBox("connectionKeyStore").requireVisible();
+        dialog.button(JButtonMatcher.withText("Test Connection")).click();
+        dialog.label("connectionError").requireText("<html>Name can't be empty<br>"
+                + "Connection String can't be empty<br>Client keystore can't be empty</html>");
+        dialog.comboBox("connectionAuthentication").selectItem("Username and password");
+        dialog.textBox("connectionUsername").requireVisible();
+        assertFalse(GuiActionRunner.execute(() -> robot.finder().findByName(dialog.target(), "connectionKeyStore", javax.swing.text.JTextComponent.class, false).isShowing()));
+        dialog.checkBox("connectionSsl").requireEnabled();
     }
 
     @Test

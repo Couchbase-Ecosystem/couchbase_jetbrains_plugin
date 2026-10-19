@@ -48,13 +48,62 @@ bash tools/run-ui-tests.sh --tests '*DocumentsCouchbaseUiTest'
 | Test class | Behavior |
 | --- | --- |
 | `ConnectionDialogUiTest` | Required fields on Save and Test Connection, retry after validation, automatic SSL selection, Cancel |
-| `CollectionSearchDialogUiTest` | Debounced filtering, keyboard selection, no matches, clearing and retrying, Escape cancellation |
+| `CollectionSearchDialogUiTest` | Lazy loading on first typing, one fetch while editing, debounced filtering, keyboard selection, no matches, clearing and retrying, Escape cancellation |
 | `DocumentAndCollectionDialogUiTest` | Empty and oversized document IDs, invalid collection names, retrying validation |
 | `DocumentsCouchbaseUiTest` | Missing document errors, opening an existing document, creating and opening a new document, preserving existing content, searching actual server collections |
+| `QueryExecutionUiTest` | Execute dispatches SDK work off the EDT; UI timer events continue while a query is pending; the production Cancel action cancels the SDK future and restores Execute |
+| `CertificateCouchbaseUiTest` | Password/certificate UI switching, failed keystore password and retry, live certificate SDK and explorer REST authentication |
+| `CriticalGuiSmokeTest` | Native window allocation for New Connection, certificate mode, advanced settings, open/create document, create collection, collection search, explorer context menu, and the SQL++ editor |
 
 All tests run sequentially because they share a mouse and keyboard. Dialogs are
 closed after each test. The database suite restores the prior active cluster and
 closes document editors after each test.
+
+The query responsiveness test holds an SDK request pending, checks that UI timer
+events keep running, and clicks Cancel to verify cancellation. Document tests save
+through the actual editor, preserve UTF-8 and expiration, reject stale CAS writes,
+and exercise conflict cancellation and explicit overwrite.
+They also cover reload from the server, deleted-document recreation, invalid JSON,
+read-only connections, switching connections before saving, and listing `_default`.
+
+To include live client-certificate tests:
+
+```sh
+python3 tools/start-certificate-test-cluster.py
+bash tools/run-ui-tests.sh -PcertificateDemoTests=true
+```
+
+These tests use the separate local certificate demo cluster, exercise the actual
+connection dialog (including wrong-password recovery), and verify SDK and explorer
+REST operations without database password authentication. Dialog screenshots are
+saved as `build/reports/uiTest/artifacts/connection-password.png` and
+`connection-certificate.png`. Without the property, these two demo tests are
+skipped. The regular Docker document tests still run automatically.
+
+## Native GUI regression gate
+
+On Linux, install `xvfb` and `weston`, then run:
+
+```sh
+python3 tools/run-critical-gui-tests.py
+```
+
+This opens the same critical windows with both `XToolkit` and `WLToolkit`. It
+asserts which toolkit actually loaded and allocates production native window
+peers. The Wayland checks use a private Weston compositor hosted on another
+private Xvfb display; they do not use the desktop sharing portal or inject input
+into your desktop. This catches platform-specific failures such as the AWT
+`ScrollPanePeer` cast in New Connection that X11-only tests missed.
+
+The gate rejects skipped tests and a compositor exit. Both backend reports and
+JUnit results are retained under `build/reports/critical-gui/{x11,wayland}/`.
+
+The CI workflow runs the Docker/certificate UI suite and both native GUI gates.
+These checks cover the central server connection, explorer, query, and document
+flows. They do not establish compatibility with every OS, IDE build, optional
+Couchbase Lite native library, external CLI, or JCEF chart; those still need
+their own integration coverage. The tests use an IntelliJ test application,
+with real peers, rather than a complete IDE process.
 
 ## Results and failures
 

@@ -27,7 +27,7 @@ public class CollectionSearchPanel extends JPanel {
     private final JBTextField field = new JBTextField();
     private final DefaultListModel<String> model = new DefaultListModel<>();
     private final JBList<String> list = new JBList<>(model);
-    private final JBLabel status = new JBLabel(" ");
+    private final JBLabel status = new JBLabel("Type a collection name");
     private final Function<String, List<String>> searcher;
     private final Consumer<String> onChosen;
     private final Executor background;
@@ -35,6 +35,7 @@ public class CollectionSearchPanel extends JPanel {
     private final Timer debounce;
     private final int debounceMillisValue;
     private int generation;
+    private boolean disposed;
 
     public CollectionSearchPanel(Function<String, List<String>> searcher, Consumer<String> onChosen,
                                  Executor background, Executor ui, int debounceMillis) {
@@ -103,6 +104,13 @@ public class CollectionSearchPanel extends JPanel {
     }
 
     private void scheduleSearch() {
+        if (disposed) {
+            return;
+        }
+        // Invalidate the previous query immediately, including during the debounce delay.
+        generation++;
+        model.clear();
+        status.setText("Searching...");
         if (debounceMillisValue <= 0) {
             runSearch();
         } else {
@@ -112,6 +120,9 @@ public class CollectionSearchPanel extends JPanel {
 
     /** Runs the search for the current text now. */
     public void runSearch() {
+        if (disposed) {
+            return;
+        }
         final int mine = ++generation;
         final String text = field.getText().trim();
         status.setText("Searching...");
@@ -183,5 +194,11 @@ public class CollectionSearchPanel extends JPanel {
 
     public JComponent getFocusTarget() {
         return field;
+    }
+
+    public void dispose() {
+        disposed = true;
+        generation++;
+        debounce.stop();
     }
 }

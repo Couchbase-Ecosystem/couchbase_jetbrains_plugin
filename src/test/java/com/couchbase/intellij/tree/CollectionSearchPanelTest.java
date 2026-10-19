@@ -192,4 +192,49 @@ public class CollectionSearchPanelTest extends LightPlatformCodeInsightFixture4T
         CollectionSearchPanel p = panel();
         assertSame(find(p, JBTextField.class, "collectionSearchField"), p.getFocusTarget());
     }
+
+    @Test
+    public void oldResultsAreRejectedWhileTheNextQueryIsStillDebouncing() {
+        List<Runnable> uiQueue = new ArrayList<>();
+        CollectionSearchPanel p = new CollectionSearchPanel(t -> source.search(t, 20), chosen::add,
+                Runnable::run, uiQueue::add, 250);
+        try {
+            p.setQuery("air");
+            p.runSearch();
+            p.setQuery("hot");
+            uiQueue.forEach(Runnable::run);
+            assertTrue(p.getResults().isEmpty());
+            assertNull(p.getSelected());
+            assertEquals("Searching...", p.getStatusText());
+        } finally {
+            p.dispose();
+        }
+    }
+
+    @Test
+    public void editingTheFilterCannotAcceptThePreviousSelection() {
+        CollectionSearchPanel p = new CollectionSearchPanel(t -> source.search(t, 20), chosen::add,
+                Runnable::run, Runnable::run, 250);
+        try {
+            p.setQuery("air");
+            p.runSearch();
+            assertEquals("airline", p.getSelected());
+            p.setQuery("hot");
+            p.chooseSelected();
+            assertTrue(chosen.isEmpty());
+        } finally {
+            p.dispose();
+        }
+    }
+
+    @Test
+    public void closingThePanelDiscardsPendingBackgroundResults() {
+        List<Runnable> backgroundQueue = new ArrayList<>();
+        CollectionSearchPanel p = new CollectionSearchPanel(t -> source.search(t, 20), chosen::add,
+                backgroundQueue::add, Runnable::run, 0);
+        p.setQuery("air");
+        p.dispose();
+        backgroundQueue.forEach(Runnable::run);
+        assertTrue(p.getResults().isEmpty());
+    }
 }

@@ -2,6 +2,7 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.actions.PasswordConnectionAction;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
@@ -27,10 +28,9 @@ import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
 import com.couchbase.intellij.tree.overview.ServerOverviewDialog;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.*;
@@ -38,15 +38,12 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.ColorPicker;
 import com.intellij.ui.ColorPickerListener;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -187,7 +184,7 @@ public class TreeRightClickListener {
 
             if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT)
                                                                         .isAvailable()) {
-                AnAction pillowFight = new AnAction("Pillow Fight") {
+                AnAction pillowFight = new PasswordConnectionAction("Pillow Fight") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
@@ -208,7 +205,7 @@ public class TreeRightClickListener {
             tools.add(ddlExport);
 
             if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
-                AnAction cbexport = new AnAction("Data Export") {
+                AnAction cbexport = new PasswordConnectionAction("Data Export") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         ExportDialog dialog = new ExportDialog();
@@ -221,7 +218,7 @@ public class TreeRightClickListener {
             if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT)
                                                                         .isAvailable()) {
 
-                AnAction cbimport = new AnAction("Data Import") {
+                AnAction cbimport = new PasswordConnectionAction("Data Import") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         ImportDialog importDialog = new ImportDialog(project);
@@ -235,7 +232,7 @@ public class TreeRightClickListener {
             // Migration Dialog
             if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBMIGRATE)
                                                                         .isAvailable()) {
-                AnAction cbMigration = new AnAction("MongoDB to Couchbase Migration") {
+                AnAction cbMigration = new PasswordConnectionAction("MongoDB to Couchbase Migration") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         MigrationDialog dialog = new MigrationDialog(project);
@@ -243,7 +240,7 @@ public class TreeRightClickListener {
                     }
                 };
 
-                AnAction dynamo = new AnAction("DynamoDB to Couchbase Migration") {
+                AnAction dynamo = new PasswordConnectionAction("DynamoDB to Couchbase Migration") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         DynamoMigrationDialog dialog = new DynamoMigrationDialog(project);
@@ -469,16 +466,7 @@ public class TreeRightClickListener {
         String bucketName = cols.getBucket();
         String scopeName = cols.getScope();
 
-        AnAction searchCollection = new AnAction("Search Collection...") {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                new CollectionSearchDialog(project, CollectionSources.forScope(bucketName, scopeName), name -> {
-                    cols.addSearchAdded(name);
-                    DataLoader.listCollections(clickedNode, tree, Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
-                }).show();
-            }
-        };
-        actionGroup.add(searchCollection);
+        actionGroup.add(collectionSearchAction(project, tree, clickedNode));
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
             // Add "Add New Collection" option
@@ -497,11 +485,38 @@ public class TreeRightClickListener {
         showPopup(e, tree, actionGroup);
     }
 
+    private static AnAction collectionSearchAction(Project project, Tree tree, DefaultMutableTreeNode collectionsNode) {
+        CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
+        return new AnAction("Search Collection...") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new CollectionSearchDialog(project, CollectionSources.forScope(cols.getBucket(), cols.getScope()), name -> {
+                    cols.addSearchAdded(name);
+                    TreePath path = new TreePath(collectionsNode.getPath());
+                    if (!tree.isExpanded(path)) {
+                        tree.expandPath(path);
+                    } else {
+                        DataLoader.listCollections(collectionsNode, tree,
+                                Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
+                    }
+                }).show();
+            }
+        };
+    }
+
     private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         String bucketName = scope.getBucket();
         String scopeName = scope.getText();
+
+        for (int i = 0; i < clickedNode.getChildCount(); i++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
+            if (child.getUserObject() instanceof CollectionsNodeDescriptor) {
+                actionGroup.add(collectionSearchAction(project, tree, child));
+                break;
+            }
+        }
 
         AnAction refreshCollections = new AnAction("Refresh Collections") {
             @Override
@@ -562,7 +577,7 @@ public class TreeRightClickListener {
         actionGroup.addSeparator();
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-            AnAction simpleImport = new AnAction("Simple Import") {
+            AnAction simpleImport = new PasswordConnectionAction("Simple Import") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     // Show confirmation dialog before deleting scope
@@ -579,7 +594,7 @@ public class TreeRightClickListener {
             actionGroup.add(simpleImport);
         }
 
-        AnAction simpleExport = new AnAction("Simple Export") {
+        AnAction simpleExport = new PasswordConnectionAction("Simple Export") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export",
@@ -718,11 +733,8 @@ public class TreeRightClickListener {
     }
 
     private static void showPopup(MouseEvent e, Tree tree, DefaultActionGroup actionGroup) {
-        DataContext dataContext = DataManager.getInstance().getDataContext(tree);
-        JBPopup popup = JBPopupFactory.getInstance().createActionGroupPopup(null, actionGroup, dataContext,
-                                                                            JBPopupFactory.ActionSelectionAid.MNEMONICS,
-                                                                            false);
-        popup.show(new RelativePoint(e));
+        ActionManager.getInstance().createActionPopupMenu("CouchbaseExplorer", actionGroup)
+                .getComponent().show(tree, e.getX(), e.getY());
     }
 
     private static void handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
@@ -855,7 +867,7 @@ public class TreeRightClickListener {
             actionGroup.addSeparator();
 
             if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-                AnAction simpleImport = new AnAction("Simple Import") {
+                AnAction simpleImport = new PasswordConnectionAction("Simple Import") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor(
@@ -873,7 +885,7 @@ public class TreeRightClickListener {
                 actionGroup.add(simpleImport);
             }
 
-            AnAction simpleExport = new AnAction("Simple Export") {
+            AnAction simpleExport = new PasswordConnectionAction("Simple Export") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",

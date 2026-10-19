@@ -24,6 +24,9 @@ public class PillowFightAction extends AnAction {
         boolean isToolAvailable = CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT).isAvailable();
 
         boolean shouldEnable = isConnected && isNotReadOnly && isToolAvailable;
-        e.getPresentation().setEnabledAndVisible(shouldEnable);
+        e.getPresentation().setVisible(shouldEnable);
+        boolean certificate = ActiveCluster.getInstance().usesCertificateAuthentication();
+        e.getPresentation().setEnabled(shouldEnable && !certificate);
+        e.getPresentation().setDescription(certificate ? PasswordConnectionAction.REQUIRES_PASSWORD : getTemplatePresentation().getDescription());
     }
 }

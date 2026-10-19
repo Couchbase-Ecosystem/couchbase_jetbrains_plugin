@@ -38,6 +38,20 @@ public class SavedClusterTest {
     }
 
     @Test
+    public void certificateConfigurationRoundTripsThroughIdeStorage() {
+        SavedCluster saved = cluster("certificate:test");
+        saved.setAuthenticationType("certificate");
+        saved.setClientKeyStorePath("/certificates/client.p12");
+        saved.setServerCaCertificatePath("/certificates/ca.pem");
+        var xml = com.intellij.util.xmlb.XmlSerializer.serialize(saved);
+        SavedCluster restored = com.intellij.util.xmlb.XmlSerializer.deserialize(xml, SavedCluster.class);
+        assertTrue(restored.usesCertificateAuthentication());
+        assertEquals(saved.getClientKeyStorePath(), restored.getClientKeyStorePath());
+        assertEquals(saved.getServerCaCertificatePath(), restored.getServerCaCertificatePath());
+        assertFalse(new SavedCluster().usesCertificateAuthentication());
+    }
+
+    @Test
     public void ldapDefaultsToFalseAndIsSettable() {
         SavedCluster sc = cluster("c1");
         assertFalse(sc.getLDAP());

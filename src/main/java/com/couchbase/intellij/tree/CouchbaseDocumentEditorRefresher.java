@@ -37,7 +37,9 @@ public class CouchbaseDocumentEditorRefresher implements FocusListener {
             FileDocumentManager documentManager = FileDocumentManager.getInstance();
             VirtualFile file = editor.getFile();
             if (file instanceof CouchbaseDocumentVirtualFile) {
+                if (!java.util.Objects.equals(cluster.getId(), file.getUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID))) return;
                 if (cluster.hasOption(Clusters.Options.LIVE_RELOAD)) {
+                    ((CouchbaseDocumentVirtualFile) file).reloadFromCluster();
                     documentManager.reloadFiles(file);
                 } else {
                     CouchbaseDocumentVirtualFile cbfile = (CouchbaseDocumentVirtualFile) file;
@@ -48,6 +50,7 @@ public class CouchbaseDocumentEditorRefresher implements FocusListener {
                                 , options, 0, Messages.getWarningIcon());
 
                         if (result == 0) {
+                            cbfile.reloadFromCluster();
                             documentManager.reloadFiles(file);
                         } else {
                             cbfile.setDesynchronized(true);

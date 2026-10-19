@@ -1,9 +1,11 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.database.collections.CollectionSource;
+import com.couchbase.intellij.database.collections.CachedCollectionSearch;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.util.Disposer;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -20,12 +22,13 @@ public class CollectionSearchDialog extends DialogWrapper {
         super(project);
         setTitle("Search Collection");
         setOKButtonText("Add to List");
-        panel = new CollectionSearchPanel(text -> source.search(text, MAX_RESULTS), name -> {
+        CachedCollectionSearch search = new CachedCollectionSearch(source);
+        panel = new CollectionSearchPanel(text -> search.search(text, MAX_RESULTS), name -> {
             onChosen.accept(name);
             close(OK_EXIT_CODE);
         }, ApplicationManager.getApplication()::executeOnPooledThread, SwingUtilities::invokeLater, 250);
         init();
-        panel.runSearch();
+        Disposer.register(getDisposable(), panel::dispose);
     }
 
     @Override

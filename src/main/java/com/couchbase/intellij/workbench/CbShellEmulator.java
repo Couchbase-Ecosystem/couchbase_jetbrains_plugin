@@ -54,6 +54,10 @@ public class CbShellEmulator  {
 
     private void onClusterConnected(ActiveCluster activeCluster) {
         clearTerminal();
+        if (activeCluster.usesCertificateAuthentication()) {
+            terminalWidget.writePlainMessage("The embedded CB Shell requires a username/password connection. Certificate authentication is active for the explorer and query workbench.");
+            return;
+        }
 
         ArrayList<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.SHELL).getPath());

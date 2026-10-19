@@ -18,6 +18,7 @@ import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.collections.CollectionListing;
 import com.couchbase.intellij.database.collections.CollectionSources;
+import com.couchbase.intellij.database.collections.CollectionSource;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.*;
 import com.couchbase.intellij.persistence.storage.ClustersStorage;
@@ -173,29 +174,44 @@ public class DataLoader {
     public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree, int pagedToLoad) {
         Object userObject = parentNode.getUserObject();
         if (userObject instanceof CollectionsNodeDescriptor) {
+            CollectionsNodeDescriptor colsDesc = (CollectionsNodeDescriptor) userObject;
+            long generation = colsDesc.beginLoad();
+            ActiveCluster active = ActiveCluster.getInstance();
+            String connectionId = active.getId();
+            FavoriteCollections favorites = FavoriteCollectionsStorage.getInstance().getValue();
+            List<String> favoriteNames = List.copyOf(favorites.getFavorites(connectionId,
+                    colsDesc.getBucket(), colsDesc.getScope()));
+            List<String> searchAdded = List.copyOf(colsDesc.getSearchAdded());
+            CollectionSource source = CollectionSources.forScope(colsDesc.getBucket(), colsDesc.getScope());
+            tree.setPaintBusy(true);
             CompletableFuture.runAsync(() -> {
-                tree.setPaintBusy(true);
                 try {
-                    CollectionsNodeDescriptor colsDesc = (CollectionsNodeDescriptor) userObject;
                     Map<String, Integer> counts = CouchbaseRestAPI.getCollectionCounts(colsDesc.getBucket(), colsDesc.getScope());
-                    String connectionId = ActiveCluster.getInstance().getId();
-
-                    CollectionListing listing = CollectionTreePopulator.populate(parentNode, colsDesc,
-                            CollectionSources.forScope(colsDesc.getBucket(), colsDesc.getScope()),
-                            FavoriteCollectionsStorage.getInstance().getValue(), connectionId, pagedToLoad, counts,
-                            name -> QueryFilterUtil.getQueryFilter(colsDesc.getBucket(), colsDesc.getScope(), name));
-
-                    ((ScopeNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject()).setCounter(formatCount(listing.getTotal()));
+                    CollectionListing listing = CollectionListing.build(source, favoriteNames, searchAdded, pagedToLoad);
 
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                        if (!colsDesc.isCurrentLoad(generation) || ActiveCluster.getInstance() != active
+                                || parentNode.getRoot() != tree.getModel().getRoot()) {
+                            return;
+                        }
+                        try {
+                            CollectionTreePopulator.apply(parentNode, colsDesc, listing, favorites, connectionId, counts,
+                                    name -> QueryFilterUtil.getQueryFilter(colsDesc.getBucket(), colsDesc.getScope(), name));
+                            ((ScopeNodeDescriptor) ((DefaultMutableTreeNode) parentNode.getParent()).getUserObject())
+                                    .setCounter(formatCount(listing.getTotal()));
+                            ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
+                        } finally {
+                            tree.setPaintBusy(false);
+                        }
                     });
 
                 } catch (Exception e) {
                     Log.error(e);
-                    e.printStackTrace();
-                } finally {
-                    tree.setPaintBusy(false);
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        if (colsDesc.isCurrentLoad(generation)) {
+                            tree.setPaintBusy(false);
+                        }
+                    });
                 }
             });
         } else {
@@ -526,38 +542,27 @@ public class DataLoader {
 
     public static Set<String> listBucketNames(String clusterUrl, boolean ssl, String username, String password, boolean ldap) {
 
-        Cluster cluster = null;
+        SavedCluster settings = new SavedCluster();
+        settings.setUrl(adjustClusterProtocol(clusterUrl, ssl));
+        settings.setSslEnable(ssl);
+        settings.setUsername(username);
+        settings.setLDAP(ldap);
+        return listBucketNames(settings, password);
+    }
+
+    public static Set<String> listBucketNames(SavedCluster settings, String secret) {
+        Cluster cluster = Cluster.connect(settings.getUrl()
+                + Objects.toString(settings.getQueryParams(), ""), ConnectionAuthentication.load(settings, secret).clusterOptions());
         try {
-
-            ClusterOptions options;
-
-            if (!ldap) {
-                options = ClusterOptions.clusterOptions(username, password);
-            } else {
-                PasswordAuthenticator authenticator = PasswordAuthenticator.ldapCompatible(username, password);
-
-                options = ClusterOptions.clusterOptions(authenticator);
-            }
-
-            cluster = Cluster.connect(adjustClusterProtocol(clusterUrl, ssl), options.environment(env -> {
-                //env.applyProfile("wan-development");
-            }));
-            cluster.waitUntilReady(Duration.ofSeconds(5));
-
-            return cluster.buckets().getAllBuckets().keySet();
-        } catch (Exception e) {
-            Log.error(e);
-            assert cluster != null;
+            cluster.waitUntilReady(Duration.ofSeconds(10));
+            return new HashSet<>(cluster.buckets().getAllBuckets().keySet());
+        } finally {
             cluster.disconnect();
-            throw e;
         }
-
     }
 
     public static SavedCluster saveDatabaseCredentials(String name, String url, String queryParams, boolean isSSL, String username, String password, String defaultBucket, Boolean ldap, Set<String> options) {
-        String key = username + ":" + name;
         SavedCluster sc = new SavedCluster();
-        sc.setId(key);
         sc.setName(name);
         sc.setQueryParams(queryParams);
         sc.setSslEnable(isSSL);
@@ -566,27 +571,29 @@ public class DataLoader {
         sc.setDefaultBucket(defaultBucket);
         sc.setLDAP(ldap);
         sc.options(options);
+        return saveDatabaseCredentials(sc, password, null);
+    }
 
+    /** Persist after a successful connection test; keep the old connection intact on validation failure. */
+    public static SavedCluster saveDatabaseCredentials(SavedCluster sc, String secret, SavedCluster previous) {
+        String identity = sc.usesCertificateAuthentication() ? "certificate" : sc.getUsername();
+        sc.setId(identity + ":" + sc.getName());
         Clusters clusters = ClustersStorage.getInstance().getValue();
-
-        if (clusters.getMap() == null) {
-            clusters.setMap(new HashMap<>());
+        for (SavedCluster existing : clusters.getMap().values()) {
+            if (previous != null && Objects.equals(previous.getId(), existing.getId())) continue;
+            if (Objects.equals(existing.getId(), sc.getId())) throw new DuplicatedClusterNameAndUserException();
+            boolean sameIdentity = sc.usesCertificateAuthentication() == existing.usesCertificateAuthentication()
+                    && (sc.usesCertificateAuthentication()
+                        ? Objects.equals(sc.getClientKeyStorePath(), existing.getClientKeyStorePath())
+                        : Objects.equals(sc.getUsername(), existing.getUsername()));
+            if (Objects.equals(existing.getUrl(), sc.getUrl()) && sameIdentity) throw new ClusterAlreadyExistsException();
         }
-
-        if (clusters.getMap().containsKey(sc.getId())) {
-            throw new DuplicatedClusterNameAndUserException();
+        PasswordStorage.savePassword(sc, secret);
+        if (previous != null && !Objects.equals(previous.getId(), sc.getId())) {
+            deleteSavedCluster(previous);
         }
-
-        for (Map.Entry<String, SavedCluster> entry : clusters.getMap().entrySet()) {
-            if (entry.getValue().getUrl().equals(sc.getUrl()) && entry.getValue().getUsername().equals(username)) {
-                throw new ClusterAlreadyExistsException();
-            }
-        }
-
-        clusters.getMap().put(key, sc);
+        clusters.getMap().put(sc.getId(), sc);
         ClustersStorage.getInstance().setValue(clusters);
-        PasswordStorage.savePassword(sc, password);
-
         return sc;
     }
 

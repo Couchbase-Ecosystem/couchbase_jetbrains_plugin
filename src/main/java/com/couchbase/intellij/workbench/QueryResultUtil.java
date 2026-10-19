@@ -12,20 +12,23 @@ public class QueryResultUtil {
 
     private static final DecimalFormat df = new DecimalFormat("#.00");
     private static ToolWindow toolWindow;
-    private static QueryResultToolWindowFactory resultWindow;
+    private static volatile QueryResultToolWindowFactory resultWindow;
+    private static volatile Project outputProject;
 
     public static QueryResultToolWindowFactory getOutputWindow(Project project) {
-        if (toolWindow == null) {
-            ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
-            toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
+        if (!ApplicationManager.getApplication().isDispatchThread()) {
+            if (outputProject == project && resultWindow != null) return resultWindow;
+            QueryResultToolWindowFactory[] window = new QueryResultToolWindowFactory[1];
+            ApplicationManager.getApplication().invokeAndWait(() -> window[0] = getOutputWindow(project));
+            return window[0];
         }
-        ApplicationManager.getApplication().invokeLater(() -> {
-                toolWindow.show();
-        }, ModalityState.any());
-        
-        if (resultWindow == null) {
-            resultWindow = QueryResultToolWindowFactory.instance;
-        }
+        ToolWindow current = ToolWindowManager.getInstance(project).getToolWindow("Couchbase Output");
+        if (current == null) throw new IllegalStateException("Couchbase Output tool window is unavailable.");
+        current.getContentManager(); // Initialize the output components before a worker publishes results.
+        current.show();
+        toolWindow = current;
+        resultWindow = QueryResultToolWindowFactory.instance;
+        outputProject = project;
         return resultWindow;
     }
 

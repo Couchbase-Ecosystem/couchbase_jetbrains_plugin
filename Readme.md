@@ -25,6 +25,40 @@ To connect to a Couchbase Cluster, follow these steps:
 
 <img src="doc/gifs/AddConnection.gif" height="80%" width="80%" alt="Add Connection to Cluster" />
 
+For certificate authentication, select **Client certificate** under **Credentials →
+Authentication**. Choose a PKCS#12 (`.p12`/`.pfx`) or Java (`.jks`) keystore containing
+one client private key and its certificate chain, and enter its keystore password
+(leave empty for a passwordless keystore). Add a PEM **Server CA** file when your
+server uses a private certificate authority. TLS is enabled automatically; no
+database username or password is requested. The server maps the certificate to a
+Couchbase user and its roles. Keystore passwords use the IDE password safe; saved
+connection settings contain file paths, not private keys or passwords.
+
+This authenticates the explorer, document editor, SQL++ workbench, and REST-based
+cluster views. The existing external import/export, migration, benchmark, and shell
+launchers require a username/password connection; their actions explain this when
+a certificate connection is active. Server-side client-certificate handling must
+be enabled. See [Couchbase certificate authentication](https://docs.couchbase.com/java-sdk/current/howtos/sdk-authentication.html#authenticating-the-java-client-by-certificate).
+
+To try it locally with Docker, run `python3 tools/start-certificate-test-cluster.py`.
+This creates a separate local cluster and writes test certificates to the ignored
+`build/certificate-demo/` directory. In **New Couchbase Connection**, use:
+
+| Setting | Local test value |
+| --- | --- |
+| Connection string | `couchbases://localhost` |
+| Authentication | Client certificate |
+| Client keystore | Absolute path to `build/certificate-demo/client.p12` |
+| Keystore password | `changeit` |
+| Server CA | Absolute path to `build/certificate-demo/ca.pem` |
+
+Click **Test Connection**, then **Save**. The bucket is `certificate_test`. The
+cluster uses loopback ports 18091–18096 and 11207; its administrative console is
+at `http://localhost:18080` (`Administrator` / `password`, local test credentials).
+Existing test clusters are preserved. Test certificates expire after 30 days;
+remove `build/certificate-demo/.fixture-version-2` and rerun the helper to regenerate
+them. Stop this cluster with `docker stop couchbase-plugin-certificate`.
+
 > **_NOTE:_** If you inform the "Default Bucket" field anc click on "Test Connection" we will run the SDK Doctor
 > utility, which helps you to identify potential problems with your connection.
 
@@ -49,6 +83,18 @@ Click on Scope to list Collections and Indexes. Open context menu on Collection 
 to refresh Collections.
 
 <img src="doc/gifs/InteractWithCollectionIndexes.gif" height="80%" width="80%" alt="Interact with Collections and Indexes" />
+
+Collections are listed alphabetically, ten at a time. Click **Load More** to show the
+next ten. Right-click a collection and choose **Add to Favorites** or **Remove from
+Favorites**. All favorites appear first when you open a scope, followed by its first
+ten collections, with each collection shown only once.
+
+Choose **Search Collection...** from the scope or Collections context menu to find
+a collection without loading more pages. Collection names are fetched when you
+first type, then filtered locally while you edit the search. Selecting a result
+adds it to the current list. Collapsing the scope or Collections folder resets the
+list to favorites plus the first ten; a search selection outside that first page
+will only remain if you favorite it.
 
 ### Interact with Documents
 

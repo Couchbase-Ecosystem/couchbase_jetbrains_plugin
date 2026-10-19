@@ -27,12 +27,24 @@ public final class CollectionTreePopulator {
         CollectionListing listing = CollectionListing.build(source,
                 favorites.getFavorites(connectionId, bucket, scope), desc.getSearchAdded(), pagedToLoad);
 
+        apply(parent, desc, listing, favorites, connectionId, counts, filters);
+        return listing;
+    }
+
+    /** Applies a listing already fetched in the background. Must be called on the EDT for a live tree. */
+    public static void apply(DefaultMutableTreeNode parent, CollectionsNodeDescriptor desc,
+                             CollectionListing listing, FavoriteCollections favorites,
+                             String connectionId, Map<String, Integer> counts,
+                             Function<String, QueryFilter> filters) {
+        String bucket = desc.getBucket();
+        String scope = desc.getScope();
+
         parent.removeAllChildren();
         desc.setPagedLoaded(listing.getPagedLoaded());
 
         if (listing.getNames().isEmpty()) {
             parent.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
-            return listing;
+            return;
         }
 
         for (String name : listing.getNames()) {
@@ -50,6 +62,5 @@ public final class CollectionTreePopulator {
             parent.add(new DefaultMutableTreeNode(new LoadMoreCollectionsNodeDescriptor(bucket, scope,
                     listing.getPagedLoaded() + CollectionListing.PAGE_SIZE)));
         }
-        return listing;
     }
 }

@@ -1,6 +1,7 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.actions.PasswordConnectionAction;
 import com.couchbase.intellij.tools.CBShell;
 import com.couchbase.intellij.tree.examples.CardDialog;
 import com.couchbase.intellij.workbench.Log;
@@ -130,7 +131,7 @@ public class TreeToolBarBuilder {
         addConnectionAction.getTemplatePresentation()
                            .setIcon(IconLoader.getIcon("/assets/icons/new_database.svg", CouchbaseWindowContent.class));
 
-        AnAction cbshellAction = new AnAction("Open New CB Shell") {
+        AnAction cbshellAction = new PasswordConnectionAction("Open New CB Shell") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
 

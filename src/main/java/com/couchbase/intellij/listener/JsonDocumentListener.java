@@ -54,11 +54,14 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         VirtualFile file = FileDocumentManager.getInstance().getFile(document);
 
 
-        //filtering files from our plugin
-        if (file != null && file.getUserData(VirtualFileKeys.CLUSTER) != null && !ActiveCluster.getInstance().isReadOnlyMode()) {
-            if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
+        if (file == null) return true;
+        // The vetoer validates and resolves known conflicts. Only the VFS output stream writes.
+        if (file.getUserData(VirtualFileKeys.CLUSTER) != null) {
+            if (ActiveCluster.getInstance() == null || ActiveCluster.getInstance().get() == null
+                    || ActiveCluster.getInstance().isReadOnlyMode() || "true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) return false;
+            if (!Objects.equals(ActiveCluster.getInstance().getId(), file.getUserData(VirtualFileKeys.CONN_ID))) {
                 Log.info("The file " + file.getUserData(VirtualFileKeys.ID) + " was not saved, as it belongs to a connection that is no longer active.");
-                return true;
+                return false;
             } else {
                 Collection collection = ActiveCluster.getInstance().get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
                         .scope(file.getUserData(VirtualFileKeys.SCOPE))
@@ -89,7 +92,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                                 , options, 1, Messages.getWarningIcon());
 
                         if (result == 0) {
-                            saveFile(collection, file, document);
+                            file.putUserData(VirtualFileKeys.CAS, Long.toString(getResult.cas()));
                             return true;
                         } else if (result == 1) {
                             file.putUserData(VirtualFileKeys.CAS, String.valueOf(getResult.cas()));
@@ -102,12 +105,18 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                         } else {
                             return false;
                         }
-                    } else {
-                        saveFile(collection, file, document);
                     }
                 } catch (DocumentNotFoundException dnf) {
-                    //this is a new document, so let's save it
-                    saveFile(collection, file, document);
+                    if (file.getUserData(VirtualFileKeys.CAS) != null) {
+                        int choice = Messages.showDialog("This document was deleted on the server. Recreate it with your current edits?",
+                                "Document Deleted", new String[]{"Recreate Document", "Cancel"}, 1, Messages.getWarningIcon());
+                        if (choice != 0) return false;
+                    }
+                    file.putUserData(VirtualFileKeys.CAS, null);
+                } catch (Exception failure) {
+                    Log.error("Could not check the document before saving", failure);
+                    Messages.showErrorDialog("Could not check the server document. Your edits have been kept. Reconnect and try saving again.", "Couchbase Document Save");
+                    return false;
                 }
             }
         }
@@ -192,19 +201,4 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         file.putUserData(VirtualFileKeys.CAS, String.valueOf(doc.getRevisionID()));
     }
 
-    private void saveFile(Collection collection, VirtualFile file, Document document) {
-
-
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            JsonNode node = mapper.readTree(document.getText());
-            MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), node);
-            file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
-            InferHelper.invalidateInferCacheIfOlder(collection.bucketName(), collection.scopeName(), collection.name(), TimeUnit.MINUTES.toMillis(1));
-
-        } catch (JsonProcessingException e) {
-            Log.error("Document " + file.getUserData(VirtualFileKeys.ID) + " is not a valid json");
-        }
-
-    }
 }

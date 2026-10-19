@@ -207,15 +207,13 @@ public class CouchbaseRestAPI {
     }
 
     private static HttpURLConnection setupConnection(boolean isGet, String endpoint, String serverURL, String data) throws Exception {
-        String userpass = ActiveCluster.getInstance().getUsername() + ":" + ActiveCluster.getInstance().getPassword();
-        String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userpass.getBytes()));
-
         String urlContent = (ActiveCluster.getInstance().isSSLEnabled() ? "https://" : "http://") + serverURL + ":" + endpoint;
         URL url = new URL(urlContent);
 
         HttpURLConnection conn;
         if (ActiveCluster.getInstance().isSSLEnabled()) {
             conn = (HttpsURLConnection) url.openConnection();
+            if (!ActiveCluster.getInstance().usesCertificateAuthentication()) {
             TrustManager[] trustAllCerts = new TrustManager[]{
                     new X509TrustManager() {
                         public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -232,12 +230,18 @@ public class CouchbaseRestAPI {
             SSLContext sc = SSLContext.getInstance("SSL");
             sc.init(null, trustAllCerts, new java.security.SecureRandom());
             ((HttpsURLConnection) conn).setSSLSocketFactory(sc.getSocketFactory());
+            }
         } else {
             conn = (HttpURLConnection) url.openConnection();
         }
 
         conn.setRequestMethod(isGet ? "GET" : "POST");
-        conn.setRequestProperty("Authorization", basicAuth);
+        ActiveCluster active = ActiveCluster.getInstance();
+        var authentication = active.getAuthentication();
+        if (authentication == null) {
+            authentication = com.couchbase.intellij.database.ConnectionAuthentication.load(active.getSavedCluster(), active.getPassword());
+        }
+        authentication.configureRestConnection(conn);
 
         if (!isGet) {
             conn.setDoOutput(true);
