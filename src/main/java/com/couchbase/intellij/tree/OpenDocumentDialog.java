@@ -79,10 +79,13 @@ public class OpenDocumentDialog extends DialogWrapper {
     @Nullable
     protected JComponent createCenterPanel() {
         errorLabel = new JLabel("");
+        errorLabel.setName("documentIdError");
         errorLabel.setBorder(JBUI.Borders.empty(10, 0));
         errorLabel.setForeground(Color.decode("#FF4444"));
         JLabel label = new JLabel(createDocument ? "New Document Id:" : "Document Id:");
         textField = new JBTextField(30);
+        textField.setName("documentId");
+        label.setLabelFor(textField);
         generateStub = new JCheckBox("Generate template document");
 
         panel = new JBPanel<>(new BorderLayout());

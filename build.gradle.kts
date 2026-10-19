@@ -19,6 +19,11 @@ java {
 
 sourceSets["main"].java.srcDirs("src/main/gen")
 
+val uiTestSourceSet = sourceSets.create("uiTest") {
+    compileClasspath += sourceSets["test"].compileClasspath
+    runtimeClasspath += sourceSets["test"].runtimeClasspath
+}
+
 repositories {
     mavenLocal()
     mavenCentral()
@@ -61,11 +66,38 @@ dependencies {
     testImplementation("org.testcontainers:couchbase:1.21.4")
     testImplementation("junit:junit:4.13.2")
 
+    add(uiTestSourceSet.implementationConfigurationName, "org.assertj:assertj-swing:3.17.1")
+
     intellijPlatform {
         intellijIdeaCommunity("2025.2")
         bundledPlugin("com.intellij.java")
         bundledPlugin("com.intellij.modules.json")
         testFramework(TestFrameworkType.Platform)
+    }
+}
+
+// Real Swing dialogs driven by a robot. Keep display/Docker requirements out of `test`.
+val uiTest = intellijPlatformTesting.testIde.register("uiTest") {
+    sandboxDirectory = layout.buildDirectory.dir("ui-test-sandbox")
+    task {
+        description = "Runs plugin dialog UI tests (requires a display and Docker)."
+        group = "verification"
+        testClassesDirs = uiTestSourceSet.output.classesDirs
+        // Use the IDE's JNA classes with its native library. Testcontainers brings an
+        // older JNA whose ABI does not match the native library selected by the IDE.
+        classpath = (classpath + uiTestSourceSet.runtimeClasspath).filter {
+            !it.name.startsWith("jna-")
+        }
+        systemProperty("java.awt.headless", "false")
+        systemProperty("ui.test.artifacts", layout.buildDirectory.dir("reports/uiTest/artifacts").get().asFile)
+        maxParallelForks = 1
+        if (providers.gradleProperty("uiTestsWithoutDocker").map(String::toBoolean).getOrElse(false)) {
+            exclude("**/*CouchbaseUiTest.class")
+        }
+        testLogging {
+            events("passed", "skipped", "failed")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
     }
 }
 

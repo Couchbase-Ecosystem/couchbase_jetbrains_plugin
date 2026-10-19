@@ -136,8 +136,10 @@ public class NewConnectionDialog extends DialogWrapper {
 
         JPanel notificationPanel = new JPanel(new BorderLayout());
         errorLabel = new JLabel();
+        errorLabel.setName("connectionError");
         errorLabel.setForeground(Color.decode("#FF4444"));
         messageLabel = new JLabel();
+        messageLabel.setName("connectionStatus");
         messageLabel.setBorder(JBUI.Borders.emptyTop(5));
         notificationPanel.add(messageLabel, BorderLayout.NORTH);
         notificationPanel.add(errorLabel, BorderLayout.SOUTH);
@@ -353,8 +355,12 @@ public class NewConnectionDialog extends DialogWrapper {
 
         JLabel usernameLabel = new JLabel("Username");
         usernameTextField = new JBTextField(30);
+        usernameTextField.setName("connectionUsername");
+        usernameLabel.setLabelFor(usernameTextField);
         JLabel passwordLabel = new JLabel("Password");
         passwordField = new JPasswordField(30);
+        passwordField.setName("connectionPassword");
+        passwordLabel.setLabelFor(passwordField);
 
         gbc2.fill = GridBagConstraints.HORIZONTAL;
         gbc2.gridwidth = GridBagConstraints.REMAINDER;
@@ -405,11 +411,16 @@ public class NewConnectionDialog extends DialogWrapper {
 
         JLabel connectionNameLabel = new JLabel("Name:");
         connectionNameTextField = new JBTextField(30);
+        connectionNameTextField.setName("connectionName");
+        connectionNameLabel.setLabelFor(connectionNameTextField);
         connectionNameTextField.getEmptyText().setText("Give a name to your connection");
         JLabel hostLabel = new JLabel("Connection String:");
         hostTextField = new JBTextField(30);
+        hostTextField.setName("connectionHost");
+        hostLabel.setLabelFor(hostTextField);
         hostTextField.getEmptyText().setText("Your cluster URL");
         enableSSLCheckBox = new JCheckBox("Enable SSL");
+        enableSSLCheckBox.setName("connectionSsl");
         ldapAuthCheckbox = new JCheckBox("LDAP Auth");
 
         gbc.fill = GridBagConstraints.HORIZONTAL;

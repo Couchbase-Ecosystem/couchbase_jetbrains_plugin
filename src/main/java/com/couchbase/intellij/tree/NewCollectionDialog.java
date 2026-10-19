@@ -58,6 +58,8 @@ public class NewCollectionDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 0;
         textField = new JTextField(20);
+        textField.setName("newCollectionName");
+        nameLabel.setLabelFor(textField);
         panel.add(textField, gbc);
 
 
@@ -70,6 +72,7 @@ public class NewCollectionDialog extends DialogWrapper {
         gbc.gridx = 1;
         gbc.gridy = 1;
         maxTTL = new JSpinner(new SpinnerNumberModel(0, 0, 2147483648L, 1));
+        maxTTL.setName("newCollectionMaxTtl");
 
         panel.add(TemplateUtil.createComponentWithBalloon(maxTTL,
                                                           "The maximum time-to-live (TTL) for all documents in this collection in seconds. If enabled and a document is mutated with no TTL or a TTL greater than the maximum, its TTL will be set to the collection TTL." + "The largest TTL allowed is 2147483647 seconds. A 0 value means TTL is disabled.\n" + "\n" + "NOTE: if collection-level TTL is set, bucket-level TTL is ignored.\n"),
@@ -78,6 +81,7 @@ public class NewCollectionDialog extends DialogWrapper {
 
         gbc.gridy = 2;
         errorLabel = new JLabel("");
+        errorLabel.setName("newCollectionError");
         errorLabel.setForeground(Color.decode("#FF4444"));
         panel.add(errorLabel, gbc);
 

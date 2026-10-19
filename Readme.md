@@ -167,6 +167,13 @@ configurations remain protected from accidental alterations while using the plug
 <img src="doc/screenshots/ReadOnlyMode3.png" height="80%" width="80%" alt="Read-Only Mode" />
 <img src="doc/screenshots/ReadOnlyMode4.png" height="80%" width="80%" alt="Read-Only Mode" />
 
+## Testing
+
+Run the existing tests with `./gradlew test`. The separate `./gradlew uiTest` suite
+drives real plugin dialogs with mouse and keyboard input and uses a temporary
+Couchbase Docker container for document workflows. See [UI tests](doc/ui-tests.md)
+for prerequisites, Linux/Xvfb commands, coverage, and test reports.
+
 ## License
 
 MIT. See individual files for details.
