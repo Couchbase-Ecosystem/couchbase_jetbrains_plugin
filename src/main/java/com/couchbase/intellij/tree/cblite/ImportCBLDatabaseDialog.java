@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import utils.TemplateUtil;
 
 public class ImportCBLDatabaseDialog extends DialogWrapper {
@@ -82,11 +83,15 @@ public class ImportCBLDatabaseDialog extends DialogWrapper {
         databasePathField = new TextFieldWithBrowseButton();
         databasePathField.addBrowseFolderListener(
                 project,
-                new FileChooserDescriptor(false, true, false, false, false, false) {
+                new FileChooserDescriptor(FileChooserDescriptorFactory.singleDir()) {
                     @Override
-                    public boolean isFileSelectable(VirtualFile file) {
-                        String name = file.getName();
-                        return name.endsWith(".cblite2") || name.endsWith(".cblite3");
+                    public void validateSelectedFiles(VirtualFile[] files) throws Exception {
+                        super.validateSelectedFiles(files);
+                        for (VirtualFile file : files) {
+                            if (!file.getName().endsWith(".cblite2") && !file.getName().endsWith(".cblite3")) {
+                                throw new Exception("Choose a .cblite2 or .cblite3 folder");
+                            }
+                        }
                     }
                 }.withTitle("Select the database location").withDescription("Choose a .cblite2 or .cblite3 folder")
         );

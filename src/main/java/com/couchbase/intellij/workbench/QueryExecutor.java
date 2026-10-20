@@ -16,7 +16,10 @@ import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.application.ApplicationManager;
+import java.util.concurrent.CancellationException;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.Computable;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Field;
@@ -34,16 +37,33 @@ public class QueryExecutor {
 
     private static boolean isQueryScript = false;
 
+    private static void showReadOnlyError(Project project) {
+        CouchbaseQueryError error = new CouchbaseQueryError();
+        error.setMessage("This connection is read-only. Statements that modify data, indexes, or permissions cannot run.");
+        CouchbaseQueryResultError result = new CouchbaseQueryResultError();
+        result.setErrors(List.of(error));
+        QueryResultUtil.getOutputWindow(project).updateQueryStats(
+                Arrays.asList("0 MS", "-", "-", "-", "-", "-"), null, result, null, false);
+    }
+
 
     public static Boolean executeScript(BlockingQueue<Boolean> queue, QueryType type, QueryContext context,
                                         List<String> statements, int historyIndex, Project project) {
-        Cluster cluster = ActiveCluster.getInstance().getCluster();
+        ActiveCluster active = ActiveCluster.getInstance();
+        Cluster cluster = active.getCluster();
         if (statements == null || statements.isEmpty()) {
             return false;
         }
-        if (ActiveCluster.getInstance().get() == null) {
-            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error",
-                    Messages.getErrorIcon());
+        if (active.get() == null) {
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error",
+                    Messages.getErrorIcon()));
+            return false;
+        }
+        // Validate the entire script before starting its transaction. A SELECT
+        // followed by a mutation must not execute even its first statement.
+        if (type == QueryType.NORMAL && active.isReadOnlyMode()
+                && statements.stream().anyMatch(SQLPPAnalyzer::isMutation)) {
+            showReadOnlyError(project);
             return false;
         }
         QueryResultUtil.getOutputWindow(project).setStatusAsLoading();
@@ -73,7 +93,7 @@ public class QueryExecutor {
                     queryResult.put("_sequence_query", query);
 
                     JsonObject namedParams = populateNamedParameters(project, query);
-                    TransactionQueryOptions options = TransactionQueryOptions.queryOptions();
+                    TransactionQueryOptions options = TransactionQueryOptions.queryOptions().readonly(active.isReadOnlyMode());
                     if (namedParams != null) {
                         options.parameters(namedParams);
                     }
@@ -126,15 +146,14 @@ public class QueryExecutor {
                 return aggregatedResult;
             }).toFuture();
 
-            do {
-                if (queue.peek() != null) {
-                    queue.poll();
-                    future.cancel(true);
-                    QueryResultUtil.getOutputWindow(project).setStatusAsCanceled();
-                }
-            } while (!future.isDone());
-
-            future.get();
+            QueryExecutionWait.await(future, queue);
+        } catch (CancellationException cancelled) {
+            QueryResultUtil.getOutputWindow(project).setStatusAsCanceled();
+            return false;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            QueryResultUtil.getOutputWindow(project).setStatusAsCanceled();
+            return false;
         } catch (Exception e) {
             error.getErrors().add(new CouchbaseQueryError(0, e.getMessage(), false));
         }
@@ -168,6 +187,7 @@ public class QueryExecutor {
 
     public static Boolean executeQuery(BlockingQueue<Boolean> queue, QueryType type, QueryContext context,
                                        String query, int historyIndex, Project project, int limit) {
+        ActiveCluster active = ActiveCluster.getInstance();
         if (query == null || query.trim().isEmpty()) {
             return false;
         }
@@ -175,9 +195,9 @@ public class QueryExecutor {
         if (query.endsWith(";")) {
             query = query.substring(0, query.length() - 1).trim();
         }
-        if (ActiveCluster.getInstance().get() == null) {
-            Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error",
-                    Messages.getErrorIcon());
+        if (active.get() == null) {
+            ApplicationManager.getApplication().invokeLater(() -> Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error",
+                    Messages.getErrorIcon()));
             return false;
         }
         QueryResultUtil.getOutputWindow(project).setStatusAsLoading();
@@ -187,31 +207,27 @@ public class QueryExecutor {
         } else if (QueryType.ADVISE == type) {
             query = "ADVISE " + query;
         } else {
-            if (ActiveCluster.getInstance().isReadOnlyMode() && SQLPPAnalyzer.isMutation(query)) {
-                CouchbaseQueryError err = new CouchbaseQueryError();
-                err.setMessage("Hey! You can not run mutations when your cluster is on read-only mode");
-                CouchbaseQueryResultError error = new CouchbaseQueryResultError();
-                error.setErrors(List.of(err));
-
-                QueryResultUtil.getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-",
-                        "-"), null, error, null, false);
+            if (active.isReadOnlyMode() && SQLPPAnalyzer.isMutation(query)) {
+                showReadOnlyError(project);
                 return false;
             }
         }
 
         final String origQuery = query;
         boolean autoLimited = false;
-        if (!SQLPPAnalyzer.isLimited(project, query)) {
-            Integer queryLimit = ActiveCluster.getInstance().getQueryLimit();
+        final String analyzedQuery = query;
+        if (!ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> SQLPPAnalyzer.isLimited(project, analyzedQuery))) {
+            Integer queryLimit = active.getQueryLimit();
             if (queryLimit != null) {
                 query = String.format("SELECT d.* FROM (%s) as d LIMIT %d", query, queryLimit);
                 autoLimited = true;
             }
         }
         final String adjustedQuery = query;
-        QueryPreferences pref = ActiveCluster.getInstance().getSavedCluster().getQueryPreferences();
+        QueryPreferences pref = active.getSavedCluster().getQueryPreferences();
         QueryOptions queryOptions =
                 QueryOptions.queryOptions().timeout(Duration.ofSeconds(pref.getQueryTimeout())).profile(QueryProfile.TIMINGS).metrics(true);
+        if (active.isReadOnlyMode()) queryOptions.readonly(true);
 
         JsonObject namedParams = populateNamedParameters(project, adjustedQuery);
         if (namedParams != null) {
@@ -225,19 +241,12 @@ public class QueryExecutor {
 
             if (context != null && context.getBucket() != null && context.getScope() != null) {
                 futureResult =
-                        ActiveCluster.getInstance().get().bucket(context.getBucket()).scope(context.getScope()).async().query(adjustedQuery, queryOptions);
+                        active.get().bucket(context.getBucket()).scope(context.getScope()).async().query(adjustedQuery, queryOptions);
             } else {
-                futureResult = ActiveCluster.getInstance().get().async().query(adjustedQuery, queryOptions);
+                futureResult = active.get().async().query(adjustedQuery, queryOptions);
             }
 
-            while (!futureResult.isDone()) {
-                if (queue.peek() != null) {
-                    queue.poll();
-                    futureResult.cancel(true);
-                    QueryResultUtil.getOutputWindow(project).setStatusAsCanceled();
-                }
-            }
-            QueryResult result = futureResult.get();
+            QueryResult result = QueryExecutionWait.await(futureResult, queue);
 
             long end = System.currentTimeMillis();
 
@@ -298,6 +307,13 @@ public class QueryExecutor {
             QueryResultUtil.getOutputWindow(project).updateQueryStats(metricsList, resultList, null,
                     Collections.singletonList(timings), false);
 
+        } catch (CancellationException cancelled) {
+            QueryResultUtil.getOutputWindow(project).setStatusAsCanceled();
+            return false;
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            QueryResultUtil.getOutputWindow(project).setStatusAsCanceled();
+            return false;
         } catch (CouchbaseException e) {
             long end = System.currentTimeMillis();
             QueryResultUtil.getOutputWindow(project).updateQueryStats(Arrays.asList((end - start) + " MS", "-", "-",
@@ -313,14 +329,16 @@ public class QueryExecutor {
 
         //if historyIndex is negative, doesn't add it to the history
         if (historyIndex >= 0 && pref.isSaveHistory()) {
-            return updateQueryHistory(origQuery, historyIndex);
+            boolean[] updated = {false};
+            ApplicationManager.getApplication().invokeAndWait(() -> updated[0] = updateQueryHistory(origQuery, historyIndex));
+            return updated[0];
         } else {
             return false;
         }
     }
 
     private static JsonObject populateNamedParameters(Project project, String adjustedQuery) {
-        Map<String, String> namedParams = NamedParametersUtil.getAllNamedParameters(project);
+        Map<String, String> namedParams = ApplicationManager.getApplication().runReadAction((Computable<Map<String, String>>) () -> NamedParametersUtil.getAllNamedParameters(project));
         boolean foundParam = false;
         if (!namedParams.isEmpty()) {
             JsonObject obj = JsonObject.create();

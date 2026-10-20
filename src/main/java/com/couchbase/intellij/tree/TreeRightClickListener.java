@@ -1,11 +1,16 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.search.SearchIndexManager;
 import com.couchbase.intellij.DocumentFormatter;
+import com.couchbase.intellij.actions.PasswordConnectionAction;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.ClusterUiTask;
 import com.couchbase.intellij.database.DataLoader;
+import com.couchbase.intellij.database.collections.CollectionListing;
+import com.couchbase.intellij.database.collections.CollectionSources;
+import com.couchbase.intellij.persistence.FavoriteCollections;
+import com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage;
 import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.storage.QueryFiltersStorage;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
@@ -24,10 +29,10 @@ import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
 import com.couchbase.intellij.tree.overview.ServerOverviewDialog;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.ide.DataManager;
+import com.couchbase.intellij.workbench.EditorOpening;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.*;
@@ -35,15 +40,12 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.ColorPicker;
 import com.intellij.ui.ColorPickerListener;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -65,6 +67,16 @@ import java.util.concurrent.TimeUnit;
 public class TreeRightClickListener {
 
     public static int searchWorkbenchCounter = 0;
+
+    private static void runMutation(Project project, ClusterUiTask.Connection original, String title, java.util.function.Consumer<com.couchbase.client.java.Cluster> operation, Runnable completed) {
+        ClusterUiTask.submit(project, original, title, connection -> {
+            connection.requireWritable();
+            operation.accept(connection.sdk());
+            return true;
+        }, ignored -> completed.run(), error -> Messages.showErrorDialog(project,
+                "Could not complete the operation. " + error.getMessage(), title));
+    }
+
 
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
@@ -184,7 +196,7 @@ public class TreeRightClickListener {
 
             if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT)
                                                                         .isAvailable()) {
-                AnAction pillowFight = new AnAction("Pillow Fight") {
+                AnAction pillowFight = new PasswordConnectionAction("Pillow Fight") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
@@ -205,7 +217,7 @@ public class TreeRightClickListener {
             tools.add(ddlExport);
 
             if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
-                AnAction cbexport = new AnAction("Data Export") {
+                AnAction cbexport = new PasswordConnectionAction("Data Export") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         ExportDialog dialog = new ExportDialog();
@@ -218,7 +230,7 @@ public class TreeRightClickListener {
             if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT)
                                                                         .isAvailable()) {
 
-                AnAction cbimport = new AnAction("Data Import") {
+                AnAction cbimport = new PasswordConnectionAction("Data Import") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         ImportDialog importDialog = new ImportDialog(project);
@@ -232,7 +244,7 @@ public class TreeRightClickListener {
             // Migration Dialog
             if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBMIGRATE)
                                                                         .isAvailable()) {
-                AnAction cbMigration = new AnAction("MongoDB to Couchbase Migration") {
+                AnAction cbMigration = new PasswordConnectionAction("MongoDB to Couchbase Migration") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         MigrationDialog dialog = new MigrationDialog(project);
@@ -240,7 +252,7 @@ public class TreeRightClickListener {
                     }
                 };
 
-                AnAction dynamo = new AnAction("DynamoDB to Couchbase Migration") {
+                AnAction dynamo = new PasswordConnectionAction("DynamoDB to Couchbase Migration") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         DynamoMigrationDialog dialog = new DynamoMigrationDialog(project);
@@ -411,7 +423,6 @@ public class TreeRightClickListener {
 
                         if (entityCreationDialog.isOK()) {
                             String scopeName = entityCreationDialog.getEntityName();
-                            ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
                             DataLoader.listScopes(clickedNode, tree);
                         }
                     } catch (Exception ex) {
@@ -430,6 +441,7 @@ public class TreeRightClickListener {
                         String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
                         // Show confirmation dialog before deleting bucket
+                        ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                         int result = Messages.showYesNoDialog(
                                 "Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket",
                                 Messages.getQuestionIcon());
@@ -437,14 +449,10 @@ public class TreeRightClickListener {
                             return;
                         }
 
-                        //TODO: Under investigation why ReconnectOnDisconnect should be here.
-                        //ActiveCluster.ReconnectOnDisconnect.set(true);
-                        ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
-                        //ActiveCluster.ReconnectOnDisconnect.set(false);
-                        // Refresh buckets
-                        TreePath treePath = new TreePath(clickedNode.getPath());
-                        tree.collapsePath(treePath.getParentPath());
-                        tree.expandPath(treePath.getParentPath());
+                        runMutation(project, original, "Deleting bucket", sdk -> sdk.buckets().dropBucket(bucketName), () -> {
+                            if (clickedNode.getParent() instanceof DefaultMutableTreeNode connection && connection.getRoot() == tree.getModel().getRoot())
+                                DataLoader.listBuckets(connection, tree);
+                        });
                     } catch (Exception ex) {
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage(
                                 "An error " + "occurred while creating the bucket. Check the Log tab for more.",
@@ -466,6 +474,8 @@ public class TreeRightClickListener {
         String bucketName = cols.getBucket();
         String scopeName = cols.getScope();
 
+        actionGroup.add(collectionSearchAction(project, tree, clickedNode));
+
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
             // Add "Add New Collection" option
             AnAction addNewCollectionItem = new AnAction("Add New Collection") {
@@ -483,11 +493,45 @@ public class TreeRightClickListener {
         showPopup(e, tree, actionGroup);
     }
 
+    private static AnAction collectionSearchAction(Project project, Tree tree, DefaultMutableTreeNode collectionsNode) {
+        CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
+        return new AnAction("Search Collection...") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                showCollectionSearch(project, tree, collectionsNode);
+            }
+        };
+    }
+
+    public static void showCollectionSearch(Project project, Tree tree, DefaultMutableTreeNode collectionsNode) {
+        CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
+        var original = ClusterUiTask.capture(ActiveCluster.getInstance());
+        new CollectionSearchDialog(project, CollectionSources.forScope(cols.getBucket(), cols.getScope()), name -> {
+                    if (!original.isCurrent() || collectionsNode.getRoot() != tree.getModel().getRoot()) return;
+                    cols.addSearchAdded(name);
+                    TreePath path = new TreePath(collectionsNode.getPath());
+                    if (!tree.isExpanded(path)) {
+                        tree.expandPath(path);
+                    } else {
+                        DataLoader.listCollections(collectionsNode, tree,
+                                Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
+                    }
+                }).show();
+    }
+
     private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         String bucketName = scope.getBucket();
         String scopeName = scope.getText();
+
+        for (int i = 0; i < clickedNode.getChildCount(); i++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
+            if (child.getUserObject() instanceof CollectionsNodeDescriptor) {
+                actionGroup.add(collectionSearchAction(project, tree, child));
+                break;
+            }
+        }
 
         AnAction refreshCollections = new AnAction("Refresh Collections") {
             @Override
@@ -522,6 +566,7 @@ public class TreeRightClickListener {
                         try {
 
                             // Show confirmation dialog before deleting scope
+                            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                             int result = Messages.showYesNoDialog(
                                     "Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope",
                                     Messages.getQuestionIcon());
@@ -529,12 +574,10 @@ public class TreeRightClickListener {
                                 return;
                             }
 
-                            ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
-                            // Refresh buckets
-                            DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                            TreePath treePath = new TreePath(bucketTreeNode.getPath());
-                            tree.collapsePath(treePath);
-                            tree.expandPath(treePath);
+                            runMutation(project, original, "Deleting scope", sdk -> sdk.bucket(bucketName).collections().dropScope(scopeName), () -> {
+                                if (clickedNode.getParent() instanceof DefaultMutableTreeNode bucket && bucket.getRoot() == tree.getModel().getRoot())
+                                    DataLoader.listScopes(bucket, tree);
+                            });
                         } catch (Exception ex) {
                             Log.error("Scope deletion failed ", ex);
                         }
@@ -548,7 +591,7 @@ public class TreeRightClickListener {
         actionGroup.addSeparator();
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-            AnAction simpleImport = new AnAction("Simple Import") {
+            AnAction simpleImport = new PasswordConnectionAction("Simple Import") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     // Show confirmation dialog before deleting scope
@@ -565,7 +608,7 @@ public class TreeRightClickListener {
             actionGroup.add(simpleImport);
         }
 
-        AnAction simpleExport = new AnAction("Simple Export") {
+        AnAction simpleExport = new PasswordConnectionAction("Simple Export") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export",
@@ -616,25 +659,17 @@ public class TreeRightClickListener {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
 
-                String metadata = null;
-                if (ActiveCluster.getInstance().hasQueryService()) {
-                    metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
-                } else {
-                    try {
-                        metadata = CouchbaseRestAPI.getMetaDocument(bucket, scope, collection, docId);
-                    } catch (Exception ex) {
-                        Log.debug("Could not get the metadata of the document via the API", ex);
-                    }
-                }
-                if (metadata != null) {
-                    VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json",
-                                                                   FileTypeManager.getInstance()
-                                                                                  .getFileTypeByExtension("json"),
-                                                                   metadata);
-                    DocumentFormatter.formatFile(project, virtualFile);
-                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                    fileEditorManager.openFile(virtualFile, true);
-                }
+                ActiveCluster active = ActiveCluster.getInstance();
+                com.couchbase.intellij.database.ClusterUiTask.submit(project, active, "Reading document metadata", connection ->
+                        connection.active().hasQueryService() ? DataLoader.getDocMetadata(connection, bucket, scope, collection, docId)
+                                : CouchbaseRestAPI.getMetaDocument(bucket, scope, collection, docId), metadata -> {
+                    if (metadata == null) return;
+                    VirtualFile file = new LightVirtualFile("(read-only) " + docId + "_meta.json",
+                            FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                    DocumentFormatter.formatFile(project, file);
+                    EditorOpening.openFile(project, file);
+                }, error -> Messages.showErrorDialog(project, "Could not read document metadata. " + error.getMessage(), "Document Metadata"));
+
             }
         };
         actionGroup.add(viewMetaData);
@@ -645,6 +680,7 @@ public class TreeRightClickListener {
             AnAction deleteDoc = new AnAction("Delete Document") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
+                    ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                     int result = Messages.showYesNoDialog(
                             "<html>Are you sure you want to delete the document " + "<strong>" + col.getId() + "</strong>?</html>",
                             "Delete Document", Messages.getQuestionIcon());
@@ -652,31 +688,12 @@ public class TreeRightClickListener {
                         return;
                     }
 
-                    try {
-                        ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection)
-                                     .remove(col.getId());
-
-                        if (col.getVirtualFile() != null) {
-                            try {
-                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                                fileEditorManager.closeFile(col.getVirtualFile());
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                                Log.debug("Could not close the file", ex);
-                            }
-                        }
-
-                        DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                        if (parentNode != null) {
+                    runMutation(project, original, "Deleting document", sdk ->
+                            sdk.bucket(bucket).scope(scope).collection(collection).remove(col.getId()), () -> {
+                        if (col.getVirtualFile() != null) FileEditorManager.getInstance(project).closeFile(col.getVirtualFile());
+                        if (clickedNode.getParent() != null && clickedNode.getRoot() == tree.getModel().getRoot())
                             ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
-                        }
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
-                        Messages.showErrorDialog("Could not delete the document. Please check the logs for more.",
-                                                 "Couchbase Plugin Error");
-                    }
+                    });
 
                 }
             };
@@ -704,11 +721,8 @@ public class TreeRightClickListener {
     }
 
     private static void showPopup(MouseEvent e, Tree tree, DefaultActionGroup actionGroup) {
-        DataContext dataContext = DataManager.getInstance().getDataContext(tree);
-        JBPopup popup = JBPopupFactory.getInstance().createActionGroupPopup(null, actionGroup, dataContext,
-                                                                            JBPopupFactory.ActionSelectionAid.MNEMONICS,
-                                                                            false);
-        popup.show(new RelativePoint(e));
+        ActionManager.getInstance().createActionPopupMenu("CouchbaseExplorer", actionGroup)
+                .getComponent().show(tree, e.getX(), e.getY());
     }
 
     private static void handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
@@ -736,6 +750,17 @@ public class TreeRightClickListener {
             actionGroup.add(createDocument);
         }
 
+        actionGroup.addSeparator();
+        String connectionId = ActiveCluster.getInstance().getId();
+        FavoriteCollections favorites = FavoriteCollectionsStorage.getInstance().getValue();
+        boolean isFavorite = favorites.isFavorite(connectionId, col.getBucket(), col.getScope(), col.getText());
+        AnAction toggleFavorite = new AnAction(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                CollectionTreeActions.toggleFavorite(tree, clickedNode);
+            }
+        };
+        actionGroup.add(toggleFavorite);
         actionGroup.addSeparator();
         String filter = "Add Document Filter";
         boolean hasDeleteFilter = false;
@@ -798,6 +823,7 @@ public class TreeRightClickListener {
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         try {
 
+                            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                             int result = Messages.showYesNoDialog(
                                     "Are you sure you want to delete the collection " + col.getText() + "?",
                                     "Delete Collection", Messages.getQuestionIcon());
@@ -805,13 +831,12 @@ public class TreeRightClickListener {
                                 return;
                             }
 
-                            ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
-                                         .dropCollection(CollectionSpec.create(col.getText(), col.getScope()));
-                            // Refresh collections
-                            DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                            TreePath treePath = new TreePath(colsTreeNode.getPath());
-                            tree.collapsePath(treePath);
-                            tree.expandPath(treePath);
+                            runMutation(project, original, "Deleting collection", sdk ->
+                                    sdk.bucket(col.getBucket()).collections().dropCollection(col.getScope(), col.getText()), () -> {
+                                DefaultMutableTreeNode parent = (DefaultMutableTreeNode) clickedNode.getParent();
+                                if (parent != null && parent.getRoot() == tree.getModel().getRoot())
+                                    DataLoader.listCollections(parent, tree);
+                            });
                         } catch (Exception ex) {
                             Log.error("Collection deletion failed ", ex);
                         }
@@ -827,7 +852,7 @@ public class TreeRightClickListener {
             actionGroup.addSeparator();
 
             if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-                AnAction simpleImport = new AnAction("Simple Import") {
+                AnAction simpleImport = new PasswordConnectionAction("Simple Import") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor(
@@ -845,7 +870,7 @@ public class TreeRightClickListener {
                 actionGroup.add(simpleImport);
             }
 
-            AnAction simpleExport = new AnAction("Simple Export") {
+            AnAction simpleExport = new PasswordConnectionAction("Simple Export") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",
@@ -892,8 +917,7 @@ public class TreeRightClickListener {
                                                                        fileContent);
                         virtualFile.putUserData(VirtualFileKeys.BUCKET, idx.getBucket());
                         virtualFile.putUserData(VirtualFileKeys.SEARCH_INDEX, idx.getIndexName());
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(virtualFile, true);
+                        EditorOpening.openFile(project, virtualFile);
                     } catch (Exception ex) {
                         Log.error(ex);
                         ex.printStackTrace();

@@ -1,17 +1,12 @@
 package com.couchbase.intellij.persistence;
 
 import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.tree.iq.ui.MessageGroupComponent;
-import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.json.JsonFileType;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.util.io.FileAttributes;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileEvent;
 import com.intellij.openapi.vfs.VirtualFileListener;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.openapi.vfs.newvfs.NewVirtualFileSystem;
+import com.intellij.openapi.vfs.VirtualFileSystem;
+import com.intellij.openapi.vfs.newvfs.FileSystemInterface;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,16 +16,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-public class CouchbaseFileSystem extends NewVirtualFileSystem {
+public class CouchbaseFileSystem extends VirtualFileSystem implements FileSystemInterface {
     public static final CouchbaseFileSystem INSTANCE = new CouchbaseFileSystem();
     private List<VirtualFileListener> listeners = new ArrayList<>();
-
-    @Override
-    public void refreshWithoutFileWatcher(boolean asynchronous) {
-        super.refreshWithoutFileWatcher(asynchronous);
-    }
 
     @Override
     public @NonNls @NotNull String getProtocol() {
@@ -60,13 +49,6 @@ public class CouchbaseFileSystem extends NewVirtualFileSystem {
     @Override
     public void removeVirtualFileListener(@NotNull VirtualFileListener listener) {
         listeners.remove(listener);
-    }
-
-    // Abstract in 2025.1 (sinceBuild), so it can't be removed yet. Newer platforms
-    // no longer call it, and once it's gone this is just an unused method.
-    @Override
-    public int getRank() {
-        return 0;
     }
 
     @Override
@@ -163,17 +145,12 @@ public class CouchbaseFileSystem extends NewVirtualFileSystem {
     }
 
     @Override
-    public @Nullable FileAttributes getAttributes(@NotNull VirtualFile file) {
-        return null;
+    public boolean isSymLink(@NotNull VirtualFile file) {
+        return false;
     }
 
     @Override
-    protected @NotNull String extractRootPath(@NotNull String normalizedPath) {
-        return "";
-    }
-
-    @Override
-    public @Nullable VirtualFile findFileByPathIfCached(@NonNls @NotNull String path) {
+    public @Nullable String resolveSymLink(@NotNull VirtualFile file) {
         return null;
     }
 

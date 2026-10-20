@@ -14,6 +14,10 @@ import java.util.stream.Collectors;
 
 public class CBSGeoInspectionTest extends CodeInsightFixtureTestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();

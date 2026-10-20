@@ -1,6 +1,5 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -9,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 
 
 public class NewScopeCreationDialog extends DialogWrapper {
@@ -18,11 +16,14 @@ public class NewScopeCreationDialog extends DialogWrapper {
     private JLabel errorLabel;
     private String bucketName;
     private String scopeName;
+    private final Project project;
+    private DialogOperation operation;
 
     protected NewScopeCreationDialog(
             Project project,
             String bucketName) {
         super(project);
+        this.project = project;
         this.bucketName = bucketName;
 
 
@@ -82,17 +83,27 @@ public class NewScopeCreationDialog extends DialogWrapper {
 
         // Check if the name already exists
         scopeName = textField.getText();
-        List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                .getAllScopes();
-        for (ScopeSpec scope : scopes) {
-            if (scope.name().equals(scopeName)) {
-                // If it does, show error message
-                errorLabel.setText("Scope with name " + scopeName + " already exists");
-                return;
-            }
-        }
+        ActiveCluster active = ActiveCluster.getInstance();
+        DialogOperation pending = new DialogOperation(); operation = pending;
+        com.intellij.openapi.util.Disposer.register(getDisposable(), pending::cancel);
+        setOKActionEnabled(false); textField.setEnabled(false); errorLabel.setText("Creating scope…");
+        com.couchbase.intellij.database.ClusterUiTask.submit(project, active, "Creating Couchbase scope", connection -> {
+            pending.checkCancelled(); connection.requireWritable();
+            var manager = connection.sdk().bucket(bucketName).collections();
+            if (manager.getAllScopes().stream().anyMatch(scope -> scope.name().equals(scopeName)))
+                throw new IllegalArgumentException("Scope with name " + scopeName + " already exists");
+            pending.beginMutation(connection, () -> getCancelAction().setEnabled(false));
+            manager.createScope(scopeName);
+            return scopeName;
+        }, created -> { if (!isDisposed()) close(OK_EXIT_CODE); }, error -> {
+            if (isDisposed()) return;
+            operation = null; getCancelAction().setEnabled(true);
+            setOKActionEnabled(true); textField.setEnabled(true); errorLabel.setText(error.getMessage());
+        });
+    }
 
-        super.doOKAction();
+    @Override public void doCancelAction() {
+        if (operation == null || operation.cancel()) super.doCancelAction();
     }
 
     public String getEntityName() {

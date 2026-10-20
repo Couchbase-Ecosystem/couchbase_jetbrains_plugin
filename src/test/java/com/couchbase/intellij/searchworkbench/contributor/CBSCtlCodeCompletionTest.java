@@ -9,6 +9,10 @@ import java.util.List;
 
 public class CBSCtlCodeCompletionTest extends BasePlatformTestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();

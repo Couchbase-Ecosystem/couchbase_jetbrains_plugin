@@ -9,25 +9,16 @@ import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.openapi.vfs.newvfs.BulkFileListener;
-import com.intellij.openapi.vfs.newvfs.RefreshQueue;
-import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
-import kotlinx.html.P;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 public class CouchbaseDocumentVirtualFile extends VirtualFile {
@@ -35,13 +26,14 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     private final String scope;
     private final String collection;
     private final String id;
-    private long mtime;
+    private volatile long mtime;
 
-    private long contentHash;
+    private volatile long contentHash;
+    private volatile byte[] lastReadContent;
 
     private final String path;
     private final String name;
-    private long size;
+    private volatile long size;
     private FileType type;
     private boolean desynchronized = false;
 
@@ -80,7 +72,8 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     @Override
     public boolean isWritable() {
-        return !ActiveCluster.getInstance().isReadOnlyMode() && JsonFileType.INSTANCE.equals(type);
+        ActiveCluster active = ActiveCluster.getInstance();
+        return active != null && !active.isReadOnlyMode() && JsonFileType.INSTANCE.equals(type);
     }
 
     @Override
@@ -117,29 +110,29 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     @Override
     public byte @NotNull [] contentsToByteArray() throws IOException {
+        if (lastReadContent != null) return lastReadContent.clone();
+        if (ApplicationManager.getApplication().isDispatchThread()) throw new IOException("Load the document in the background before opening its editor.");
         Log.info("fetched contents as byte array for couchbase document: " + getPath());
-        byte[] contents = fetchContent(fetch());
+        GetResult result = fetch();
+        byte[] contents = fetchContent(result);
+        putUserData(VirtualFileKeys.CAS, Long.toString(result.cas()));
+        updateFromCluster(contents);
         this.size = contents.length;
         return contents;
     }
 
     @Override
     public long getModificationStamp() {
-        refresh(false, false, null);
         return contentHash;
     }
 
     @Override
     public long getTimeStamp() {
-        refresh(false, false, null);
         return mtime;
     }
 
     @Override
     public long getLength() {
-        if (this.size == 0) {
-            this.size = fetchContent(fetch()).length;
-        }
         return size;
     }
 
@@ -170,7 +163,10 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     }
 
     private GetResult fetch() {
-        return ActiveCluster.getInstance().getCluster()
+        ActiveCluster active = ActiveCluster.getInstance();
+        if (!Objects.equals(active.getId(), getUserData(VirtualFileKeys.CONN_ID)))
+            throw new IllegalStateException("The document belongs to a different connection.");
+        return active.getCluster()
                             .bucket(bucket)
                             .scope(scope)
                             .collection(collection)
@@ -191,28 +187,33 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
     public void refresh(boolean asynchronous, boolean recursive, @Nullable Runnable postRunnable) {
         Runnable refresh = () -> {
             GetResult gr = fetch();
-            updateFromCluster(fetchContent(gr));
-            putUserData(VirtualFileKeys.CAS, String.valueOf(gr.cas()));
+            Document cached = FileDocumentManager.getInstance().getCachedDocument(this);
+            // Polling must not advance the CAS of unsaved edits past a concurrent server update.
+            if (!desynchronized && (cached == null || !FileDocumentManager.getInstance().isDocumentUnsaved(cached))) {
+                updateFromCluster(fetchContent(gr));
+                putUserData(VirtualFileKeys.CAS, String.valueOf(gr.cas()));
+            }
 
             if (postRunnable != null) {
                 postRunnable.run();
             }
         };
 
-        if (asynchronous) {
-            ApplicationManager.getApplication().invokeLater(refresh);
+        if (asynchronous || ApplicationManager.getApplication().isDispatchThread()) {
+            ApplicationManager.getApplication().executeOnPooledThread(refresh);
         } else {
             refresh.run();
         }
     }
 
     private void updateFromCluster(byte[] newContent) {
+        lastReadContent = newContent.clone();
+        size = newContent.length;
         desynchronized = false;
         int newContentHash = Arrays.hashCode(newContent);
         if (this.contentHash != newContentHash) {
-            boolean first = this.mtime == 0;
             long newMtime = System.currentTimeMillis();
-            Log.info("Couchbase document content changed: " + System.identityHashCode(this) + " -- " + getPath() + "/" + getName() + ": " + this.contentHash + " -> " + newContentHash + ", mtime: " + mtime + " -> " + newMtime + "\n" + new String(newContent) + "\n\n");
+            Log.info("Couchbase document content changed: " + getPath());
             this.contentHash = newContentHash;
             this.mtime = newMtime;
         }
@@ -250,6 +251,22 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     void setSize(long length) {
         this.size = length;
+    }
+
+    void recordSavedContent(byte[] content) {
+        lastReadContent = content.clone();
+    }
+
+    public void acceptServerContent(byte[] content, long cas) {
+        updateFromCluster(content);
+        putUserData(VirtualFileKeys.CAS, Long.toString(cas));
+    }
+
+    /** Explicit reload, including when the user chose to discard unsaved edits. */
+    public void reloadFromCluster() {
+        GetResult result = fetch();
+        updateFromCluster(fetchContent(result));
+        putUserData(VirtualFileKeys.CAS, Long.toString(result.cas()));
     }
 
     public boolean checkUpdatedOnCluster() {

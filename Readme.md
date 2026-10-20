@@ -25,6 +25,40 @@ To connect to a Couchbase Cluster, follow these steps:
 
 <img src="doc/gifs/AddConnection.gif" height="80%" width="80%" alt="Add Connection to Cluster" />
 
+For certificate authentication, select **Client certificate** under **Credentials →
+Authentication**. Choose a PKCS#12 (`.p12`/`.pfx`) or Java (`.jks`) keystore containing
+one client private key and its certificate chain, and enter its keystore password
+(leave empty for a passwordless keystore). Add a PEM **Server CA** file when your
+server uses a private certificate authority. TLS is enabled automatically; no
+database username or password is requested. The server maps the certificate to a
+Couchbase user and its roles. Keystore passwords use the IDE password safe; saved
+connection settings contain file paths, not private keys or passwords.
+
+This authenticates the explorer, document editor, SQL++ workbench, and REST-based
+cluster views. The existing external import/export, migration, benchmark, and shell
+launchers require a username/password connection; their actions explain this when
+a certificate connection is active. Server-side client-certificate handling must
+be enabled. See [Couchbase certificate authentication](https://docs.couchbase.com/java-sdk/current/howtos/sdk-authentication.html#authenticating-the-java-client-by-certificate).
+
+To try it locally with Docker, run `python3 tools/start-certificate-test-cluster.py`.
+This creates a separate local cluster and writes test certificates to the ignored
+`build/certificate-demo/` directory. In **New Couchbase Connection**, use:
+
+| Setting | Local test value |
+| --- | --- |
+| Connection string | `couchbases://localhost` |
+| Authentication | Client certificate |
+| Client keystore | Absolute path to `build/certificate-demo/client.p12` |
+| Keystore password | `changeit` |
+| Server CA | Absolute path to `build/certificate-demo/ca.pem` |
+
+Click **Test Connection**, then **Save**. The bucket is `certificate_test`. The
+cluster uses loopback ports 18091–18096 and 11207; its administrative console is
+at `http://localhost:18080` (`Administrator` / `password`, local test credentials).
+Existing test clusters are preserved. Test certificates expire after 30 days;
+remove `build/certificate-demo/.fixture-version-2` and rerun the helper to regenerate
+them. Stop this cluster with `docker stop couchbase-plugin-certificate`.
+
 > **_NOTE:_** If you inform the "Default Bucket" field anc click on "Test Connection" we will run the SDK Doctor
 > utility, which helps you to identify potential problems with your connection.
 
@@ -50,6 +84,26 @@ to refresh Collections.
 
 <img src="doc/gifs/InteractWithCollectionIndexes.gif" height="80%" width="80%" alt="Interact with Collections and Indexes" />
 
+Collections are listed alphabetically, ten at a time. Click **Load More** to show the
+next ten. Right-click a collection and choose **Add to Favorites** or **Remove from
+Favorites**. All favorites appear first when you open a scope, followed by its first
+ten collections, with each collection shown only once.
+
+Choose **Search Collection...** from the scope or Collections context menu to find
+a collection without loading more pages. Collection names are fetched when you
+first type, then filtered locally while you edit the search. Selecting a result
+adds it to the current list. Collapsing the scope or Collections folder resets the
+list to favorites plus the first ten; a search selection outside that first page
+will only remain if you favorite it.
+
+Select a scope, Collections folder, or collection and start typing to search
+inside the tree with JetBrains' native speed search. It also searches collection
+names outside the loaded pages, using one background snapshot per search session.
+Use the arrow keys to navigate, **Enter** to keep a collection in the list, and
+**Escape** to cancel the preview. Use the collection's right-click menu to add or
+remove it from favorites. Favorited collections display a gray star; other
+collections have no star. The Collections row shows the visible and total counts.
+
 ### Interact with Documents
 
 1. Click on the desired Collection to list all the documents that have been stored within it.
@@ -58,6 +112,11 @@ to refresh Collections.
    on the Collection directory.
 4. Once you have made any necessary changes to a document, you can save it using the "Ctrl + S" or "Cmd + S" shortcut
    keys.
+
+Document reads, creation, and saves run in the background. The editor remains
+unsaved until the server accepts the captured version; edits made while a save is
+pending remain unsaved. CAS conflict checks and expiration preservation still
+apply. Project closing waits for pending saves and retains the project on failure.
 
 <img src="doc/gifs/InteractWithDocuments.gif" height="80%" width="80%" alt="Interact with Documents" />
 
@@ -149,7 +208,29 @@ unnecessary steps or confusion.
 
 <img src="doc/screenshots/SelectiveQueryExecution.png" height="80%" width="80%" alt="Selective Query Execution" />
 
+### Query history and workbench actions
+
+Use the history arrows to browse previous queries. Moving forward past the newest
+query restores your current draft, including edits made before browsing. Edits to
+recalled queries are also kept while navigating. Empty history disables both
+arrows and shows **No history**.
+
+**Execute**, **Explain**, and **Format Code** remain on the workbench toolbar.
+**More Query Actions** contains **Advise**, **Saved Queries**, **Named Parameters**,
+**Favorite Query**, and **Query Options**.
+
+Tree requests show what is loading. A failed request offers a **Retry** row,
+activated by clicking it or pressing Enter. Retrying a failed page keeps the
+items already loaded. Empty nodes distinguish **No collections**, **No documents**,
+and **No matching documents** when a document filter excludes all results.
+Collections confirmed to contain no documents hide **Schema**. Refreshing after
+adding a document restores it; an empty filtered page does not hide it on a populated collection.
+
 ### Read-Only Mode
+
+Read-only protection checks every statement before starting a multi-statement
+script. Individual queries and transactional script statements also use the
+server's read-only query option.
 
 If you are accessing sensible environments and are afraid of changing any data by mistake, the plugin also offers a
 read-only mode. Once activated, an eye icon appears next to the connection's name, indicating that the plugin is in
@@ -166,6 +247,13 @@ configurations remain protected from accidental alterations while using the plug
 <img src="doc/screenshots/ReadOnlyMode2.png" height="80%" width="80%" alt="Read-Only Mode" />
 <img src="doc/screenshots/ReadOnlyMode3.png" height="80%" width="80%" alt="Read-Only Mode" />
 <img src="doc/screenshots/ReadOnlyMode4.png" height="80%" width="80%" alt="Read-Only Mode" />
+
+## Testing
+
+Run the existing tests with `./gradlew test`. The separate `./gradlew uiTest` suite
+drives real plugin dialogs with mouse and keyboard input and uses a temporary
+Couchbase Docker container for document workflows. See [UI tests](doc/ui-tests.md)
+for prerequisites, Linux/Xvfb commands, coverage, and test reports.
 
 ## License
 

@@ -1,0 +1,41 @@
+name: UI tests
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  dialog-ui-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install isolated X11 and Wayland displays
+        run: sudo apt-get update && sudo apt-get install -y xvfb weston
+      - name: Start certificate authentication fixture
+        run: python3 tools/start-certificate-test-cluster.py
+      - name: Run UI tests with Couchbase in Docker
+        run: bash tools/run-ui-tests.sh -PcertificateDemoTests=true --stacktrace --console=plain
+      - name: Open critical windows on X11 and native Wayland
+        if: ${{ !cancelled() }}
+        run: python3 tools/run-critical-gui-tests.py --stacktrace --console=plain
+      - name: Upload test reports, screenshots, and IDE logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: |
+            build/reports/tests/uiTest/
+            build/reports/uiTest/
+            build/test-results/uiTest/
+            build/ui-test-sandbox/**/log*/
+            build/reports/critical-gui/
+            build/reports/tests/criticalGuiSmokeTest/
+            build/test-results/criticalGuiSmokeTest/
+            build/critical-gui-sandbox/**/log*/

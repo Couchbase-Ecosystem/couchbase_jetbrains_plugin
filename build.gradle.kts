@@ -1,26 +1,38 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatform
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("java")
-    id("org.jetbrains.intellij.platform") version "2.7.1"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
 group = "com.couchbase"
-version = "1.1.10"
+version = "1.1.11"
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 sourceSets["main"].java.srcDirs("src/main/gen")
+
+val uiTestSourceSet = sourceSets.create("uiTest") {
+    compileClasspath += sourceSets["test"].compileClasspath
+    runtimeClasspath += sourceSets["test"].runtimeClasspath
+}
 
 repositories {
     mavenLocal()
     mavenCentral()
     gradlePluginPortal()
-    maven { url = uri("https://mobile.maven.couchbase.com/maven2/dev/") }
+    maven {
+        url = uri("https://mobile.maven.couchbase.com/maven2/dev/")
+        content { includeGroupByRegex("com\\.couchbase.*") }
+    }
     intellijPlatform {
         defaultRepositories()
     }
@@ -32,56 +44,86 @@ configurations.configureEach {
 }
 
 dependencies {
-    implementation("org.projectlombok:lombok:1.18.28")
+    implementation("org.projectlombok:lombok:1.18.48")
     implementation(files("lib/couchbase-lite-java-ee-3.1.3-7-release.jar"))
-    annotationProcessor("org.projectlombok:lombok:1.18.30")
-    compileOnly("org.projectlombok:lombok:1.18.30")
-    implementation("com.couchbase.client:java-client:3.6.1")
-    implementation("org.slf4j:slf4j-simple:2.0.7")
-    implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
-    implementation("com.google.code.gson:gson:2.10.1")
+    annotationProcessor("org.projectlombok:lombok:1.18.48")
+    compileOnly("org.projectlombok:lombok:1.18.48")
+    implementation("com.couchbase.client:java-client:3.13.0")
+    implementation("org.slf4j:slf4j-simple:2.0.20")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
+    implementation("com.google.code.gson:gson:2.14.0")
 
-    implementation("software.amazon.awssdk:dynamodb:2.25.60")
-    implementation("software.amazon.awssdk:auth:2.25.60")
-    implementation("org.mongodb:mongodb-driver-sync:4.11.1")
+    implementation("software.amazon.awssdk:dynamodb:2.56.0")
+    implementation("software.amazon.awssdk:auth:2.56.0")
+    implementation("org.mongodb:mongodb-driver-sync:5.13.0")
 
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.opencsv:opencsv:5.12.0") // OpenCSV
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation("com.opencsv:opencsv:5.5.2") // OpenCSV
-    implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.10.0")
-    implementation("com.obiscr:openai-auth:1.0.1")
+    testImplementation("org.mockito:mockito-core:5.24.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.14.4")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.14.4")
 
-
-    testImplementation("org.mockito:mockito-core:5.2.0")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.10.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-
-    implementation("com.didalgo:gpt3-tokenizer:0.1.7")
-    implementation("com.fifesoft:rsyntaxtextarea:3.3.3")
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
-    implementation("com.squareup.okhttp3:okhttp-sse:4.11.0")
-    implementation("com.squareup.retrofit2:converter-jackson:2.9.0")
-    implementation("com.theokanning.openai-gpt3-java:service:0.14.0")
-    implementation("com.vladsch.flexmark:flexmark:0.64.8")
-    implementation("com.vladsch.flexmark:flexmark-ext-tables:0.64.8")
-
-    implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
-
-    testImplementation("org.testcontainers:couchbase:1.19.7")
+    testImplementation("org.testcontainers:couchbase:1.21.4")
     testImplementation("junit:junit:4.13.2")
 
+    add(uiTestSourceSet.implementationConfigurationName, "org.assertj:assertj-swing:3.17.1")
+
     intellijPlatform {
-        intellijIdeaCommunity("2025.1")
+        intellijIdeaCommunity("2025.2")
         bundledPlugin("com.intellij.java")
-        bundledPlugin("org.jetbrains.completion.full.line")
         bundledPlugin("com.intellij.modules.json")
-        bundledPlugin("org.jetbrains.plugins.terminal")
         testFramework(TestFrameworkType.Platform)
+    }
+}
+
+// Real Swing dialogs driven by a robot. Keep display/Docker requirements out of `test`.
+val uiTest = intellijPlatformTesting.testIde.register("uiTest") {
+    sandboxDirectory = layout.buildDirectory.dir("ui-test-sandbox")
+    task {
+        description = "Runs plugin dialog UI tests (requires a display and Docker)."
+        group = "verification"
+        testClassesDirs = uiTestSourceSet.output.classesDirs
+        // Use the IDE's JNA classes with its native library. Testcontainers brings an
+        // older JNA whose ABI does not match the native library selected by the IDE.
+        classpath = (classpath + uiTestSourceSet.runtimeClasspath).filter {
+            !it.name.startsWith("jna-")
+        }
+        systemProperty("java.awt.headless", "false")
+        // Exercise production background behavior; unit-test mode otherwise pumps only
+        // non-input events while waiting synchronously for background tasks.
+        systemProperty("intellij.progress.task.ignoreHeadless", "true")
+        systemProperty("cb.certificate.demo", providers.gradleProperty("certificateDemoTests").getOrElse("false"))
+        systemProperty("ui.test.artifacts", layout.buildDirectory.dir("reports/uiTest/artifacts").get().asFile)
+        maxParallelForks = 1
+        exclude("**/CriticalGuiSmokeTest.class")
+        if (providers.gradleProperty("uiTestsWithoutDocker").map(String::toBoolean).getOrElse(false)) {
+            exclude("**/*CouchbaseUiTest.class")
+        }
+        testLogging {
+            events("passed", "skipped", "failed")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+}
+
+// Allocate actual native window peers on each supported Linux toolkit. No Robot or
+// desktop portal is used; tools/run-critical-gui-tests.py supplies isolated displays.
+val criticalGuiSmokeTest = intellijPlatformTesting.testIde.register("criticalGuiSmokeTest") {
+    sandboxDirectory = layout.buildDirectory.dir("critical-gui-sandbox")
+    task {
+        description = "Opens critical plugin windows using real X11 or Wayland peers."
+        group = "verification"
+        testClassesDirs = uiTestSourceSet.output.classesDirs
+        classpath = (classpath + uiTestSourceSet.runtimeClasspath).filter { !it.name.startsWith("jna-") }
+        include("**/CriticalGuiSmokeTest.class")
+        systemProperty("java.awt.headless", "false")
+        systemProperty("awt.toolkit.name", providers.gradleProperty("guiToolkit").getOrElse("XToolkit"))
+        maxParallelForks = 1
+        testLogging {
+            events("passed", "skipped", "failed")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
     }
 }
 
@@ -104,6 +146,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
+            1.1.11  - removes the Capella iQ chat tab and its Capella login; dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with IntelliJ 2025.2 (252) up to 2027.3 (273.*); dropped support for 2025.1
             1.1.10  - compatibility with intellij 262.*
             1.1.9   - compatibility with intellij 261.*
             1.1.8   - fixes issue connecting to Capella clusters via private link endpoint
@@ -112,8 +155,8 @@ intellijPlatform {
             1.1.6.2 — adds support for 2025.1
         """.trimIndent()
         ideaVersion {
-            sinceBuild = "251.23774.435"
-            untilBuild = provider { null }
+            sinceBuild = "252"
+            untilBuild = "273.*"
         }
         vendor {
             name = "Couchbase"
@@ -122,15 +165,29 @@ intellijPlatform {
         }
     }
     pluginVerification {
-        ides{
-            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.1")
-            ide(IntelliJPlatformType.IntellijIdeaUltimate, "2026.2")
+        failureLevel = listOf(
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+            VerifyPluginTask.FailureLevel.NOT_DYNAMIC,
+            VerifyPluginTask.FailureLevel.DEPRECATED_API_USAGES,
+            VerifyPluginTask.FailureLevel.SCHEDULED_FOR_REMOVAL_API_USAGES,
+            VerifyPluginTask.FailureLevel.INTERNAL_API_USAGES,
+            VerifyPluginTask.FailureLevel.OVERRIDE_ONLY_API_USAGES,
+            VerifyPluginTask.FailureLevel.NON_EXTENDABLE_API_USAGES,
+            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
+        )
+        ides {
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
+            create(IntelliJPlatformType.IntellijIdea, "2026.2")
+            create(IntelliJPlatformType.IntellijIdeaCommunity, "LATEST-EAP-SNAPSHOT") {
+                useInstaller = false
+            }
         }
     }
 }
 
 tasks.wrapper {
-    gradleVersion = "8.14.3"
+    gradleVersion = "9.8.1"
 }
 //intellij {
 //    version.set("2025.1")
@@ -140,4 +197,3 @@ tasks.wrapper {
 //    plugins.add("json")
 //    plugins.add("intellij.json.backend")
 //}
-

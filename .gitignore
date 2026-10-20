@@ -47,3 +47,4 @@ bin/
 .DS_Store
 ### Couchbase Plugin ###
 .cbcache/
+.intellijPlatform/

@@ -107,7 +107,17 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
     }
 
     public JsonObject generateDocument() {
-        return getChildren().stream().sorted(Comparator.comparingLong(flavor -> -flavor.getSampleSize()))
+        return generateDocument(getChildren());
+    }
+
+    /** Used by optional templates: missing or unfinished inference must not prevent document creation. */
+    public JsonObject generateCachedDocument() {
+        Set<CouchbaseDocumentFlavor> snapshot = children.getValue();
+        return snapshot == null ? null : generateDocument(snapshot);
+    }
+
+    private JsonObject generateDocument(Set<CouchbaseDocumentFlavor> flavors) {
+        return flavors.stream().sorted(Comparator.comparingLong(flavor -> -flavor.getSampleSize()))
                 .map(CouchbaseDocumentFlavor::generateDocument)
                 .reduce((l, r) -> {
                     r.toMap().keySet().forEach(key -> {
@@ -133,10 +143,13 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
 
     public Set<String> getAllAttributeNames() {
         Set<String> attributeNames = new HashSet<>();
-
-        // Check if children are not null
-        this.children.get().stream().flatMap(Collection::stream)
-                .forEach(flavor -> collectAttributeNames(flavor, attributeNames));
+        // Completion must return immediately while inference is pending, empty or failed.
+        Set<CouchbaseDocumentFlavor> snapshot = children.getValue();
+        if (snapshot == null) return Set.of();
+        for (CouchbaseDocumentFlavor flavor : snapshot) {
+            ProgressManager.checkCanceled();
+            collectAttributeNames(flavor, attributeNames);
+        }
 
         return attributeNames;
     }
@@ -152,6 +165,7 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
         Set<CouchbaseField> fields = flavor.getChildren();
         if (fields != null) {
             for (CouchbaseField field : fields) {
+                ProgressManager.checkCanceled();
                 attributeNames.add(field.getName());
                 collectAttributeNamesFromFields(field.getChildren(), attributeNames);
             }
@@ -166,6 +180,7 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
      */
     private void collectAttributeNamesFromFields(Set<CouchbaseField> fields, Set<String> attributeNames) {
         for (CouchbaseField field : fields) {
+            ProgressManager.checkCanceled();
             attributeNames.add(field.getName());
             if (field.hasChildren()) {
                 collectAttributeNamesFromFields(field.getChildren(), attributeNames);

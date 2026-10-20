@@ -5,6 +5,7 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.persistence.storage.NamedParamsStorage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.project.ProjectUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +25,7 @@ public class NamedParametersUtil {
     public static Map<String, String> readProjectNamedParameters(Project project) {
         Map<String, String> propertiesMap = new HashMap<>();
 
-        VirtualFile baseDir = project.getBaseDir();
+        VirtualFile baseDir = ProjectUtil.guessProjectDir(project);
         if (baseDir == null) {
             return propertiesMap;
         }

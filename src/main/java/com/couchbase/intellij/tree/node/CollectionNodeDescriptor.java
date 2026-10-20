@@ -10,6 +10,7 @@ public class CollectionNodeDescriptor extends CounterNodeDescriptor {
     private String scope;
 
     private QueryFilter queryFilter;
+    private boolean favorite;
 
     public CollectionNodeDescriptor(String name, String connectionId, String bucket, String scope, QueryFilter queryFilter) {
         super(name, IconLoader.getIcon("/assets/icons/collection.svg", ScopeNodeDescriptor.class));
@@ -17,6 +18,15 @@ public class CollectionNodeDescriptor extends CounterNodeDescriptor {
         this.bucket = bucket;
         this.scope = scope;
         this.queryFilter = queryFilter;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
+
     }
 
     public String getConnectionId() {

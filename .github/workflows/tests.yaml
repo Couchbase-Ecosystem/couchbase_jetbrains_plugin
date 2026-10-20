@@ -11,10 +11,12 @@ jobs:
           distribution: adopt
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+      - name: Check Gradle retry behavior
+        run: python3 tools/test_gradle_with_retry.py
       - name: Run the Gradle package task
         env:
           CAPELLA_DOMAIN: https://api.dev.nonprod-project-avengers.com
           IQ_ORG_ID: ${{ secrets.IQ_ORG_ID }}
           IQ_ORG_LOGIN: ${{ secrets.IQ_ORG_LOGIN }}
           IQ_ORG_PASSWD: ${{ secrets.IQ_ORG_PASSWD }}
-        run: ./gradlew test buildPlugin --stacktrace --info
+        run: bash tools/gradle-with-retry.sh test buildPlugin --stacktrace --info

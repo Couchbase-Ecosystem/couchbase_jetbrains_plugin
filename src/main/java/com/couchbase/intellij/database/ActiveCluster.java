@@ -7,6 +7,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
@@ -46,9 +47,16 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private final List<Runnable> newConnectionListener = new ArrayList<>();
 
     private static List<String> searchNodes;
-    private Cluster cluster;
-    private SavedCluster savedCluster;
+    private volatile Cluster cluster;
+    private volatile SavedCluster savedCluster;
     private String password;
+    private ConnectionAuthentication authentication;
+
+    public ConnectionAuthentication getAuthentication() { return authentication; }
+
+    public boolean usesCertificateAuthentication() {
+        return savedCluster != null && savedCluster.usesCertificateAuthentication();
+    }
     private List<String> services;
     private String version;
 
@@ -56,7 +64,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     private Permissions permissions;
 
-    private Set<CouchbaseBucket> buckets;
+    private volatile Set<CouchbaseBucket> buckets;
     private long lastSchemaUpdate = 0;
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
@@ -87,6 +95,11 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         if (INSTANCE != null && INSTANCE.isPresent() && INSTANCE.getValue().cluster != null) {
             listener.accept(INSTANCE.getValue());
         }
+    }
+
+    public static void subscribe(com.intellij.openapi.Disposable owner, Consumer<ActiveCluster> listener) {
+        subscribe(listener);
+        com.intellij.openapi.util.Disposer.register(owner, () -> clusterListeners.remove(listener));
     }
 
     public static void subscribeNew(Consumer<ActiveCluster> listener) {
@@ -148,28 +161,14 @@ public class ActiveCluster implements CouchbaseClusterEntity {
                 try {
                     String password = DataLoader.getClusterPassword(savedCluster);
 
-                    ClusterOptions options;
-                    if (!savedCluster.getLDAP()) {
-                        options = ClusterOptions.clusterOptions(savedCluster.getUsername(), password);
-                    } else {
-                        PasswordAuthenticator authenticator = PasswordAuthenticator.builder().username(savedCluster.getUsername())
-                                .password(password)
-                                .onlyEnablePlainSaslMechanism().build();
-
-                        options = ClusterOptions.clusterOptions(authenticator);
-                    }
-
-//TODO: Don't know why this doesn't work
-//                    options.environment(env -> {
-//                        env.applyProfile("wan-development");
-//                    });
-
+                    ConnectionAuthentication authentication = ConnectionAuthentication.load(savedCluster, password);
                     Cluster cluster = Cluster.connect(savedCluster.getUrl()
                                     + (savedCluster.getQueryParams() == null ? "" : savedCluster.getQueryParams()),
-                            options);
+                            authentication.clusterOptions());
 
                     cluster.waitUntilReady(Duration.ofSeconds(10));
                     ActiveCluster.this.cluster = cluster;
+                    ActiveCluster.this.authentication = authentication;
                     ActiveCluster.this.savedCluster = savedCluster;
                     ActiveCluster.this.password = password;
                     ActiveCluster.this.disconnectListener = disconnectListener;
@@ -303,6 +302,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         this.savedCluster = null;
         this.cluster = null;
         this.password = null;
+        this.authentication = null;
         this.color = null;
         this.buckets = null;
         this.disconnectListener = null;
@@ -318,6 +318,9 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     }
 
     public String getPassword() {
+        if (usesCertificateAuthentication()) {
+            throw new IllegalStateException("This external tool requires a username/password connection; the keystore password cannot be used as a database password.");
+        }
         return this.password;
     }
 
@@ -412,6 +415,16 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return buckets;
     }
 
+    /** Completion runs under a platform read lock and may only inspect published snapshots. */
+    public Optional<CouchbaseCollection> getCachedCollection(String bucket, String scope, String collection) {
+        Set<CouchbaseBucket> snapshot = buckets;
+        if (snapshot == null) return Optional.empty();
+        return snapshot.stream().filter(b -> Objects.equals(bucket, b.getName()))
+                .flatMap(b -> b.getCachedChildren().stream()).filter(s -> Objects.equals(scope, s.getName()))
+                .flatMap(s -> s.getCachedChildren().stream()).filter(c -> Objects.equals(collection, c.getName()))
+                .findFirst();
+    }
+
     private List<Consumer<Exception>> schemaListeners = Collections.synchronizedList(new ArrayList<>());
 
     private void scheduleSchemaUpdate(Consumer<Exception> onComplete) {
@@ -465,14 +478,14 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         Log.debug("Updating cluster schema");
         Set<CouchbaseBucket> newbuckets = new HashSet<>();
         if (buckets == null) {
-            buckets = newbuckets;
+            buckets = Set.of();
         }
         cluster.buckets().getAllBuckets().forEach((b, settings) -> {
             CouchbaseBucket bucket = new CouchbaseBucket(this, b);
             bucket.updateSchema();
             newbuckets.add(bucket);
         });
-        buckets = newbuckets;
+        buckets = Set.copyOf(newbuckets);
         lastSchemaUpdate = System.currentTimeMillis();
         Log.debug("updated cluster schema");
     }
@@ -521,7 +534,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     public void clearSchema() {
         if (!this.schemaUpdating.get() && this.buckets != null) {
-            this.buckets.clear();
+            this.buckets = Set.of();
             this.lastSchemaUpdate = 0;
         }
     }

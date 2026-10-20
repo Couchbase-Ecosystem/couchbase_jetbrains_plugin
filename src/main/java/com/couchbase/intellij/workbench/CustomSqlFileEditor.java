@@ -1,17 +1,14 @@
 package com.couchbase.intellij.workbench;
 
-
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.QueryContext;
 import com.couchbase.intellij.persistence.SavedCluster;
-import com.couchbase.intellij.persistence.storage.ClustersStorage;
 import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -27,7 +24,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.newvfs.RefreshQueue;
 import com.intellij.pom.Navigatable;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiErrorElement;
@@ -36,6 +32,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.util.Computable;
 import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.intellij.sdk.language.psi.SqlppFile;
@@ -53,7 +50,6 @@ import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.couchbase.intellij.workbench.QueryExecutor.QueryType.*;
@@ -67,12 +63,15 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
     JPanel panel;
     private JLabel historyLabel;
     private JComponent component;
-    private int currentHistoryIndex;
+    private QueryHistoryNavigator history;
+    private ActionToolbar historyToolbar;
     private JPanel topPanel;
 
     private boolean isExecutingQuery = false;
+    private boolean disposed;
     private AnAction executeAction;
     private AnAction cancelAction;
+    private ActionToolbar executeToolbar;
 
     private BlockingQueue<Boolean> queryExecutionChannel;
     private BlockingQueue<Boolean> scriptExecutionChannel;
@@ -98,15 +97,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
     public static void openDocument(Project project, String bucket, String scope, String collection, String id, @Nullable Tree tree) {
         String fileName = id + ".json";
         FileNodeDescriptor descriptor = new FileNodeDescriptor(fileName, bucket, scope, collection, id, FileNodeDescriptor.FileType.JSON, null);
-        DataLoader.loadDocument(project, descriptor, tree);
-
-        VirtualFile virtualFile = descriptor.getVirtualFile();
-        if (virtualFile != null) {
-            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-            fileEditorManager.openFile(virtualFile, true);
-        } else {
-            Log.debug("virtual file is null");
-        }
+        DataLoader.loadDocument(project, descriptor, tree,
+                file -> EditorOpening.openFile(project, file));
     }
 
     @NotNull
@@ -132,11 +124,60 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     }
 
+    private void startQueryExecution(DefaultActionGroup group, QueryExecutor.QueryType type, List<String> statements) {
+        if (isExecutingQuery || statements.isEmpty()) return;
+        QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
+        int historyIndex = type == NORMAL ? history.executionIndex(QueryHistoryStorage.getInstance().getValue().getHistory()) : -1;
+        BlockingQueue<Boolean> cancellation = new LinkedBlockingQueue<>(1);
+        queryExecutionChannel = cancellation;
+        scriptExecutionChannel = cancellation;
+        QueryResultUtil.getOutputWindow(project);
+        isExecutingQuery = true;
+        cancelAction = new AnAction("Cancel", "Cancel query execution",
+                IconLoader.getIcon("/assets/icons/cancel.svg", CustomSqlFileEditor.class)) {
+            private boolean requested;
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent event) {
+                requested = true;
+                cancellation.offer(true);
+                event.getPresentation().setEnabled(false);
+            }
+            @Override public void update(@NotNull AnActionEvent event) {
+                event.getPresentation().setEnabled(!requested);
+            }
+            @Override public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
+        };
+        group.replaceAction(executeAction, cancelAction);
+        executeToolbar.updateActionsAsync();
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    if (statements.size() == 1) {
+                        QueryExecutor.executeQuery(cancellation, type, context, statements.getFirst(), historyIndex, project);
+                    } else {
+                        QueryExecutor.executeScript(cancellation, type, context, statements, historyIndex, project);
+                    }
+                } finally {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        if (project.isDisposed() || disposed) return;
+                        history.refresh(QueryHistoryStorage.getInstance().getValue().getHistory(), queryEditor.getDocument().getText());
+                        updateHistoryPresentation();
+                        group.replaceAction(cancelAction, executeAction);
+                        executeToolbar.updateActionsAsync();
+                        isExecutingQuery = false;
+                    });
+                }
+            }
+        });
+    }
+
     private void buildToolbar() {
         DefaultActionGroup executeGroup = new DefaultActionGroup();
+        DefaultActionGroup moreActions = new DefaultActionGroup("More Query Actions", true);
+        moreActions.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/ellipsis_horizontal.svg", CustomSqlFileEditor.class));
 
         Icon executeIcon = IconLoader.getIcon("/assets/icons/play.svg", CustomSqlFileEditor.class);
-        Icon cancelIcon = IconLoader.getIcon("/assets/icons/cancel.svg", CustomSqlFileEditor.class);
 
         executeAction = new AnAction("Execute", "Execute the query statement in the editor", executeIcon) {
             @Override
@@ -145,76 +186,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     return;
                 }
 
-                queryExecutionChannel = new LinkedBlockingQueue<>(1);
-                scriptExecutionChannel = new LinkedBlockingQueue<>(1);
-
-                if (!isExecutingQuery) {
-                    isExecutingQuery = true;
-
-                    cancelAction = new AnAction("Cancel", "Cancel query execution", cancelIcon) {
-                        @Override
-                        public void actionPerformed(@NotNull AnActionEvent e) {
-                            if (queryExecutionChannel.peek() == null) {
-                                try {
-                                    queryExecutionChannel.put(true);
-                                } catch (InterruptedException ex) {
-                                    throw new RuntimeException(ex);
-                                }
-                            }
-                            if (scriptExecutionChannel.peek() == null) {
-                                try {
-                                    scriptExecutionChannel.put(true);
-                                } catch (InterruptedException ex) {
-                                    throw new RuntimeException(ex);
-                                }
-                            }
-
-                            executeGroup.replaceAction(this, executeAction);
-                            isExecutingQuery = false;
-                        }
-                    };
-
-                    executeGroup.replaceAction(this, cancelAction);
-                    isExecutingQuery = true;
-
-                    List<String> statements = getStatements();
-
-                    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
-                        @Override
-                        public void run(@NotNull ProgressIndicator indicator) {
-
-                            ApplicationManager.getApplication().invokeLater(() -> {
-                                boolean query = false;
-                                boolean script = false;
-                                QueryContext context = ActiveCluster.getInstance().getQueryContext().getValue();
-                                if (statements.size() == 0) {
-                                    return;
-                                } else if (statements.size() == 1) {
-                                    query = QueryExecutor.executeQuery(queryExecutionChannel, NORMAL, context, statements.get(0), currentHistoryIndex, project);
-                                } else {
-                                    script = QueryExecutor.executeScript(scriptExecutionChannel, NORMAL, context, statements, currentHistoryIndex, project);
-
-                                }
-
-                                try {
-                                    if (query || script) {
-                                        int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-                                        currentHistoryIndex = historySize - 1;
-                                        ApplicationManager.getApplication().invokeLater(() -> {
-                                            historyLabel.setText("history (" + historySize + "/" + historySize + ")");
-                                            historyLabel.revalidate();
-                                        });
-                                    }
-                                } catch (Exception ex) {
-                                    throw new RuntimeException(ex);
-                                }
-
-                                executeGroup.replaceAction(cancelAction, executeAction);
-                                isExecutingQuery = false;
-                            });
-                        }
-                    });
-                }
+                startQueryExecution(executeGroup, NORMAL, getStatements());
             }
         };
 
@@ -228,10 +200,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         executeAction.registerCustomShortcutSet(shortcutSet, queryEditor.getComponent());
         executeGroup.add(executeAction);
 
-        executeGroup.addSeparator();
-
         Icon adviseIcon = IconLoader.getIcon("/assets/icons/advise.svg", CustomSqlFileEditor.class);
-        executeGroup.add(new AnAction("Advise", "Get index recommendations about focused query", adviseIcon) {
+        moreActions.add(new AnAction("Advise", "Get index recommendations about focused query", adviseIcon) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().invokeLater(() -> {
@@ -240,7 +210,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                     }
                     String statement = getFocusedStatement();
 
-                    QueryExecutor.executeQuery(queryExecutionChannel, ADVISE, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                    startQueryExecution(executeGroup, ADVISE, List.of(statement));
                 });
             }
         });
@@ -254,17 +224,16 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         return;
                     }
                     String statement = getFocusedStatement();
-                    QueryExecutor.executeQuery(queryExecutionChannel, EXPLAIN, ActiveCluster.getInstance().getQueryContext().getValue(), statement, -1, project);
+                    startQueryExecution(executeGroup, EXPLAIN, List.of(statement));
                 });
             }
         });
 
 
-        executeGroup.addSeparator();
-
+        moreActions.addSeparator();
 
         Icon favoriteList = IconLoader.getIcon("/assets/icons/favorites-list.svg", CustomSqlFileEditor.class);
-        executeGroup.add(new AnAction("Favorite List", "List of favorite queries", favoriteList) {
+        moreActions.add(new AnAction("Saved Queries", "Open saved queries", favoriteList) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 FavoriteQueryDialog dialog = new FavoriteQueryDialog(project, queryEditor.getDocument());
@@ -272,7 +241,6 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             }
         });
 
-        executeGroup.addSeparator();
         Icon formatCode = IconLoader.getIcon("/assets/icons/format.svg", CustomSqlFileEditor.class);
         executeGroup.add(new AnAction("Format Code", "Formats a SQL++ code", formatCode) {
             @Override
@@ -280,68 +248,28 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                 ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(SQLPPFormatter.format(queryEditor.getDocument().getText())));
             }
         });
-        executeGroup.addSeparator();
-
-        ActionToolbar executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
+        executeToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, executeGroup, true);
         executeToolbar.setTargetComponent(queryEditor.getComponent());
 
-        Icon leftIcon = IconLoader.getIcon("/assets/icons/chevron-left.svg", CustomSqlFileEditor.class);
-        Icon rightIcon = IconLoader.getIcon("/assets/icons/chevron-right.svg", CustomSqlFileEditor.class);
-
-        DefaultActionGroup prevActionGroup = new DefaultActionGroup();
-        prevActionGroup.add(new AnAction("Previous History", "Previous history", leftIcon) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                if (currentHistoryIndex - 1 >= 0) {
-                    currentHistoryIndex--;
-                    ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex)));
-
-
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
-                        historyLabel.revalidate();
-                    });
-
-                }
-            }
-        });
-
-        DefaultActionGroup nextActionGroup = new DefaultActionGroup();
-        nextActionGroup.add(new AnAction("Next History", "Next history", rightIcon) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                if (currentHistoryIndex + 1 < QueryHistoryStorage.getInstance().getValue().getHistory().size()) {
-                    currentHistoryIndex++;
-
-                    ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(QueryHistoryStorage.getInstance().getValue().getHistory().get(currentHistoryIndex)));
-
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        historyLabel.setText("history (" + (currentHistoryIndex + 1) + "/" + QueryHistoryStorage.getInstance().getValue().getHistory().size() + ")");
-                        historyLabel.revalidate();
-                    });
-                }
-            }
-        });
-
-        ActionToolbar prevToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, prevActionGroup, true);
-        prevToolbar.setTargetComponent(panel);
-        ActionToolbar nextToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, nextActionGroup, true);
-        nextToolbar.setTargetComponent(panel);
-
-        int historySize = QueryHistoryStorage.getInstance().getValue().getHistory().size();
-        currentHistoryIndex = Math.max((historySize - 1), 0) + 1;
-        historyLabel = new JLabel("history (" + (historySize + 1) + "/" + historySize + ")");
-        historyLabel.setFont(historyLabel.getFont().deriveFont(10.0f));
-        historyLabel.setBorder(JBUI.Borders.emptyRight(12));
-
+        history = new QueryHistoryNavigator(QueryHistoryStorage.getInstance().getValue().getHistory(), queryEditor.getDocument().getText());
+        DefaultActionGroup historyActions = new DefaultActionGroup();
+        historyActions.add(historyAction(true));
+        historyActions.add(historyAction(false));
+        historyToolbar = ActionManager.getInstance().createActionToolbar("CouchbaseQueryHistory", historyActions, true);
+        historyToolbar.setTargetComponent(queryEditor.getComponent());
+        historyLabel = new JLabel(history.label());
+        historyLabel.setName("queryHistoryPosition");
+        historyLabel.setFont(com.intellij.util.ui.JBFont.label());
+        historyLabel.setForeground(com.intellij.util.ui.UIUtil.getContextHelpForeground());
+        historyLabel.setBorder(JBUI.Borders.emptyRight(6));
         JPanel historyPanel = new JPanel(new BorderLayout());
-        historyPanel.add(prevToolbar.getComponent(), BorderLayout.WEST);
+        historyPanel.add(historyToolbar.getComponent(), BorderLayout.WEST);
         historyPanel.add(historyLabel, BorderLayout.CENTER);
-        historyPanel.add(nextToolbar.getComponent(), BorderLayout.EAST);
+        updateHistoryPresentation();
 
         JPanel favorite = new JPanel(new BorderLayout());
-        DefaultActionGroup favoriteActionGroup = new DefaultActionGroup();
-        ActionToolbar favToolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.TOOLBAR, favoriteActionGroup, true);
+        DefaultActionGroup favoriteActionGroup = moreActions;
+        ActionToolbar favToolbar = ActionManager.getInstance().createActionToolbar("CouchbaseQueryOptions", new DefaultActionGroup(moreActions), true);
         favToolbar.setTargetComponent(panel);
 
         favoriteActionGroup.add(new AnAction("Named Parameters", "Named parameters",
@@ -390,7 +318,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         leftPanel.add(executeToolbar.getComponent(), BorderLayout.WEST);
         leftPanel.add(getQueryContextPanel(), BorderLayout.CENTER);
 
-        topPanel.add(leftPanel, BorderLayout.WEST);
+        topPanel.add(leftPanel, BorderLayout.CENTER);
         topPanel.add(rightPanel, BorderLayout.EAST);
 
         if (ActiveCluster.getInstance().getColor() != null) {
@@ -401,6 +329,34 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         }
 
         panel.add(topPanel, BorderLayout.NORTH);
+    }
+
+    private AnAction historyAction(boolean previous) {
+        return new AnAction(previous ? "Previous History" : "Next History", previous ? "Previous query" : "Next query or return to draft",
+                IconLoader.getIcon(previous ? "/assets/icons/chevron-left.svg" : "/assets/icons/chevron-right.svg", CustomSqlFileEditor.class)) {
+            @Override public void actionPerformed(@NotNull AnActionEvent event) {
+                String current = queryEditor.getDocument().getText();
+                if (history.isDraft()) history.refresh(QueryHistoryStorage.getInstance().getValue().getHistory(), current);
+                String selected = previous ? history.previous(current) : history.next(current);
+                if (!Objects.equals(current, selected)) ApplicationManager.getApplication().runWriteAction(() -> queryEditor.getDocument().setText(selected));
+                if (history.isDraft()) history.refresh(QueryHistoryStorage.getInstance().getValue().getHistory(), selected);
+                updateHistoryPresentation();
+            }
+            @Override public void update(@NotNull AnActionEvent event) {
+                if (history != null && history.isDraft()) {
+                    history.refresh(QueryHistoryStorage.getInstance().getValue().getHistory(), queryEditor.getDocument().getText());
+                    if (historyLabel != null) historyLabel.setText(history.label());
+                }
+                event.getPresentation().setEnabled(history != null && (previous ? history.canPrevious() : history.canNext()));
+            }
+            @Override public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
+        };
+    }
+
+    private void updateHistoryPresentation() {
+        historyLabel.setText(history.label());
+        historyLabel.setToolTipText(history.isDraft() ? "Current draft. Browse previous queries without losing your edits." : "Use Next History to return to your draft.");
+        historyToolbar.updateActionsAsync();
     }
 
     private String normalizeStatement(Statement statement) {
@@ -421,7 +377,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         if (err != null) {
             return queryEditor.getDocument().getText();
         }
-        return ReadAction.compute(() -> {
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
             PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
             if (focused != null) {
                 return normalizeStatement(PsiTreeUtil.getTopmostParentOfType(focused, Statement.class));
@@ -443,14 +399,14 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         if (err != null) {
             return List.of(queryEditor.getDocument().getText());
         }
-        return ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
+        return ApplicationManager.getApplication().runReadAction((Computable<List<String>>) () -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
                 .map(this::normalizeStatement)
                 .collect(Collectors.toList())
         );
     }
 
     private JPanel getQueryContextPanel() {
-        JPanel contextPanel = new JPanel(new FlowLayout());
+        JPanel contextPanel = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
 
         DefaultActionGroup option1Group = new DefaultActionGroup("Set Query Context", true);
         option1Group.getTemplatePresentation().setIcon(IconLoader.getIcon("/assets/icons/query_context.svg", CustomSqlFileEditor.class));
@@ -464,20 +420,18 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("QueryContext", option1Action, true);
         actionToolbar.setTargetComponent(contextPanel);
         JLabel contextLabel = new JLabel(NO_QUERY_CONTEXT_SELECTED);
-        contextLabel.setFont(contextLabel.getFont().deriveFont(10.0f));
-
-        Map<String, SavedCluster> clusters = ClustersStorage.getInstance().getValue().getMap();
+        contextLabel.setFont(com.intellij.util.ui.JBFont.label());
+        contextLabel.setForeground(com.intellij.util.ui.UIUtil.getContextHelpForeground());
 
         this.createContextSelector(option1Group, contextLabel);
 
         JPanel toolbarPanel = new JPanel(new BorderLayout());
         toolbarPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
-        toolbarPanel.setBorder(JBUI.Borders.emptyRight(-12)); // Adjust these values as per your requirement
+        toolbarPanel.setBorder(JBUI.Borders.emptyRight(4));
 
         JPanel myPanel = new JPanel();
         myPanel.setLayout(new BoxLayout(myPanel, BoxLayout.X_AXIS));
         myPanel.add(toolbarPanel);
-        myPanel.add(Box.createRigidArea(new Dimension(0, 0))); // Adjust the value 5 as per your requirement
         myPanel.add(contextLabel);
         myPanel.setBorder(JBUI.Borders.emptyLeft(10));
 
@@ -515,7 +469,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         option1Group.addSeparator("Buckets");
 
 
-        ActiveCluster.subscribe(activeCluster -> {
+        ActiveCluster.subscribe(this, activeCluster -> {
+            com.intellij.openapi.util.Disposer.register(this, () -> activeCluster.getQueryContext().unsubscribe(this));
             activeCluster.getQueryContext().subscribe(this, queryContext -> {
                 ApplicationManager.getApplication().invokeLater(() -> {
                     if (queryContext.isPresent()) {
@@ -576,6 +531,8 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
 
     @Override
     public void dispose() {
+        disposed = true;
+        if (queryExecutionChannel != null) queryExecutionChannel.offer(true);
         queryEditor.release();
     }
 
