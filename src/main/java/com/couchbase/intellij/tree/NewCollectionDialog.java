@@ -7,6 +7,7 @@ import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.collections.CollectionListing;
 import com.couchbase.intellij.tree.node.CollectionsNodeDescriptor;
 import com.couchbase.intellij.tree.node.ScopeNodeDescriptor;
+import com.couchbase.intellij.database.collections.CollectionSources;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.treeStructure.Tree;
@@ -111,7 +112,7 @@ public class NewCollectionDialog extends DialogWrapper {
         com.couchbase.intellij.database.ClusterUiTask.submit(project, active, "Creating Couchbase collection", connection -> {
             pending.checkCancelled(); connection.requireWritable();
             CollectionManager manager = connection.sdk().bucket(bucketName).collections();
-            if (manager.getScope(scopeName).collections().stream().anyMatch(col -> col.name().equals(collectionName)))
+            if (CollectionSources.requireScope(manager, scopeName).collections().stream().anyMatch(col -> col.name().equals(collectionName)))
                 throw new IllegalArgumentException("Collection with name " + collectionName + " already exists");
             pending.beginMutation(connection, () -> getCancelAction().setEnabled(false));
             if (ttl <= 0) manager.createCollection(scopeName, collectionName);

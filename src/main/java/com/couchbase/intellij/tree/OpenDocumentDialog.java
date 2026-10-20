@@ -4,6 +4,7 @@ import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBPanel;
@@ -14,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-
 
 public class OpenDocumentDialog extends DialogWrapper {
     private static final int MINIMUM_WIDTH = 300;
@@ -156,7 +156,7 @@ public class OpenDocumentDialog extends DialogWrapper {
         }, file -> {
             if (isDisposed()) return;
             close(OK_EXIT_CODE);
-            com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).openFile(file, true);
+            EditorOpening.openFile(project, file);
         }, error -> {
             if (isDisposed()) return;
             operation = null; getCancelAction().setEnabled(true);

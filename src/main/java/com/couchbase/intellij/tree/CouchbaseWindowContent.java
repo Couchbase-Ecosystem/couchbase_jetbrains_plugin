@@ -6,10 +6,8 @@ import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.node.*;
 import com.couchbase.intellij.workbench.Log;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
@@ -126,14 +124,14 @@ public class CouchbaseWindowContent extends JPanel {
                             }
 
                             DataLoader.loadDocument(project, descriptor, tree, file -> {
-                                FileEditor[] editors = FileEditorManager.getInstance(project).openFile(file, true);
-                                if (editors.length > 0) CouchbaseDocumentEditorRefresher.attach(editors[0]);
+                                EditorOpening.openFile(project, file, editors -> {
+                                    if (!editors.isEmpty()) CouchbaseDocumentEditorRefresher.attach(editors.getFirst());
+                                });
                             });
                         } else if (userObject instanceof IndexNodeDescriptor descriptor) {
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
-                                OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
-                                FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
+                                EditorOpening.openFile(project, virtualFile);
 
                             } else {
                                 Log.debug("virtual file is null");
@@ -142,8 +140,7 @@ public class CouchbaseWindowContent extends JPanel {
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
                                 DocumentFormatter.formatFile(project, virtualFile);
-                                OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(project, virtualFile);
-                                FileEditorManager.getInstance(project).openEditor(fileDescriptor, true);
+                                EditorOpening.openFile(project, virtualFile);
 
                             } else {
                                 Log.debug("virtual file is null");

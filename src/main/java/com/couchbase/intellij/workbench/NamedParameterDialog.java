@@ -60,7 +60,7 @@ public class NamedParameterDialog extends DialogWrapper {
                     editorContentMap.put(selectedValue, editor.getDocument().getText());
                 }
             }
-        });
+        }, getDisposable());
 
         EditorSettings editorSettings = editor.getSettings();
         editorSettings.setVirtualSpace(false);

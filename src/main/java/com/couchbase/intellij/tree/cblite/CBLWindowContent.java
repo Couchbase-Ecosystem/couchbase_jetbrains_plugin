@@ -10,11 +10,11 @@ import com.couchbase.intellij.tree.cblite.sync.SyncGatewaySyncDialog;
 import com.couchbase.intellij.tree.node.NodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.PathManager;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -119,8 +119,7 @@ public class CBLWindowContent extends JPanel {
                             CBLDataLoader.loadDocument(project, descriptor, tree);
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
-                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                                fileEditorManager.openFile(virtualFile, true);
+                                EditorOpening.openFile(project, virtualFile);
                             } else {
                                 Log.debug("virtual file is null");
                             }
@@ -211,8 +210,7 @@ public class CBLWindowContent extends JPanel {
                         String fileName = "workbench" + workbenchCounter + ".sqlppl";
                         VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance().getFileTypeByExtension("sqlppl"), "");
                         // Open the file in the editor
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(virtualFile, true);
+                        EditorOpening.openFile(project, virtualFile);
                     } catch (Exception ex) {
                         Log.error(ex);
                         ex.printStackTrace();

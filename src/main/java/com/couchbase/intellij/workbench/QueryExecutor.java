@@ -17,9 +17,9 @@ import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import java.util.concurrent.CancellationException;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.Computable;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Field;
@@ -216,7 +216,7 @@ public class QueryExecutor {
         final String origQuery = query;
         boolean autoLimited = false;
         final String analyzedQuery = query;
-        if (!ReadAction.compute(() -> SQLPPAnalyzer.isLimited(project, analyzedQuery))) {
+        if (!ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> SQLPPAnalyzer.isLimited(project, analyzedQuery))) {
             Integer queryLimit = active.getQueryLimit();
             if (queryLimit != null) {
                 query = String.format("SELECT d.* FROM (%s) as d LIMIT %d", query, queryLimit);
@@ -338,7 +338,7 @@ public class QueryExecutor {
     }
 
     private static JsonObject populateNamedParameters(Project project, String adjustedQuery) {
-        Map<String, String> namedParams = ReadAction.compute(() -> NamedParametersUtil.getAllNamedParameters(project));
+        Map<String, String> namedParams = ApplicationManager.getApplication().runReadAction((Computable<Map<String, String>>) () -> NamedParametersUtil.getAllNamedParameters(project));
         boolean foundParam = false;
         if (!namedParams.isEmpty()) {
             JsonObject obj = JsonObject.create();

@@ -32,7 +32,7 @@ def run():
     x11 = env.copy()
     x11.pop("WAYLAND_DISPLAY", None)
     x11.update(XDG_SESSION_TYPE="x11", GDK_BACKEND="x11")
-    subprocess.run(["xvfb-run", "-a", "-s", "-screen 0 1600x1000x24", "./gradlew",
+    subprocess.run(["xvfb-run", "-a", "-s", "-screen 0 1600x1000x24", "bash", "tools/gradle-with-retry.sh",
                     "criticalGuiSmokeTest", "-PguiToolkit=XToolkit", *sys.argv[1:]], env=x11, check=True)
     keep_results(reports / "x11")
     with tempfile.TemporaryDirectory(prefix="cb-gui-wayland-") as runtime:
@@ -64,7 +64,7 @@ def run():
                     if compositor.poll() is not None or time.monotonic() > deadline:
                         raise RuntimeError(f"Weston failed to start. See {reports / 'weston.log'}")
                     time.sleep(0.05)
-                subprocess.run(["./gradlew", "criticalGuiSmokeTest", "-PguiToolkit=WLToolkit", *sys.argv[1:]],
+                subprocess.run(["bash", "tools/gradle-with-retry.sh", "criticalGuiSmokeTest", "-PguiToolkit=WLToolkit", *sys.argv[1:]],
                                env=wayland, check=True)
                 keep_results(reports / "wayland")
                 if compositor.poll() is not None:

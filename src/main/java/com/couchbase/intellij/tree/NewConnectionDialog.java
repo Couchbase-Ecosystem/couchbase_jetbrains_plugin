@@ -409,10 +409,9 @@ public class NewConnectionDialog extends DialogWrapper {
     private TextFieldWithBrowseButton certificateFileField(String name, String title, String description) {
         TextFieldWithBrowseButton field = new TextFieldWithBrowseButton();
         field.getTextField().setName(name);
-        field.getButton().setText("…");
-        field.getButton().getAccessibleContext().setAccessibleName(title);
+        field.getAccessibleContext().setAccessibleName(title);
         field.getTextField().setToolTipText(description);
-        field.addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileDescriptor().withTitle(title).withDescription(description));
+        field.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleFile().withTitle(title).withDescription(description));
         return field;
     }
 

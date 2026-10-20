@@ -49,12 +49,11 @@ public class TreeLoadingUiTest extends DialogUiTestCase {
     }
 
     @Test public void collectionFailureHasAClickableRetryAndEmptySuccessHasNoLoadingRow() throws Exception {
-        AtomicInteger attempts = new AtomicInteger(); ScopeSpec scope = Mockito.mock(ScopeSpec.class);
-        Mockito.when(scope.collections()).thenReturn(java.util.Set.of());
-        Mockito.when(sdk.bucket("bucket").collections().getScope("scope")).thenAnswer(call -> {
+        AtomicInteger attempts = new AtomicInteger(); ScopeSpec scope = ScopeSpec.create("scope", java.util.Set.of());
+        Mockito.when(sdk.bucket("bucket").collections().getAllScopes()).thenAnswer(call -> {
             assertFalse("SDK listing runs outside the UI thread", SwingUtilities.isEventDispatchThread());
             if (attempts.incrementAndGet() == 1) throw new IllegalStateException("Connection interrupted");
-            return scope;
+            return List.of(scope);
         });
         open(new CollectionsNodeDescriptor("scope", "bucket"));
         GuiActionRunner.execute(() -> DataLoader.listCollections(parent, tree));

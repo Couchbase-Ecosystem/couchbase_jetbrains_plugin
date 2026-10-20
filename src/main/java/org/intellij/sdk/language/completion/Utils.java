@@ -3,7 +3,6 @@ package org.intellij.sdk.language.completion;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
-import com.intellij.lang.parser.GeneratedParserUtilBase;
 import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
@@ -12,6 +11,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ProcessingContext;
+import com.intellij.psi.DummyBlockType;
 import generated.GeneratedTypes;
 import generated.psi.KeyspaceRef;
 import generated.psi.Statement;
@@ -39,7 +39,7 @@ public class Utils {
                 return false;
             } else if (PlatformPatterns.psiElement().afterSiblingSkipping(PlatformPatterns.psiElement(PsiWhiteSpace.class), PlatformPatterns.psiElement(GeneratedTypes.EQUAL)).accepts(element)) {
                 return false;
-            } else if (PlatformPatterns.psiElement().inside(PlatformPatterns.psiElement(GeneratedParserUtilBase.DummyBlock.class)).accepts(element)) {
+            } else if (PlatformPatterns.psiElement().inside(PlatformPatterns.psiElement(DummyBlockType.DUMMY_BLOCK)).accepts(element)) {
                 return false;
             }
             return !PlatformPatterns.psiElement().inside(PlatformPatterns.psiElement(GeneratedTypes.EXPR)).accepts(element);
@@ -164,7 +164,7 @@ public class Utils {
     public static PsiElement cleanErrorIfPresent(PsiElement element) {
         if (Utils.isAfterFailedExpr(element)) {
             if (isAfterDot(element)) {
-                if (element.getPrevSibling() instanceof GeneratedParserUtilBase.DummyBlock) {
+                if (isDummyBlock(element.getPrevSibling())) {
                     return unwrapDummyBlock(element.getPrevSibling()).orElseGet(() -> element.getPrevSibling().getPrevSibling());
                 }
                 return element.getPrevSibling().getPrevSibling();
@@ -184,7 +184,7 @@ public class Utils {
     }
 
     public static boolean isDummyBlock(PsiElement element) {
-        return element instanceof GeneratedParserUtilBase.DummyBlock;
+        return element != null && element.getNode() != null && element.getNode().getElementType() == DummyBlockType.DUMMY_BLOCK;
     }
 
     public static Optional<PsiElement> unwrapDummyBlock(PsiElement element) {
@@ -210,7 +210,7 @@ public class Utils {
             element = element.getParent();
         }
         while (element.getPrevSibling() != null) {
-            if (element.getPrevSibling() instanceof GeneratedParserUtilBase.DummyBlock) {
+            if (isDummyBlock(element.getPrevSibling())) {
                 if (element.getPrevSibling().getLastChild() != null && element.getPrevSibling().getLastChild().getNode().getElementType() == GeneratedTypes.DOT) {
                     return true;
                 }
@@ -291,7 +291,7 @@ public class Utils {
                 element = ffToStatementEnd(element.getPrevSibling().getPrevSibling());
             } else if (PlatformPatterns.psiElement(GeneratedTypes.DOT).accepts(element.getPrevSibling())) {
                 element = element.getPrevSibling().getPrevSibling();
-            } else if (element.getPrevSibling() instanceof GeneratedParserUtilBase.DummyBlock) {
+            } else if (isDummyBlock(element.getPrevSibling())) {
                 element = unwrapDummyBlock(element.getPrevSibling()).orElse(null);
             } else {
                 break;

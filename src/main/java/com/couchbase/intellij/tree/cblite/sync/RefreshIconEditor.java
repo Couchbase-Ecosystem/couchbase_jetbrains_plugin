@@ -3,7 +3,7 @@ package com.couchbase.intellij.tree.cblite.sync;
 import com.couchbase.intellij.tree.cblite.CBLDataLoader;
 import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.treeStructure.Tree;
@@ -33,8 +33,7 @@ public class RefreshIconEditor extends AbstractCellEditor implements TableCellEd
                 CBLDataLoader.loadDocument(project, descriptor, tree);
 
                 VirtualFile virtualFile = descriptor.getVirtualFile();
-                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                fileEditorManager.openFile(virtualFile, true);
+                EditorOpening.openFile(project, virtualFile);
 
             } else {
                 Log.error("Error opening the document. value=" + value + ", scope=" + scopeName + ", collection=" + collectionName);

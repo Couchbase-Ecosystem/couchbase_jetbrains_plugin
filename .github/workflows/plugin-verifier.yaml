@@ -1,33 +1,25 @@
 name: Plugin compatibility
-on:
-  - push
-  - workflow_dispatch
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@master
-      - name: Setup Java
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          java-version: 21.x.x
-      - name: Build the plugin using Gradle
-        run: ./gradlew buildPlugin
+          java-version: '21'
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v4
       - name: Verify Plugin on IntelliJ Platforms
-        id: verify
-        uses: ChrisCarini/intellij-platform-plugin-verifier-action@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/gradle-with-retry.sh verifyPlugin --stacktrace --console=plain
+      - name: Upload compatibility reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          ide-versions: |
-            ideaIC:LATEST-EAP-SNAPSHOT
-          failure-levels: |
-            COMPATIBILITY_PROBLEMS
-            INVALID_PLUGIN
-            NOT_DYNAMIC
-            DEPRECATED_API_USAGES
-            INTERNAL_API_USAGES
-            OVERRIDE_ONLY_API_USAGES
-            NON_EXTENDABLE_API_USAGES
-            MISSING_DEPENDENCIES
-            INVALID_PLUGIN
+          name: plugin-verification-results
+          path: build/reports/pluginVerifier/

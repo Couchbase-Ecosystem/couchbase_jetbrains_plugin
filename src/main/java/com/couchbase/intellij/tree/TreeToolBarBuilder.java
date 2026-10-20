@@ -5,9 +5,9 @@ import com.couchbase.intellij.actions.PasswordConnectionAction;
 import com.couchbase.intellij.tools.CBShell;
 import com.couchbase.intellij.tree.examples.CardDialog;
 import com.couchbase.intellij.workbench.Log;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBMenuItem;
@@ -48,8 +48,7 @@ public class TreeToolBarBuilder {
                                                                                                 .getFileTypeByExtension(
                                                                                                         "sqlpp"), "");
                         // Open the file in the editor
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(virtualFile, true);
+                        EditorOpening.openFile(project, virtualFile);
                     } catch (Exception ex) {
                         Log.error(ex);
                         ex.printStackTrace();
@@ -94,8 +93,7 @@ public class TreeToolBarBuilder {
                                                                                                 .getFileTypeByExtension(
                                                                                                         "cbs.json"),
                                                                        fileContent);
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(virtualFile, true);
+                        EditorOpening.openFile(project, virtualFile);
                     } catch (Exception ex) {
                         Log.error(ex);
                         ex.printStackTrace();

@@ -7,7 +7,6 @@ import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -22,6 +21,7 @@ import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import org.jetbrains.annotations.NotNull;
 import utils.ColorHelper;
 import utils.FileUtils;
@@ -250,12 +250,8 @@ public class CBLImportDialog extends DialogWrapper {
 
     private void addListeners() {
 
-        datasetField.addBrowseFolderListener(null, new FileChooserDescriptor(true, false, false, false, false, false) {
-            @Override
-            public boolean isFileSelectable(VirtualFile file) {
-                return "json".equalsIgnoreCase(file.getExtension());
-            }
-        }.withTitle("Select a File").withDescription("Please select a JSON file"));
+        datasetField.addBrowseFolderListener(null, FileChooserDescriptorFactory.singleFile()
+                .withExtensionFilter("JSON files", "json").withTitle("Select a File").withDescription("Please select a JSON file"));
 
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override

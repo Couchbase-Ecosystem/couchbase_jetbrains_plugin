@@ -194,6 +194,33 @@ public class CriticalGuiSmokeTest extends LightPlatformCodeInsightFixture4TestCa
         }
     }
 
+    @Test public void overviewNavigationRendersGroupedRowsWithNativePeers() {
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            JFrame frame = new JFrame("Overview navigation smoke test");
+            try {
+                java.util.concurrent.atomic.AtomicReference<String> selected = new java.util.concurrent.atomic.AtomicReference<>();
+                var panel = new com.couchbase.intellij.tree.overview.SidePanel(selected::set);
+                panel.addPlace("Overview");
+                panel.addSeparator("--");
+                panel.addPlace("Buckets");
+                frame.setContentPane(panel);
+                frame.setSize(300, 400);
+                frame.setVisible(true);
+                panel.select("Buckets");
+                frame.validate();
+
+                assertTrue(panel.getList().isShowing());
+                assertEquals("Buckets", selected.get());
+                assertEquals("Buckets", panel.getList().getSelectedValue().toString());
+                assertTrue("The separator adds height above the grouped row",
+                        panel.getList().getCellBounds(1, 1).height > panel.getList().getCellBounds(0, 0).height);
+                panel.paintImmediately(0, 0, panel.getWidth(), panel.getHeight());
+            } finally {
+                frame.dispose();
+            }
+        });
+    }
+
     private void showAndCheck(Supplier<DialogWrapper> factory, Consumer<JDialog> assertions) throws Exception {
         CompletableFuture<Void> finished = new CompletableFuture<>();
         DialogWrapper[] dialog = {null};

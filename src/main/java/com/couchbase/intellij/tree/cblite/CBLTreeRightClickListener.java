@@ -8,6 +8,7 @@ import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -312,8 +313,7 @@ public class CBLTreeRightClickListener {
                 if (metadata != null) {
                     VirtualFile virtualFile = new LightVirtualFile("(read-only) " + userObject.getId() + "_meta.json", FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
                     DocumentFormatter.formatFile(project, virtualFile);
-                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                    fileEditorManager.openFile(virtualFile, true);
+                    EditorOpening.openFile(project, virtualFile);
                 }
             }
         };

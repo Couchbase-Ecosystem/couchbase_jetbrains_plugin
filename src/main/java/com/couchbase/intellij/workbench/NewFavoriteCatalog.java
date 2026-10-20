@@ -120,7 +120,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
                     parentContainer.revalidate();
                 }
             };
-            document.addDocumentListener(documentListener);
+            document.addDocumentListener(documentListener, project);
         });
         super.doOKAction();
     }

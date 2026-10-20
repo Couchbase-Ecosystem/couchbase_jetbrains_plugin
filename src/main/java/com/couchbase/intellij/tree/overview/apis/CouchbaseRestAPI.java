@@ -208,7 +208,7 @@ public class CouchbaseRestAPI {
 
     private static HttpURLConnection setupConnection(boolean isGet, String endpoint, String serverURL, String data) throws Exception {
         String urlContent = (ActiveCluster.getInstance().isSSLEnabled() ? "https://" : "http://") + serverURL + ":" + endpoint;
-        URL url = new URL(urlContent);
+        URL url = java.net.URI.create(urlContent).toURL();
 
         HttpURLConnection conn;
         if (ActiveCluster.getInstance().isSSLEnabled()) {

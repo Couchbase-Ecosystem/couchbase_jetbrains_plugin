@@ -11,7 +11,6 @@ import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaTextBorder;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -23,6 +22,7 @@ import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.*;
 import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import org.jetbrains.annotations.NotNull;
 import utils.ColorHelper;
 import utils.FileUtils;
@@ -814,17 +814,8 @@ public class ImportDialog extends DialogWrapper {
     protected void addListeners() {
         // Page 1: Dataset
         datasetField.addBrowseFolderListener(null,
-                new FileChooserDescriptor(true, false, false, false, false, false) {
-                    @Override
-                    public boolean isFileVisible(VirtualFile file, boolean showHiddenFiles) {
-                        if (!file.isDirectory()) {
-                            String extension = file.getExtension();
-                            return JSON_FILE_FORMAT.equalsIgnoreCase(extension)
-                                    || CSV_FILE_FORMAT.equalsIgnoreCase(extension);
-                        }
-                        return true;
-                    }
-                }.withTitle("Select the Dataset"));
+                FileChooserDescriptorFactory.singleFile()
+                        .withExtensionFilter("Dataset files", JSON_FILE_FORMAT, CSV_FILE_FORMAT).withTitle("Select the Dataset"));
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {

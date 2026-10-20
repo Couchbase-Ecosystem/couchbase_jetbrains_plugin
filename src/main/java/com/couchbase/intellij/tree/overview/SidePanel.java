@@ -1,13 +1,8 @@
 package com.couchbase.intellij.tree.overview;
 
-import com.intellij.openapi.ui.popup.ListItemDescriptor;
 import com.intellij.openapi.util.NlsContexts;
-import com.intellij.ui.Gray;
 import com.intellij.ui.ScrollPaneFactory;
-import com.intellij.ui.SeparatorWithText;
 import com.intellij.ui.components.JBList;
-import com.intellij.ui.components.panels.NonOpaquePanel;
-import com.intellij.ui.popup.list.GroupedItemsListRenderer;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.Consumer;
 import com.intellij.util.ui.EmptyIcon;
@@ -37,89 +32,19 @@ public final class SidePanel extends JPanel {
         myList = new JBList<>(myModel);
         myList.setBackground(UIUtil.SIDE_PANEL_BACKGROUND);
         myList.setBorder(JBUI.Borders.emptyTop(5));
-        final ListItemDescriptor<SidePanelItem> descriptor = new ListItemDescriptor<>() {
-            @Override
-            public String getTextFor(final SidePanelItem value) {
-                return value.myText;
+        DefaultListCellRenderer itemRenderer = new DefaultListCellRenderer();
+        myList.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel label = (JLabel) itemRenderer.getListCellRendererComponent(
+                    list, value.myText, index, isSelected, cellHasFocus);
+            label.setIcon(JBUIScale.scaleIcon(EmptyIcon.create(16, 20)));
+            JPanel row = new JPanel(new BorderLayout());
+            row.setBackground(list.getBackground());
+            String caption = getSeparatorAbove(value);
+            if (caption != null) {
+                row.add(new SidePanelSeparator(caption), BorderLayout.NORTH);
             }
-
-            @Override
-            public String getTooltipFor(final SidePanelItem value) {
-                return null;
-            }
-
-            @Override
-            public Icon getIconFor(final SidePanelItem value) {
-                return JBUIScale.scaleIcon(EmptyIcon.create(16, 20));
-            }
-
-            @Override
-            public boolean hasSeparatorAboveOf(final SidePanelItem value) {
-                return getSeparatorAbove(value) != null;
-            }
-
-            @Override
-            public String getCaptionAboveOf(final SidePanelItem value) {
-                return getSeparatorAbove(value);
-            }
-        };
-
-
-        myList.setCellRenderer(new GroupedItemsListRenderer<>(descriptor) {
-            final CellRendererPane myValidationParent = new CellRendererPane();
-            JPanel myExtraPanel;
-            SidePanelCountLabel myCountLabel;
-            JLabel myItemLabel;
-
-            {
-                mySeparatorComponent.setCaptionCentered(false);
-                myList.add(myValidationParent);
-            }
-
-            @Override
-            protected SeparatorWithText createSeparator() {
-                return new SidePanelSeparator();
-            }
-
-            public JComponent getItemComponent() {
-                return myComponent;
-            }
-
-            @Override
-            protected void layout() {
-                myRendererComponent.add(mySeparatorComponent, BorderLayout.NORTH);
-                myExtraPanel.add(getItemComponent(), BorderLayout.CENTER);
-                myExtraPanel.add(myCountLabel, BorderLayout.EAST);
-                myRendererComponent.add(myExtraPanel, BorderLayout.CENTER);
-            }
-
-            @Override
-            public Component getListCellRendererComponent(JList<? extends SidePanelItem> list, SidePanelItem value, int index, boolean isSelected, boolean cellHasFocus) {
-
-                if (myItemLabel == null) {
-                    myItemLabel = new JLabel(value.myText);
-                }
-                layout();
-                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            }
-
-            @Override
-            protected JComponent createItemComponent() {
-                myExtraPanel = new NonOpaquePanel(new BorderLayout());
-
-                myCountLabel = new SidePanelCountLabel();
-                final JComponent component = super.createItemComponent();
-
-                myTextLabel.setForeground(Gray._240);
-                myTextLabel.setOpaque(true);
-
-                return component;
-            }
-
-            @Override
-            protected Color getBackground() {
-                return UIUtil.SIDE_PANEL_BACKGROUND;
-            }
+            row.add(label, BorderLayout.CENTER);
+            return row;
         });
 
         add(ScrollPaneFactory.createScrollPane(myList, true), BorderLayout.CENTER);

@@ -239,7 +239,7 @@ public class DependenciesDownloader {
                 createFolder(targetDir);
                 String fileName = spec.getUrl().substring(spec.getUrl().lastIndexOf("/") + 1);
                 String localFilePath = targetDir + File.separator + fileName;
-                URL website = new URL(spec.getUrl());
+                URL website = java.net.URI.create(spec.getUrl()).toURL();
                 try (ReadableByteChannel rbc = Channels.newChannel(website.openStream()); FileOutputStream fos = new FileOutputStream(localFilePath)) {
                     fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
                 }

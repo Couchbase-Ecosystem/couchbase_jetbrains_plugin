@@ -29,6 +29,7 @@ import com.couchbase.intellij.tree.overview.IndexOverviewDialog;
 import com.couchbase.intellij.tree.overview.ServerOverviewDialog;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.workbench.Log;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -666,7 +667,7 @@ public class TreeRightClickListener {
                     VirtualFile file = new LightVirtualFile("(read-only) " + docId + "_meta.json",
                             FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
                     DocumentFormatter.formatFile(project, file);
-                    FileEditorManager.getInstance(project).openFile(file, true);
+                    EditorOpening.openFile(project, file);
                 }, error -> Messages.showErrorDialog(project, "Could not read document metadata. " + error.getMessage(), "Document Metadata"));
 
             }
@@ -916,8 +917,7 @@ public class TreeRightClickListener {
                                                                        fileContent);
                         virtualFile.putUserData(VirtualFileKeys.BUCKET, idx.getBucket());
                         virtualFile.putUserData(VirtualFileKeys.SEARCH_INDEX, idx.getIndexName());
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(virtualFile, true);
+                        EditorOpening.openFile(project, virtualFile);
                     } catch (Exception ex) {
                         Log.error(ex);
                         ex.printStackTrace();

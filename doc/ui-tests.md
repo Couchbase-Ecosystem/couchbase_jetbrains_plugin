@@ -6,6 +6,28 @@ exercise dialog behavior, asynchronous search, and document editor integration;
 they do not launch a complete IDE or test tool window registration and navigation.
 The existing tests in `src/test` continue to run with `./gradlew test`.
 
+CI and the display helpers use `tools/gradle-with-retry.sh`. It retries only the
+known IntelliJ bundled-plugin indexing failure where `ClosedFileSystemException`
+prevents resolving `com.intellij.java` before compilation. Each retry uses a fresh
+Gradle process and removes the generated layout index; test failures are not
+retried. See [JetBrains issue 2192](https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/2192).
+The workaround is bounded to three attempts and can be removed when upstream
+fixes the descriptor reader.
+
+## Plugin compatibility
+
+Run the same verification as CI with Java 21:
+
+```sh
+bash tools/gradle-with-retry.sh verifyPlugin --console=plain
+```
+
+Gradle verifies IntelliJ 2025.2, 2026.2, and the latest Community EAP. Compatibility
+problems, deprecated APIs (including scheduled removals), and unsupported API
+extensions fail the check. Reports are written to `build/reports/pluginVerifier/`
+and uploaded by the compatibility workflow. Verification uses the Gradle-managed
+runtime rather than a separate action's Java 17 container.
+
 ## Run locally
 
 Use Java 21 and a graphical desktop. Start Docker, then run:
@@ -59,7 +81,7 @@ bash tools/run-ui-tests.sh --tests '*DocumentsCouchbaseUiTest'
 | `TreeLoadingUiTest` | Clickable collection retry, empty collections, filtered document empty states, and retrying failed document pages without losing loaded documents |
 | `CollectionBrowserUiTest` | Native tree speed search for unloaded names, one cached search snapshot, Enter/Escape, right-click favorite/unfavorite actions, favorite-only stars matching the collection icon color, unique counts, paging, and collapsing/reopening scopes |
 | `CertificateCouchbaseUiTest` | Password/certificate UI switching, failed keystore password and retry, live certificate SDK and explorer REST authentication, Schema visibility for empty/populated collections and filtered/indexed/paged empty results |
-| `CriticalGuiSmokeTest` | Native window allocation for New Connection, certificate mode, advanced settings, open/create document, create collection, collection search, explorer context menu, and the SQL++ editor |
+| `CriticalGuiSmokeTest` | Native window allocation for New Connection, certificate mode, advanced settings, open/create document, create collection, collection search, explorer context menu, grouped overview navigation, and the SQL++ editor |
 
 All tests run sequentially because they share a mouse and keyboard. Dialogs are
 closed after each test. The database suite restores the prior active cluster and
@@ -98,6 +120,10 @@ On Linux, install `xvfb` and `weston`, then run:
 ```sh
 python3 tools/run-critical-gui-tests.py
 ```
+
+CI uses Ubuntu 24.04's Weston 13. Match that compositor version when reproducing
+CI failures locally. The harness also supports Weston extracted under a local
+prefix, with its `bin` directory on `PATH` and libraries on `LD_LIBRARY_PATH`.
 
 This opens the same critical windows with both `XToolkit` and `WLToolkit`. It
 asserts which toolkit actually loaded and allocates production native window

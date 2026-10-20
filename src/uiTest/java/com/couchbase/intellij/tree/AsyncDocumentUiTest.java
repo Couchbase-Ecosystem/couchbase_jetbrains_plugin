@@ -81,7 +81,7 @@ public class AsyncDocumentUiTest extends DialogUiTestCase {
         CollectionManager manager = Mockito.mock(CollectionManager.class);
         Mockito.when(bucket.collections()).thenReturn(manager);
         ScopeSpec scope = ScopeSpec.create("scope", java.util.Set.of(CollectionSpec.create("existing", "scope")));
-        Mockito.when(manager.getScope("scope")).thenAnswer(call -> { stall(); return scope; });
+        Mockito.when(manager.getAllScopes()).thenAnswer(call -> { stall(); return java.util.List.of(scope); });
         var dialog = showDialog(() -> new NewCollectionDialog(getProject(), "bucket", "scope", null, new Tree()));
         dialog.textBox("newCollectionName").enterText("existing"); dialog.button(JButtonMatcher.withText("OK")).click();
         heartbeat(); dialog.button(JButtonMatcher.withText("OK")).requireDisabled();
@@ -199,7 +199,7 @@ public class AsyncDocumentUiTest extends DialogUiTestCase {
     @Test public void cancellingCollectionCreationDuringMetadataLoadingPreventsTheMutation() throws Exception {
         CollectionManager manager = Mockito.mock(CollectionManager.class); Mockito.when(bucket.collections()).thenReturn(manager);
         ScopeSpec scope = ScopeSpec.create("scope", java.util.Set.of());
-        Mockito.when(manager.getScope("scope")).thenAnswer(call -> { stall(); return scope; });
+        Mockito.when(manager.getAllScopes()).thenAnswer(call -> { stall(); return java.util.List.of(scope); });
         var dialog = showDialog(() -> new NewCollectionDialog(getProject(), "bucket", "scope", null, new Tree()));
         dialog.textBox("newCollectionName").enterText("cancelled"); dialog.button(JButtonMatcher.withText("OK")).click();
         heartbeat();

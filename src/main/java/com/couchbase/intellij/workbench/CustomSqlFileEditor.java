@@ -1,6 +1,5 @@
 package com.couchbase.intellij.workbench;
 
-
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
@@ -10,7 +9,6 @@ import com.couchbase.intellij.persistence.storage.QueryHistoryStorage;
 import com.couchbase.intellij.tree.node.FileNodeDescriptor;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -34,6 +32,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.util.Computable;
 import generated.psi.Statement;
 import org.intellij.sdk.language.SQLPPFormatter;
 import org.intellij.sdk.language.psi.SqlppFile;
@@ -99,7 +98,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         String fileName = id + ".json";
         FileNodeDescriptor descriptor = new FileNodeDescriptor(fileName, bucket, scope, collection, id, FileNodeDescriptor.FileType.JSON, null);
         DataLoader.loadDocument(project, descriptor, tree,
-                file -> FileEditorManager.getInstance(project).openFile(file, true));
+                file -> EditorOpening.openFile(project, file));
     }
 
     @NotNull
@@ -149,7 +148,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
             @Override public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
         };
         group.replaceAction(executeAction, cancelAction);
-        executeToolbar.updateActionsImmediately();
+        executeToolbar.updateActionsAsync();
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
@@ -165,7 +164,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         history.refresh(QueryHistoryStorage.getInstance().getValue().getHistory(), queryEditor.getDocument().getText());
                         updateHistoryPresentation();
                         group.replaceAction(cancelAction, executeAction);
-                        executeToolbar.updateActionsImmediately();
+                        executeToolbar.updateActionsAsync();
                         isExecutingQuery = false;
                     });
                 }
@@ -357,7 +356,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
     private void updateHistoryPresentation() {
         historyLabel.setText(history.label());
         historyLabel.setToolTipText(history.isDraft() ? "Current draft. Browse previous queries without losing your edits." : "Use Next History to return to your draft.");
-        historyToolbar.updateActionsImmediately();
+        historyToolbar.updateActionsAsync();
     }
 
     private String normalizeStatement(Statement statement) {
@@ -378,7 +377,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         if (err != null) {
             return queryEditor.getDocument().getText();
         }
-        return ReadAction.compute(() -> {
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
             PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
             if (focused != null) {
                 return normalizeStatement(PsiTreeUtil.getTopmostParentOfType(focused, Statement.class));
@@ -400,7 +399,7 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         if (err != null) {
             return List.of(queryEditor.getDocument().getText());
         }
-        return ReadAction.compute(() -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
+        return ApplicationManager.getApplication().runReadAction((Computable<List<String>>) () -> PsiTreeUtil.getChildrenOfAnyType(psi, Statement.class).stream()
                 .map(this::normalizeStatement)
                 .collect(Collectors.toList())
         );

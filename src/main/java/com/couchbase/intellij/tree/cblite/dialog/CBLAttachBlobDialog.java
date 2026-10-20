@@ -20,12 +20,12 @@ import com.couchbase.lite.Blob;
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.MutableDocument;
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 
 import lombok.Getter;
 
@@ -127,17 +127,12 @@ public class CBLAttachBlobDialog extends DialogWrapper {
 
 
         fileField.addBrowseFolderListener(project,
-                new FileChooserDescriptor(true, false, false, false, false, false) {
-                    @Override
-                    public boolean isFileSelectable(VirtualFile file) {
-                        if (file.isDirectory()) {
-                            return true;
-                        }
-                        FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
-                        String[] extensions = Objects.requireNonNull(selectedFileType).getExtension().split("\\|");
-                        return Arrays.asList(extensions).contains(file.getExtension());
-                    }
-                }.withTitle("Select File"));
+                FileChooserDescriptorFactory.singleFile()
+                        .withFileFilter(file -> {
+                            FileType selectedFileType = (FileType) fileTypeComboBox.getSelectedItem();
+                            String[] extensions = Objects.requireNonNull(selectedFileType).getExtension().split("\\|");
+                            return Arrays.asList(extensions).contains(file.getExtension());
+                        }).withTitle("Select File"));
 
 
         return panel;

@@ -156,7 +156,8 @@ public class CollectionBrowserUiTest extends DialogUiTestCase {
             browser.tree().focus(); robot.enterText("collection_77");
             await("unfavorited search selection is available", () -> GuiActionRunner.execute(() -> selectedName(tree[0]).equals("collection_77")));
             browser.tree().pressAndReleaseKeys(java.awt.event.KeyEvent.VK_ENTER);
-            assertTrue(GuiActionRunner.execute(() -> descriptor(collections[0]).getSearchAdded().contains("collection_77")));
+            await("Enter keeps the unfavorited search choice", () -> GuiActionRunner.execute(() ->
+                    descriptor(collections[0]).getSearchAdded().contains("collection_77")));
             GuiActionRunner.execute(() -> {
                 TreePath scope = new TreePath(((DefaultMutableTreeNode) collections[0].getParent()).getPath());
                 tree[0].collapsePath(scope); tree[0].expandPath(scope);
@@ -203,9 +204,16 @@ public class CollectionBrowserUiTest extends DialogUiTestCase {
     }
 
     private void chooseFavoriteAction(FrameFixture browser, Tree tree, String action) {
+        CollectionNodeDescriptor collection = GuiActionRunner.execute(() ->
+                (CollectionNodeDescriptor) ((DefaultMutableTreeNode) tree.getLastSelectedPathComponent()).getUserObject());
+        boolean expectedFavorite = "Add to Favorites".equals(action);
         int row = GuiActionRunner.execute(() -> tree.getLeadSelectionRow());
         browser.tree().showPopupMenuAt(row).menuItemWithPath(action).click();
-        robot.waitForIdle();
+        // AWT idleness does not mean IntelliJ has dispatched the popup action.
+        // Removing an unloaded favorite can also remove its row and selection.
+        await("Favorite action updates collection preferences", () -> GuiActionRunner.execute(() ->
+                FavoriteCollectionsStorage.getInstance().getValue().isFavorite(collection.getConnectionId(),
+                        collection.getBucket(), collection.getScope(), collection.getText()) == expectedFavorite));
     }
 
     private static CollectionsNodeDescriptor descriptor(DefaultMutableTreeNode parent) {
