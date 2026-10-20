@@ -48,11 +48,11 @@ public class TreeExpandListener implements TreeExpansionListener {
     }
 
     private static void resetCollections(Tree tree, DefaultMutableTreeNode node) {
+        TreeLoadTask.invalidate(node, tree);
         ((CollectionsNodeDescriptor) node.getUserObject()).resetForExpansion();
         node.removeAllChildren();
         node.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
         ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(node);
-        tree.setPaintBusy(false);
     }
 
     public static void handle(Tree tree, TreeExpansionEvent event) {

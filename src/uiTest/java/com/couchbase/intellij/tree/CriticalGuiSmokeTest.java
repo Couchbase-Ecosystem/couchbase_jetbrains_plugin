@@ -124,9 +124,14 @@ public class CriticalGuiSmokeTest extends LightPlatformCodeInsightFixture4TestCa
                     frame[0].setSize(800, 600); frame[0].setVisible(true);
                     Tree tree = CouchbaseWindowContent.getTree();
                     assertTrue(tree.isShowing());
+                    assertNotNull("Native tree speed search is installed", com.intellij.ui.speedSearch.SpeedSearchSupply.getSupply(tree, true));
                     DefaultMutableTreeNode node = new DefaultMutableTreeNode(new CollectionsNodeDescriptor("_default", "unused"));
                     DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root"); root.add(node);
                     tree.setModel(new DefaultTreeModel(root)); frame[0].validate();
+                    var speedSearch = (com.intellij.ui.SpeedSearchBase<?>) com.intellij.ui.speedSearch.SpeedSearchSupply.getSupply(tree, true);
+                    speedSearch.showPopup("Collections");
+                    assertTrue("The native search field opens inside the explorer", speedSearch.getTextField().isShowing());
+                    speedSearch.hidePopup();
                     Rectangle row = tree.getRowBounds(0);
                     MouseEvent event = new MouseEvent(tree, MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(),
                             0, row.x + 10, row.y + 5, 1, true, MouseEvent.BUTTON3);

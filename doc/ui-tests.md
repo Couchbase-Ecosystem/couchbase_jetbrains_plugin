@@ -52,7 +52,13 @@ bash tools/run-ui-tests.sh --tests '*DocumentsCouchbaseUiTest'
 | `DocumentAndCollectionDialogUiTest` | Empty and oversized document IDs, invalid collection names, retrying validation |
 | `DocumentsCouchbaseUiTest` | Missing document errors, opening an existing document, creating and opening a new document, preserving existing content, searching actual server collections |
 | `QueryExecutionUiTest` | Execute dispatches SDK work off the EDT; UI timer events continue while a query is pending; the production Cancel action cancels the SDK future and restores Execute |
-| `CertificateCouchbaseUiTest` | Password/certificate UI switching, failed keystore password and retry, live certificate SDK and explorer REST authentication |
+| `AsyncDocumentUiTest` | Delayed reads and writes, cancelling document/collection/scope prechecks, disabling Cancel once a write begins, template fallback without schema, creation retry, background saves, queued edits during reconnect, project-close protection, and read-only changes |
+| `AsyncConnectionUiTest` | Reconnecting the shared connection object, replacing its SDK with the same ID, and changing its ID invalidate pending work and fetched results; the actual document-delete action rejects a connection change during confirmation |
+| `JsonDocumentEditingUiTest` | Actual JSON completion and native typing with pending/failed inference, empty schemas and unloaded metadata; the visible popup contains cached fields, excludes existing keys, and accepts a selection with Down/Enter; completion makes no SDK calls |
+| `QueryHistoryUiTest` | Empty history, draft restoration, edits to recalled queries, navigation boundaries, and the workbench actions popup |
+| `TreeLoadingUiTest` | Clickable collection retry, empty collections, filtered document empty states, and retrying failed document pages without losing loaded documents |
+| `CollectionBrowserUiTest` | Native tree speed search for unloaded names, one cached search snapshot, Enter/Escape, right-click favorite/unfavorite actions, favorite-only stars matching the collection icon color, unique counts, paging, and collapsing/reopening scopes |
+| `CertificateCouchbaseUiTest` | Password/certificate UI switching, failed keystore password and retry, live certificate SDK and explorer REST authentication, Schema visibility for empty/populated collections and filtered/indexed/paged empty results |
 | `CriticalGuiSmokeTest` | Native window allocation for New Connection, certificate mode, advanced settings, open/create document, create collection, collection search, explorer context menu, and the SQL++ editor |
 
 All tests run sequentially because they share a mouse and keyboard. Dialogs are
@@ -66,6 +72,11 @@ and exercise conflict cancellation and explicit overwrite.
 They also cover reload from the server, deleted-document recreation, invalid JSON,
 read-only connections, switching connections before saving, and listing `_default`.
 
+The read-only script tests check every statement before any SDK transaction is
+started, including a mutation after a SELECT. They cover data writes, DDL, role
+changes, comments, quoted text, and keywords next to punctuation. The UI test also
+clicks Execute on a read-only script and verifies that no SDK request is made.
+
 To include live client-certificate tests:
 
 ```sh
@@ -77,7 +88,7 @@ These tests use the separate local certificate demo cluster, exercise the actual
 connection dialog (including wrong-password recovery), and verify SDK and explorer
 REST operations without database password authentication. Dialog screenshots are
 saved as `build/reports/uiTest/artifacts/connection-password.png` and
-`connection-certificate.png`. Without the property, these two demo tests are
+`connection-certificate.png`. Without the property, these demo tests are
 skipped. The regular Docker document tests still run automatically.
 
 ## Native GUI regression gate

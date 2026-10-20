@@ -52,6 +52,8 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="Couchbase document saves" displayType="BALLOON" isLogByDefault="true"/>
+        <projectCloseHandler implementation="com.couchbase.intellij.persistence.CouchbaseDocumentCloseHandler"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.ClustersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.QueryFiltersStorage"/>
         <applicationService serviceImplementation="com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage"/>

@@ -1,24 +1,13 @@
 package com.couchbase.intellij.listener;
 
-import com.couchbase.client.core.error.DocumentNotFoundException;
-import com.couchbase.client.java.Collection;
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.kv.GetResult;
-import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.MutableDocument;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
-import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -31,7 +20,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
@@ -55,70 +43,8 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
 
         if (file == null) return true;
-        // The vetoer validates and resolves known conflicts. Only the VFS output stream writes.
-        if (file.getUserData(VirtualFileKeys.CLUSTER) != null) {
-            if (ActiveCluster.getInstance() == null || ActiveCluster.getInstance().get() == null
-                    || ActiveCluster.getInstance().isReadOnlyMode() || "true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) return false;
-            if (!Objects.equals(ActiveCluster.getInstance().getId(), file.getUserData(VirtualFileKeys.CONN_ID))) {
-                Log.info("The file " + file.getUserData(VirtualFileKeys.ID) + " was not saved, as it belongs to a connection that is no longer active.");
-                return false;
-            } else {
-                Collection collection = ActiveCluster.getInstance().get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
-                        .scope(file.getUserData(VirtualFileKeys.SCOPE))
-                        .collection(file.getUserData(VirtualFileKeys.COLLECTION));
-                try {
-                    GetResult getResult = collection.get(file.getUserData(VirtualFileKeys.ID));
-
-                    if ("true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) {
-                        return false;
-                    }
-
-                    // file type is json and is not valid
-                    if (file.getFileType() == JsonFileType.INSTANCE) {
-                        try {
-                            JsonObject.fromJson(document.getText());
-                        } catch (Exception e) {
-                            return false;
-                        }
-                    }
-
-                    //cas is null or different from the one in the server
-                    if (file.getUserData(VirtualFileKeys.CAS) == null
-                            || getResult.cas() != Long.parseLong(file.getUserData(VirtualFileKeys.CAS))) {
-
-                        String[] options = {"Overwrite server's version", "Replace mine with the latest version from server", "Cancel"};
-                        int result = Messages.showDialog(
-                                "The document that you are trying to save has already been modified in the server. How would you like to proceed?", "Document Conflict"
-                                , options, 1, Messages.getWarningIcon());
-
-                        if (result == 0) {
-                            file.putUserData(VirtualFileKeys.CAS, Long.toString(getResult.cas()));
-                            return true;
-                        } else if (result == 1) {
-                            file.putUserData(VirtualFileKeys.CAS, String.valueOf(getResult.cas()));
-                            ApplicationManager.getApplication().runWriteAction(() -> {
-                                document.setText(getResult.contentAsObject().toString());
-                                DocumentFormatter.formatFile(getProject(file), file);
-                            });
-
-                            return false;
-                        } else {
-                            return false;
-                        }
-                    }
-                } catch (DocumentNotFoundException dnf) {
-                    if (file.getUserData(VirtualFileKeys.CAS) != null) {
-                        int choice = Messages.showDialog("This document was deleted on the server. Recreate it with your current edits?",
-                                "Document Deleted", new String[]{"Recreate Document", "Cancel"}, 1, Messages.getWarningIcon());
-                        if (choice != 0) return false;
-                    }
-                    file.putUserData(VirtualFileKeys.CAS, null);
-                } catch (Exception failure) {
-                    Log.error("Could not check the document before saving", failure);
-                    Messages.showErrorDialog("Could not check the server document. Your edits have been kept. Reconnect and try saving again.", "Couchbase Document Save");
-                    return false;
-                }
-            }
+        if (file instanceof CouchbaseDocumentVirtualFile couchbaseFile) {
+            return com.couchbase.intellij.persistence.CouchbaseDocumentSaveCoordinator.maySave(document, couchbaseFile, isSaveExplicit);
         }
         if (file.getUserData(VirtualFileKeys.CBL_CON_ID) != null
                 && file.getUserData(VirtualFileKeys.CBL_CON_ID).equals(ActiveCBLDatabase.getInstance().getDatabaseId())) {

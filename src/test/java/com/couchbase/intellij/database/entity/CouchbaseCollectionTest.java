@@ -80,12 +80,30 @@ public class CouchbaseCollectionTest {
         assertTrue(c.getChildren().isEmpty());
         assertNull(c.generateDocument());
         assertEquals(0, c.toJson().size());
+        assertTrue(c.getAllAttributeNames().isEmpty());
     }
 
-    // NOTE: possible bug: toJson() and getAllAttributeNames() call children.get() with no timeout, and
-    // Subscribable.get() then does wait(0). On a collection whose schema has not been loaded yet (no
-    // updateSchema() call, or a null/empty schema), these methods block the calling thread forever.
-    // Not pinned with a test because it would hang; the tests above always load the schema first.
+    @Test(timeout = 1000)
+    public void completionReturnsImmediatelyBeforeSchemaHasLoaded() {
+        CouchbaseCollection c = new CouchbaseCollection(null, CollectionSpec.create("coll", "scope"));
+        assertTrue(c.getAllAttributeNames().isEmpty());
+    }
+
+    @Test(timeout = 1000)
+    public void completionReturnsImmediatelyWhenInferenceHasNoResult() {
+        assertTrue(collectionWithCachedSchema(null).getAllAttributeNames().isEmpty());
+    }
+
+    @Test(timeout = 1000)
+    public void optionalTemplateDoesNotWaitForMissingSchema() {
+        assertNull(collectionWithCachedSchema(null).generateCachedDocument());
+        assertNull(new CouchbaseCollection(null, CollectionSpec.create("coll", "scope")).generateCachedDocument());
+    }
+
+    @Test public void optionalTemplateUsesTheAvailableSchema() {
+        assertEquals("", collectionWithCachedSchema(schemaWithOneFlavor()).generateCachedDocument().getString("name"));
+        assertNull(collectionWithCachedSchema(JsonObject.create().put("content", JsonArray.create())).generateCachedDocument());
+    }
 
     @Test(timeout = 10_000)
     public void validCacheWithMissingSchemaTimesOutWithNoSuchElement() {

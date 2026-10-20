@@ -90,6 +90,43 @@ public class QueryExecutionUiTest extends DialogUiTestCase {
         }
     }
 
+    @Test public void executeRejectsAMutationInAReadOnlyScriptBeforeCallingTheSdk() {
+        ActiveCluster previous = ActiveCluster.getInstance();
+        var previousOutput = QueryResultToolWindowFactory.instance;
+        var output = Mockito.mock(QueryResultToolWindowFactory.class);
+        var active = Mockito.mock(ActiveCluster.class);
+        var sdk = Mockito.mock(Cluster.class);
+        var settings = new SavedCluster(); settings.setId("readonly-script-ui");
+        Mockito.when(active.get()).thenReturn(sdk); Mockito.when(active.getCluster()).thenReturn(sdk);
+        Mockito.when(active.getSavedCluster()).thenReturn(settings);
+        Mockito.when(active.isReadOnlyMode()).thenReturn(true);
+        Mockito.when(active.getQueryContext()).thenReturn(new Subscribable<QueryContext>());
+        ToolWindowManager real = ToolWindowManager.getInstance(getProject());
+        ToolWindowManager manager = Mockito.mock(ToolWindowManager.class, AdditionalAnswers.delegatesTo(real));
+        Mockito.doReturn(Mockito.mock(ToolWindow.class)).when(manager).getToolWindow("Couchbase Output");
+        ServiceContainerUtil.replaceService(getProject(), ToolWindowManager.class, manager, getTestRootDisposable());
+        QueryResultToolWindowFactory.instance = output; ActiveCluster.setInstance(active);
+        JFrame[] frame = {null}; CustomSqlFileEditor[] editor = {null};
+        try {
+            ApplicationManager.getApplication().invokeAndWait(() -> {
+                editor[0] = new CustomSqlFileEditor(getProject(), new LightVirtualFile("readonly.sqlpp", SQLPPFileType.INSTANCE,
+                        "SELECT 1 AS result;\nUPDATE `bucket`.`scope`.`collection` SET value = 1;"));
+                frame[0] = new JFrame("Read-only script"); frame[0].setContentPane(editor[0].getComponent());
+                frame[0].setSize(1200, 600); frame[0].setVisible(true);
+            });
+            robot.click(button(frame[0], "Execute"));
+            Mockito.verify(output, Mockito.timeout(5000)).updateQueryStats(Mockito.anyList(), Mockito.isNull(),
+                    Mockito.argThat(error -> error.getErrors().getFirst().getMessage().contains("read-only")), Mockito.isNull(), Mockito.eq(false));
+            Mockito.verifyNoInteractions(sdk);
+        } finally {
+            ApplicationManager.getApplication().invokeAndWait(() -> {
+                if (editor[0] != null) Disposer.dispose(editor[0]);
+                if (frame[0] != null) frame[0].dispose();
+            });
+            QueryResultToolWindowFactory.instance = previousOutput; ActiveCluster.setInstance(previous);
+        }
+    }
+
     private ActionButton button(JFrame frame, String text) {
         return robot.finder().find(frame, new GenericTypeMatcher<>(ActionButton.class) {
             @Override protected boolean isMatching(ActionButton component) {

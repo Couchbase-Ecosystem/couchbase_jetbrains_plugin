@@ -10,7 +10,10 @@ public abstract class CounterNodeDescriptor extends NodeDescriptor {
     public CounterNodeDescriptor(String text, Icon icon) {
         super(text, icon);
         counter = new JLabel("");
+        counter.setFont(com.intellij.util.ui.JBFont.small());
+        counter.setForeground(com.intellij.util.ui.UIUtil.getContextHelpForeground());
         panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        panel.setOpaque(false);
         panel.add(counter);
     }
 
@@ -19,7 +22,7 @@ public abstract class CounterNodeDescriptor extends NodeDescriptor {
     }
 
     public void setCounter(String text) {
-        counter.setText("(" + text + ")");
+        counter.setText(text == null || text.isEmpty() ? "" : "(" + text + ")");
         counter.revalidate();
         panel.revalidate();
     }

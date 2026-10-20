@@ -5,6 +5,7 @@ import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.actions.PasswordConnectionAction;
 import com.couchbase.intellij.VirtualFileKeys;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.ClusterUiTask;
 import com.couchbase.intellij.database.DataLoader;
 import com.couchbase.intellij.database.collections.CollectionListing;
 import com.couchbase.intellij.database.collections.CollectionSources;
@@ -65,6 +66,16 @@ import java.util.concurrent.TimeUnit;
 public class TreeRightClickListener {
 
     public static int searchWorkbenchCounter = 0;
+
+    private static void runMutation(Project project, ClusterUiTask.Connection original, String title, java.util.function.Consumer<com.couchbase.client.java.Cluster> operation, Runnable completed) {
+        ClusterUiTask.submit(project, original, title, connection -> {
+            connection.requireWritable();
+            operation.accept(connection.sdk());
+            return true;
+        }, ignored -> completed.run(), error -> Messages.showErrorDialog(project,
+                "Could not complete the operation. " + error.getMessage(), title));
+    }
+
 
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
@@ -411,7 +422,6 @@ public class TreeRightClickListener {
 
                         if (entityCreationDialog.isOK()) {
                             String scopeName = entityCreationDialog.getEntityName();
-                            ActiveCluster.getInstance().get().bucket(bucketName).collections().createScope(scopeName);
                             DataLoader.listScopes(clickedNode, tree);
                         }
                     } catch (Exception ex) {
@@ -430,6 +440,7 @@ public class TreeRightClickListener {
                         String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
 
                         // Show confirmation dialog before deleting bucket
+                        ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                         int result = Messages.showYesNoDialog(
                                 "Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket",
                                 Messages.getQuestionIcon());
@@ -437,14 +448,10 @@ public class TreeRightClickListener {
                             return;
                         }
 
-                        //TODO: Under investigation why ReconnectOnDisconnect should be here.
-                        //ActiveCluster.ReconnectOnDisconnect.set(true);
-                        ActiveCluster.getInstance().get().buckets().dropBucket(bucketName);
-                        //ActiveCluster.ReconnectOnDisconnect.set(false);
-                        // Refresh buckets
-                        TreePath treePath = new TreePath(clickedNode.getPath());
-                        tree.collapsePath(treePath.getParentPath());
-                        tree.expandPath(treePath.getParentPath());
+                        runMutation(project, original, "Deleting bucket", sdk -> sdk.buckets().dropBucket(bucketName), () -> {
+                            if (clickedNode.getParent() instanceof DefaultMutableTreeNode connection && connection.getRoot() == tree.getModel().getRoot())
+                                DataLoader.listBuckets(connection, tree);
+                        });
                     } catch (Exception ex) {
                         ApplicationManager.getApplication().invokeLater(() -> Messages.showInfoMessage(
                                 "An error " + "occurred while creating the bucket. Check the Log tab for more.",
@@ -490,7 +497,16 @@ public class TreeRightClickListener {
         return new AnAction("Search Collection...") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                new CollectionSearchDialog(project, CollectionSources.forScope(cols.getBucket(), cols.getScope()), name -> {
+                showCollectionSearch(project, tree, collectionsNode);
+            }
+        };
+    }
+
+    public static void showCollectionSearch(Project project, Tree tree, DefaultMutableTreeNode collectionsNode) {
+        CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
+        var original = ClusterUiTask.capture(ActiveCluster.getInstance());
+        new CollectionSearchDialog(project, CollectionSources.forScope(cols.getBucket(), cols.getScope()), name -> {
+                    if (!original.isCurrent() || collectionsNode.getRoot() != tree.getModel().getRoot()) return;
                     cols.addSearchAdded(name);
                     TreePath path = new TreePath(collectionsNode.getPath());
                     if (!tree.isExpanded(path)) {
@@ -500,8 +516,6 @@ public class TreeRightClickListener {
                                 Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
                     }
                 }).show();
-            }
-        };
     }
 
     private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
@@ -551,6 +565,7 @@ public class TreeRightClickListener {
                         try {
 
                             // Show confirmation dialog before deleting scope
+                            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                             int result = Messages.showYesNoDialog(
                                     "Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope",
                                     Messages.getQuestionIcon());
@@ -558,12 +573,10 @@ public class TreeRightClickListener {
                                 return;
                             }
 
-                            ActiveCluster.getInstance().get().bucket(bucketName).collections().dropScope(scopeName);
-                            // Refresh buckets
-                            DefaultMutableTreeNode bucketTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                            TreePath treePath = new TreePath(bucketTreeNode.getPath());
-                            tree.collapsePath(treePath);
-                            tree.expandPath(treePath);
+                            runMutation(project, original, "Deleting scope", sdk -> sdk.bucket(bucketName).collections().dropScope(scopeName), () -> {
+                                if (clickedNode.getParent() instanceof DefaultMutableTreeNode bucket && bucket.getRoot() == tree.getModel().getRoot())
+                                    DataLoader.listScopes(bucket, tree);
+                            });
                         } catch (Exception ex) {
                             Log.error("Scope deletion failed ", ex);
                         }
@@ -645,25 +658,17 @@ public class TreeRightClickListener {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
 
-                String metadata = null;
-                if (ActiveCluster.getInstance().hasQueryService()) {
-                    metadata = DataLoader.getDocMetadata(bucket, scope, collection, docId);
-                } else {
-                    try {
-                        metadata = CouchbaseRestAPI.getMetaDocument(bucket, scope, collection, docId);
-                    } catch (Exception ex) {
-                        Log.debug("Could not get the metadata of the document via the API", ex);
-                    }
-                }
-                if (metadata != null) {
-                    VirtualFile virtualFile = new LightVirtualFile("(read-only) " + docId + "_meta.json",
-                                                                   FileTypeManager.getInstance()
-                                                                                  .getFileTypeByExtension("json"),
-                                                                   metadata);
-                    DocumentFormatter.formatFile(project, virtualFile);
-                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                    fileEditorManager.openFile(virtualFile, true);
-                }
+                ActiveCluster active = ActiveCluster.getInstance();
+                com.couchbase.intellij.database.ClusterUiTask.submit(project, active, "Reading document metadata", connection ->
+                        connection.active().hasQueryService() ? DataLoader.getDocMetadata(connection, bucket, scope, collection, docId)
+                                : CouchbaseRestAPI.getMetaDocument(bucket, scope, collection, docId), metadata -> {
+                    if (metadata == null) return;
+                    VirtualFile file = new LightVirtualFile("(read-only) " + docId + "_meta.json",
+                            FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
+                    DocumentFormatter.formatFile(project, file);
+                    FileEditorManager.getInstance(project).openFile(file, true);
+                }, error -> Messages.showErrorDialog(project, "Could not read document metadata. " + error.getMessage(), "Document Metadata"));
+
             }
         };
         actionGroup.add(viewMetaData);
@@ -674,6 +679,7 @@ public class TreeRightClickListener {
             AnAction deleteDoc = new AnAction("Delete Document") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
+                    ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                     int result = Messages.showYesNoDialog(
                             "<html>Are you sure you want to delete the document " + "<strong>" + col.getId() + "</strong>?</html>",
                             "Delete Document", Messages.getQuestionIcon());
@@ -681,31 +687,12 @@ public class TreeRightClickListener {
                         return;
                     }
 
-                    try {
-                        ActiveCluster.getInstance().get().bucket(bucket).scope(scope).collection(collection)
-                                     .remove(col.getId());
-
-                        if (col.getVirtualFile() != null) {
-                            try {
-                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                                fileEditorManager.closeFile(col.getVirtualFile());
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                                Log.debug("Could not close the file", ex);
-                            }
-                        }
-
-                        DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                        if (parentNode != null) {
+                    runMutation(project, original, "Deleting document", sdk ->
+                            sdk.bucket(bucket).scope(scope).collection(collection).remove(col.getId()), () -> {
+                        if (col.getVirtualFile() != null) FileEditorManager.getInstance(project).closeFile(col.getVirtualFile());
+                        if (clickedNode.getParent() != null && clickedNode.getRoot() == tree.getModel().getRoot())
                             ((DefaultTreeModel) tree.getModel()).removeNodeFromParent(clickedNode);
-                        }
-                        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(parentNode);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        Log.error("An error occurred while trying to delete the document " + col.getId(), ex);
-                        Messages.showErrorDialog("Could not delete the document. Please check the logs for more.",
-                                                 "Couchbase Plugin Error");
-                    }
+                    });
 
                 }
             };
@@ -769,10 +756,7 @@ public class TreeRightClickListener {
         AnAction toggleFavorite = new AnAction(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                favorites.setFavorite(connectionId, col.getBucket(), col.getScope(), col.getText(), !isFavorite);
-                DefaultMutableTreeNode collectionsNode = (DefaultMutableTreeNode) clickedNode.getParent();
-                CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) collectionsNode.getUserObject();
-                DataLoader.listCollections(collectionsNode, tree, Math.max(cols.getPagedLoaded(), CollectionListing.PAGE_SIZE));
+                CollectionTreeActions.toggleFavorite(tree, clickedNode);
             }
         };
         actionGroup.add(toggleFavorite);
@@ -838,6 +822,7 @@ public class TreeRightClickListener {
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         try {
 
+                            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                             int result = Messages.showYesNoDialog(
                                     "Are you sure you want to delete the collection " + col.getText() + "?",
                                     "Delete Collection", Messages.getQuestionIcon());
@@ -845,13 +830,12 @@ public class TreeRightClickListener {
                                 return;
                             }
 
-                            ActiveCluster.getInstance().get().bucket(col.getBucket()).collections()
-                                         .dropCollection(col.getScope(), col.getText());
-                            // Refresh collections
-                            DefaultMutableTreeNode colsTreeNode = ((DefaultMutableTreeNode) clickedNode.getParent());
-                            TreePath treePath = new TreePath(colsTreeNode.getPath());
-                            tree.collapsePath(treePath);
-                            tree.expandPath(treePath);
+                            runMutation(project, original, "Deleting collection", sdk ->
+                                    sdk.bucket(col.getBucket()).collections().dropCollection(col.getScope(), col.getText()), () -> {
+                                DefaultMutableTreeNode parent = (DefaultMutableTreeNode) clickedNode.getParent();
+                                if (parent != null && parent.getRoot() == tree.getModel().getRoot())
+                                    DataLoader.listCollections(parent, tree);
+                            });
                         } catch (Exception ex) {
                             Log.error("Collection deletion failed ", ex);
                         }

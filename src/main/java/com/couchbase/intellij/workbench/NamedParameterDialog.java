@@ -48,7 +48,7 @@ public class NamedParameterDialog extends DialogWrapper {
         super(project);
         setTitle("Named Parameter List");
         errorLabel = new JLabel();
-        errorLabel.setForeground(Color.decode("#FF4444"));
+        errorLabel.setForeground(com.intellij.util.ui.UIUtil.getErrorForeground());
 
         final Document doc = EditorFactory.getInstance().createDocument("");
         editor = (EditorEx) EditorFactory.getInstance().createEditor(doc, null, PlainTextFileType.INSTANCE, true);

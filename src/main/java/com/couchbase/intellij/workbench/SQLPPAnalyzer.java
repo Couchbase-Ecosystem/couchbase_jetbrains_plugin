@@ -1,58 +1,62 @@
 package com.couchbase.intellij.workbench;
 
-import com.couchbase.intellij.database.ActiveCluster;
-import com.intellij.lang.PsiParser;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.util.PsiTreeUtil;
 import generated.GeneratedTypes;
 import generated.psi.LimitClause;
 import generated.psi.SelectStatement;
 import generated.psi.Statement;
-import generated.psi.impl.StatementImpl;
 import org.intellij.sdk.language.SQLPPFileType;
-import org.intellij.sdk.language.SqlppParserDefinition;
 import org.intellij.sdk.language.psi.SqlppFile;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class SQLPPAnalyzer {
 
-    public static boolean isMutation(String query) {
+    private static final java.util.Set<String> MUTATIONS = java.util.Set.of(
+            "insert", "delete", "upsert", "replace", "update", "create", "alter", "drop", "grant", "revoke", "build");
 
-        List<String> items = createQueryTokens(query);
-        return items.contains("insert")
-                || items.contains("delete")
-                || items.contains("upsert")
-                || items.contains("replace")
-                || items.contains("update")
-                || items.contains("create")
-                || items.contains("alter")
-                || items.contains("drop")
-                || items.contains("grant");
+    public static boolean isMutation(String query) {
+        for (int i = 0; i < query.length();) {
+            i = skipTrivia(query, i);
+            if (i >= query.length()) break;
+            char current = query.charAt(i);
+            if (current == '\'' || current == '"' || current == '`') {
+                char quote = current;
+                for (i++; i < query.length(); i++) {
+                    if (query.charAt(i) == '\\') { i++; continue; }
+                    if (query.charAt(i) == quote) {
+                        if (i + 1 < query.length() && query.charAt(i + 1) == quote) { i++; continue; }
+                        i++; break;
+                    }
+                }
+            } else if (Character.isLetter(current) || current == '_') {
+                int start = i++;
+                while (i < query.length() && (Character.isLetterOrDigit(query.charAt(i)) || query.charAt(i) == '_')) i++;
+                String word = query.substring(start, i).toLowerCase(java.util.Locale.ROOT);
+                if (MUTATIONS.contains(word)) {
+                    int next = skipTrivia(query, i);
+                    if (word.equals("replace") && next < query.length() && query.charAt(next) == '(') continue;
+                    return true;
+                }
+            } else i++;
+        }
+        return false;
     }
 
-    private static List<String> createQueryTokens(String query) {
-        Pattern pattern = Pattern.compile("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'|`([^`]*)`");
-        Matcher matcher = pattern.matcher(query);
-        List<String> tokens = new ArrayList<>();
-        while (matcher.find()) {
-            if (matcher.group(1) != null) {
-                tokens.add("\"" + matcher.group(1).toLowerCase() + "\"");
-            } else if (matcher.group(2) != null) {
-                tokens.add("'" + matcher.group(2).toLowerCase() + "'");
-            } else if (matcher.group(3) != null) {
-                tokens.add("`" + matcher.group(3).toLowerCase() + "`");
-            } else {
-                tokens.add(matcher.group().toLowerCase());
-            }
+    private static int skipTrivia(String query, int offset) {
+        int i = offset;
+        while (i < query.length()) {
+            if (Character.isWhitespace(query.charAt(i))) i++;
+            else if (query.startsWith("--", i) || query.startsWith("//", i)) {
+                while (i < query.length() && query.charAt(i) != '\n' && query.charAt(i) != '\r') i++;
+            } else if (query.startsWith("/*", i)) {
+                int end = query.indexOf("*/", i + 2);
+                i = end < 0 ? query.length() : end + 2;
+            } else break;
         }
-        return tokens;
+        return i;
     }
 
     public static boolean isLimited(Project project, String query) {

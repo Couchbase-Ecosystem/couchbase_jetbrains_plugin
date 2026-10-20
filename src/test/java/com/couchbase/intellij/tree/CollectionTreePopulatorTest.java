@@ -4,7 +4,6 @@ import com.couchbase.intellij.database.collections.CollectionListing;
 import com.couchbase.intellij.database.collections.FakeCollectionSource;
 import com.couchbase.intellij.persistence.FavoriteCollections;
 import com.couchbase.intellij.tree.node.*;
-import com.intellij.icons.AllIcons;
 import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixture4TestCase;
 import org.junit.Test;
 
@@ -48,6 +47,8 @@ public class CollectionTreePopulatorTest extends LightPlatformCodeInsightFixture
         assertEquals("b", more.getBucket());
         assertEquals("s", more.getScope());
         assertEquals(10, desc.getPagedLoaded());
+        assertEquals(10, desc.getShown());
+        assertEquals(25, desc.getTotal());
     }
 
     @Test
@@ -75,7 +76,7 @@ public class CollectionTreePopulatorTest extends LightPlatformCodeInsightFixture
     }
 
     @Test
-    public void favoritesAreOnTopSortedAndMarkedWithAStar() {
+    public void favoritesAreOnTopSortedAndMarked() {
         favorites.setFavorite("conn", "b", "s", "col22", true);
         favorites.setFavorite("conn", "b", "s", "col05", true);
 
@@ -85,9 +86,10 @@ public class CollectionTreePopulatorTest extends LightPlatformCodeInsightFixture
         CollectionNodeDescriptor first = (CollectionNodeDescriptor) ((DefaultMutableTreeNode) node.getChildAt(0)).getUserObject();
         CollectionNodeDescriptor plain = (CollectionNodeDescriptor) ((DefaultMutableTreeNode) node.getChildAt(2)).getUserObject();
         assertTrue(first.isFavorite());
-        assertSame(AllIcons.Nodes.Favorite, first.getIcon());
+        assertSame("Favorites retain the collection icon", plain.getIcon(), first.getIcon());
         assertFalse(plain.isFavorite());
-        assertNotSame(AllIcons.Nodes.Favorite, plain.getIcon());
+        assertEquals("Favorites and normal pages are counted without duplicates", 11, desc.getShown());
+        assertEquals(30, desc.getTotal());
     }
 
     @Test
@@ -133,12 +135,14 @@ public class CollectionTreePopulatorTest extends LightPlatformCodeInsightFixture
     }
 
     @Test
-    public void unfavoritingRestoresNormalIcon() {
+    public void favoriteChangesKeepTheCollectionIcon() {
         CollectionNodeDescriptor d = new CollectionNodeDescriptor("x", "c", "b", "s", null);
         javax.swing.Icon normal = d.getIcon();
         d.setFavorite(true);
-        assertSame(AllIcons.Nodes.Favorite, d.getIcon());
+        assertTrue(d.isFavorite());
+        assertSame(normal, d.getIcon());
         d.setFavorite(false);
+        assertFalse(d.isFavorite());
         assertSame(normal, d.getIcon());
     }
 

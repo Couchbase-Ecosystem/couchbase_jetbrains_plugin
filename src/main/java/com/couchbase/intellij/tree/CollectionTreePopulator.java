@@ -41,9 +41,10 @@ public final class CollectionTreePopulator {
 
         parent.removeAllChildren();
         desc.setPagedLoaded(listing.getPagedLoaded());
+        desc.setListingCounts(listing.getNames().size(), listing.getTotal());
 
         if (listing.getNames().isEmpty()) {
-            parent.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor()));
+            parent.add(new DefaultMutableTreeNode(new NoResultsNodeDescriptor("No collections")));
             return;
         }
 
@@ -59,8 +60,10 @@ public final class CollectionTreePopulator {
         }
 
         if (listing.hasMore()) {
-            parent.add(new DefaultMutableTreeNode(new LoadMoreCollectionsNodeDescriptor(bucket, scope,
-                    listing.getPagedLoaded() + CollectionListing.PAGE_SIZE)));
+            LoadMoreCollectionsNodeDescriptor more = new LoadMoreCollectionsNodeDescriptor(bucket, scope,
+                    listing.getPagedLoaded() + CollectionListing.PAGE_SIZE);
+            more.setText("Load " + Math.min(CollectionListing.PAGE_SIZE, listing.getTotal() - listing.getPagedLoaded()) + " More Collections");
+            parent.add(new DefaultMutableTreeNode(more));
         }
     }
 }

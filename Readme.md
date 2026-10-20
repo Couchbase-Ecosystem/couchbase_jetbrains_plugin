@@ -96,6 +96,14 @@ adds it to the current list. Collapsing the scope or Collections folder resets t
 list to favorites plus the first ten; a search selection outside that first page
 will only remain if you favorite it.
 
+Select a scope, Collections folder, or collection and start typing to search
+inside the tree with JetBrains' native speed search. It also searches collection
+names outside the loaded pages, using one background snapshot per search session.
+Use the arrow keys to navigate, **Enter** to keep a collection in the list, and
+**Escape** to cancel the preview. Use the collection's right-click menu to add or
+remove it from favorites. Favorited collections display a gray star; other
+collections have no star. The Collections row shows the visible and total counts.
+
 ### Interact with Documents
 
 1. Click on the desired Collection to list all the documents that have been stored within it.
@@ -104,6 +112,11 @@ will only remain if you favorite it.
    on the Collection directory.
 4. Once you have made any necessary changes to a document, you can save it using the "Ctrl + S" or "Cmd + S" shortcut
    keys.
+
+Document reads, creation, and saves run in the background. The editor remains
+unsaved until the server accepts the captured version; edits made while a save is
+pending remain unsaved. CAS conflict checks and expiration preservation still
+apply. Project closing waits for pending saves and retains the project on failure.
 
 <img src="doc/gifs/InteractWithDocuments.gif" height="80%" width="80%" alt="Interact with Documents" />
 
@@ -195,7 +208,29 @@ unnecessary steps or confusion.
 
 <img src="doc/screenshots/SelectiveQueryExecution.png" height="80%" width="80%" alt="Selective Query Execution" />
 
+### Query history and workbench actions
+
+Use the history arrows to browse previous queries. Moving forward past the newest
+query restores your current draft, including edits made before browsing. Edits to
+recalled queries are also kept while navigating. Empty history disables both
+arrows and shows **No history**.
+
+**Execute**, **Explain**, and **Format Code** remain on the workbench toolbar.
+**More Query Actions** contains **Advise**, **Saved Queries**, **Named Parameters**,
+**Favorite Query**, and **Query Options**.
+
+Tree requests show what is loading. A failed request offers a **Retry** row,
+activated by clicking it or pressing Enter. Retrying a failed page keeps the
+items already loaded. Empty nodes distinguish **No collections**, **No documents**,
+and **No matching documents** when a document filter excludes all results.
+Collections confirmed to contain no documents hide **Schema**. Refreshing after
+adding a document restores it; an empty filtered page does not hide it on a populated collection.
+
 ### Read-Only Mode
+
+Read-only protection checks every statement before starting a multi-statement
+script. Individual queries and transactional script statements also use the
+server's read-only query option.
 
 If you are accessing sensible environments and are afraid of changing any data by mistake, the plugin also offers a
 read-only mode. Once activated, an eye icon appears next to the connection's name, indicating that the plugin is in

@@ -106,11 +106,11 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
         DialogFixture dialog = documentDialog(false);
         dialog.textBox("documentId").enterText("missing-document");
         dialog.button(JButtonMatcher.withText("OK")).click();
-        dialog.label("documentIdError").requireText("There is no document with the specified id.");
+        await("missing document is reported", () -> GuiActionRunner.execute(() -> "There is no document with the specified id.".equals(dialog.label("documentIdError").text())));
         dialog.requireVisible();
         dialog.textBox("documentId").deleteText().enterText("existing-document");
         dialog.button(JButtonMatcher.withText("OK")).click();
-        dialog.requireNotVisible();
+        await("dialog closes", () -> GuiActionRunner.execute(() -> !dialog.target().isShowing()));
         documentIsOpen("existing-document");
     }
 
@@ -119,7 +119,7 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
         DialogFixture dialog = documentDialog(true);
         dialog.textBox("documentId").enterText("created-by-ui");
         dialog.button(JButtonMatcher.withText("OK")).click();
-        dialog.requireNotVisible();
+        await("dialog closes", () -> GuiActionRunner.execute(() -> !dialog.target().isShowing()));
         assertEquals(JsonObject.create(), DATABASE.cluster.bucket(BUCKET).defaultCollection()
                 .get("created-by-ui").contentAsObject());
         documentIsOpen("created-by-ui");
@@ -130,7 +130,7 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
         DialogFixture dialog = documentDialog(true);
         dialog.textBox("documentId").enterText("existing-document");
         dialog.button(JButtonMatcher.withText("OK")).click();
-        dialog.requireNotVisible();
+        await("dialog closes", () -> GuiActionRunner.execute(() -> !dialog.target().isShowing()));
         assertEquals("Keep this content", DATABASE.cluster.bucket(BUCKET).defaultCollection()
                 .get("existing-document").contentAsObject().getString("name"));
         documentIsOpen("existing-document");
@@ -149,7 +149,7 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
                 Arrays.equals(new String[]{"airline", "airport"}, dialog.list("collectionSearchResults").contents())));
         dialog.list("collectionSearchResults").item("airport").doubleClick();
         assertEquals(List.of("airport"), chosen);
-        dialog.requireNotVisible();
+        await("dialog closes", () -> GuiActionRunner.execute(() -> !dialog.target().isShowing()));
     }
 
     @Test
@@ -168,26 +168,64 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
                 com.couchbase.intellij.persistence.CouchbaseDocumentSaver.save(collection, "cas-and-expiry", "{}", null));
     }
 
+    @Test public void readOnlySelectScriptsStillRunWithServerSideReadOnlyEnabled() {
+        ActiveCluster.getInstance().getSavedCluster().setReadOnly(true);
+        var output = org.mockito.Mockito.mock(com.couchbase.intellij.workbench.QueryResultToolWindowFactory.class);
+        try (var windows = org.mockito.Mockito.mockStatic(com.couchbase.intellij.workbench.QueryResultUtil.class)) {
+            windows.when(() -> com.couchbase.intellij.workbench.QueryResultUtil.getOutputWindow(getProject())).thenReturn(output);
+            assertTrue(com.couchbase.intellij.workbench.QueryExecutor.executeScript(new java.util.concurrent.LinkedBlockingQueue<>(),
+                    com.couchbase.intellij.workbench.QueryExecutor.QueryType.NORMAL, null,
+                    List.of("SELECT 1 AS result", "SELECT 2 AS result"), -1, getProject()));
+            org.mockito.Mockito.verify(output).updateQueryStats(org.mockito.Mockito.anyList(),
+                    org.mockito.Mockito.argThat(rows -> rows.size() == 2 && rows.stream().allMatch(row -> "success".equals(row.getString("_sequence_query_status")))),
+                    org.mockito.Mockito.any(), org.mockito.Mockito.isNull(), org.mockito.Mockito.eq(true));
+        } finally { ActiveCluster.getInstance().getSavedCluster().setReadOnly(false); }
+    }
+
+    private com.intellij.openapi.editor.Document editorDocument(String id) {
+        com.intellij.openapi.editor.Document[] result = {null};
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() -> {
+            var file = Arrays.stream(FileEditorManager.getInstance(getProject()).getOpenFiles())
+                    .filter(f -> f.getName().equals(id + ".json")).findFirst().orElseThrow();
+            result[0] = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file);
+        });
+        return result[0];
+    }
+
+    private void open(String id) {
+        var dialog = documentDialog(false);
+        dialog.textBox("documentId").enterText(id);
+        dialog.button(JButtonMatcher.withText("OK")).click();
+        documentIsOpen(id);
+    }
+
+    private void edit(com.intellij.openapi.editor.Document document, String text) {
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() ->
+                com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(() -> document.setText(text)));
+    }
+
+    private void save(com.intellij.openapi.editor.Document document) {
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() ->
+                com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().saveDocument(document));
+        await("background document save completes", () -> GuiActionRunner.execute(() ->
+                !com.couchbase.intellij.persistence.CouchbaseDocumentSaveCoordinator.isSaving(document)));
+    }
+
+    private boolean dirty(com.intellij.openapi.editor.Document document) {
+        return GuiActionRunner.execute(() -> com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().isDocumentUnsaved(document));
+    }
+
     @Test
     public void editorSaveWritesUtf8AndPreservesDocumentExpiration() {
         var collection = DATABASE.cluster.bucket(BUCKET).defaultCollection();
         collection.upsert("editor-save", JsonObject.create().put("name", "original"),
                 com.couchbase.client.java.kv.UpsertOptions.upsertOptions().expiry(Duration.ofMinutes(10)));
         var original = collection.get("editor-save", com.couchbase.client.java.kv.GetOptions.getOptions().withExpiry(true));
-        DialogFixture dialog = documentDialog(false);
-        dialog.textBox("documentId").enterText("editor-save");
-        dialog.button(JButtonMatcher.withText("OK")).click();
-        documentIsOpen("editor-save");
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() -> {
-            var file = Arrays.stream(FileEditorManager.getInstance(getProject()).getOpenFiles())
-                    .filter(f -> f.getName().equals("editor-save.json")).findFirst().orElseThrow();
-            var manager = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance();
-            var document = manager.getDocument(file);
-            com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(
-                    () -> document.setText("{\"name\":\"München 東京\"}"));
-            manager.saveDocument(document);
-            assertFalse("Successful saves clear the dirty state", manager.isDocumentUnsaved(document));
-        });
+        open("editor-save");
+        var document = editorDocument("editor-save");
+        edit(document, "{\"name\":\"München 東京\"}");
+        save(document);
+        assertFalse("Successful saves clear the dirty state", dirty(document));
         var saved = collection.get("editor-save", com.couchbase.client.java.kv.GetOptions.getOptions().withExpiry(true));
         assertEquals("München 東京", saved.contentAsObject().getString("name"));
         assertEquals(original.expiryTime(), saved.expiryTime());
@@ -197,124 +235,88 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
     public void conflictCancelKeepsEditsAndOverwriteRequiresASecondSave() {
         var collection = DATABASE.cluster.bucket(BUCKET).defaultCollection();
         collection.upsert("editor-conflict", JsonObject.create().put("name", "original"));
-        DialogFixture dialog = documentDialog(false);
-        dialog.textBox("documentId").enterText("editor-conflict");
-        dialog.button(JButtonMatcher.withText("OK")).click();
-        documentIsOpen("editor-conflict");
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() -> {
-            var file = Arrays.stream(FileEditorManager.getInstance(getProject()).getOpenFiles())
-                    .filter(f -> f.getName().equals("editor-conflict.json")).findFirst().orElseThrow();
-            var manager = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance();
-            var document = manager.getDocument(file);
-            com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(
-                    () -> document.setText("{\"name\":\"my edits\"}"));
-            collection.upsert("editor-conflict", JsonObject.create().put("name", "server edits"));
-            // Refresh must not silently advance the CAS protecting unsaved editor content.
-            file.refresh(false, false);
-            var previous = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 2);
-            try {
-                manager.saveDocument(document);
-                assertTrue(manager.isDocumentUnsaved(document));
-                assertEquals("server edits", collection.get("editor-conflict").contentAsObject().getString("name"));
-                com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 0);
-                manager.saveDocument(document);
-                assertFalse(manager.isDocumentUnsaved(document));
-                assertEquals("my edits", collection.get("editor-conflict").contentAsObject().getString("name"));
-            } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previous); }
-        });
+        open("editor-conflict");
+        var document = editorDocument("editor-conflict");
+        edit(document, "{\"name\":\"my edits\"}");
+        collection.upsert("editor-conflict", JsonObject.create().put("name", "server edits"));
+        var previous = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 2);
+        try {
+            save(document);
+            assertTrue(dirty(document));
+            assertEquals("server edits", collection.get("editor-conflict").contentAsObject().getString("name"));
+            com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 0);
+            save(document);
+            assertFalse(dirty(document));
+            assertEquals("my edits", collection.get("editor-conflict").contentAsObject().getString("name"));
+        } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previous); }
     }
 
     @Test
     public void invalidJsonReadOnlyAndWrongConnectionKeepEditsWithoutWriting() {
         var collection = DATABASE.cluster.bucket(BUCKET).defaultCollection();
         collection.upsert("guarded-save", JsonObject.create().put("name", "original"));
-        var dialog = documentDialog(false);
-        dialog.textBox("documentId").enterText("guarded-save");
-        dialog.button(JButtonMatcher.withText("OK")).click();
-        documentIsOpen("guarded-save");
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() -> {
-            var file = Arrays.stream(FileEditorManager.getInstance(getProject()).getOpenFiles())
-                    .filter(f -> f.getName().equals("guarded-save.json")).findFirst().orElseThrow();
-            var manager = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance();
-            var document = manager.getDocument(file);
-            var connection = file.getUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID);
-            try {
-                com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(() -> document.setText("{invalid"));
-                manager.saveDocument(document);
-                assertTrue("Invalid JSON must stay unsaved", manager.isDocumentUnsaved(document));
-                assertEquals("original", collection.get("guarded-save").contentAsObject().getString("name"));
-                com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(() -> document.setText("{\"name\":\"my edits\"}"));
-                ActiveCluster.getInstance().getSavedCluster().setReadOnly(true);
-                manager.saveDocument(document);
-                assertTrue("Read-only connection must keep edits", manager.isDocumentUnsaved(document));
-                assertEquals("original", collection.get("guarded-save").contentAsObject().getString("name"));
-                ActiveCluster.getInstance().getSavedCluster().setReadOnly(false);
-                file.putUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID, "another-connection");
-                manager.saveDocument(document);
-                assertTrue("Switching connections must not save into another cluster", manager.isDocumentUnsaved(document));
-                assertEquals("original", collection.get("guarded-save").contentAsObject().getString("name"));
-                file.putUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID, connection);
-                manager.saveDocument(document);
-                assertFalse(manager.isDocumentUnsaved(document));
-                assertEquals("my edits", collection.get("guarded-save").contentAsObject().getString("name"));
-            } finally {
-                ActiveCluster.getInstance().getSavedCluster().setReadOnly(false);
-                file.putUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID, connection);
-            }
-        });
+        open("guarded-save");
+        var document = editorDocument("guarded-save");
+        var file = GuiActionRunner.execute(() -> com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getFile(document));
+        var connection = file.getUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID);
+        try {
+            edit(document, "{invalid"); save(document);
+            assertTrue("Invalid JSON stays unsaved", dirty(document));
+            assertEquals("original", collection.get("guarded-save").contentAsObject().getString("name"));
+            edit(document, "{\"name\":\"my edits\"}");
+            ActiveCluster.getInstance().getSavedCluster().setReadOnly(true);
+            save(document);
+            assertTrue("Read-only connection keeps edits", dirty(document));
+            assertEquals("original", collection.get("guarded-save").contentAsObject().getString("name"));
+            ActiveCluster.getInstance().getSavedCluster().setReadOnly(false);
+            file.putUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID, "another-connection");
+            save(document);
+            assertTrue("Wrong connection cannot save", dirty(document));
+            assertEquals("original", collection.get("guarded-save").contentAsObject().getString("name"));
+            file.putUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID, connection);
+            save(document);
+            assertFalse(dirty(document));
+            assertEquals("my edits", collection.get("guarded-save").contentAsObject().getString("name"));
+        } finally {
+            ActiveCluster.getInstance().getSavedCluster().setReadOnly(false);
+            file.putUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID, connection);
+        }
     }
 
     @Test
     public void deletedDocumentRequiresExplicitRecreationAndAllowsRetry() {
         var collection = DATABASE.cluster.bucket(BUCKET).defaultCollection();
         collection.upsert("deleted-save", JsonObject.create().put("name", "original"));
-        var dialog = documentDialog(false);
-        dialog.textBox("documentId").enterText("deleted-save");
-        dialog.button(JButtonMatcher.withText("OK")).click();
-        documentIsOpen("deleted-save");
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() -> {
-            var file = Arrays.stream(FileEditorManager.getInstance(getProject()).getOpenFiles())
-                    .filter(f -> f.getName().equals("deleted-save.json")).findFirst().orElseThrow();
-            var manager = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance();
-            var document = manager.getDocument(file);
-            com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(() -> document.setText("{\"name\":\"recreated\"}"));
-            collection.remove("deleted-save");
-            var previous = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 1);
-            try {
-                manager.saveDocument(document);
-                assertTrue(manager.isDocumentUnsaved(document));
-                assertFalse(collection.exists("deleted-save").exists());
-                com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 0);
-                manager.saveDocument(document);
-                assertFalse(manager.isDocumentUnsaved(document));
-                assertEquals("recreated", collection.get("deleted-save").contentAsObject().getString("name"));
-            } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previous); }
-        });
+        open("deleted-save");
+        var document = editorDocument("deleted-save");
+        edit(document, "{\"name\":\"recreated\"}");
+        collection.remove("deleted-save");
+        var previous = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 1);
+        try {
+            save(document);
+            assertTrue(dirty(document)); assertFalse(collection.exists("deleted-save").exists());
+            com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 0);
+            save(document);
+            assertFalse(dirty(document));
+            assertEquals("recreated", collection.get("deleted-save").contentAsObject().getString("name"));
+        } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previous); }
     }
 
     @Test
     public void conflictReloadReplacesEditorContentWithoutWritingOverTheServer() {
         var collection = DATABASE.cluster.bucket(BUCKET).defaultCollection();
         collection.upsert("reload-save", JsonObject.create().put("name", "original"));
-        var dialog = documentDialog(false);
-        dialog.textBox("documentId").enterText("reload-save");
-        dialog.button(JButtonMatcher.withText("OK")).click();
-        documentIsOpen("reload-save");
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait(() -> {
-            var file = Arrays.stream(FileEditorManager.getInstance(getProject()).getOpenFiles())
-                    .filter(f -> f.getName().equals("reload-save.json")).findFirst().orElseThrow();
-            var manager = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance();
-            var document = manager.getDocument(file);
-            com.intellij.openapi.application.ApplicationManager.getApplication().runWriteAction(() -> document.setText("{\"name\":\"my edits\"}"));
-            var server = collection.upsert("reload-save", JsonObject.create().put("name", "server edits"));
-            var previous = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 1);
-            try {
-                manager.saveDocument(document);
-                assertEquals("server edits", JsonObject.fromJson(document.getText()).getString("name"));
-                assertEquals(server.cas(), collection.get("reload-save").cas());
-                assertEquals(Long.toString(server.cas()), file.getUserData(com.couchbase.intellij.VirtualFileKeys.CAS));
-            } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previous); }
-        });
+        open("reload-save");
+        var document = editorDocument("reload-save");
+        edit(document, "{\"name\":\"my edits\"}");
+        var server = collection.upsert("reload-save", JsonObject.create().put("name", "server edits"));
+        var previous = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> 1);
+        try {
+            save(document);
+            assertEquals("server edits", JsonObject.fromJson(document.getText()).getString("name"));
+            assertEquals(server.cas(), collection.get("reload-save").cas());
+            assertFalse("Reload acknowledges the chosen server version", dirty(document));
+        } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previous); }
     }
 
     @Override

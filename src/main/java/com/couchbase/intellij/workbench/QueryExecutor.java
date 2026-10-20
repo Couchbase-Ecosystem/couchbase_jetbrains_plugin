@@ -19,7 +19,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import java.util.concurrent.CancellationException;
-import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.ui.Messages;
 import reactor.core.publisher.Mono;
 
@@ -38,6 +37,15 @@ public class QueryExecutor {
 
     private static boolean isQueryScript = false;
 
+    private static void showReadOnlyError(Project project) {
+        CouchbaseQueryError error = new CouchbaseQueryError();
+        error.setMessage("This connection is read-only. Statements that modify data, indexes, or permissions cannot run.");
+        CouchbaseQueryResultError result = new CouchbaseQueryResultError();
+        result.setErrors(List.of(error));
+        QueryResultUtil.getOutputWindow(project).updateQueryStats(
+                Arrays.asList("0 MS", "-", "-", "-", "-", "-"), null, result, null, false);
+    }
+
 
     public static Boolean executeScript(BlockingQueue<Boolean> queue, QueryType type, QueryContext context,
                                         List<String> statements, int historyIndex, Project project) {
@@ -49,6 +57,13 @@ public class QueryExecutor {
         if (active.get() == null) {
             ApplicationManager.getApplication().invokeLater(() -> Messages.showMessageDialog("There is no active connection to run this query", "Couchbase Plugin Error",
                     Messages.getErrorIcon()));
+            return false;
+        }
+        // Validate the entire script before starting its transaction. A SELECT
+        // followed by a mutation must not execute even its first statement.
+        if (type == QueryType.NORMAL && active.isReadOnlyMode()
+                && statements.stream().anyMatch(SQLPPAnalyzer::isMutation)) {
+            showReadOnlyError(project);
             return false;
         }
         QueryResultUtil.getOutputWindow(project).setStatusAsLoading();
@@ -78,7 +93,7 @@ public class QueryExecutor {
                     queryResult.put("_sequence_query", query);
 
                     JsonObject namedParams = populateNamedParameters(project, query);
-                    TransactionQueryOptions options = TransactionQueryOptions.queryOptions();
+                    TransactionQueryOptions options = TransactionQueryOptions.queryOptions().readonly(active.isReadOnlyMode());
                     if (namedParams != null) {
                         options.parameters(namedParams);
                     }
@@ -193,13 +208,7 @@ public class QueryExecutor {
             query = "ADVISE " + query;
         } else {
             if (active.isReadOnlyMode() && SQLPPAnalyzer.isMutation(query)) {
-                CouchbaseQueryError err = new CouchbaseQueryError();
-                err.setMessage("Hey! You can not run mutations when your cluster is on read-only mode");
-                CouchbaseQueryResultError error = new CouchbaseQueryResultError();
-                error.setErrors(List.of(err));
-
-                QueryResultUtil.getOutputWindow(project).updateQueryStats(Arrays.asList("0 MS", "-", "-", "-", "-",
-                        "-"), null, error, null, false);
+                showReadOnlyError(project);
                 return false;
             }
         }
@@ -218,6 +227,7 @@ public class QueryExecutor {
         QueryPreferences pref = active.getSavedCluster().getQueryPreferences();
         QueryOptions queryOptions =
                 QueryOptions.queryOptions().timeout(Duration.ofSeconds(pref.getQueryTimeout())).profile(QueryProfile.TIMINGS).metrics(true);
+        if (active.isReadOnlyMode()) queryOptions.readonly(true);
 
         JsonObject namedParams = populateNamedParameters(project, adjustedQuery);
         if (namedParams != null) {

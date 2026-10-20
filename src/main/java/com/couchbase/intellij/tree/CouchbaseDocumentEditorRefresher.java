@@ -1,20 +1,13 @@
 package com.couchbase.intellij.tree;
 
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.env.ClusterEnvironment;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.persistence.Clusters;
 import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.workbench.Log;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.psi.FileViewProvider;
-import com.intellij.psi.PsiManager;
 
 import java.awt.event.*;
 
@@ -31,35 +24,41 @@ public class CouchbaseDocumentEditorRefresher implements FocusListener {
     }
 
 
-    private void queueReload() {
-        SavedCluster cluster = ActiveCluster.getInstance().getSavedCluster();
-        if (cluster != null && cluster.hasOption(Clusters.Options.LIVE_POLLING)) {
-            FileDocumentManager documentManager = FileDocumentManager.getInstance();
-            VirtualFile file = editor.getFile();
-            if (file instanceof CouchbaseDocumentVirtualFile) {
-                if (!java.util.Objects.equals(cluster.getId(), file.getUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID))) return;
-                if (cluster.hasOption(Clusters.Options.LIVE_RELOAD)) {
-                    ((CouchbaseDocumentVirtualFile) file).reloadFromCluster();
-                    documentManager.reloadFiles(file);
-                } else {
-                    CouchbaseDocumentVirtualFile cbfile = (CouchbaseDocumentVirtualFile) file;
-                    if (!cbfile.isDesynchronized() && cbfile.checkUpdatedOnCluster()) {
-                        String[] options = {"Replace document with server's version", "Keep current document"};
-                        int result = Messages.showDialog(
-                                String.format("Document `%s` was modified on the server. How would you like to proceed?", file.getName()), "Document Conflict"
-                                , options, 0, Messages.getWarningIcon());
+    private boolean checking;
 
-                        if (result == 0) {
-                            cbfile.reloadFromCluster();
-                            documentManager.reloadFiles(file);
-                        } else {
-                            cbfile.setDesynchronized(true);
-                        }
-                    }
-                }
+    private void queueReload() {
+        ActiveCluster active = ActiveCluster.getInstance();
+        SavedCluster cluster = active.getSavedCluster();
+        if (checking || cluster == null || !cluster.hasOption(Clusters.Options.LIVE_POLLING)
+                || !(editor.getFile() instanceof CouchbaseDocumentVirtualFile file)
+                || !java.util.Objects.equals(cluster.getId(), file.getUserData(com.couchbase.intellij.VirtualFileKeys.CONN_ID))) return;
+        var manager = FileDocumentManager.getInstance();
+        var document = manager.getCachedDocument(file);
+        long stamp = document == null ? -1 : document.getModificationStamp();
+        checking = true;
+        com.couchbase.intellij.database.ClusterUiTask.submit(file.getProject(), active, "Checking Couchbase document", connection -> {
+            var result = connection.sdk().bucket(file.bucket()).scope(file.scope()).collection(file.collection()).get(file.id());
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return new RemoteDocument(result.cas(), mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(mapper.readTree(result.contentAsBytes())));
+        }, remote -> {
+            checking = false;
+            if (!editor.isValid() || document != null && document.getModificationStamp() != stamp
+                    || java.util.Objects.equals(Long.toString(remote.cas()), file.getUserData(com.couchbase.intellij.VirtualFileKeys.CAS))) return;
+            boolean reload = cluster.hasOption(Clusters.Options.LIVE_RELOAD);
+            if (!reload && !file.isDesynchronized()) {
+                int choice = Messages.showDialog("Document `" + file.getName() + "` was modified on the server. How would you like to proceed?",
+                        "Document Conflict", new String[]{"Replace document with server's version", "Keep current document"}, 0, Messages.getWarningIcon());
+                reload = choice == 0;
+                if (!reload) file.setDesynchronized(true);
             }
-        }
+            if (reload) {
+                file.acceptServerContent(remote.content(), remote.cas());
+                manager.reloadFiles(file);
+            }
+        }, error -> { checking = false; Log.debug("Could not check the document for server changes", error); });
     }
+
+    private record RemoteDocument(long cas, byte[] content) {}
 
     @Override
     public void focusGained(FocusEvent e) {

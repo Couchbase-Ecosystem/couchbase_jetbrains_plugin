@@ -62,6 +62,13 @@ public class CollectionSearchPanelTest extends LightPlatformCodeInsightFixture4T
         assertNotNull(find(p, JLabel.class, "collectionSearchStatus"));
     }
 
+    @Test public void tooManyMatchesExplainsTheDisplayLimit() {
+        CollectionSearchPanel picker = panel(text -> java.util.stream.IntStream.range(0, 25).mapToObj(i -> "collection" + i).toList());
+        picker.setQuery("collection");
+        assertEquals(20, picker.getResults().size());
+        assertEquals("Showing the first 20 matches. Keep typing to narrow your search.", picker.getStatusText());
+    }
+
     @Test
     public void typingFiltersTheListAsYouGo() {
         CollectionSearchPanel p = panel();

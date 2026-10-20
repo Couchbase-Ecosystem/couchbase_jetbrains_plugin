@@ -23,8 +23,16 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
     @Setter
     @Getter
     private int pagedLoaded;
+    @Getter private int total = -1;
+    @Getter private int shown;
 
-    private long loadGeneration;
+    public void setListingCounts(int shown, int total) {
+        this.shown = shown;
+        this.total = total;
+        setCounter(shown + " of " + total + " shown");
+    }
+
+    @Getter private long loadGeneration;
 
     public CollectionsNodeDescriptor(String scope, String bucket) {
         super("Collections", IconLoader.getIcon("/assets/icons/collections.svg", CollectionsNodeDescriptor.class));
@@ -46,6 +54,9 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
     public void resetForExpansion() {
         searchAdded.clear();
         pagedLoaded = 0;
+        total = -1;
+        shown = 0;
+        setCounter("");
         loadGeneration++;
     }
 

@@ -36,6 +36,9 @@ public class CouchbaseDocumentOutputStream extends ByteArrayOutputStream {
             throw new IOException("Reconnect to the document's original cluster before saving.");
         }
         String content = toString(StandardCharsets.UTF_8);
+        if (CouchbaseDocumentSaveCoordinator.isCompleting(file, content)) return;
+        if (com.intellij.openapi.application.ApplicationManager.getApplication().isDispatchThread())
+            throw new IOException("Save Couchbase documents through the editor's background save operation.");
         String cas = file.getUserData(VirtualFileKeys.CAS);
         try {
             var collection = active.getCluster().bucket(file.bucket()).scope(file.scope()).collection(file.collection());

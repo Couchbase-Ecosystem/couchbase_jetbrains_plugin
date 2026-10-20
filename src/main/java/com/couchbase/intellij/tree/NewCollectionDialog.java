@@ -1,7 +1,6 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.manager.collection.CollectionManager;
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.CreateCollectionSettings;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.DataLoader;
@@ -19,8 +18,6 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.time.Duration;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class NewCollectionDialog extends DialogWrapper {
 
@@ -28,12 +25,15 @@ public class NewCollectionDialog extends DialogWrapper {
     private final String scopeName;
     private final DefaultMutableTreeNode clickedNode;
     private final Tree tree;
+    private final Project project;
     private JTextField textField;
     private JLabel errorLabel;
     private JSpinner maxTTL;
+    private DialogOperation operation;
 
     protected NewCollectionDialog(Project project, String bucket, String scope, DefaultMutableTreeNode clickedNode, Tree tree) {
         super(project);
+        this.project = project;
         this.bucketName = bucket;
         this.scopeName = scope;
         this.clickedNode = clickedNode;
@@ -82,7 +82,7 @@ public class NewCollectionDialog extends DialogWrapper {
         gbc.gridy = 2;
         errorLabel = new JLabel("");
         errorLabel.setName("newCollectionError");
-        errorLabel.setForeground(Color.decode("#FF4444"));
+        errorLabel.setForeground(com.intellij.util.ui.UIUtil.getErrorForeground());
         panel.add(errorLabel, gbc);
 
         return panel;
@@ -102,48 +102,41 @@ public class NewCollectionDialog extends DialogWrapper {
         }
 
         String collectionName = textField.getText();
-        List<CollectionSpec> collections = ActiveCluster.getInstance().get().bucket(bucketName).collections()
-                                                        .getAllScopes().stream()
-                                                        .filter(scope -> scope.name().equals(scopeName))
-                                                        .flatMap(scope -> scope.collections().stream())
-                                                        .collect(Collectors.toList());
-
-        for (CollectionSpec collection : collections) {
-            if (collection.name().equals(collectionName)) {
-                // If it does, show error message
-                errorLabel.setText("Collection with name " + collectionName + " already exists");
-                return;
+        ActiveCluster active = ActiveCluster.getInstance();
+        long ttl = ((Number) maxTTL.getValue()).longValue();
+        DialogOperation pending = new DialogOperation(); operation = pending;
+        com.intellij.openapi.util.Disposer.register(getDisposable(), pending::cancel);
+        setOKActionEnabled(false); textField.setEnabled(false); maxTTL.setEnabled(false);
+        errorLabel.setText("Creating collection…");
+        com.couchbase.intellij.database.ClusterUiTask.submit(project, active, "Creating Couchbase collection", connection -> {
+            pending.checkCancelled(); connection.requireWritable();
+            CollectionManager manager = connection.sdk().bucket(bucketName).collections();
+            if (manager.getScope(scopeName).collections().stream().anyMatch(col -> col.name().equals(collectionName)))
+                throw new IllegalArgumentException("Collection with name " + collectionName + " already exists");
+            pending.beginMutation(connection, () -> getCancelAction().setEnabled(false));
+            if (ttl <= 0) manager.createCollection(scopeName, collectionName);
+            else manager.createCollection(scopeName, collectionName, CreateCollectionSettings.createCollectionSettings().maxExpiry(Duration.ofSeconds(ttl)));
+            return collectionName;
+        }, name -> {
+            if (clickedNode != null && clickedNode.getRoot() == tree.getModel().getRoot()) {
+                if (clickedNode.getUserObject() instanceof ScopeNodeDescriptor) {
+                    for (int i = 0; i < clickedNode.getChildCount(); i++) {
+                        var child = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
+                        if (child.getUserObject() instanceof CollectionsNodeDescriptor) { reloadShowing(child, name); break; }
+                    }
+                } else reloadShowing(clickedNode, name);
             }
-        }
+            if (!isDisposed()) close(OK_EXIT_CODE);
+        }, error -> {
+            if (isDisposed()) return;
+            operation = null; getCancelAction().setEnabled(true);
+            errorLabel.setText(error.getMessage() == null ? "Could not create the collection. Try again." : error.getMessage());
+            setOKActionEnabled(true); textField.setEnabled(true); maxTTL.setEnabled(true);
+        });
+    }
 
-        CollectionManager colManager = ActiveCluster.getInstance().get().bucket(bucketName).collections();
-
-        Double ttl = Double.parseDouble(maxTTL.getValue().toString());
-        if (ttl.longValue() <= 0) {
-            colManager.createCollection(scopeName, collectionName);
-        } else {
-            colManager.createCollection(scopeName, collectionName, CreateCollectionSettings.createCollectionSettings()
-                    .maxExpiry(Duration.ofSeconds(ttl.longValue())));
-        }
-
-        Object userObject = clickedNode.getUserObject();
-        if (userObject instanceof ScopeNodeDescriptor) {
-            int childCount = clickedNode.getChildCount();
-            for (int i = 0; i < childCount; i++) {
-                DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) clickedNode.getChildAt(i);
-                Object childUserObject = childNode.getUserObject();
-
-                if (childUserObject instanceof CollectionsNodeDescriptor) {
-                    reloadShowing(childNode, collectionName);
-                    break;
-                }
-            }
-
-
-        } else {
-            reloadShowing(clickedNode, collectionName);
-        }
-        super.doOKAction();
+    @Override public void doCancelAction() {
+        if (operation == null || operation.cancel()) super.doCancelAction();
     }
 
     /** Reloads the list, making sure the new collection is visible even if it falls beyond the loaded pages. */

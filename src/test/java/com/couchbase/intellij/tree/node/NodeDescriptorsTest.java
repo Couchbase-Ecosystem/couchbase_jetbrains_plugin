@@ -53,7 +53,7 @@ public class NodeDescriptorsTest {
     }
 
     @Test
-    public void counterNodeZeroAndEmptyCountAreRendered() {
+    public void counterNodeShowsZeroAndHidesMissingCounts() {
         CounterNodeDescriptor node = new CounterNodeDescriptor("Collections", null) {
         };
 
@@ -61,7 +61,10 @@ public class NodeDescriptorsTest {
         Assert.assertEquals("(0)", labelText(node));
 
         node.setCounter("");
-        Assert.assertEquals("()", labelText(node));
+        Assert.assertEquals("", labelText(node));
+
+        node.setCounter(null);
+        Assert.assertEquals("", labelText(node));
     }
 
     @Test

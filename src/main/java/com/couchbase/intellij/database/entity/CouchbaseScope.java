@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 public class CouchbaseScope implements CouchbaseClusterEntity {
     private ScopeSpec spec;
     private CouchbaseBucket parent;
-    private Set<CouchbaseCollection> collections;
+    private volatile Set<CouchbaseCollection> collections;
 
     public CouchbaseScope(CouchbaseBucket parent, ScopeSpec spec) {
         this.parent = parent;
@@ -44,5 +44,11 @@ public class CouchbaseScope implements CouchbaseClusterEntity {
             updateSchema();
         }
         return collections;
+    }
+
+    /** Metadata already loaded by the schema worker; never starts schema inference. */
+    public Set<CouchbaseCollection> getCachedChildren() {
+        Set<CouchbaseCollection> snapshot = collections;
+        return snapshot == null ? Set.of() : snapshot;
     }
 }

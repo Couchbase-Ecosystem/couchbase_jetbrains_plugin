@@ -23,7 +23,7 @@ public class CollectionSearchDialog extends DialogWrapper {
         setTitle("Search Collection");
         setOKButtonText("Add to List");
         CachedCollectionSearch search = new CachedCollectionSearch(source);
-        panel = new CollectionSearchPanel(text -> search.search(text, MAX_RESULTS), name -> {
+        panel = new CollectionSearchPanel(text -> search.search(text, MAX_RESULTS + 1), name -> {
             onChosen.accept(name);
             close(OK_EXIT_CODE);
         }, ApplicationManager.getApplication()::executeOnPooledThread, SwingUtilities::invokeLater, 250);

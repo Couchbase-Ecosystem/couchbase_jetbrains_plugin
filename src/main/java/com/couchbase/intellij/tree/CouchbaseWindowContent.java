@@ -32,7 +32,6 @@ import java.awt.event.MouseEvent;
 import java.net.URI;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class CouchbaseWindowContent extends JPanel {
 
@@ -63,7 +62,7 @@ public class CouchbaseWindowContent extends JPanel {
         CouchbaseWindowContent.project = project;
         setLayout(new BorderLayout());
         treeModel = getTreeModel(project);
-        tree = new Tree(treeModel);
+        tree = new CollectionExplorerTree(project, treeModel);
 
         tree.setRootVisible(false);
         tree.setCellRenderer(new NodeDescriptorRenderer());
@@ -126,15 +125,10 @@ public class CouchbaseWindowContent extends JPanel {
                                 descriptor.setVirtualFile(null);
                             }
 
-                            DataLoader.loadDocument(project, descriptor, tree);
-                            VirtualFile virtualFile = descriptor.getVirtualFile();
-                            if (virtualFile != null) {
-                                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                                FileEditor[] editor = fileEditorManager.openFile(virtualFile, true);
-                                CouchbaseDocumentEditorRefresher.attach(editor[0]);
-                            } else {
-                                Log.debug("virtual file is null");
-                            }
+                            DataLoader.loadDocument(project, descriptor, tree, file -> {
+                                FileEditor[] editors = FileEditorManager.getInstance(project).openFile(file, true);
+                                if (editors.length > 0) CouchbaseDocumentEditorRefresher.attach(editors[0]);
+                            });
                         } else if (userObject instanceof IndexNodeDescriptor descriptor) {
                             VirtualFile virtualFile = descriptor.getVirtualFile();
                             if (virtualFile != null) {
@@ -223,6 +217,7 @@ public class CouchbaseWindowContent extends JPanel {
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+            setToolTipText(null);
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
@@ -231,6 +226,7 @@ public class CouchbaseWindowContent extends JPanel {
                     TooltipNodeDescriptor descriptor = (TooltipNodeDescriptor) userObject;
                     setText(descriptor.getText());
                     setIcon(descriptor.getIcon());
+                    if (!sel && descriptor instanceof LoadErrorNodeDescriptor) setForeground(com.intellij.util.ui.UIUtil.getErrorForeground());
                     if (descriptor.getTooltip() != null) {
                         setToolTipText(descriptor.getTooltip());
                     }
@@ -241,8 +237,21 @@ public class CouchbaseWindowContent extends JPanel {
                     if (descriptor.getQueryFilter() != null) {
                         icon = IconLoader.getIcon("/assets/icons/filter.svg", CouchbaseWindowContent.class);
                     }
-
-                    return new CounterPanel(icon, new JLabel(descriptor.getText()), descriptor.getCounterPanel());
+                    com.intellij.ui.SimpleColoredComponent label = new com.intellij.ui.SimpleColoredComponent();
+                    label.append(descriptor.getText(), new com.intellij.ui.SimpleTextAttributes(com.intellij.ui.SimpleTextAttributes.STYLE_PLAIN,
+                            sel ? UIManager.getColor("Tree.selectionForeground") : tree.getForeground()));
+                    com.intellij.ui.speedSearch.SpeedSearchUtil.applySpeedSearchHighlighting(tree, label, false, sel);
+                    JPanel rendered = new CounterPanel(icon, label, descriptor.getCounterPanel());
+                    if (descriptor.isFavorite()) {
+                        JLabel favorite = new JLabel(IconLoader.getIcon("/assets/icons/collection-favorite.svg", CouchbaseWindowContent.class));
+                        favorite.setName("collectionFavoriteIndicator");
+                        favorite.setToolTipText("Favorite collection");
+                        favorite.getAccessibleContext().setAccessibleName("Favorite collection");
+                        favorite.setBorder(JBUI.Borders.empty(0, 4));
+                        rendered.add(favorite);
+                    }
+                    rendered.setOpaque(false);
+                    return rendered;
                 } else if (userObject instanceof ConnectionNodeDescriptor) {
                     ConnectionNodeDescriptor descriptor = (ConnectionNodeDescriptor) userObject;
                     if (descriptor.getText().equals(ActiveCluster.getInstance().getId()) && ActiveCluster.getInstance().isReadOnlyMode()) {
@@ -280,11 +289,11 @@ public class CouchbaseWindowContent extends JPanel {
     }
 
     static class CounterPanel extends JPanel {
-        public CounterPanel(Icon icon, JLabel text, JPanel counter) {
+        public CounterPanel(Icon icon, JComponent text, JPanel counter) {
             setLayout(new FlowLayout(FlowLayout.LEFT, 0, 2));
             add(new JLabel(icon));
             text.setBorder(JBUI.Borders.empty(0, 3));
-            setOpaque(true);
+            setOpaque(false);
             add(text);
             add(counter);
         }

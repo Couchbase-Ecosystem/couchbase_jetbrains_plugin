@@ -148,7 +148,7 @@ public class NewConnectionDialog extends DialogWrapper {
         JPanel notificationPanel = new JPanel(new BorderLayout());
         errorLabel = new JLabel();
         errorLabel.setName("connectionError");
-        errorLabel.setForeground(Color.decode("#FF4444"));
+        errorLabel.setForeground(com.intellij.util.ui.UIUtil.getErrorForeground());
         messageLabel = new JLabel();
         messageLabel.setName("connectionStatus");
         messageLabel.setBorder(JBUI.Borders.emptyTop(5));

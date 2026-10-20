@@ -99,16 +99,21 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
         }
     }
 
-    @Override
-    protected void tearDown() throws Exception {
-        try {
-            GuiActionRunner.execute(() -> {
+    /** Close modal peers before subclass cleanup invokes non-modal platform actions. */
+    protected void closeDialogs() {
+        GuiActionRunner.execute(() -> {
                 for (DialogWrapper dialog : dialogs) {
                     if (!dialog.isDisposed()) {
                         dialog.close(DialogWrapper.CANCEL_EXIT_CODE);
                     }
                 }
-            });
+        });
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        try {
+            closeDialogs();
         } finally {
             try {
                 if (robot != null) {

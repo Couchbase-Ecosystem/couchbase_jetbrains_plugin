@@ -147,13 +147,15 @@ public class CollectionSearchPanel extends JPanel {
 
     private void showResults(List<String> results, String error) {
         model.clear();
-        results.forEach(model::addElement);
+        results.stream().limit(CollectionSearchDialog.MAX_RESULTS).forEach(model::addElement);
         if (error != null) {
             status.setText("Search failed: " + error);
         } else if (results.isEmpty()) {
             status.setText("No collections match");
         } else {
-            status.setText(results.size() + (results.size() == 1 ? " collection" : " collections"));
+            status.setText(results.size() > CollectionSearchDialog.MAX_RESULTS
+                    ? "Showing the first " + CollectionSearchDialog.MAX_RESULTS + " matches. Keep typing to narrow your search."
+                    : results.size() + (results.size() == 1 ? " collection" : " collections"));
             list.setSelectedIndex(0);
         }
     }

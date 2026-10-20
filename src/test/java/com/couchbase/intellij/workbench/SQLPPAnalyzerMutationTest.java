@@ -28,6 +28,7 @@ public class SQLPPAnalyzerMutationTest {
     public void selectIsNotAMutation() {
         assertFalse(SQLPPAnalyzer.isMutation("SELECT * FROM `travel-sample` LIMIT 10"));
         assertFalse(SQLPPAnalyzer.isMutation("select updated_at from b"));
+        assertFalse(SQLPPAnalyzer.isMutation("SELECT REPLACE(name, 'old', 'new') FROM b"));
     }
 
     @Test
@@ -47,9 +48,12 @@ public class SQLPPAnalyzerMutationTest {
     }
 
     @Test
-    public void keywordGluedToSemicolonIsMissed() {
-        // NOTE: possible bug: tokenizer splits on whitespace only, so "1;DROP" is one token and the
-        // mutation is not detected. Pinned as current behavior.
-        assertFalse(SQLPPAnalyzer.isMutation("SELECT 1;DROP INDEX i ON b"));
+    public void keywordGluedToSemicolonIsDetected() {
+        assertTrue(SQLPPAnalyzer.isMutation("SELECT 1;DROP INDEX i ON b"));
+        assertTrue(SQLPPAnalyzer.isMutation("UPDATE`bucket` SET value=1"));
+        assertTrue(SQLPPAnalyzer.isMutation("GRANT/*comment*/query_select ON b TO u"));
+        assertTrue(SQLPPAnalyzer.isMutation("REVOKE query_select ON b FROM u"));
+        assertTrue(SQLPPAnalyzer.isMutation("BUILD INDEX ON b(i)"));
+        assertFalse(SQLPPAnalyzer.isMutation("SELECT 'update' AS text /* DROP INDEX i */"));
     }
 }

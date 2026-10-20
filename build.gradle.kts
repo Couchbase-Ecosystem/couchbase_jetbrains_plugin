@@ -89,6 +89,9 @@ val uiTest = intellijPlatformTesting.testIde.register("uiTest") {
             !it.name.startsWith("jna-")
         }
         systemProperty("java.awt.headless", "false")
+        // Exercise production background behavior; unit-test mode otherwise pumps only
+        // non-input events while waiting synchronously for background tasks.
+        systemProperty("intellij.progress.task.ignoreHeadless", "true")
         systemProperty("cb.certificate.demo", providers.gradleProperty("certificateDemoTests").getOrElse("false"))
         systemProperty("ui.test.artifacts", layout.buildDirectory.dir("reports/uiTest/artifacts").get().asFile)
         maxParallelForks = 1

@@ -7,6 +7,7 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.database.entity.CouchbaseBucket;
 import com.couchbase.intellij.database.entity.CouchbaseClusterEntity;
+import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.SavedCluster;
 import com.couchbase.intellij.tree.overview.apis.CouchbaseRestAPI;
 import com.couchbase.intellij.tree.overview.apis.ServerOverview;
@@ -46,8 +47,8 @@ public class ActiveCluster implements CouchbaseClusterEntity {
     private final List<Runnable> newConnectionListener = new ArrayList<>();
 
     private static List<String> searchNodes;
-    private Cluster cluster;
-    private SavedCluster savedCluster;
+    private volatile Cluster cluster;
+    private volatile SavedCluster savedCluster;
     private String password;
     private ConnectionAuthentication authentication;
 
@@ -63,7 +64,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     private Permissions permissions;
 
-    private Set<CouchbaseBucket> buckets;
+    private volatile Set<CouchbaseBucket> buckets;
     private long lastSchemaUpdate = 0;
     private AtomicBoolean schemaUpdating = new AtomicBoolean(false);
 
@@ -414,6 +415,16 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         return buckets;
     }
 
+    /** Completion runs under a platform read lock and may only inspect published snapshots. */
+    public Optional<CouchbaseCollection> getCachedCollection(String bucket, String scope, String collection) {
+        Set<CouchbaseBucket> snapshot = buckets;
+        if (snapshot == null) return Optional.empty();
+        return snapshot.stream().filter(b -> Objects.equals(bucket, b.getName()))
+                .flatMap(b -> b.getCachedChildren().stream()).filter(s -> Objects.equals(scope, s.getName()))
+                .flatMap(s -> s.getCachedChildren().stream()).filter(c -> Objects.equals(collection, c.getName()))
+                .findFirst();
+    }
+
     private List<Consumer<Exception>> schemaListeners = Collections.synchronizedList(new ArrayList<>());
 
     private void scheduleSchemaUpdate(Consumer<Exception> onComplete) {
@@ -467,14 +478,14 @@ public class ActiveCluster implements CouchbaseClusterEntity {
         Log.debug("Updating cluster schema");
         Set<CouchbaseBucket> newbuckets = new HashSet<>();
         if (buckets == null) {
-            buckets = newbuckets;
+            buckets = Set.of();
         }
         cluster.buckets().getAllBuckets().forEach((b, settings) -> {
             CouchbaseBucket bucket = new CouchbaseBucket(this, b);
             bucket.updateSchema();
             newbuckets.add(bucket);
         });
-        buckets = newbuckets;
+        buckets = Set.copyOf(newbuckets);
         lastSchemaUpdate = System.currentTimeMillis();
         Log.debug("updated cluster schema");
     }
@@ -523,7 +534,7 @@ public class ActiveCluster implements CouchbaseClusterEntity {
 
     public void clearSchema() {
         if (!this.schemaUpdating.get() && this.buckets != null) {
-            this.buckets.clear();
+            this.buckets = Set.of();
             this.lastSchemaUpdate = 0;
         }
     }
