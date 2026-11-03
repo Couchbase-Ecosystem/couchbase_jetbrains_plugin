@@ -320,8 +320,7 @@ public class DataLoader {
         byte[] content = result.contentAsBytes();
         FileType type = JsonFileType.INSTANCE;
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            content = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(mapper.readTree(content));
+            content = com.couchbase.intellij.persistence.CouchbaseDocumentSaver.prettyPrint(content);
         } catch (JsonProcessingException invalidJson) {
             type = UserBinaryFileType.INSTANCE;
         }

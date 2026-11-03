@@ -18,6 +18,8 @@ import java.util.Objects;
 public final class CouchbaseDocumentSaveCoordinator {
     private static final Key<Save> PENDING = Key.create("couchbase.pending.document.save");
     private static final Key<String> REPLAY = Key.create("couchbase.completed.document.save");
+    private static final Key<Save> REPLAYING = Key.create("couchbase.replaying.document.save");
+    private static final com.intellij.openapi.diagnostic.Logger LOG = com.intellij.openapi.diagnostic.Logger.getInstance(CouchbaseDocumentSaveCoordinator.class);
     public static final Key<String> LAST_ERROR = Key.create("couchbase.document.save.error");
     private CouchbaseDocumentSaveCoordinator() {}
 
@@ -28,17 +30,37 @@ public final class CouchbaseDocumentSaveCoordinator {
             pending.again |= document.getModificationStamp() != pending.stamp;
             return false;
         }
+        start(document, file, explicit);
+        return false;
+    }
+
+    private static void start(Document document, CouchbaseDocumentVirtualFile file, boolean explicit) {
         ActiveCluster active = ActiveCluster.getInstance();
-        if (!canWrite(active, file)) return false;
+        if (!canWrite(active, file)) return;
         Save save = new Save(document, file, active, explicit);
         document.putUserData(PENDING, save);
         file.putUserData(LAST_ERROR, null);
         ApplicationManager.getApplication().executeOnPooledThread(() -> prepare(save));
-        return false;
     }
 
+    /**
+     * Whether the platform is writing the version that a background save already stored on the server.
+     * The written text may use other line separators, or have been reformatted by a
+     * beforeDocumentSaving listener, without being a different JSON document.
+     */
     public static boolean isCompleting(CouchbaseDocumentVirtualFile file, String content) {
-        return content.equals(file.getUserData(REPLAY));
+        return CouchbaseDocumentSaver.sameJson(file.getUserData(REPLAY), content);
+    }
+
+    /**
+     * The platform is replaying a completed save, but a beforeDocumentSaving listener changed the
+     * document into different JSON. The changed text is saved by a new background save instead.
+     */
+    public static boolean isReplayChanged(CouchbaseDocumentVirtualFile file) {
+        Save replay = file.getUserData(REPLAYING);
+        if (replay == null) return false;
+        replay.changedOnReplay = true;
+        return true;
     }
 
     public static boolean isSaving(Document document) { return document.getUserData(PENDING) != null; }
@@ -52,7 +74,7 @@ public final class CouchbaseDocumentSaveCoordinator {
     private static void prepare(Save save) {
         try {
             // Validation and both network operations are outside the platform locks.
-            com.couchbase.client.java.json.JsonObject.fromJson(save.content);
+            CouchbaseDocumentSaver.requireJson(save.content);
             requireWritable(save);
             GetResult remote;
             try { remote = save.collection().get(save.file.id()); }
@@ -63,11 +85,10 @@ public final class CouchbaseDocumentSaveCoordinator {
             }
             if (save.cas != null && Long.parseLong(save.cas) == remote.cas()) write(save, remote.cas());
             else {
-                byte[] content = new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter()
-                        .writeValueAsBytes(new com.fasterxml.jackson.databind.ObjectMapper().readTree(remote.contentAsBytes()));
+                byte[] content = CouchbaseDocumentSaver.prettyPrint(remote.contentAsBytes());
                 ui(save, () -> resolveConflict(save, remote.cas(), content));
             }
-        } catch (Exception failure) { failed(save, failure); }
+        } catch (Throwable failure) { failed(save, failure); }
     }
 
     private static void resolveDeleted(Save save) {
@@ -115,7 +136,7 @@ public final class CouchbaseDocumentSaveCoordinator {
                 com.couchbase.intellij.workbench.Log.debug("Document saved; schema cache update failed", cacheFailure);
             }
             ui(save, () -> acknowledge(save, save.content.getBytes(StandardCharsets.UTF_8), result.cas(), false));
-        } catch (Exception failure) { failed(save, failure); }
+        } catch (Throwable failure) { failed(save, failure); }
     }
 
     private static void acknowledge(Save save, byte[] content, long cas, boolean reload) {
@@ -127,15 +148,19 @@ public final class CouchbaseDocumentSaveCoordinator {
                 // can now clear its dirty flag without any server call in the VFS stream.
                 save.replaying = true;
                 save.file.putUserData(REPLAY, new String(content, StandardCharsets.UTF_8));
-                FileDocumentManager.getInstance().saveDocument(save.document);
+                save.file.putUserData(REPLAYING, save);
+                // As-is: no trailing-space stripping or final newline, so the platform writes what the server has.
+                FileDocumentManager.getInstance().saveDocumentAsIs(save.document);
             }
         } finally {
             save.file.putUserData(REPLAY, null);
+            save.file.putUserData(REPLAYING, null);
             finish(save);
         }
     }
 
-    private static void failed(Save save, Exception failure) {
+    private static void failed(Save save, Throwable failure) {
+        // Errors must still release the save, or the document and project close stay blocked.
         ui(save, () -> {
             String message = failure instanceof CasMismatchException || failure instanceof DocumentExistsException
                     ? "The document changed again while saving. Your edits are kept; save again to review the conflict."
@@ -148,18 +173,31 @@ public final class CouchbaseDocumentSaveCoordinator {
                         .createNotification(message, com.intellij.notification.NotificationType.WARNING).notify(save.file.getProject());
             }
         });
+        if (failure instanceof Error && !(failure instanceof com.intellij.openapi.diagnostic.ControlFlowException))
+            LOG.error("Unexpected failure while saving a Couchbase document", failure);
     }
 
     private static void finish(Save save) {
-        if (save.document.getUserData(PENDING) == save) save.document.putUserData(PENDING, null);
-        if (save.again && save.connection.isCurrent() && !save.file.getProject().isDisposed()
-                && canWrite(ActiveCluster.getInstance(), save.file))
-            FileDocumentManager.getInstance().saveDocument(save.document);
+        if (save.document.getUserData(PENDING) != save) return;
+        save.document.putUserData(PENDING, null);
+        boolean follow = save.connection.isCurrent() && !save.file.getProject().isDisposed()
+                && canWrite(ActiveCluster.getInstance(), save.file);
+        // The replay already cleared the dirty flag, so a normal save would be skipped.
+        if (follow && save.changedOnReplay) start(save.document, save.file, save.explicit);
+        else if (follow && save.again) FileDocumentManager.getInstance().saveDocument(save.document);
         CouchbaseDocumentCloseHandler.savesFinished(save.file.getProject());
     }
 
     private static void ui(Save save, Runnable callback) {
-        ApplicationManager.getApplication().invokeLater(callback, save.modality);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                callback.run();
+            } catch (Throwable failure) {
+                // A dialog or platform call that fails must not leave the save pending forever.
+                finish(save);
+                throw failure;
+            }
+        }, save.modality);
     }
 
     private static final class Save {
@@ -174,6 +212,7 @@ public final class CouchbaseDocumentSaveCoordinator {
         final ModalityState modality = ModalityState.current();
         boolean replaying;
         boolean again;
+        boolean changedOnReplay;
         Save(Document document, CouchbaseDocumentVirtualFile file, ActiveCluster active, boolean explicit) {
             this.document = document; this.file = file; this.active = active; this.explicit = explicit;
             connection = ClusterUiTask.capture(active);

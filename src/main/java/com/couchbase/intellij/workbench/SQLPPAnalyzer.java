@@ -31,11 +31,12 @@ public class SQLPPAnalyzer {
                         i++; break;
                     }
                 }
-            } else if (Character.isLetter(current) || current == '_') {
+            } else if (Character.isLetter(current) || current == '_' || current == '$') {
+                // `$update` is a named parameter, `a$drop` an identifier and `d.delete` a field, never a statement keyword.
                 int start = i++;
-                while (i < query.length() && (Character.isLetterOrDigit(query.charAt(i)) || query.charAt(i) == '_')) i++;
+                while (i < query.length() && isIdentifierPart(query.charAt(i))) i++;
                 String word = query.substring(start, i).toLowerCase(java.util.Locale.ROOT);
-                if (MUTATIONS.contains(word)) {
+                if (MUTATIONS.contains(word) && !(start > 0 && query.charAt(start - 1) == '.')) {
                     int next = skipTrivia(query, i);
                     if (word.equals("replace") && next < query.length() && query.charAt(next) == '(') continue;
                     return true;
@@ -43,6 +44,10 @@ public class SQLPPAnalyzer {
             } else i++;
         }
         return false;
+    }
+
+    private static boolean isIdentifierPart(char c) {
+        return Character.isLetterOrDigit(c) || c == '_' || c == '$';
     }
 
     private static int skipTrivia(String query, int offset) {

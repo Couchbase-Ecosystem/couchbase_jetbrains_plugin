@@ -37,6 +37,8 @@ public class CouchbaseDocumentOutputStream extends ByteArrayOutputStream {
         }
         String content = toString(StandardCharsets.UTF_8);
         if (CouchbaseDocumentSaveCoordinator.isCompleting(file, content)) return;
+        // Never write from the EDT; the coordinator saves the changed replay text in the background.
+        if (CouchbaseDocumentSaveCoordinator.isReplayChanged(file)) return;
         if (com.intellij.openapi.application.ApplicationManager.getApplication().isDispatchThread())
             throw new IOException("Save Couchbase documents through the editor's background save operation.");
         String cas = file.getUserData(VirtualFileKeys.CAS);

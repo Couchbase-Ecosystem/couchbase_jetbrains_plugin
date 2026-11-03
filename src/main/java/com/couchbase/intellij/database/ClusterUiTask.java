@@ -62,13 +62,21 @@ public final class ClusterUiTask {
                             failure.accept(new IllegalStateException("The active connection changed. Select the original connection and try again."));
                         } else success.accept(result);
                     }, modality);
-                } catch (Exception error) {
+                } catch (Throwable error) {
+                    // Callers reset busy and pending state in the failure callback, so Errors must reach it too.
+                    Exception reported = asException(error);
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        if (project == null || !project.isDisposed()) failure.accept(error);
+                        if (project == null || !project.isDisposed()) failure.accept(reported);
                     }, modality);
+                    // Still let the platform report serious errors and handle its control-flow exceptions.
+                    if (error instanceof Error) throw (Error) error;
                 }
             }
         });
     }
 
+    static Exception asException(Throwable error) {
+        return error instanceof Exception exception ? exception
+                : new IllegalStateException("Unexpected error: " + Objects.toString(error.getMessage(), error.getClass().getSimpleName()), error);
+    }
 }

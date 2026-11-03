@@ -175,9 +175,7 @@ public class CouchbaseDocumentVirtualFile extends VirtualFile {
 
     private byte[] fetchContent(GetResult gr) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            return new ObjectMapper().writerWithDefaultPrettyPrinter()
-                                           .writeValueAsBytes(mapper.readTree(gr.contentAsBytes()));
+            return CouchbaseDocumentSaver.prettyPrint(gr.contentAsBytes());
         } catch (Throwable e) {
             return gr.contentAsBytes();
         }

@@ -78,6 +78,18 @@ public class TreeRightClickListener {
     }
 
 
+    /** A menu acts on the connection and node it was opened for, never on whatever is current when it is clicked. */
+    static boolean isMenuTargetCurrent(ClusterUiTask.Connection menuConnection, Object treeRoot, DefaultMutableTreeNode node) {
+        return menuConnection.isCurrent() && node.getParent() != null && node.getRoot() == treeRoot;
+    }
+
+    private static boolean requireMenuTarget(Project project, ClusterUiTask.Connection menuConnection, Tree tree, DefaultMutableTreeNode node, String title) {
+        if (isMenuTargetCurrent(menuConnection, tree.getModel().getRoot(), node)) return true;
+        Messages.showErrorDialog(project, "The connection or tree changed after this menu was opened. Refresh the tree and try again.", title);
+        return false;
+    }
+
+
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
         Object userObject = clickedNode.getUserObject();
         int row = tree.getClosestRowForLocation(e.getX(), e.getY());
@@ -433,19 +445,20 @@ public class TreeRightClickListener {
             actionGroup.add(addNewScopeItem);
 
             // Add "Delete Bucket" option
+            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
             AnAction deleteBucketItem = new AnAction("Delete Bucket") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     try {
 
                         String bucketName = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+                        if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Bucket")) return;
 
                         // Show confirmation dialog before deleting bucket
-                        ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                         int result = Messages.showYesNoDialog(
                                 "Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket",
                                 Messages.getQuestionIcon());
-                        if (result != Messages.YES) {
+                        if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Bucket")) {
                             return;
                         }
 
@@ -560,17 +573,18 @@ public class TreeRightClickListener {
             if (!"_default".equals(scope.getText())) {
                 actionGroup.addSeparator();
                 // Add "Delete Scope" option
+                ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                 AnAction deleteScopeItem = new AnAction("Delete Scope") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         try {
+                            if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Scope")) return;
 
                             // Show confirmation dialog before deleting scope
-                            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                             int result = Messages.showYesNoDialog(
                                     "Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope",
                                     Messages.getQuestionIcon());
-                            if (result != Messages.YES) {
+                            if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Scope")) {
                                 return;
                             }
 
@@ -677,14 +691,15 @@ public class TreeRightClickListener {
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
 
+            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
             AnAction deleteDoc = new AnAction("Delete Document") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
+                    if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Document")) return;
                     int result = Messages.showYesNoDialog(
                             "<html>Are you sure you want to delete the document " + "<strong>" + col.getId() + "</strong>?</html>",
                             "Delete Document", Messages.getQuestionIcon());
-                    if (result != Messages.YES) {
+                    if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Document")) {
                         return;
                     }
 
@@ -818,16 +833,17 @@ public class TreeRightClickListener {
                     col.getScope()))) {
                 // Add "Delete Collection" option
                 actionGroup.addSeparator();
+                ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                 AnAction deleteCollectionItem = new AnAction("Delete Collection") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e) {
                         try {
+                            if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Collection")) return;
 
-                            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
                             int result = Messages.showYesNoDialog(
                                     "Are you sure you want to delete the collection " + col.getText() + "?",
                                     "Delete Collection", Messages.getQuestionIcon());
-                            if (result != Messages.YES) {
+                            if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Collection")) {
                                 return;
                             }
 

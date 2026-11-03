@@ -56,4 +56,14 @@ public class SQLPPAnalyzerMutationTest {
         assertTrue(SQLPPAnalyzer.isMutation("BUILD INDEX ON b(i)"));
         assertFalse(SQLPPAnalyzer.isMutation("SELECT 'update' AS text /* DROP INDEX i */"));
     }
+
+    @Test
+    public void namedParametersAndIdentifiersAreNotMutations() {
+        assertFalse(SQLPPAnalyzer.isMutation("SELECT * FROM b WHERE status = $update"));
+        assertFalse(SQLPPAnalyzer.isMutation("SELECT $delete, $drop AS x FROM b WHERE a IN $insert"));
+        assertFalse(SQLPPAnalyzer.isMutation("SELECT a$drop, create$ FROM b"));
+        assertFalse(SQLPPAnalyzer.isMutation("SELECT d.`name`, d.delete FROM b AS d"));
+        assertTrue(SQLPPAnalyzer.isMutation("DELETE FROM b WHERE id = $update"));
+        assertTrue(SQLPPAnalyzer.isMutation("SELECT $x;UPDATE b SET a = $y"));
+    }
 }
