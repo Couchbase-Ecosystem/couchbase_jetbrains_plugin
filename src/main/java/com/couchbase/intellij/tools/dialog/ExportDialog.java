@@ -1,13 +1,20 @@
 package com.couchbase.intellij.tools.dialog;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.ClusterUiTask;
+import com.couchbase.intellij.database.collections.CollectionListing;
+import com.couchbase.intellij.database.collections.CollectionSources;
+import com.couchbase.intellij.persistence.FavoriteCollections;
+import com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage;
 import com.couchbase.intellij.tools.CBExport;
+import com.couchbase.intellij.tree.CollectionSearchDialog;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
@@ -28,8 +35,11 @@ import java.util.stream.Collectors;
 @SuppressWarnings("rawtypes")
 public class ExportDialog extends DialogWrapper {
     private final String ALL_SCOPES = "All Scopes";
+    private static final String ALL_COLLECTIONS_OF = "All collections of ";
     private JComboCheckBox scopeCombo;
     private JComboCheckBox colCombo;
+    private JButton colSearchButton;
+    private int collectionLoadGeneration;
     private ComboBox bucketCombo;
     private JBLabel errorLabel;
 
@@ -137,30 +147,7 @@ public class ExportDialog extends DialogWrapper {
 
         scopeCombo = new JComboCheckBox();
         scopeCombo.setEnabled(false);
-        scopeCombo.setItemListener(e -> {
-            colCombo.removeAllItems();
-
-            List<String> all = new ArrayList<>();
-            List<String> partial = new ArrayList<>();
-            if (e.contains(ALL_SCOPES)) {
-                colCombo.setEnabled(false);
-            } else {
-                colCombo.setHint("Select one or more items");
-                colCombo.setEnabled(true);
-                List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket((String) bucketCombo.getSelectedItem()).collections().getAllScopes();
-                for (ScopeSpec spec : scopes) {
-                    if (e.contains(spec.name())) {
-                        all.add("All collections of " + spec.name());
-                        for (CollectionSpec colSpec : spec.collections()) {
-                            partial.add(spec.name() + "." + colSpec.name());
-                        }
-                    }
-                }
-                all.addAll(partial);
-                all.forEach(item -> colCombo.addItem(item));
-            }
-
-        });
+        scopeCombo.setItemListener(this::refreshCollectionOptions);
 
         formPanel.add(scopeCombo, c);
 
@@ -172,8 +159,16 @@ public class ExportDialog extends DialogWrapper {
         c.gridx = 1;
         colCombo = new JComboCheckBox();
         colCombo.setEnabled(false);
+        colSearchButton = new JButton(AllIcons.Actions.Find);
+        colSearchButton.setToolTipText("Search for a collection by name and add it to the selection");
+        colSearchButton.setMargin(JBUI.insets(2));
+        colSearchButton.setEnabled(false);
+        colSearchButton.addActionListener(e -> searchCollectionToExport());
 
-        formPanel.add(colCombo, c);
+        JPanel colRow = new JPanel(new BorderLayout(4, 0));
+        colRow.add(colCombo, BorderLayout.CENTER);
+        colRow.add(colSearchButton, BorderLayout.EAST);
+        formPanel.add(colRow, c);
 
         c.gridy = 3;
         c.weightx = 0.3;
@@ -274,6 +269,77 @@ public class ExportDialog extends DialogWrapper {
         return panel;
     }
 
+
+    /**
+     * Offers "All collections of" per selected scope plus that scope's favorites and first alphabetical page. A
+     * scope may hold thousands of collections, so the rest is added through the search button. Names are fetched
+     * in the background.
+     */
+    private void refreshCollectionOptions(List<String> selectedScopes) {
+        int mine = ++collectionLoadGeneration;
+        colCombo.removeAllItems();
+        colSearchButton.setEnabled(false);
+        if (selectedScopes.isEmpty() || selectedScopes.contains(ALL_SCOPES)) {
+            colCombo.setEnabled(false);
+            return;
+        }
+        String bucket = (String) bucketCombo.getSelectedItem();
+        List<String> scopes = new ArrayList<>(selectedScopes);
+        ActiveCluster active = ActiveCluster.getInstance();
+        FavoriteCollections favorites = FavoriteCollectionsStorage.getInstance().getValue();
+        java.util.Map<String, List<String>> favoritesByScope = new java.util.HashMap<>();
+        for (String scope : scopes) {
+            favoritesByScope.put(scope, favorites.getFavorites(active.getId(), bucket, scope));
+        }
+        colCombo.setEnabled(false);
+        colCombo.setHint("Loading collections...");
+        ClusterUiTask.submit(null, active, "Listing collections of " + bucket, connection -> {
+            List<String> all = new ArrayList<>();
+            List<String> partial = new ArrayList<>();
+            for (String scope : scopes) {
+                all.add(ALL_COLLECTIONS_OF + scope);
+                CollectionListing listing = CollectionListing.build(CollectionSources.forScope(bucket, scope),
+                        favoritesByScope.get(scope), List.of(), CollectionListing.PAGE_SIZE);
+                for (String name : listing.getNames()) {
+                    partial.add(scope + "." + name);
+                }
+            }
+            all.addAll(partial);
+            return all;
+        }, items -> {
+            if (mine != collectionLoadGeneration) {
+                return;
+            }
+            colCombo.setEnabled(true);
+            colCombo.setHint("Select one or more items");
+            items.forEach(colCombo::addItem);
+            colSearchButton.setEnabled(true);
+        }, error -> {
+            if (mine != collectionLoadGeneration) {
+                return;
+            }
+            errorLabel.setText("<html>Could not list the collections: " + error.getMessage() + "</html>");
+        });
+    }
+
+    private void searchCollectionToExport() {
+        List<String> scopes = scopeCombo.getSelectedItems().stream().filter(s -> !ALL_SCOPES.equals(s)).toList();
+        if (scopes.size() == 1) {
+            openCollectionSearch(scopes.get(0));
+        } else if (!scopes.isEmpty()) {
+            JBPopupFactory.getInstance().createPopupChooserBuilder(scopes)
+                    .setTitle("Search in Scope")
+                    .setItemChosenCallback(this::openCollectionSearch)
+                    .createPopup()
+                    .showUnderneathOf(colSearchButton);
+        }
+    }
+
+    private void openCollectionSearch(String scope) {
+        String bucket = (String) bucketCombo.getSelectedItem();
+        new CollectionSearchDialog(null, CollectionSources.forScope(bucket, scope),
+                name -> colCombo.addSelectedItem(scope + "." + name)).show();
+    }
 
     @Override
     protected void doOKAction() {

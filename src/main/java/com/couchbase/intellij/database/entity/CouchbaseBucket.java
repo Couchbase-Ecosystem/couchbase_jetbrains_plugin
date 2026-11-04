@@ -10,7 +10,7 @@ public class CouchbaseBucket implements CouchbaseClusterEntity {
     private String name;
     private ActiveCluster parent;
 
-    private Set<CouchbaseScope> scopes;
+    private volatile Set<CouchbaseScope> scopes;
 
     public CouchbaseBucket(ActiveCluster cluster, String name) {
         this.parent = cluster;
@@ -45,5 +45,11 @@ public class CouchbaseBucket implements CouchbaseClusterEntity {
             updateSchema();
         }
         return scopes;
+    }
+
+    /** Metadata already loaded by the schema worker; never starts network work. */
+    public Set<CouchbaseScope> getCachedChildren() {
+        Set<CouchbaseScope> snapshot = scopes;
+        return snapshot == null ? Set.of() : snapshot;
     }
 }

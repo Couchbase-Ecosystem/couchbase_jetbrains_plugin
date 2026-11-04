@@ -49,4 +49,14 @@ public class ColorHelper {
         Color bgColor = scheme.getDefaultBackground();
         return ColorUtil.isDark(bgColor);
     }
+
+    /** The IDE's panel background as a CSS hex colour, for HTML views that should follow the theme. */
+    public static String panelBackgroundHex() {
+        return "#" + com.intellij.ui.ColorUtil.toHex(com.intellij.util.ui.UIUtil.getPanelBackground());
+    }
+
+    /** The IDE's label foreground as a CSS hex colour. */
+    public static String labelForegroundHex() {
+        return "#" + com.intellij.ui.ColorUtil.toHex(com.intellij.util.ui.UIUtil.getLabelForeground());
+    }
 }

@@ -1,7 +1,5 @@
 package com.couchbase.intellij.utils;
 
-import cn.hutool.core.stream.StreamUtil;
-
 import java.lang.ref.WeakReference;
 import java.time.Duration;
 import java.util.*;
@@ -11,7 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Subscribable<T> {
-    private Optional<T> value;
+    private volatile Optional<T> value;
     private Map<WeakReference<Object>, Function<Optional<T>, Boolean>> subscribers = new HashMap<>();
 
     public Subscribable() {

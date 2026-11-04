@@ -71,7 +71,7 @@ public class OpenApiEmbeddingProvider implements EmbeddingProvider {
         inputArray.add(text);
         requestJson.set("input", inputArray);
 
-        RequestBody body = RequestBody.create(JSON, objectMapper.writeValueAsString(requestJson));
+        RequestBody body = RequestBody.create(objectMapper.writeValueAsString(requestJson), JSON);
         Request request = new Request.Builder()
                 .url(BASE_URL + "/embeddings")
                 .header("Authorization", "Bearer " + CouchbaseSettingsStorage.getInstance().getState().getOpenApiKey())

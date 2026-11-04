@@ -20,7 +20,7 @@ public class RootObjectValidator implements SearchObjectValidator {
     private final Set<String> validRootKeys;
 
     public RootObjectValidator() {
-        validRootKeys = new HashSet<>(Arrays.asList("query", "knn", "ctl", "size", "limit", "from", "offset",
+        validRootKeys = new HashSet<>(Arrays.asList("query", "knn", "knn_operator", "ctl", "size", "limit", "from", "offset",
                 "highlight", "fields", "facets", "explain", "sort", "includeLocations", "score", "search_after", "search_before", "collections"));
     }
 

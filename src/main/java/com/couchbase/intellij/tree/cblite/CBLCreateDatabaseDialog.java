@@ -3,13 +3,13 @@ package com.couchbase.intellij.tree.cblite;
 import com.couchbase.intellij.tree.cblite.storage.CBLDatabaseStorage;
 import com.couchbase.intellij.tree.cblite.storage.CBLDatabases;
 import com.couchbase.intellij.tree.cblite.storage.SavedCBLDatabase;
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import org.jetbrains.annotations.Nullable;
 import utils.TemplateUtil;
 
@@ -105,12 +105,7 @@ public class CBLCreateDatabaseDialog extends DialogWrapper {
         databasePathField = new TextFieldWithBrowseButton();
         databasePathField.addBrowseFolderListener(
                 project,
-                new FileChooserDescriptor(false, true, false, false, false, false) {
-                    @Override
-                    public boolean isFileSelectable(VirtualFile file) {
-                        return true;
-                    }
-                }.withTitle("Select the database location").withDescription("Choose a folder")
+                FileChooserDescriptorFactory.singleDir().withTitle("Select the database location").withDescription("Choose a folder")
         );
 
         panel.add(databasePathField, gbc);

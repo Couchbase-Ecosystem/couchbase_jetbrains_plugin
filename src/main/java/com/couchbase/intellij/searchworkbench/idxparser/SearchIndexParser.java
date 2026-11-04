@@ -14,7 +14,7 @@ public class SearchIndexParser {
         JsonNode typesNode = rootNode.path("params").path("mapping").path("types");
 
         if (typesNode.isObject()) {
-            Iterator<Map.Entry<String, JsonNode>> typesFields = typesNode.fields();
+            Iterator<Map.Entry<String, JsonNode>> typesFields = typesNode.properties().iterator();
             while (typesFields.hasNext()) {
                 Map.Entry<String, JsonNode> typeField = typesFields.next();
                 JsonNode propertiesNode = typeField.getValue().path("properties");
@@ -25,7 +25,7 @@ public class SearchIndexParser {
     }
 
     private static void extractProperties(JsonNode node, String parentKey, Map<String, String> propertiesMap) {
-        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+        Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             String key = field.getKey();
@@ -76,7 +76,7 @@ public class SearchIndexParser {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode rootNode = objectMapper.readTree(index);
         JsonNode typesNode = rootNode.path("params").path("mapping").path("types");
-        Iterator<Map.Entry<String, JsonNode>> fields = typesNode.fields();
+        Iterator<Map.Entry<String, JsonNode>> fields = typesNode.properties().iterator();
         List<String> types = new ArrayList<>();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();

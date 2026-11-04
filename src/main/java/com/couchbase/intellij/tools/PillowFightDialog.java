@@ -1,9 +1,9 @@
 package com.couchbase.intellij.tools;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
+import com.couchbase.intellij.tree.CollectionPicker;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.ui.ScreenUtil;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
@@ -22,14 +23,11 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PillowFightDialog extends DialogWrapper {
@@ -40,7 +38,7 @@ public class PillowFightDialog extends DialogWrapper {
     private static Balloon balloonHint;
     protected final ComboBox<String> bucketComboBox;
     protected final ComboBox<String> scopeComboBox;
-    protected final ComboBox<String> collectionComboBox;
+    protected final CollectionPicker collectionComboBox;
     private final ComboBox<String> durabilityComboBox;
     private final JSpinner persistToSpinner;
     private final JCheckBox persistToCheckbox;
@@ -87,7 +85,11 @@ public class PillowFightDialog extends DialogWrapper {
 
         bucketComboBox = new ComboBox<>();
         scopeComboBox = new ComboBox<>();
-        collectionComboBox = new ComboBox<>();
+        collectionComboBox = CollectionPicker.forActiveCluster(project);
+        collectionComboBox.setErrorHandler(e -> {
+            Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
+            Log.error(e);
+        });
         try {
             Set<String> bucketNamesSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
             String[] bucketNamesArray = bucketNamesSet.toArray(new String[0]);
@@ -240,7 +242,7 @@ public class PillowFightDialog extends DialogWrapper {
                 Messages.showErrorDialog("The selectd bucket is empty. Selecting default scope and collection",
                         "Empty Bucket");
                 scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedCollection(DEFAULT_TAG);
 
             }
             handleScopeComboBoxChange();
@@ -259,29 +261,22 @@ public class PillowFightDialog extends DialogWrapper {
 
             if (selectedScope == null || selectedScope.isEmpty()) {
                 scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedCollection(DEFAULT_TAG);
                 return;
             }
 
-            Consumer<String> refreshCollectionCombo = scope -> {
-                String[] collectionNamesArray =
-                        ActiveCluster.getInstance().get().bucket(selectedBucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(CollectionSpec::name).distinct().toArray(String[]::new);
-                collectionComboBox.removeAllItems();
-                for (String s : collectionNamesArray) {
-                    collectionComboBox.addItem(s);
+            // Favorites plus the first page only; other collections are reached through the picker's search
+            // button. The names are fetched in the background so the dialog stays responsive on large scopes.
+            collectionComboBox.setScope(selectedBucket, selectedScope, total -> {
+                if (total == 0) {
+                    Messages.showErrorDialog("The selected scope is empty. Selecting default scope and collection",
+                            "Empty Scope");
+                    if (!DEFAULT_TAG.equals(selectedScope)) {
+                        scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                    }
+                    collectionComboBox.setSelectedCollection(DEFAULT_TAG);
                 }
-            };
-
-            refreshCollectionCombo.accept(selectedScope);
-
-            if (collectionComboBox.getItemCount() > 0) {
-                collectionComboBox.setSelectedIndex(0);
-            } else {
-                Messages.showErrorDialog("The selectd scope is empty. Selecting default scope and collection", "Empty"
-                        + " Bucket");
-                scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                collectionComboBox.setSelectedItem(DEFAULT_TAG);
-            }
+            });
         } catch (Exception e) {
             Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
             Log.error(e);
@@ -319,7 +314,7 @@ public class PillowFightDialog extends DialogWrapper {
 
     @Override
     protected @Nullable JComponent createCenterPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
+        JPanel panel = new ViewportWidePanel();
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -355,7 +350,9 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx++;
         JPanel rightPaddingPanel = new JPanel();
         rightPaddingPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+        gbc.weightx = 1.0; // extra width goes here, so the labels stay at the left edge when the dialog grows
         panel.add(rightPaddingPanel, gbc);
+        gbc.weightx = 0.0;
         gbc.gridx--;
 
         gbc.gridx--;
@@ -631,22 +628,42 @@ public class PillowFightDialog extends DialogWrapper {
         JBScrollPane jbScrollPane = new JBScrollPane(panel);
         jbScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        int jbScrollWidth = jbScrollPane.getPreferredSize().width;
-        int jbScrollOriginalHeight = jbScrollPane.getPreferredSize().height;
-        collapsiblePanel1.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                if (collapsiblePanel1.contentIsEnabled()) {
-                    jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth,
-                            (int) (Toolkit.getDefaultToolkit().getScreenSize().height * 0.8)));
-                } else {
-                    jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth, jbScrollOriginalHeight));
-                }
-                pack();
-            }
-        });
+        collapsiblePanel1.setPanelToggleListener(() -> fitToContent(jbScrollPane));
 
         return jbScrollPane;
+    }
+
+    /** Grows or shrinks the dialog with the advanced section, staying within 80% of the screen height. */
+    private void fitToContent(JBScrollPane scrollPane) {
+        scrollPane.setPreferredSize(null);
+        Dimension preferred = scrollPane.getPreferredSize();
+        int maxHeight = (int) (ScreenUtil.getScreenRectangle(scrollPane).height * 0.8);
+        if (preferred.height > maxHeight) {
+            preferred = new Dimension(preferred.width + scrollPane.getVerticalScrollBar().getPreferredSize().width, maxHeight);
+        }
+        scrollPane.setPreferredSize(preferred);
+        pack();
+        Window window = getWindow();
+        if (window != null) {
+            Rectangle bounds = window.getBounds();
+            ScreenUtil.fitToScreen(bounds);
+            window.setBounds(bounds);
+        }
+    }
+
+    /** A form panel that always spans the scroll pane's width, so nothing is clipped at the right edge. */
+    private static final class ViewportWidePanel extends JPanel implements Scrollable {
+        ViewportWidePanel() {
+            super(new GridBagLayout());
+        }
+
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 16; }
+        @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
+            return orientation == SwingConstants.VERTICAL ? visible.height : visible.width;
+        }
+        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
     }
 
     private boolean componentIsEnabled(JSpinner spinner) {
@@ -693,7 +710,7 @@ public class PillowFightDialog extends DialogWrapper {
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
                 pillowFightRunner.runPillowFightCommand(project, getValue(bucketComboBox), getValue(scopeComboBox),
-                        getValue(collectionComboBox), getValue(durabilityComboBox), getValue(persistToSpinner),
+                        Objects.requireNonNull(collectionComboBox.getSelectedCollection()), getValue(durabilityComboBox), getValue(persistToSpinner),
                         getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(),
                         getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox),
                         getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner),

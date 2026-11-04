@@ -15,6 +15,20 @@ public class SavedCluster {
     private String queryParams;
     private String url;
     private String username;
+    private String authenticationType;
+    private String clientKeyStorePath;
+    private String serverCaCertificatePath;
+
+    public boolean usesCertificateAuthentication() {
+        return "certificate".equals(authenticationType);
+    }
+
+    public String getAuthenticationType() { return authenticationType == null ? "password" : authenticationType; }
+    public void setAuthenticationType(String value) { authenticationType = value; }
+    public String getClientKeyStorePath() { return clientKeyStorePath; }
+    public void setClientKeyStorePath(String value) { clientKeyStorePath = value; }
+    public String getServerCaCertificatePath() { return serverCaCertificatePath; }
+    public void setServerCaCertificatePath(String value) { serverCaCertificatePath = value; }
 
     private String color;
 

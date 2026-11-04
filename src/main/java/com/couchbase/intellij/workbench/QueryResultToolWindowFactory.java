@@ -58,7 +58,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
     private static final String[] QUERY_LIMITS = {"200", "500", "1000", "No Limit"};
-    public static QueryResultToolWindowFactory instance;
+    /** The factory that built a project's Couchbase Output tool window; each project window has its own. */
+    private static final com.intellij.openapi.util.Key<QueryResultToolWindowFactory> OUTPUT_WINDOW =
+            com.intellij.openapi.util.Key.create("couchbase.output.window");
     public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static String latestExplain = null;
     private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
@@ -90,12 +92,31 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
 
     public QueryResultToolWindowFactory() {
-        instance = this;
+    }
+
+    /** The output window of {@code project}, or null until its tool window content has been created. */
+    public static QueryResultToolWindowFactory forProject(@NotNull Project project) {
+        return project.getUserData(OUTPUT_WINDOW);
+    }
+
+    /** Makes {@code window} the output window of {@code project}; null forgets it. Tests inject a stand-in here. */
+    public static void register(@NotNull Project project, QueryResultToolWindowFactory window) {
+        project.putUserData(OUTPUT_WINDOW, window);
+    }
+
+    /** Copies the selected rows, or every row when nothing is selected, in table order. */
+    private void copyRows(JBTable table, boolean asJson) {
+        int[] selected = table.getSelectedRows();
+        int[] view = selected.length > 0 ? selected : java.util.stream.IntStream.range(0, table.getRowCount()).toArray();
+        int[] rows = java.util.Arrays.stream(view).map(table::convertRowIndexToModel).toArray();
+        String text = asJson ? model.rowsToJson(rows) : model.rowsToCsv(rows);
+        com.intellij.openapi.ide.CopyPasteManager.getInstance().setContents(new java.awt.datatransfer.StringSelection(text));
     }
 
     @NotNull
     private static String getEmptyExplain() {
-        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
+        return "<html><body style=\"background: " + utils.ColorHelper.panelBackgroundHex() + "\"><span style='color:"
+                + utils.ColorHelper.labelForegroundHex() + "'>Nothing to show</span></body></html>";
     }
 
     public static void removeAllActionListeners(JMenuItem menuItem) {
@@ -108,12 +129,29 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         this.project = project;
+        register(project, this);
         JBTabs tabs = JBTabsFactory.createTabs(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);
         table.setCellSelectionEnabled(true);
         table.setRowSelectionAllowed(true);
         table.setColumnSelectionAllowed(true);
+        table.setAutoCreateRowSorter(true); // click a header to sort
+        com.intellij.ui.TableSpeedSearch.installOn(table); // type to jump to a cell
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setText(JsonTableModel.cellText(value)); // nested values as JSON, not Map.toString()
+            }
+        });
+        JPopupMenu rowMenu = new JPopupMenu();
+        JMenuItem copyJson = new JMenuItem("Copy Rows as JSON");
+        copyJson.addActionListener(e -> copyRows(table, true));
+        rowMenu.add(copyJson);
+        JMenuItem copyCsv = new JMenuItem("Copy Rows as CSV");
+        copyCsv.addActionListener(e -> copyRows(table, false));
+        rowMenu.add(copyCsv);
+        table.setComponentPopupMenu(rowMenu);
 
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BorderLayout());

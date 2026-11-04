@@ -1,0 +1,103 @@
+package com.couchbase.intellij.database;
+
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
+import com.intellij.openapi.progress.*;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
+import com.couchbase.client.java.Cluster;
+import java.awt.Component;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+/** Runs SDK work without holding the UI or a platform read/write lock. */
+public final class ClusterUiTask {
+    private ClusterUiTask() {}
+
+    @FunctionalInterface public interface Work<T> { T run(Connection connection) throws Exception; }
+
+    /** A request keeps its original SDK even when the shared ActiveCluster object is reconnected. */
+    public static final class Connection {
+        private final ActiveCluster active;
+        private final Cluster sdk;
+        private final String id;
+        private Connection(ActiveCluster active) {
+            this.active = active;
+            sdk = active == null ? null : active.get();
+            id = active == null ? null : active.getId();
+        }
+        public String id() { return id; }
+        public ActiveCluster active() { requireCurrent(); return active; }
+        public Cluster sdk() { requireCurrent(); return sdk; }
+        public boolean isCurrent() {
+            return active != null && sdk != null && ActiveCluster.INSTANCE.getValue() == active
+                    && active.get() == sdk && Objects.equals(id, active.getId());
+        }
+        public void requireCurrent() {
+            if (!isCurrent()) throw new IllegalStateException("The original connection is no longer active. Reconnect and try again.");
+        }
+        public void requireWritable() {
+            requireCurrent();
+            if (active.isReadOnlyMode()) throw new IllegalStateException("This connection is read-only.");
+        }
+    }
+
+    public static Connection capture(ActiveCluster active) { return new Connection(active); }
+
+    public static <T> void submit(Project project, ActiveCluster active, String title, Work<T> work,
+                                  Consumer<T> success, Consumer<Exception> failure) {
+        submit(project, capture(active), title, work, success, failure);
+    }
+
+    public static <T> void submit(Project project, Connection connection, String title, Work<T> work,
+                                  Consumer<T> success, Consumer<Exception> failure) {
+        ModalityState modality = ModalityState.current();
+        submit(project, connection, title, work, success, failure,
+                callback -> ApplicationManager.getApplication().invokeLater(callback, modality));
+    }
+
+    /**
+     * Like {@link #submit(Project, ActiveCluster, String, Work, Consumer, Consumer)}, but the callbacks run under
+     * the modality of the window that holds {@code owner} at the time the work finishes. Use this for work
+     * started while a dialog is still being built: with the modality captured at submit time, the result would
+     * only arrive once the modal dialog had closed again.
+     */
+    public static <T> void submit(Project project, ActiveCluster active, String title, Work<T> work,
+                                  Consumer<T> success, Consumer<Exception> failure, Component owner) {
+        submit(project, capture(active), title, work, success, failure, callback ->
+                // The owner's window is resolved on the EDT, once the dialog that contains it is showing.
+                ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication()
+                        .invokeLater(callback, ModalityState.stateForComponent(owner)), ModalityState.any()));
+    }
+
+    private static <T> void submit(Project project, Connection connection, String title, Work<T> work,
+                                   Consumer<T> success, Consumer<Exception> failure, Consumer<Runnable> ui) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, title, false) {
+            @Override public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    connection.requireCurrent();
+                    T result = work.run(connection);
+                    ui.accept(() -> {
+                        if (project != null && project.isDisposed()) return;
+                        if (!connection.isCurrent()) {
+                            failure.accept(new IllegalStateException("The active connection changed. Select the original connection and try again."));
+                        } else success.accept(result);
+                    });
+                } catch (Throwable error) {
+                    // Callers reset busy and pending state in the failure callback, so Errors must reach it too.
+                    Exception reported = asException(error);
+                    ui.accept(() -> {
+                        if (project == null || !project.isDisposed()) failure.accept(reported);
+                    });
+                    // Still let the platform report serious errors and handle its control-flow exceptions.
+                    if (error instanceof Error) throw (Error) error;
+                }
+            }
+        });
+    }
+
+    static Exception asException(Throwable error) {
+        return error instanceof Exception exception ? exception
+                : new IllegalStateException("Unexpected error: " + Objects.toString(error.getMessage(), error.getClass().getSimpleName()), error);
+    }
+}

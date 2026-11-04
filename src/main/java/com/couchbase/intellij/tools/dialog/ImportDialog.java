@@ -1,17 +1,16 @@
 package com.couchbase.intellij.tools.dialog;
 
 import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.CBImport;
 import com.couchbase.intellij.tools.CBImportCommandBuilder;
+import com.couchbase.intellij.tree.CollectionPicker;
 import com.couchbase.intellij.tree.NewEntityCreationDialog;
 import com.couchbase.intellij.tree.NewEntityCreationDialog.EntityType;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.ide.ui.laf.darcula.ui.DarculaTextBorder;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -23,6 +22,7 @@ import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.*;
 import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import org.jetbrains.annotations.NotNull;
 import utils.ColorHelper;
 import utils.FileUtils;
@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,7 +55,7 @@ public class ImportDialog extends DialogWrapper {
 
     protected ComboBox<String> targetBucketCombo;
     protected ComboBox<String> targetScopeCombo;
-    protected ComboBox<String> targetCollectionCombo;
+    protected CollectionPicker targetCollectionCombo;
 
     protected JBRadioButton defaultScopeAndCollectionRadio;
     protected JBRadioButton targetCollectionRadio;
@@ -391,7 +390,7 @@ public class ImportDialog extends DialogWrapper {
         c.weightx = 0.7;
         c.gridx = 1;
 
-        targetCollectionCombo = new ComboBox<>();
+        targetCollectionCombo = CollectionPicker.forActiveCluster(project);
 
         targetFormPanel.add(targetCollectionCombo, c);
 
@@ -770,7 +769,7 @@ public class ImportDialog extends DialogWrapper {
         targetBucketCombo.setSelectedIndex(0);
         defaultScopeAndCollectionRadio.setSelected(true);
         targetScopeCombo.setSelectedItem(null);
-        targetCollectionCombo.setSelectedItem(null);
+        targetCollectionCombo.setSelectedCollection(null);
         dynamicScopeField.setText("");
         dynamicCollectionField.setText("");
         scopeLabelHelpPanel.setVisible(false);
@@ -814,17 +813,8 @@ public class ImportDialog extends DialogWrapper {
     protected void addListeners() {
         // Page 1: Dataset
         datasetField.addBrowseFolderListener(null,
-                new FileChooserDescriptor(true, false, false, false, false, false) {
-                    @Override
-                    public boolean isFileVisible(VirtualFile file, boolean showHiddenFiles) {
-                        if (!file.isDirectory()) {
-                            String extension = file.getExtension();
-                            return JSON_FILE_FORMAT.equalsIgnoreCase(extension)
-                                    || CSV_FILE_FORMAT.equalsIgnoreCase(extension);
-                        }
-                        return true;
-                    }
-                }.withTitle("Select the Dataset"));
+                FileChooserDescriptorFactory.singleFile()
+                        .withExtensionFilter("Dataset files", JSON_FILE_FORMAT, CSV_FILE_FORMAT).withTitle("Select the Dataset"));
         datasetField.getTextField().getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
@@ -877,8 +867,7 @@ public class ImportDialog extends DialogWrapper {
         });
         targetCollectionCombo.addActionListener(e -> {
             targetCollectionField = Optional
-                    .ofNullable(targetCollectionCombo.getSelectedItem())
-                    .map(Object::toString)
+                    .ofNullable(targetCollectionCombo.getSelectedCollection())
                     .orElse(DEFAULT_TAG);
         });
 
@@ -977,7 +966,7 @@ public class ImportDialog extends DialogWrapper {
                     }
                 } else {
                     targetScopeCombo.setSelectedItem(DEFAULT_TAG);
-                    targetCollectionCombo.setSelectedItem(DEFAULT_TAG);
+                    targetCollectionCombo.setSelectedCollection(DEFAULT_TAG);
                 }
             }
 
@@ -995,59 +984,56 @@ public class ImportDialog extends DialogWrapper {
 
             if (selectedScope == null || selectedScope.isEmpty()) {
                 targetScopeCombo.setSelectedItem(DEFAULT_TAG);
-                targetCollectionCombo.setSelectedItem(DEFAULT_TAG);
+                targetCollectionCombo.setSelectedCollection(DEFAULT_TAG);
                 return;
             }
 
-            targetCollectionCombo.removeAllItems();
-
-            Consumer<String> refreshCollectionCombo = scope -> {
-                String[] collectionItems = targetScopeItems.stream()
-                        .filter(s -> s.name().equals(scope))
-                        .flatMap(s -> s.collections().stream())
-                        .map(CollectionSpec::name)
-                        .distinct()
-                        .toArray(String[]::new);
-
-                for (String collectionItem : collectionItems) {
-                    targetCollectionCombo.addItem(collectionItem);
+            String selectedBucket = Objects.requireNonNull(targetBucketCombo.getSelectedItem()).toString();
+            // Favorites plus the first page only: a scope may hold thousands of collections. The rest is reachable
+            // through the picker's search button. The names are fetched in the background.
+            targetCollectionCombo.setScope(selectedBucket, selectedScope, total -> {
+                if (total > 0) {
+                    targetCollectionField = Optional.ofNullable(targetCollectionCombo.getSelectedCollection())
+                            .orElse(DEFAULT_TAG);
+                    return;
                 }
-            };
+                handleEmptyTargetScope(selectedBucket, selectedScope);
+            });
+        } catch (Exception ex) {
+            Log.error("Exception Occurred " + ex);
+        }
+    }
 
-            refreshCollectionCombo.accept(selectedScope);
+    private void handleEmptyTargetScope(String selectedBucket, String selectedScope) {
+        try {
+            int result = Messages.showYesNoDialog(project,
+                    "The selected scope " + selectedScope
+                            + " is empty. Would you like to create a new collection in this scope?",
+                    "Empty Scope", Messages.getQuestionIcon());
 
-            if (targetCollectionCombo.getItemCount() > 0) {
-                targetCollectionCombo.setSelectedIndex(0);
-                targetCollectionField = Objects.requireNonNull(targetCollectionCombo.getSelectedItem()).toString();
+            if (result == Messages.YES && !ActiveCluster.getInstance().isReadOnlyMode()) {
+                NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
+                        project,
+                        EntityType.COLLECTION,
+                        selectedBucket,
+                        selectedScope);
+                entityCreationDialog.show();
+
+                if (entityCreationDialog.isOK()) {
+                    String collectionName = entityCreationDialog.getEntityName();
+                    ActiveCluster.getInstance().get()
+                            .bucket(selectedBucket).collections()
+                            .createCollection(selectedScope, collectionName);
+
+                    targetCollectionCombo.setSelectedCollection(collectionName);
+                    targetCollectionField = collectionName;
+                }
+            } else if (!DEFAULT_TAG.equals(selectedScope)) {
+                // Falls back to the default scope; its collections are loaded by the scope combo listener.
+                targetScopeCombo.setSelectedItem(DEFAULT_TAG);
             } else {
-                int result = Messages.showYesNoDialog(project,
-                        "The selected scope " + selectedScope
-                                + " is empty. Would you like to create a new collection in this scope?",
-                        "Empty Scope", Messages.getQuestionIcon());
-
-                if (result == Messages.YES && !ActiveCluster.getInstance().isReadOnlyMode()) {
-                    NewEntityCreationDialog entityCreationDialog = new NewEntityCreationDialog(
-                            project,
-                            EntityType.COLLECTION,
-                            Objects.requireNonNull(targetBucketCombo.getSelectedItem()).toString(),
-                            selectedScope);
-                    entityCreationDialog.show();
-
-                    if (entityCreationDialog.isOK()) {
-                        String collectionName = entityCreationDialog.getEntityName();
-                        ActiveCluster.getInstance().get()
-                                .bucket(targetBucketCombo.getSelectedItem().toString()).collections()
-                                .createCollection(CollectionSpec.create(collectionName, selectedScope));
-
-                        targetCollectionCombo.addItem(collectionName);
-                        targetCollectionCombo.setSelectedItem(collectionName);
-                    }
-                } else {
-                    targetScopeCombo.setSelectedItem(DEFAULT_TAG);
-                    refreshCollectionCombo.accept(DEFAULT_TAG);
-                    targetCollectionCombo.setSelectedIndex(0);
-                    targetCollectionField = Objects.requireNonNull(targetCollectionCombo.getSelectedItem()).toString();
-                }
+                targetCollectionCombo.setSelectedCollection(DEFAULT_TAG);
+                targetCollectionField = DEFAULT_TAG;
             }
         } catch (Exception ex) {
             Log.error("Exception Occurred " + ex);
@@ -1493,7 +1479,7 @@ public class ImportDialog extends DialogWrapper {
                         isValid = false;
                         errorMessages.add("Scope combo box not selected.");
                     }
-                    if (targetCollectionCombo.getSelectedItem() == null) {
+                    if (targetCollectionCombo.getSelectedCollection() == null) {
                         isValid = false;
                         errorMessages.add("Collection combo box not selected.");
                     }

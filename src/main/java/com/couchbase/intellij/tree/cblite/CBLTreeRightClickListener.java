@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree.cblite;
 
+import com.couchbase.intellij.tree.DeleteConfirmation;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.tree.cblite.dialog.CBLAttachBlobDialog;
 import com.couchbase.intellij.tree.cblite.dialog.CBLCreateCollectionDialog;
@@ -8,6 +9,7 @@ import com.couchbase.intellij.tree.cblite.nodes.*;
 import com.couchbase.intellij.tree.cblite.storage.CBLBlobHandler;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.*;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -71,7 +73,7 @@ public class CBLTreeRightClickListener {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
 
-                int result = Messages.showYesNoDialog("Are you sure that you want to delete the index \"" + userObject.getText() + "\"", "Delete Index", Messages.getQuestionIcon());
+                int result = DeleteConfirmation.ask(project, "Are you sure that you want to delete the index \"" + userObject.getText() + "\"", "Delete Index", "Delete");
 
                 if (result != Messages.YES) {
                     return;
@@ -166,6 +168,10 @@ public class CBLTreeRightClickListener {
         AnAction deleteConnection = new AnAction("Delete Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                if (DeleteConfirmation.ask(project, "Delete the connection '" + userObject.getText() + "'?",
+                        "Delete Connection", "Delete") != Messages.YES) {
+                    return;
+                }
                 try {
                     CBLTreeHandler.deleteConnection(clickedNode, userObject, tree);
                 } catch (CouchbaseLiteException ex) {
@@ -184,7 +190,7 @@ public class CBLTreeRightClickListener {
         AnAction deleteScope = new AnAction("Delete Scope") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the scope <strong>" + userObject.getText() + "</strong>?</html>", "Delete Scope", Messages.getQuestionIcon());
+                int result = DeleteConfirmation.ask(project, "<html>Are you sure you want to delete the scope <strong>" + userObject.getText() + "</strong>?</html>", "Delete Scope", "Delete");
                 if (result != Messages.YES) {
                     return;
                 }
@@ -251,7 +257,7 @@ public class CBLTreeRightClickListener {
         AnAction deleteCollection = new AnAction("Delete Collection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the collection <strong>" + userObject.getText() + "</strong>?</html>", "Delete Collection", Messages.getQuestionIcon());
+                int result = DeleteConfirmation.ask(project, "<html>Are you sure you want to delete the collection <strong>" + userObject.getText() + "</strong>?</html>", "Delete Collection", "Delete");
                 if (result != Messages.YES) {
                     return;
                 }
@@ -312,8 +318,7 @@ public class CBLTreeRightClickListener {
                 if (metadata != null) {
                     VirtualFile virtualFile = new LightVirtualFile("(read-only) " + userObject.getId() + "_meta.json", FileTypeManager.getInstance().getFileTypeByExtension("json"), metadata);
                     DocumentFormatter.formatFile(project, virtualFile);
-                    FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                    fileEditorManager.openFile(virtualFile, true);
+                    EditorOpening.openFile(project, virtualFile);
                 }
             }
         };
@@ -362,7 +367,7 @@ public class CBLTreeRightClickListener {
         AnAction deleteDocument = new AnAction("Delete Document") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the document <strong>" + userObject.getId() + "</strong>?</html>", "Delete Document", Messages.getQuestionIcon());
+                int result = DeleteConfirmation.askForDocument(project, userObject.getId());
                 if (result != Messages.YES) {
                     return;
                 }
@@ -416,7 +421,7 @@ public class CBLTreeRightClickListener {
         AnAction deleteBlob = new AnAction("Delete Blob") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                int result = Messages.showYesNoDialog("<html>Are you sure you want to delete the blob <strong>" + userObject.getBlobName() + "</strong>?</html>", "Delete Blob", Messages.getQuestionIcon());
+                int result = DeleteConfirmation.ask(project, "<html>Are you sure you want to delete the blob <strong>" + userObject.getBlobName() + "</strong>?</html>", "Delete Blob", "Delete");
                 if (result != Messages.YES) {
                     return;
                 }

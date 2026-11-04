@@ -4,8 +4,8 @@ import com.couchbase.intellij.tree.cblite.nodes.CBLFileNodeDescriptor;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.MutableDocument;
+import com.couchbase.intellij.workbench.EditorOpening;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
@@ -20,7 +20,6 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-
 
 public class CBLOpenDocumentDialog extends DialogWrapper {
     private static final int MINIMUM_WIDTH = 300;
@@ -161,8 +160,7 @@ public class CBLOpenDocumentDialog extends DialogWrapper {
 
         VirtualFile virtualFile = descriptor.getVirtualFile();
         if (virtualFile != null) {
-            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-            fileEditorManager.openFile(virtualFile, true);
+            EditorOpening.openFile(project, virtualFile);
         } else {
             Log.debug("virtual file is null");
         }

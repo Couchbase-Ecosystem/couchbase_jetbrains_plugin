@@ -14,6 +14,7 @@ import com.intellij.codeInsight.template.impl.TextExpression;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
@@ -28,6 +29,9 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
+
+    /** Collections of the query context that get a "select from" template, alphabetically. */
+    static final int MAX_TEMPLATE_COLLECTIONS = 50;
 
     private static List<LookupElement> recommendations;
 
@@ -56,12 +60,20 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
         List<LookupElement> recommendations = new ArrayList<>();
         Optional<CouchbaseScope> scope = ((Stream<CouchbaseScope>) ActiveCluster.getInstance().navigate(path.toList())).findFirst();
         if (scope.isPresent()) {
-            Set<CouchbaseCollection> collections = scope.get().getChildren();
-            Map<String, Set<String>> colAttributes = collections
-                    .stream().collect(Collectors.toMap(CouchbaseCollection::getName, this::getCollectionAttributes));
+            // A scope may hold thousands of collections: only the first few get a template, and only from schemas
+            // already inferred. Inference is requested in the background so the next completion has them.
+            List<CouchbaseCollection> collections = scope.get().getChildren().stream()
+                    .sorted(Comparator.comparing(CouchbaseCollection::getName, String.CASE_INSENSITIVE_ORDER))
+                    .limit(MAX_TEMPLATE_COLLECTIONS)
+                    .collect(Collectors.toList());
 
-            for (Map.Entry<String, Set<String>> entry : colAttributes.entrySet()) {
-                recommendations.addAll(getCollectionRecommendations(entry.getKey(), entry.getValue()));
+            for (CouchbaseCollection col : collections) {
+                ProgressManager.checkCanceled();
+                col.ensureSchemaRequested();
+                Set<String> attributes = getCollectionAttributes(col);
+                if (!attributes.isEmpty()) {
+                    recommendations.addAll(getCollectionRecommendations(col.getName(), attributes));
+                }
             }
         }
         return recommendations;
@@ -100,10 +112,11 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
     }
 
     private Set<String> getCollectionAttributes(CouchbaseCollection col) {
-        if (col == null || col.getChildren() == null) {
+        if (col == null) {
             return new HashSet<>();
         }
-        return col.getChildren().stream()
+        // Never waits for inference: completion must stay responsive.
+        return col.getCachedChildren().stream()
                 .flatMap(e -> Optional.ofNullable(e.getChildren())
                         .map(Collection::stream)
                         .orElseGet(Stream::empty))
@@ -250,6 +263,9 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
         template.addVariable("attribute", new TextExpression(""), true);
         template.addTextSegment(" = ");
         template.addVariable("value", new TextExpression(""), true);
+        // Without a WHERE clause the statement would update every document in the collection.
+        template.addTextSegment(" WHERE ");
+        template.addVariable("condition", new TextExpression(""), true);
         template.addTextSegment(";");
         return template;
     }

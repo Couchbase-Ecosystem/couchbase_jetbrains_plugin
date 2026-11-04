@@ -1,12 +1,14 @@
 package com.couchbase.intellij.tools.doctor;
 
+import javax.swing.table.DefaultTableCellRenderer;
+
+
 import com.intellij.ui.JBColor;
-import org.jdesktop.swingx.renderer.DefaultTableRenderer;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class SDKDoctorTableCellRenderer extends DefaultTableRenderer {
+public class SDKDoctorTableCellRenderer extends DefaultTableCellRenderer {
 
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {

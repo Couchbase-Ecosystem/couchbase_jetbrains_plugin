@@ -19,6 +19,8 @@ import javax.swing.table.AbstractTableModel;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.intellij.util.ui.ItemRemovable;
 import com.intellij.util.ui.JBUI;
 
@@ -30,6 +32,7 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
     private final List<String> columns;
 
     private static final String QUERY_KEY_ID_NOT_PRESENT_MESSAGE = "The query result should have an attribute called 'key' or 'id' to be exported in this way.";
+    private static final Gson JSON = new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
 
 
     public JsonTableModel() {
@@ -123,32 +126,89 @@ public class JsonTableModel extends AbstractTableModel implements ItemRemovable 
         fireTableRowsDeleted(idx, idx);
     }
 
+    /** Every row as CSV. */
     public String tableModelToCSV() {
-        StringBuilder csvData = new StringBuilder();
+        int[] all = new int[getRowCount()];
+        for (int i = 0; i < all.length; i++) {
+            all[i] = i;
+        }
+        return rowsToCsv(all);
+    }
 
+    /**
+     * The given rows (model indexes) as RFC 4180 CSV: a header line, fields quoted when they contain a comma, a
+     * quote or a line break, nested values as JSON, and nulls as empty fields.
+     */
+    public String rowsToCsv(int[] rows) {
+        StringBuilder csv = new StringBuilder();
         int colCount = getColumnCount();
-        int rowCount = getRowCount();
-
-        // Append column names
         for (int i = 0; i < colCount; i++) {
-            csvData.append(getColumnName(i));
-            if (i < colCount - 1) {
-                csvData.append(",");
+            if (i > 0) {
+                csv.append(',');
             }
+            csv.append(csvField(getColumnName(i)));
         }
-        csvData.append("\n");
-
-        // Append rows data
-        for (int row = 0; row < rowCount; row++) {
+        csv.append('\n');
+        for (int row : rows) {
             for (int col = 0; col < colCount; col++) {
-                csvData.append(getValueAt(row, col));
-                if (col < colCount - 1) {
-                    csvData.append(",");
+                if (col > 0) {
+                    csv.append(',');
                 }
+                csv.append(csvField(cellText(getValueAt(row, col))));
             }
-            csvData.append("\n");
+            csv.append('\n');
         }
-        return csvData.toString();
+        return csv.toString();
+    }
+
+    /** The given rows (model indexes) as a JSON array of objects, in table order. */
+    public String rowsToJson(int[] rows) {
+        List<Object> out = new ArrayList<>();
+        for (int row : rows) {
+            out.add(plain(data.get(row)));
+        }
+        return JSON.toJson(out);
+    }
+
+    /** How a cell reads in the table and in CSV: nested values as JSON, nulls as nothing. */
+    public static String cellText(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof Map || value instanceof List || value instanceof JsonObject || value instanceof JsonArray) {
+            return JSON.toJson(plain(value));
+        }
+        return String.valueOf(value);
+    }
+
+    static String csvField(String text) {
+        if (text.indexOf(',') < 0 && text.indexOf('"') < 0 && text.indexOf('\n') < 0 && text.indexOf('\r') < 0) {
+            return text;
+        }
+        return '"' + text.replace("\"", "\"\"") + '"';
+    }
+
+    /** SDK JSON containers as plain maps and lists, so Gson writes their content rather than their fields. */
+    private static Object plain(Object value) {
+        if (value instanceof JsonObject json) {
+            return json.toMap();
+        }
+        if (value instanceof JsonArray json) {
+            return json.toList();
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> copy = new java.util.LinkedHashMap<>();
+            map.forEach((k, v) -> copy.put(String.valueOf(k), plain(v)));
+            return copy;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>();
+            for (Object item : list) {
+                copy.add(plain(item));
+            }
+            return copy;
+        }
+        return value;
     }
 
     public String convertToSQLPPUpsert() {

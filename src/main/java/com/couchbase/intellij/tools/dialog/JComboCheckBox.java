@@ -189,6 +189,29 @@ public class JComboCheckBox extends JComboBox {
         super.addItem(checkBox);
     }
 
+    /** Ticks the item with this text, adding it to the list first if it is not offered yet. */
+    public void addSelectedItem(String text) {
+        JCheckBox found = null;
+        for (int i = 0; i < getItemCount(); i++) {
+            JCheckBox checkBox = (JCheckBox) getItemAt(i);
+            if (checkBox.getText().equals(text)) {
+                found = checkBox;
+                break;
+            }
+        }
+        if (found == null) {
+            addItem(text);
+            found = (JCheckBox) getItemAt(getItemCount() - 1);
+        }
+        found.setSelected(true);
+        displayLabel.setText(String.join(", ", getSelectedItems()));
+        displayLabel.revalidate();
+        repaint();
+        if (listener != null) {
+            listener.accept(getSelectedItems());
+        }
+    }
+
     public List<String> getSelectedItems() {
         List<String> list = new ArrayList<>();
         for (int i = 0; i < getItemCount(); i++) {

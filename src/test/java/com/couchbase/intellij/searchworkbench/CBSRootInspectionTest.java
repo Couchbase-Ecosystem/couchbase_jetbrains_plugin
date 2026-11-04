@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 
 public class CBSRootInspectionTest extends CodeInsightFixtureTestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();
@@ -186,6 +190,17 @@ public class CBSRootInspectionTest extends CodeInsightFixtureTestCase {
                 .anyMatch(h -> h.getDescription().equals(RootObjectValidator.getSingleOccurrenceErrorMessage("limit"))));
     }
 
+
+    public void testKnnOperatorIsAValidRootKey() {
+        String json = """
+                {
+                    "query": { "match": "pool", "field": "name" },
+                    "knn": [ { "k": 3, "field": "vec", "vector": [0.1, 0.2] } ],
+                    "knn_operator": "or"
+                }
+                """;
+        assertSize(0, getHighlightInfos(json));
+    }
 
     public void testInvalidTypes() {
         String json = """

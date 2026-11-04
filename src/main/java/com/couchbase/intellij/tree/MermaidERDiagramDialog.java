@@ -1,14 +1,17 @@
 package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
+import com.couchbase.intellij.database.ClusterUiTask;
+import com.couchbase.intellij.database.collections.CollectionListing;
+import com.couchbase.intellij.database.collections.CollectionSources;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
+import com.couchbase.intellij.persistence.storage.FavoriteCollectionsStorage;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
 import com.couchbase.intellij.tools.CBFolders;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.jcef.JBCefBrowser;
 import org.jetbrains.annotations.Nullable;
 import utils.JsonObjectUtil;
@@ -16,12 +19,16 @@ import utils.JsonObjectUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 
 public class MermaidERDiagramDialog extends DialogWrapper {
+
+    /** Entities drawn at most: favorites first, then the first alphabetical collections of the scope. */
+    public static final int MAX_COLLECTIONS = 50;
 
     private final JBCefBrowser browser;
     private final String bucket;
@@ -34,22 +41,39 @@ public class MermaidERDiagramDialog extends DialogWrapper {
         setTitle("ER Diagram");
         browser = new JBCefBrowser();
         init();
-        loadMermaidDiagram();
+        browser.loadHTML("<html><body>Loading chart...</body></html>");
+
+        ActiveCluster active = ActiveCluster.getInstance();
+        List<String> favorites = FavoriteCollectionsStorage.getInstance().getValue()
+                .getFavorites(active.getId(), bucket, scope);
+        // Schema inference runs per collection, so the chart is built in the background and capped. The result
+        // is delivered under this dialog's modality, which is not current yet while the dialog is being built.
+        ClusterUiTask.submit(null, active, "Building ER diagram of " + bucket + "." + scope,
+                connection -> generateChart(favorites), this::loadMermaidDiagram, error -> {
+                    Log.error("Could not build the ER diagram of " + bucket + "." + scope, error);
+                    browser.loadHTML("<html><body>Could not build the diagram: "
+                            + StringUtil.escapeXmlEntities(String.valueOf(error.getMessage())) + "</body></html>");
+                }, browser.getComponent());
     }
 
-    private void loadMermaidDiagram() {
+    private void loadMermaidDiagram(Chart chart) {
 
-        String chart = generateChart();
-        Log.debug(chart);
+        Log.debug(chart.definition);
 
         String scriptSrc = CBFolders.getInstance().getJsDependenciesPath() + File.separator + "mermaid.min.js";
 
+        String notice = chart.shown < chart.total
+                ? "<div style='font-family: sans-serif; padding: 6px;'>Showing " + chart.shown + " of " + chart.total
+                + " collections (favorites first). Mark collections as favorites to include them.</div>"
+                : "";
+
         String htmlContent = "<html><body>" +
                 "<script src='" + scriptSrc + "'></script>" +
+                notice +
                 "<div id='loadingMessage'>Loading chart...</div>" +
                 "<div id='mermaidChart' class='mermaid' style='visibility: hidden; position: absolute; cursor: grab;'>" +
                 "erDiagram\n" +
-                chart +
+                chart.definition +
                 "</div>" +
                 "<script>" +
                 "mermaid.initialize({" +
@@ -106,59 +130,60 @@ public class MermaidERDiagramDialog extends DialogWrapper {
         return panel;
     }
 
-    private String generateChart() {
+    /** The mermaid definition plus how many of the scope's collections it covers. */
+    record Chart(String definition, int shown, int total) {
+    }
+
+    /** Runs off the EDT: infers the schema of every drawn collection that is not cached yet. */
+    private Chart generateChart(List<String> favorites) {
 
         StringBuilder chartDef = new StringBuilder();
 
-        Optional<ScopeSpec> scopeOpt = ActiveCluster.getInstance().getCluster()
-                .bucket(bucket).collections().getAllScopes()
-                .stream().filter(e -> e.name().equals(scope)).findFirst();
+        CollectionListing listing = CollectionListing.build(CollectionSources.forScope(bucket, scope), favorites,
+                List.of(), MAX_COLLECTIONS);
 
-        if (scopeOpt.isPresent()) {
+        Map<String, String> rels = RelationshipStorage.getInstance().getValue().getRelationships()
+                .getOrDefault(ActiveCluster.getInstance().getId(), Map.of());
+        String scopePrefix = bucket + "." + scope + ".";
 
-            for (CollectionSpec colSpec : scopeOpt.get().collections()) {
+        for (String name : listing.getNames()) {
 
-                Optional<JsonObject> obj = ActiveCluster.getInstance().getChild(bucket)
-                        .flatMap(bucket -> bucket.getChild(scope))
-                        .flatMap(scope -> scope.getChild(colSpec.name()))
-                        .map(col -> ((CouchbaseCollection) col).generateDocument())
-                        .filter(Objects::nonNull)
-                        .findFirst();
+            Optional<JsonObject> obj = ActiveCluster.getInstance().getChild(bucket)
+                    .flatMap(bucket -> bucket.getChild(scope))
+                    .flatMap(scope -> scope.getChild(name))
+                    .map(col -> ((CouchbaseCollection) col).generateDocument())
+                    .filter(Objects::nonNull)
+                    .findFirst();
 
-                if (obj.isPresent()) {
-                    Map<String, String> map = JsonObjectUtil.generatePaths(obj.get(), "");
+            if (obj.isPresent()) {
+                Map<String, String> map = JsonObjectUtil.generatePaths(obj.get(), "");
 
-                    StringBuilder sb = new StringBuilder(colSpec.name() + " { \n");
-                    for (Map.Entry<String, String> entry : map.entrySet()) {
-                        String key = entry.getKey()
-                                .replaceAll("\\*", "")
-                                .replaceAll("\\s+", "_")
-                                .replaceAll("[^a-zA-Z0-9_\\.\\[\\]]", "");
-                        sb.append(entry.getValue() + " " + key + "\n");
-                    }
-                    sb.append("}\n");
-
-                    Map<String, String> rels = RelationshipStorage.getInstance().getValue().getRelationships()
-                            .get(ActiveCluster.getInstance().getId());
-
-                    String scopePrefix = bucket + "." + scope + ".";
-                    String prefix = scopePrefix + colSpec.name() + ".";
-                    for (Map.Entry<String, String> entry : rels.entrySet()) {
-                        if (entry.getKey().startsWith(prefix)) {
-                            String fieldRef = entry.getKey().replace(prefix, "") + " = "
-                                    + entry.getValue().replace(scopePrefix + entry.getValue().split("\\.")[2] + ".", "");
-                            sb.append(colSpec.name() + " }o--|| " +
-                                    entry.getValue().replace(scopePrefix, "")
-                                            .split("\\.")[0] + " : " + "\"" + fieldRef + "\"\n");
-                        }
-                    }
-
-                    chartDef.append(sb);
+                StringBuilder sb = new StringBuilder(name + " { \n");
+                for (Map.Entry<String, String> entry : map.entrySet()) {
+                    String key = entry.getKey()
+                            .replaceAll("\\*", "")
+                            .replaceAll("\\s+", "_")
+                            .replaceAll("[^a-zA-Z0-9_\\.\\[\\]]", "");
+                    sb.append(entry.getValue() + " " + key + "\n");
                 }
+                sb.append("}\n");
+
+                String prefix = scopePrefix + name + ".";
+                for (Map.Entry<String, String> entry : rels.entrySet()) {
+                    if (entry.getKey().startsWith(prefix)) {
+                        String fieldRef = entry.getKey().replace(prefix, "") + " = "
+                                + entry.getValue().replace(scopePrefix + entry.getValue().split("\\.")[2] + ".", "");
+                        sb.append(name + " }o--|| " +
+                                entry.getValue().replace(scopePrefix, "")
+                                        .split("\\.")[0] + " : " + "\"" + fieldRef + "\"\n");
+                    }
+                }
+
+                chartDef.append(sb);
             }
         }
 
-        return chartDef.toString();
+        return new Chart(chartDef.toString(), listing.getNames().size(), listing.getTotal());
     }
 
 }

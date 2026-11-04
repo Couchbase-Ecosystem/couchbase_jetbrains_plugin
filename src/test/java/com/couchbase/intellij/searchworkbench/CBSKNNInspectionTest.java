@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 
 public class CBSKNNInspectionTest extends CodeInsightFixtureTestCase {
 
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();

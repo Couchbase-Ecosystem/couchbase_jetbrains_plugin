@@ -28,8 +28,17 @@ public class ServerOverviewDialog extends DialogWrapper {
 
     private Map<String, BucketSettings> bucketMap;
 
+    private final String initialPage;
+
     public ServerOverviewDialog(boolean canBeParent) {
+        this(canBeParent, null);
+    }
+
+    /** @param initialPage the bucket to open on, or null for the general cluster page. */
+    public ServerOverviewDialog(boolean canBeParent, String initialPage) {
         super(canBeParent);
+        this.initialPage = initialPage;
+        setTitle(initialPage == null ? "Cluster Overview" : "Bucket Overview: " + initialPage);
         getPeer().getWindow().setMinimumSize(new Dimension(860, 800));
         getPeer().getWindow().setMaximumSize(new Dimension(860, 800));
         setResizable(false);
@@ -37,13 +46,13 @@ public class ServerOverviewDialog extends DialogWrapper {
     }
 
 
-    public static String mbToGb(long sizeInMb) {
-        if (sizeInMb < 1024) {
-            return sizeInMb + " Mb";
-        } else {
-            double sizeInGb = sizeInMb / 1024.0;
-            return String.format("%.2f Gb", sizeInGb);
-        }
+    /** The requested bucket page when it exists, otherwise the general page. */
+    static String pageToOpen(String initialPage, java.util.Set<String> buckets) {
+        return initialPage != null && buckets.contains(initialPage) ? initialPage : GENERAL;
+    }
+
+    public static String mbToGb(Long sizeInMb) {
+        return OverviewFormat.mbToGb(sizeInMb);
     }
 
 
@@ -100,7 +109,7 @@ public class ServerOverviewDialog extends DialogWrapper {
             rightPanel.add(getErrorPanel(e));
         }
 
-        sidePanel.select(GENERAL);
+        sidePanel.select(pageToOpen(initialPage, bucketMap == null ? java.util.Set.of() : bucketMap.keySet()));
 
         return splitter;
     }
@@ -181,7 +190,8 @@ public class ServerOverviewDialog extends DialogWrapper {
 
 
         String[] quotaKeys = {"Data", "Index", "Search", "Eventing", "Analytics"};
-        String[] quotaValues = {mbToGb(overview.getMemoryQuota()), mbToGb(overview.getIndexMemoryQuota()), mbToGb(overview.getFtsMemoryQuota()), mbToGb(overview.getEventingMemoryQuota()), mbToGb(overview.getCbasMemoryQuota())};
+        // Eventing and Analytics quotas are absent on clusters without those services (Community Edition).
+        String[] quotaValues = OverviewFormat.quotaValues(overview);
         JPanel quotaPanel = createKeyValuePanel(quotaKeys, quotaValues, 2);
 
         panel.setBorder(JBUI.Borders.emptyTop(10));

@@ -22,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class JsonKeyCompletionContributor extends CompletionContributor {
     public JsonKeyCompletionContributor() {
@@ -43,8 +42,9 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
                             return;
                         }
 
-                        if (ActiveCluster.getInstance().get() == null
-                                || !ActiveCluster.getInstance().getId().equals(virtualFile.getUserData(VirtualFileKeys.CONN_ID))) {
+                        ActiveCluster active = ActiveCluster.INSTANCE.getValue();
+                        if (active == null || active.get() == null
+                                || !java.util.Objects.equals(active.getId(), virtualFile.getUserData(VirtualFileKeys.CONN_ID))) {
                             return;
                         }
 
@@ -66,12 +66,8 @@ public class JsonKeyCompletionContributor extends CompletionContributor {
                         final String colName = virtualFile.getUserData(VirtualFileKeys.COLLECTION);
 
 
-                        Set<String> suggestions = ActiveCluster.getInstance().getChild(bucketName)
-                                .flatMap(bucket -> bucket.getChild(scopeName))
-                                .flatMap(scope -> scope.getChild(colName))
-                                .map(col -> ((CouchbaseCollection) col).getAllAttributeNames())
-                                .flatMap(Set::stream)
-                                .collect(Collectors.toSet());
+                        Set<String> suggestions = active.getCachedCollection(bucketName, scopeName, colName)
+                                .map(CouchbaseCollection::getAllAttributeNames).orElseGet(Set::of);
 
                         // Check if the current position or its parent is a DOUBLE_QUOTED_STRING
                         boolean isWithinQuotes = position.getNode().getElementType() == JsonElementTypes.DOUBLE_QUOTED_STRING

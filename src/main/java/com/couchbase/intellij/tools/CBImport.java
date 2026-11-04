@@ -184,7 +184,7 @@ public class CBImport {
                             .collections();
                     try {
                         for (String newCollection : datasetCols) {
-                            collectionManager.createCollection(CollectionSpec.create(newCollection, scope));
+                            collectionManager.createCollection(scope, newCollection);
                             Log.info("Collection " + newCollection + " was created successfully");
                         }
                     } catch (Exception e) {

@@ -7,7 +7,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * TODO: This class needs more testing. I'm adding it for now as there is no better option
+ * Keyword-based line breaking for SQL++. String literals, backticked identifiers and comments are copied through
+ * untouched; everything else has its whitespace collapsed and gets a line break before the main clauses.
  */
 public class SQLPPFormatter {
 
@@ -80,38 +81,46 @@ public class SQLPPFormatter {
         return shift;
     }
 
+    /** Text the formatter must not touch: string literals, backticked identifiers, and comments. */
+    private static final Pattern PROTECTED = Pattern.compile(
+            "'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|`[^`]*`|--[^\\n]*|//[^\\n]*|/\\*.*?\\*/", Pattern.DOTALL);
+
     private static String processText(String text, int step) {
-        String[] arByQuote = Pattern.compile("~::~").split(text.replace("\\s{1,}", " ").replace("'", "~::~'"));
-        int len = arByQuote.length;
         List<String> ar = new ArrayList<>();
+        List<Boolean> literal = new ArrayList<>();
+        Matcher protectedMatcher = PROTECTED.matcher(text);
+        int consumed = 0;
+        while (protectedMatcher.find()) {
+            addCode(ar, literal, text.substring(consumed, protectedMatcher.start()), step);
+            ar.add(protectedMatcher.group());
+            literal.add(true);
+            consumed = protectedMatcher.end();
+        }
+        addCode(ar, literal, text.substring(consumed), step);
+
         int deep = 0;
         int parenthesisLevel = 0;
         StringBuilder str = new StringBuilder();
-        int ix = 0;
         List<String> shift = createShiftArr(step);
-
-        for (ix = 0; ix < len; ix++) {
-            if (ix % 2 != 0) {
-                ar.add(arByQuote[ix]);
-            } else {
-                String[] parts = splitN1ql(arByQuote[ix], getSpaces(step));
-                ar.addAll(Arrays.asList(parts));
-            }
-        }
 
         Pattern selectPattern = Pattern.compile("\\s*SELECT\\s*", Pattern.CASE_INSENSITIVE);
         Pattern setPattern = Pattern.compile("\\s*SET\\s*", Pattern.CASE_INSENSITIVE);
         Pattern selectParenthesisPattern = Pattern.compile("\\s*\\(\\s*SELECT\\s*", Pattern.CASE_INSENSITIVE);
-        Pattern singleQuotePattern = Pattern.compile("'");
 
-        len = ar.size();
-        for (ix = 0; ix < len; ix++) {
+        int len = ar.size();
+        for (int ix = 0; ix < len; ix++) {
+            if (literal.get(ix)) {
+                if (parenthesisLevel < 1 && deep > 0) {
+                    deep--;
+                }
+                str.append(ar.get(ix));
+                continue;
+            }
             parenthesisLevel = isSubquery(ar.get(ix), parenthesisLevel);
 
             Matcher selectMatcher = selectPattern.matcher(ar.get(ix));
             Matcher setMatcher = setPattern.matcher(ar.get(ix));
             Matcher selectParenthesisMatcher = selectParenthesisPattern.matcher(ar.get(ix));
-            Matcher singleQuoteMatcher = singleQuotePattern.matcher(ar.get(ix));
 
             if (selectMatcher.find()) {
                 ar.set(ix, ar.get(ix).replace(",", ",\n" + getSpaces(step) + getSpaces(step)));
@@ -124,11 +133,6 @@ public class SQLPPFormatter {
             if (selectParenthesisMatcher.find()) {
                 deep++;
                 str.append(shift.get(deep)).append(ar.get(ix));
-            } else if (singleQuoteMatcher.find()) {
-                if (parenthesisLevel < 1 && deep > 0) {
-                    deep--;
-                }
-                str.append(ar.get(ix));
             } else {
                 str.append(shift.get(deep)).append(ar.get(ix));
                 if (parenthesisLevel < 1 && deep > 0) {
@@ -139,6 +143,16 @@ public class SQLPPFormatter {
 
         str = new StringBuilder(str.toString().replaceFirst("\\n+", "").replaceAll("\\n+", "\n"));
         return str.toString();
+    }
+
+    private static void addCode(List<String> ar, List<Boolean> literal, String code, int step) {
+        if (code.isEmpty()) {
+            return;
+        }
+        for (String part : splitN1ql(code, getSpaces(step))) {
+            ar.add(part);
+            literal.add(false);
+        }
     }
 
     private static int isSubquery(String str, int parenthesisLevel) {

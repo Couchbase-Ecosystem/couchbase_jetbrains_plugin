@@ -61,7 +61,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
 
         gbc.gridy = 2;
         errorLabel = new JLabel("");
-        errorLabel.setForeground(Color.decode("#FF4444"));
+        errorLabel.setForeground(com.intellij.util.ui.UIUtil.getErrorForeground());
         panel.add(errorLabel, gbc);
 
         return panel;
@@ -120,7 +120,7 @@ public class NewFavoriteCatalog extends DialogWrapper {
                     parentContainer.revalidate();
                 }
             };
-            document.addDocumentListener(documentListener);
+            document.addDocumentListener(documentListener, project);
         });
         super.doOKAction();
     }

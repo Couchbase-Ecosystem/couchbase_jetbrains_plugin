@@ -12,6 +12,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
@@ -58,12 +59,8 @@ public class RelationshipSettingsManager {
     }
 
     public static void showImportDialog(Project project, Tree tree) {
-        FileChooserDescriptor fcd = new FileChooserDescriptor(true, false, false, false, false, false) {
-            @Override
-            public boolean isFileSelectable(VirtualFile file) {
-                return file != null && !file.isDirectory() && "properties".equals(file.getExtension());
-            }
-        };
+        FileChooserDescriptor fcd = FileChooserDescriptorFactory.singleFile()
+                .withExtensionFilter("Relationship files", "properties");
         fcd.setTitle("Select Relationship File");
         fcd.setDescription("Choose a .properties file:");
 

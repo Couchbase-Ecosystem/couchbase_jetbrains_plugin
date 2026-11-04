@@ -15,6 +15,11 @@ import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.*;
@@ -51,6 +56,12 @@ public class NewConnectionDialog extends DialogWrapper {
     private JCheckBox ldapAuthCheckbox;
     private JBTextField usernameTextField;
     private JPasswordField passwordField;
+    private ComboBox<String> authenticationType;
+    private JPanel credentialCards;
+    private TextFieldWithBrowseButton keyStoreField;
+    private TextFieldWithBrowseButton serverCaField;
+    private JPasswordField keyStorePasswordField;
+    private JPanel ldapPanel;
     private JButton testConnectionButton;
     private JButton saveButton;
     private JBScrollPane consoleScrollPane;
@@ -136,8 +147,10 @@ public class NewConnectionDialog extends DialogWrapper {
 
         JPanel notificationPanel = new JPanel(new BorderLayout());
         errorLabel = new JLabel();
-        errorLabel.setForeground(Color.decode("#FF4444"));
+        errorLabel.setName("connectionError");
+        errorLabel.setForeground(com.intellij.util.ui.UIUtil.getErrorForeground());
         messageLabel = new JLabel();
+        messageLabel.setName("connectionStatus");
         messageLabel.setBorder(JBUI.Borders.emptyTop(5));
         notificationPanel.add(messageLabel, BorderLayout.NORTH);
         notificationPanel.add(errorLabel, BorderLayout.SOUTH);
@@ -149,121 +162,103 @@ public class NewConnectionDialog extends DialogWrapper {
         return wrapperPanel;
     }
 
-    private void handleSaveConnection() {
-        saveButton.setEnabled(false);
-        checkSSL();
-        List<String> errors = validateForm();
-        if (errors.isEmpty()) {
-            hideErrorLabel();
-            messageLabel.setText("");
-        } else {
-            showErrorLabel("<html>" + String.join("<br>", errors) + "</html>");
-            saveButton.setEnabled(true);
-            return;
-        }
-        messageLabel.setText("Trying to Connect...");
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
-                if (!hasCorrectBucketConnection()) {
-                    messageLabel.setText("");
-                    saveButton.setEnabled(true);
-                    return;
-                }
-            } catch (Exception ex) {
-                Log.error(ex);
-                showErrorLabel("<html>Connection failed.<br>Please double-check your credentials" + (defaultBucketTextField.getText().trim().isEmpty() ? " or inform a Bucket on <strong>Advanced Settings</strong> -> <strong>Troubleshooting</strong> to inspect your connection" : "") + "</html>");
-                saveButton.setEnabled(true);
-                messageLabel.setText("");
-                return;
-            }
+    private void handleSaveConnection() { runConnectionCheck(true); }
 
-            try {
+    private void handleTestConnection() { runConnectionCheck(false); }
 
-                if (this.savedCluster != null) {
-                    ConnectionNodeDescriptor userObject = (ConnectionNodeDescriptor) clickedNode.getUserObject();
-                    TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
-                }
-                SavedCluster sc = DataLoader.saveDatabaseCredentials(connectionNameTextField.getText(),
-                        getBaseUrl(hostTextField.getText()), getQueryParams(hostTextField.getText()),
-                        enableSSLCheckBox.isSelected(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()),
-                        defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText(),
-                        ldapAuthCheckbox.isSelected(), options);
-                messageLabel.setText("Connection was successful");
-                TreeActionHandler.connectToCluster(project, sc, tree, null);
-                close(DialogWrapper.CANCEL_EXIT_CODE);
-            } catch (DuplicatedClusterNameAndUserException cae) {
-                messageLabel.setText("");
-                showErrorLabel("The combination of the name of the cluster and user already exists.");
-            } catch (ClusterAlreadyExistsException caee) {
-                messageLabel.setText("");
-                showErrorLabel("The Couchbase cluster URL and username already exists.");
-            } catch (Exception ex) {
-                Log.error(ex);
-                messageLabel.setText("");
-                showErrorLabel("Could not save the database credentials");
-            }
-            saveButton.setEnabled(true);
-
-        });
+    private boolean certificateAuthentication() {
+        return authenticationType.getSelectedIndex() == 1;
     }
 
-    private void handleTestConnection() {
+    private SavedCluster connectionSettings() {
+        SavedCluster settings = new SavedCluster();
+        settings.setName(connectionNameTextField.getText().trim());
+        settings.setUrl(DataLoader.adjustClusterProtocol(getBaseUrl(hostTextField.getText().trim()), enableSSLCheckBox.isSelected()));
+        settings.setQueryParams(getQueryParams(hostTextField.getText().trim()));
+        settings.setSslEnable(enableSSLCheckBox.isSelected());
+        settings.setAuthenticationType(certificateAuthentication() ? "certificate" : "password");
+        settings.setUsername(certificateAuthentication() ? "" : usernameTextField.getText().trim());
+        settings.setLDAP(!certificateAuthentication() && ldapAuthCheckbox.isSelected());
+        settings.setClientKeyStorePath(keyStoreField.getText().trim());
+        settings.setServerCaCertificatePath(serverCaField.getText().trim());
+        settings.setDefaultBucket(defaultBucketTextField.getText().trim().isEmpty() ? null : defaultBucketTextField.getText().trim());
+        settings.options(options);
+        if (savedCluster != null) {
+            settings.setReadOnly(savedCluster.getReadOnly());
+            settings.setColor(savedCluster.getColor());
+            settings.setInferCachePeriod(savedCluster.getInferCachePeriod());
+            settings.setQueryPreferences(savedCluster.getQueryPreferences());
+        }
+        return settings;
+    }
+
+    private void runConnectionCheck(boolean save) {
         checkSSL();
         List<String> errors = validateForm();
-        if (errors.isEmpty()) {
-            hideErrorLabel();
-            messageLabel.setText("");
-        } else {
+        if (!errors.isEmpty()) {
             showErrorLabel("<html>" + String.join("<br>", errors) + "</html>");
             return;
         }
+        hideErrorLabel();
+        SavedCluster settings = connectionSettings();
+        String secret = new String(certificateAuthentication() ? keyStorePasswordField.getPassword() : passwordField.getPassword());
+        saveButton.setEnabled(false);
         testConnectionButton.setEnabled(false);
         messageLabel.setText("Trying to Connect...");
-
-        ApplicationManager.getApplication().invokeLater(() -> {
-            if (!defaultBucketTextField.getText().trim().isEmpty()) {
-                consoleScrollPane.setVisible(true);
-                thirdPanel.revalidate();
-                ((DefaultTableModel) eventLogTable.getModel()).setRowCount(0);
-                SdkDoctorRunner.run(hostTextField.getText(), enableSSLCheckBox.isSelected(), defaultBucketTextField.getText(), usernameTextField.getText(), String.valueOf(passwordField.getPassword()), (str) -> {
-                    DefaultTableModel tableModel = (DefaultTableModel) eventLogTable.getModel();
-                    tableModel.addRow(new Object[]{str});
-                    eventLogTable.scrollRectToVisible(eventLogTable.getCellRect(tableModel.getRowCount() - 1, 0, true));
-                });
-            }
-
-            try {
-                if (!hasCorrectBucketConnection()) {
-                    messageLabel.setText("");
-                    testConnectionButton.setEnabled(true);
-                    return;
-                }
-            } catch (Exception ex) {
-                Log.error(ex);
-                ex.printStackTrace();
-                showErrorLabel("<html>Connection failed.<br>Please double-check your credentials" + (defaultBucketTextField.getText().trim().isEmpty() ? " or inform a Bucket on <strong>Advanced Settings</strong> -> <strong>Troubleshooting</strong> to inspect your connection" : "") + "</html>");
-                testConnectionButton.setEnabled(true);
-                messageLabel.setText("");
-                return;
-            }
-            hideErrorLabel();
-            messageLabel.setText("Connection was successful.");
-            testConnectionButton.setEnabled(true);
-        });
-    }
-
-    private boolean hasCorrectBucketConnection() {
-        Set<String> buckets = DataLoader.listBucketNames(hostTextField.getText(),
-                enableSSLCheckBox.isSelected(), usernameTextField.getText(),
-                String.valueOf(passwordField.getPassword()), ldapAuthCheckbox.isSelected());
-
-        if (!defaultBucketTextField.getText().trim().isEmpty()) {
-            if (!buckets.contains(defaultBucketTextField.getText())) {
-                showErrorLabel("The bucket '" + defaultBucketTextField.getText() + "' is not present in this cluster.");
-                return false;
-            }
+        var modality = com.intellij.openapi.application.ModalityState.current();
+        boolean runDoctor = !save && !settings.usesCertificateAuthentication() && settings.getDefaultBucket() != null;
+        if (runDoctor) {
+            consoleScrollPane.setVisible(true);
+            thirdPanel.revalidate();
+            ((DefaultTableModel) eventLogTable.getModel()).setRowCount(0);
         }
-        return true;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                if (runDoctor) {
+                    SdkDoctorRunner.run(settings.getUrl(), settings.isSslEnable(), settings.getDefaultBucket(), settings.getUsername(), secret,
+                            line -> ApplicationManager.getApplication().invokeLater(() -> {
+                                if (!isDisposed()) ((DefaultTableModel) eventLogTable.getModel()).addRow(new Object[]{line});
+                            }, modality));
+                }
+                Set<String> buckets = DataLoader.listBucketNames(settings, secret);
+                if (settings.getDefaultBucket() != null && !buckets.contains(settings.getDefaultBucket())) {
+                    throw new IllegalArgumentException("The bucket '" + settings.getDefaultBucket() + "' is not present in this cluster.");
+                }
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (isDisposed()) return;
+                    try {
+                        if (save) {
+                            SavedCluster sc = DataLoader.saveDatabaseCredentials(settings, secret, savedCluster);
+                            if (clickedNode != null) clickedNode.setUserObject(new ConnectionNodeDescriptor(sc.getId(), sc, false));
+                            TreeActionHandler.connectToCluster(project, sc, tree, null);
+                            close(DialogWrapper.OK_EXIT_CODE);
+                        } else {
+                            messageLabel.setText("Connection was successful.");
+                        }
+                    } catch (DuplicatedClusterNameAndUserException ex) {
+                        showErrorLabel("A connection with this name and authentication identity already exists.");
+                        messageLabel.setText("");
+                    } catch (ClusterAlreadyExistsException ex) {
+                        showErrorLabel("This cluster and authentication identity already exist.");
+                        messageLabel.setText("");
+                    } finally {
+                        saveButton.setEnabled(true);
+                        testConnectionButton.setEnabled(true);
+                    }
+                }, modality);
+            } catch (Exception ex) {
+                Log.error("Connection test failed", ex);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (isDisposed()) return;
+                    messageLabel.setText("");
+                    String detail = ex.getMessage();
+                    showErrorLabel("<html>Connection failed. " + com.intellij.openapi.util.text.StringUtil.escapeXmlEntities(
+                            detail == null ? "Check your connection and authentication settings." : detail) + "</html>");
+                    saveButton.setEnabled(true);
+                    testConnectionButton.setEnabled(true);
+                }, modality);
+            }
+        });
     }
 
     private List<String> validateForm() {
@@ -278,18 +273,30 @@ public class NewConnectionDialog extends DialogWrapper {
             errors.add("Connection String can't be empty");
         }
 
-        if (usernameTextField.getText().trim().isEmpty()) {
-            errors.add("Username can't be empty");
-        }
-
-        if (String.valueOf(passwordField.getPassword()).isEmpty()) {
-            errors.add("Password can't be empty");
+        if (certificateAuthentication()) {
+            validateFile(keyStoreField.getText(), "Client keystore", true, errors);
+            validateFile(serverCaField.getText(), "Server CA certificate", false, errors);
+        } else {
+            if (usernameTextField.getText().trim().isEmpty()) errors.add("Username can't be empty");
+            if (passwordField.getPassword().length == 0) errors.add("Password can't be empty");
         }
         return errors;
     }
 
+    private static void validateFile(String value, String label, boolean required, List<String> errors) {
+        if (value.isBlank()) {
+            if (required) errors.add(label + " can't be empty");
+            return;
+        }
+        try {
+            if (!Files.isRegularFile(Path.of(value)) || !Files.isReadable(Path.of(value))) errors.add(label + " must be a readable file");
+        } catch (java.nio.file.InvalidPathException ex) {
+            errors.add(label + " must be a valid file path");
+        }
+    }
+
     private void checkSSL() {
-        if (hostTextField.getText().contains("cloud.couchbase.com")
+        if (certificateAuthentication() || hostTextField.getText().contains("cloud.couchbase.com")
                 || hostTextField.getText().startsWith("https://")
                 || hostTextField.getText().startsWith("couchbases://")) {
             enableSSLCheckBox.setSelected(true);
@@ -344,53 +351,90 @@ public class NewConnectionDialog extends DialogWrapper {
 
     @NotNull
     private JPanel createCredentialsPanel() {
-        JPanel secondPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc2 = new GridBagConstraints();
-        gbc2.anchor = GridBagConstraints.WEST;
-        gbc2.insets = JBUI.insets(5);
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.add(new TitledSeparator("Credentials"), BorderLayout.NORTH);
+        JPanel contents = new JPanel(new BorderLayout(0, 6));
+        authenticationType = new ComboBox<>(new String[]{"Username and password", "Client certificate"});
+        authenticationType.setName("connectionAuthentication");
+        JPanel selector = new JPanel(new GridBagLayout());
+        addCredentialRow(selector, 0, "Authentication", authenticationType);
+        contents.add(selector, BorderLayout.NORTH);
+        credentialCards = new JPanel(new CardLayout());
 
-        TitledSeparator credentialsSeparator = new TitledSeparator("Credentials");
+        JPanel passwordCard = new JPanel(new GridBagLayout());
+        usernameTextField = new JBTextField(25);
+        usernameTextField.setName("connectionUsername");
+        passwordField = new JPasswordField(25);
+        passwordField.setName("connectionPassword");
+        addCredentialRow(passwordCard, 0, "Username", usernameTextField);
+        addCredentialRow(passwordCard, 1, "Password", passwordField);
+        JPanel passwordWrapper = new JPanel(new BorderLayout());
+        passwordWrapper.add(passwordCard, BorderLayout.NORTH);
+        credentialCards.add(passwordWrapper, "password");
 
-        JLabel usernameLabel = new JLabel("Username");
-        usernameTextField = new JBTextField(30);
-        JLabel passwordLabel = new JLabel("Password");
-        passwordField = new JPasswordField(30);
-
-        gbc2.fill = GridBagConstraints.HORIZONTAL;
-        gbc2.gridwidth = GridBagConstraints.REMAINDER;
-        gbc2.gridy = 0;
-        gbc2.gridx = 0;
-        gbc2.weightx = 1;
-        secondPanel.add(credentialsSeparator, gbc2);
-
-        gbc2.fill = GridBagConstraints.NONE;
-        gbc2.gridwidth = GridBagConstraints.RELATIVE;
-
-        gbc2.gridy = 1;
-        gbc2.gridx = 0;
-        gbc2.weightx = 0.4;
-        secondPanel.add(usernameLabel, gbc2);
-
-        gbc2.gridy = 1;
-        gbc2.gridx = 1;
-        gbc2.weightx = 0.6;
-        secondPanel.add(TemplateUtil.createComponentWithBalloon(usernameTextField, "The username that you will use to access the database. In Couchbase Capella, you can create new users under <Your Database> -> Settings -> Database Access"), gbc2);
-
-        gbc2.gridy = 2;
-        gbc2.gridx = 0;
-        gbc2.weightx = 0.4;
-        secondPanel.add(passwordLabel, gbc2);
-
-        gbc2.gridy = 2;
-        gbc2.gridx = 1;
-        gbc2.weightx = 0.6;
-        secondPanel.add(TemplateUtil.createComponentWithBalloon(passwordField, "The respective password for the user you have specified"), gbc2);
-
-        if (this.savedCluster != null) {
-            usernameTextField.setText(this.savedCluster.getUsername());
-            passwordField.setText(DataLoader.getClusterPassword(savedCluster));
+        JPanel certificateCard = new JPanel(new GridBagLayout());
+        keyStoreField = certificateFileField("connectionKeyStore", "Choose client keystore", "PKCS#12 (.p12, .pfx) or Java keystore (.jks) containing your client certificate and private key.");
+        keyStorePasswordField = new JPasswordField(25);
+        keyStorePasswordField.setName("connectionKeyStorePassword");
+        keyStorePasswordField.setToolTipText("Keystore password. Leave empty for a keystore without a password. Stored in the IDE password safe.");
+        serverCaField = certificateFileField("connectionServerCa", "Choose server CA certificate", "Optional PEM file containing trusted server CA certificates. Leave empty to use default trusted authorities.");
+        addCredentialRow(certificateCard, 0, "Client keystore", keyStoreField);
+        addCredentialRow(certificateCard, 1, "Keystore password", keyStorePasswordField);
+        addCredentialRow(certificateCard, 2, "Server CA (optional)", serverCaField);
+        JBLabel help = new JBLabel("<html>The server identifies your user from the certificate.<br>A secure TLS connection is enabled automatically.</html>");
+        help.setForeground(com.intellij.util.ui.UIUtil.getContextHelpForeground());
+        GridBagConstraints hint = new GridBagConstraints();
+        hint.gridx = 0; hint.gridy = 3; hint.gridwidth = 2; hint.weightx = 1;
+        hint.fill = GridBagConstraints.HORIZONTAL; hint.insets = JBUI.insets(4, 5);
+        certificateCard.add(help, hint);
+        credentialCards.add(certificateCard, "certificate");
+        contents.add(credentialCards, BorderLayout.CENTER);
+        panel.add(contents, BorderLayout.CENTER);
+        authenticationType.addActionListener(e -> updateAuthenticationFields());
+        if (savedCluster != null) {
+            usernameTextField.setText(savedCluster.getUsername());
+            if (savedCluster.usesCertificateAuthentication()) {
+                keyStoreField.setText(java.util.Objects.toString(savedCluster.getClientKeyStorePath(), ""));
+                serverCaField.setText(java.util.Objects.toString(savedCluster.getServerCaCertificatePath(), ""));
+                keyStorePasswordField.setText(DataLoader.getClusterPassword(savedCluster));
+                authenticationType.setSelectedIndex(1);
+            } else {
+                passwordField.setText(DataLoader.getClusterPassword(savedCluster));
+            }
         }
-        return secondPanel;
+        updateAuthenticationFields();
+        return panel;
+    }
+
+    private TextFieldWithBrowseButton certificateFileField(String name, String title, String description) {
+        TextFieldWithBrowseButton field = new TextFieldWithBrowseButton();
+        field.getTextField().setName(name);
+        field.getAccessibleContext().setAccessibleName(title);
+        field.getTextField().setToolTipText(description);
+        field.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleFile().withTitle(title).withDescription(description));
+        return field;
+    }
+
+    private static void addCredentialRow(JPanel panel, int row, String text, JComponent field) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = JBUI.insets(5); gbc.fill = GridBagConstraints.HORIZONTAL;
+        JLabel label = new JLabel(text);
+        label.setPreferredSize(new Dimension(JBUI.scale(125), label.getPreferredSize().height));
+        label.setLabelFor(field instanceof TextFieldWithBrowseButton browse ? browse.getTextField() : field);
+        panel.add(label, gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        panel.add(field, gbc);
+    }
+
+    private void updateAuthenticationFields() {
+        boolean certificate = certificateAuthentication();
+        ((CardLayout) credentialCards.getLayout()).show(credentialCards, certificate ? "certificate" : "password");
+        enableSSLCheckBox.setEnabled(!certificate);
+        if (certificate) enableSSLCheckBox.setSelected(true);
+        ldapPanel.setVisible(!certificate);
+        credentialCards.revalidate();
+        credentialCards.repaint();
     }
 
     @NotNull
@@ -405,11 +449,16 @@ public class NewConnectionDialog extends DialogWrapper {
 
         JLabel connectionNameLabel = new JLabel("Name:");
         connectionNameTextField = new JBTextField(30);
+        connectionNameTextField.setName("connectionName");
+        connectionNameLabel.setLabelFor(connectionNameTextField);
         connectionNameTextField.getEmptyText().setText("Give a name to your connection");
         JLabel hostLabel = new JLabel("Connection String:");
         hostTextField = new JBTextField(30);
+        hostTextField.setName("connectionHost");
+        hostLabel.setLabelFor(hostTextField);
         hostTextField.getEmptyText().setText("Your cluster URL");
         enableSSLCheckBox = new JCheckBox("Enable SSL");
+        enableSSLCheckBox.setName("connectionSsl");
         ldapAuthCheckbox = new JCheckBox("LDAP Auth");
 
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -448,7 +497,7 @@ public class NewConnectionDialog extends DialogWrapper {
         JPanel checkboxPanel = new JPanel();
         checkboxPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
         checkboxPanel.add(TemplateUtil.createComponentWithBalloon(enableSSLCheckBox, "Check this if TLS is enabled in your cluster. If you specify 'couchbases://' protocol in your Connection String, this option will be checked automatically"));
-        JBPanel ldapPanel = TemplateUtil.createComponentWithBalloon(ldapAuthCheckbox, "Check this if your authentication uses LDAP");
+        ldapPanel = TemplateUtil.createComponentWithBalloon(ldapAuthCheckbox, "Check this if your authentication uses LDAP");
         ldapPanel.setBorder(JBUI.Borders.emptyLeft(10));
         checkboxPanel.add(ldapPanel);
         firstPanel.add(checkboxPanel, gbc);
@@ -586,7 +635,7 @@ public class NewConnectionDialog extends DialogWrapper {
     }
 
     private Component createAdvancedConnectionPanel() {
-        ScrollPane sp = new ScrollPane();
+        JBScrollPane sp = new JBScrollPane();
         JBPanel panel = new JBPanel(new GridBagLayout());
 
         JBCheckBox liveEditing = new JBCheckBox("Keep opened documents synchronized");
@@ -635,7 +684,7 @@ public class NewConnectionDialog extends DialogWrapper {
         JPanel tbWrapPanel = new JPanel(new BorderLayout());
         tbWrapPanel.setPreferredSize(new Dimension(400, 80));
         tbWrapPanel.add(panel, BorderLayout.NORTH);
-        sp.add(tbWrapPanel);
+        sp.setViewportView(tbWrapPanel);
         return sp;
     }
 

@@ -1,24 +1,13 @@
 package com.couchbase.intellij.listener;
 
-import com.couchbase.client.core.error.DocumentNotFoundException;
-import com.couchbase.client.java.Collection;
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.kv.GetResult;
-import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.intellij.DocumentFormatter;
 import com.couchbase.intellij.VirtualFileKeys;
-import com.couchbase.intellij.database.ActiveCluster;
-import com.couchbase.intellij.database.InferHelper;
 import com.couchbase.intellij.persistence.CouchbaseDocumentVirtualFile;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.workbench.Log;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.MutableDocument;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
-import com.intellij.json.JsonFileType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -31,7 +20,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
@@ -54,62 +42,9 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
         VirtualFile file = FileDocumentManager.getInstance().getFile(document);
 
 
-        //filtering files from our plugin
-        if (file != null && file.getUserData(VirtualFileKeys.CLUSTER) != null && !ActiveCluster.getInstance().isReadOnlyMode()) {
-            if (!ActiveCluster.getInstance().getId().equals(file.getUserData(VirtualFileKeys.CONN_ID))) {
-                Log.info("The file " + file.getUserData(VirtualFileKeys.ID) + " was not saved, as it belongs to a connection that is no longer active.");
-                return true;
-            } else {
-                Collection collection = ActiveCluster.getInstance().get().bucket(file.getUserData(VirtualFileKeys.BUCKET))
-                        .scope(file.getUserData(VirtualFileKeys.SCOPE))
-                        .collection(file.getUserData(VirtualFileKeys.COLLECTION));
-                try {
-                    GetResult getResult = collection.get(file.getUserData(VirtualFileKeys.ID));
-
-                    if ("true".equals(file.getUserData(VirtualFileKeys.READ_ONLY))) {
-                        return false;
-                    }
-
-                    // file type is json and is not valid
-                    if (file.getFileType() == JsonFileType.INSTANCE) {
-                        try {
-                            JsonObject.fromJson(document.getText());
-                        } catch (Exception e) {
-                            return false;
-                        }
-                    }
-
-                    //cas is null or different from the one in the server
-                    if (file.getUserData(VirtualFileKeys.CAS) == null
-                            || getResult.cas() != Long.parseLong(file.getUserData(VirtualFileKeys.CAS))) {
-
-                        String[] options = {"Overwrite server's version", "Replace mine with the latest version from server", "Cancel"};
-                        int result = Messages.showDialog(
-                                "The document that you are trying to save has already been modified in the server. How would you like to proceed?", "Document Conflict"
-                                , options, 1, Messages.getWarningIcon());
-
-                        if (result == 0) {
-                            saveFile(collection, file, document);
-                            return true;
-                        } else if (result == 1) {
-                            file.putUserData(VirtualFileKeys.CAS, String.valueOf(getResult.cas()));
-                            ApplicationManager.getApplication().runWriteAction(() -> {
-                                document.setText(getResult.contentAsObject().toString());
-                                DocumentFormatter.formatFile(getProject(file), file);
-                            });
-
-                            return false;
-                        } else {
-                            return false;
-                        }
-                    } else {
-                        saveFile(collection, file, document);
-                    }
-                } catch (DocumentNotFoundException dnf) {
-                    //this is a new document, so let's save it
-                    saveFile(collection, file, document);
-                }
-            }
+        if (file == null) return true;
+        if (file instanceof CouchbaseDocumentVirtualFile couchbaseFile) {
+            return com.couchbase.intellij.persistence.CouchbaseDocumentSaveCoordinator.maySave(document, couchbaseFile, isSaveExplicit);
         }
         if (file.getUserData(VirtualFileKeys.CBL_CON_ID) != null
                 && file.getUserData(VirtualFileKeys.CBL_CON_ID).equals(ActiveCBLDatabase.getInstance().getDatabaseId())) {
@@ -123,7 +58,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
                 //this is a new document
                 if (doc == null) {
-                    saveCBLDocument(document, file);
+                    return saveCBLDocument(document, file);
                 } else {
 
 
@@ -136,8 +71,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                                 , options, 1, Messages.getWarningIcon());
 
                         if (result == 0) {
-                            saveCBLDocument(document, file);
-                            return true;
+                            return saveCBLDocument(document, file);
                         } else if (result == 1) {
                             file.putUserData(VirtualFileKeys.CAS, doc.getRevisionID());
                             ApplicationManager.getApplication().runWriteAction(() -> {
@@ -152,19 +86,24 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                             return false;
                         }
                     } else {
-                        saveCBLDocument(document, file);
+                        return saveCBLDocument(document, file);
                     }
                 }
 
             } catch (CouchbaseLiteException ex) {
+                // Returning true here would clear the editor's dirty flag although nothing was written.
                 Log.error("Could not save the document", ex);
+                Messages.showErrorDialog("<html>The Document <strong>" + file.getUserData(VirtualFileKeys.ID)
+                        + "</strong> could not be saved: " + ex.getMessage() + "</html>", "Couchbase Plugin Error");
+                return false;
             }
 
         }
         return true;
     }
 
-    private static void saveCBLDocument(@NotNull Document document, VirtualFile file) throws CouchbaseLiteException {
+    /** @return whether the document was written; false keeps the editor dirty so the user can retry. */
+    private static boolean saveCBLDocument(@NotNull Document document, VirtualFile file) throws CouchbaseLiteException {
 
 
         try {
@@ -173,7 +112,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
             Messages.showErrorDialog("<html>The Document <strong>"
                     + file.getUserData(VirtualFileKeys.ID)
                     + "</strong> can't be saved as it is not a valid JSON</html>", "Couchbase Plugin Error");
-            return;
+            return false;
         }
 
         MutableDocument newDoc = new MutableDocument(file.getUserData(VirtualFileKeys.ID));
@@ -190,21 +129,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                 .getDocument(file.getUserData(VirtualFileKeys.ID));
 
         file.putUserData(VirtualFileKeys.CAS, String.valueOf(doc.getRevisionID()));
+        return true;
     }
 
-    private void saveFile(Collection collection, VirtualFile file, Document document) {
-
-
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            JsonNode node = mapper.readTree(document.getText());
-            MutationResult res = collection.upsert(file.getUserData(VirtualFileKeys.ID), node);
-            file.putUserData(VirtualFileKeys.CAS, String.valueOf(res.cas()));
-            InferHelper.invalidateInferCacheIfOlder(collection.bucketName(), collection.scopeName(), collection.name(), TimeUnit.MINUTES.toMillis(1));
-
-        } catch (JsonProcessingException e) {
-            Log.error("Document " + file.getUserData(VirtualFileKeys.ID) + " is not a valid json");
-        }
-
-    }
 }

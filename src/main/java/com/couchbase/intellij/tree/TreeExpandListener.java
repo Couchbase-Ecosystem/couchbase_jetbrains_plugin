@@ -7,12 +7,53 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.util.Enumeration;
 
-public class TreeExpandListener {
+public class TreeExpandListener implements TreeExpansionListener {
+    private final Tree tree;
+
+    public TreeExpandListener(Tree tree) {
+        this.tree = tree;
+    }
+
+    @Override
+    public void treeExpanded(TreeExpansionEvent event) {
+        handle(tree, event);
+    }
+
+    @Override
+    public void treeCollapsed(TreeExpansionEvent event) {
+        handleCollapse(tree, event);
+    }
+
+    public static void handleCollapse(Tree tree, TreeExpansionEvent event) {
+        Object collapsed = event.getPath().getLastPathComponent();
+        if (!(collapsed instanceof DefaultMutableTreeNode node)) {
+            return;
+        }
+        if (node.getUserObject() instanceof CollectionsNodeDescriptor) {
+            resetCollections(tree, node);
+        } else if (node.getUserObject() instanceof ScopeNodeDescriptor) {
+            for (int i = 0; i < node.getChildCount(); i++) {
+                DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
+                if (child.getUserObject() instanceof CollectionsNodeDescriptor) {
+                    resetCollections(tree, child);
+                }
+            }
+        }
+    }
+
+    private static void resetCollections(Tree tree, DefaultMutableTreeNode node) {
+        TreeLoadTask.invalidate(node, tree);
+        ((CollectionsNodeDescriptor) node.getUserObject()).resetForExpansion();
+        node.removeAllChildren();
+        node.add(new DefaultMutableTreeNode(new LoadingNodeDescriptor()));
+        ((DefaultTreeModel) tree.getModel()).nodeStructureChanged(node);
+    }
 
     public static void handle(Tree tree, TreeExpansionEvent event) {
         Object expandedNode = event.getPath().getLastPathComponent();
@@ -37,8 +78,10 @@ public class TreeExpandListener {
                     DefaultMutableTreeNode child = (DefaultMutableTreeNode) children.nextElement();
                     if (child.getUserObject() instanceof CollectionsNodeDescriptor) {
                         ApplicationManager.getApplication().invokeLater(() -> {
-                            TreePath path = new TreePath(child.getPath());
-                            tree.expandPath(path);
+                            if (tree.isExpanded(event.getPath()) && child.getParent() == expandedTreeNode) {
+                                TreePath path = new TreePath(child.getPath());
+                                tree.expandPath(path);
+                            }
                         });
                         break;
                     }

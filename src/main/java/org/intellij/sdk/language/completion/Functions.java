@@ -2,12 +2,12 @@ package org.intellij.sdk.language.completion;
 
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElement;
-import com.intellij.lang.parser.GeneratedParserUtilBase;
 import com.intellij.patterns.PatternCondition;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.util.ProcessingContext;
+import com.intellij.psi.DummyBlockType;
 import generated.GeneratedTypes;
 import generated.psi.impl.ExprImpl;
 import org.intellij.sdk.language.psi.SqlppFile;
@@ -103,7 +103,7 @@ public class Functions extends CompletionProvider<CompletionParameters> {
                 CompletionType.BASIC,
                 PlatformPatterns.psiElement()
                         .inFile(PlatformPatterns.psiFile(SqlppFile.class))
-                        .inside(PlatformPatterns.psiElement(GeneratedParserUtilBase.DummyBlock.class))
+                        .inside(PlatformPatterns.psiElement(DummyBlockType.DUMMY_BLOCK))
                         .with(Utils.EXCLUDE_FUNCTIONS),
                 this
         );

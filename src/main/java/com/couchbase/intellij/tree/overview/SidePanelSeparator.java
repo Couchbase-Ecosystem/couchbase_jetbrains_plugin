@@ -2,7 +2,6 @@ package com.couchbase.intellij.tree.overview;
 
 import com.intellij.openapi.ui.GraphicsConfig;
 import com.intellij.ui.ColorUtil;
-import com.intellij.ui.SeparatorWithText;
 import com.intellij.ui.paint.LinePainter2D;
 import com.intellij.util.ui.GraphicsUtil;
 import com.intellij.util.ui.JBUI;
@@ -14,12 +13,20 @@ import java.awt.*;
 import static javax.swing.SwingConstants.CENTER;
 import static javax.swing.SwingConstants.LEFT;
 
-public class SidePanelSeparator extends SeparatorWithText {
+public class SidePanelSeparator extends JComponent {
+    private final String caption;
+
+    public SidePanelSeparator(String caption) {
+        this.caption = caption;
+        setFont(UIUtil.getListFont());
+        setPreferredSize(new Dimension(getFontMetrics(getFont()).stringWidth(caption) + JBUI.scale(20), JBUI.scale(24)));
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Color separatorColor = JBUI.CurrentTheme.Popup.separatorColor();
         g.setColor(separatorColor);
-        if ("--".equals(getCaption())) {
+        if ("--".equals(caption)) {
             final GraphicsConfig config = GraphicsUtil.setupAAPainting(g);
             final int h = getHeight() / 2;
             LinePainter2D.paint((Graphics2D) g, 30, h, getWidth() - 30, h);
@@ -31,11 +38,11 @@ public class SidePanelSeparator extends SeparatorWithText {
             config.restore();
             return;
         }
-        Rectangle viewR = new Rectangle(0, getVgap(), getWidth() - 1, getHeight() - getVgap() - 1);
+        Rectangle viewR = new Rectangle(0, JBUI.scale(3), getWidth() - 1, getHeight() - JBUI.scale(3) - 1);
         Rectangle iconR = new Rectangle();
         Rectangle textR = new Rectangle();
         String s = SwingUtilities
-                .layoutCompoundLabel(g.getFontMetrics(), getCaption(), null, CENTER,
+                .layoutCompoundLabel(g.getFontMetrics(), caption, null, CENTER,
                         LEFT,
                         CENTER,
                         LEFT,

@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.terminal.JBTerminalSystemSettingsProviderBase;
 import com.intellij.terminal.JBTerminalWidget;
-import com.intellij.terminal.pty.PtyProcessTtyConnector;
 import com.intellij.ui.components.panels.Wrapper;
 import com.pty4j.PtyProcess;
 import com.pty4j.PtyProcessBuilder;
@@ -23,7 +22,7 @@ public class CbShellEmulator  {
     private JBTerminalWidget terminalWidget;
     private PtyProcess process;
     private StringBuilder inputBuffer = new StringBuilder();
-    private PtyProcessTtyConnector connector;
+    private ShellTtyConnector connector;
     private Wrapper wrapper;
     private Project project;
 
@@ -54,6 +53,10 @@ public class CbShellEmulator  {
 
     private void onClusterConnected(ActiveCluster activeCluster) {
         clearTerminal();
+        if (activeCluster.usesCertificateAuthentication()) {
+            terminalWidget.writePlainMessage("The embedded CB Shell requires a username/password connection. Certificate authentication is active for the explorer and query workbench.");
+            return;
+        }
 
         ArrayList<String> command = new ArrayList<>();
         command.add(CBTools.getTool(CBTools.Type.SHELL).getPath());
@@ -91,7 +94,7 @@ public class CbShellEmulator  {
                         }
                     }
 
-                    connector = new PtyProcessTtyConnector(process, Charset.defaultCharset());
+                    connector = new ShellTtyConnector(process, Charset.defaultCharset(), command);
                     terminalWidget.start(connector);
                     terminalWidget.getTerminalTextBuffer().clearHistory();
                     clearTerminal();

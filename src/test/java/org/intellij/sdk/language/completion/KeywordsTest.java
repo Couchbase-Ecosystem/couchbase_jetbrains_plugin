@@ -11,6 +11,10 @@ import java.util.function.Consumer;
 
 
 public class KeywordsTest extends LightPlatformCodeInsightFixture4TestCase {
+
+    static {
+        com.couchbase.intellij.testutil.AllowedThreads.allowJdkAwtThreads();
+    }
     private void assertCompletes(String text) {
         assertCompletes(text, "where");
     }

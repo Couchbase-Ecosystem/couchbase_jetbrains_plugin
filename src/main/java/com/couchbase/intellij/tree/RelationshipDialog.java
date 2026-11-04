@@ -2,8 +2,6 @@ package com.couchbase.intellij.tree;
 
 import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.manager.collection.CollectionSpec;
-import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.database.entity.CouchbaseCollection;
 import com.couchbase.intellij.persistence.storage.RelationshipStorage;
@@ -24,7 +22,7 @@ import java.util.*;
 @SuppressWarnings("rawtypes")
 public class RelationshipDialog extends DialogWrapper {
     private ComboBox fieldCombo;
-    private ComboBox collectionCombo;
+    private CollectionPicker collectionCombo;
     private JBLabel errorLabel;
     private String target;
     private SchemaDataNodeDescriptor node;
@@ -99,15 +97,25 @@ public class RelationshipDialog extends DialogWrapper {
         c.gridx = 1;
 
 
-        collectionCombo = new ComboBox<>(listCollections(target).toArray());
+        // Favorites plus the first page of the scope; the rest is reachable through the picker's search button.
+        collectionCombo = CollectionPicker.forActiveCluster(null);
+        collectionCombo.setAutoSelectFirst(false);
         collectionCombo.addActionListener(e -> {
-            if (collectionCombo.getSelectedItem() == null) {
+            String selected = collectionCombo.getSelectedCollection();
+            if (selected == null) {
                 return;
             }
+            if (selected.equals(path[2])) {
+                errorLabel.setText("A collection cannot reference itself");
+                fieldCombo.removeAllItems();
+                fieldCombo.setEnabled(false);
+                return;
+            }
+            errorLabel.setText("");
 
             Optional<JsonObject> obj = ActiveCluster.getInstance().getChild(path[0])
                     .flatMap(bucket -> bucket.getChild(path[1]))
-                    .flatMap(scope -> scope.getChild(collectionCombo.getSelectedItem().toString()))
+                    .flatMap(scope -> scope.getChild(selected))
                     .map(col -> ((CouchbaseCollection) col).generateDocument())
                     .filter(Objects::nonNull)
                     .findFirst();
@@ -125,7 +133,7 @@ public class RelationshipDialog extends DialogWrapper {
             fieldCombo.setSelectedItem(null);
 
         });
-        collectionCombo.setSelectedItem(null);
+        collectionCombo.setScope(path[0], path[1]);
         formPanel.add(collectionCombo, c);
 
         // Scope label and combobox
@@ -160,24 +168,6 @@ public class RelationshipDialog extends DialogWrapper {
         return panel;
     }
 
-    private List<String> listCollections(String target) {
-        String[] path = target.split("\\.");
-        List<ScopeSpec> scopes = ActiveCluster.getInstance().get().bucket(path[0]).collections().getAllScopes();
-        List<String> collections = new ArrayList<>();
-        for (ScopeSpec spec : scopes) {
-            if (spec.name().equals(path[1])) {
-                for (CollectionSpec colSpec : spec.collections()) {
-                    if (!colSpec.name().equals(path[2])) {
-                        collections.add(colSpec.name());
-                    }
-                }
-            }
-        }
-
-        return collections;
-    }
-
-
     private static List<String> generatePaths(JsonObject jsonObject, String prefix) {
         List<String> paths = new ArrayList<>();
         jsonObject.getNames().forEach(key -> {
@@ -204,8 +194,12 @@ public class RelationshipDialog extends DialogWrapper {
     protected void doOKAction() {
 
         List<String> errors = new ArrayList<>();
-        if (collectionCombo.getSelectedItem() == null) {
+        String[] split = target.split("\\.");
+        String linked = collectionCombo.getSelectedCollection();
+        if (linked == null) {
             errors.add("Please select the linked collection");
+        } else if (linked.equals(split[2])) {
+            errors.add("A collection cannot reference itself");
         }
 
         if (fieldCombo.getSelectedItem() == null) {
@@ -221,8 +215,7 @@ public class RelationshipDialog extends DialogWrapper {
             RelationshipStorage.getInstance().getValue().getRelationships()
                     .computeIfAbsent(ActiveCluster.getInstance().getId(), k -> new HashMap<>());
 
-            String[] split = target.split("\\.");
-            String reference = split[0] + "." + split[1] + "." + collectionCombo.getSelectedItem().toString() + "." + fieldCombo.getSelectedItem().toString();
+            String reference = split[0] + "." + split[1] + "." + linked + "." + fieldCombo.getSelectedItem().toString();
             RelationshipStorage.getInstance().getValue().getRelationships()
                     .get(ActiveCluster.getInstance().getId())
                     .put(target, reference);

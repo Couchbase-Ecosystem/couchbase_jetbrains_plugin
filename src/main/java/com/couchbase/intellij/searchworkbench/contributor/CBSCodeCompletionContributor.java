@@ -34,7 +34,7 @@ public class CBSCodeCompletionContributor extends CompletionContributor {
             new GeometryCbsContributor(),
             new ShapeCbsContributor()
     );
-    public static final List<String> topLevelKeywords = Arrays.asList("query", "knn", "ctl", "size", "limit",
+    public static final List<String> topLevelKeywords = Arrays.asList("query", "knn", "knn_operator", "ctl", "size", "limit",
             "from", "offset", "highlight", "fields", "facets", "explain", "sort", "includeLocations", "score",
             "search_after", "search_before", "collections");
 
