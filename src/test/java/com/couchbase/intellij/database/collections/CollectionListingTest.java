@@ -38,6 +38,34 @@ public class CollectionListingTest {
     }
 
     @Test
+    public void extendingFetchesOnlyTheNextPage() {
+        FakeCollectionSource src = FakeCollectionSource.numbered(25);
+        CollectionListing first = CollectionListing.build(src, NONE, NONE, 10);
+        CollectionListing second = CollectionListing.extend(src, NONE, NONE, first.getPagedNames(), 10);
+        CollectionListing third = CollectionListing.extend(src, NONE, NONE, second.getPagedNames(), 10);
+
+        assertEquals(List.of("0:10", "10:10", "20:10"), src.pageRequests);
+        assertEquals(20, second.getNames().size());
+        assertEquals("col19", second.getNames().get(19));
+        assertTrue(second.hasMore());
+        assertEquals(25, third.getNames().size());
+        assertEquals(25, third.getPagedLoaded());
+        assertFalse(third.hasMore());
+    }
+
+    @Test
+    public void extendingKeepsFavoritesAndSearchSelectionsOnTopWithoutDuplicates() {
+        FakeCollectionSource src = FakeCollectionSource.numbered(30);
+        CollectionListing first = CollectionListing.build(src, List.of("col15"), List.of("col12"), 10);
+        CollectionListing second = CollectionListing.extend(src, List.of("col15"), List.of("col12"), first.getPagedNames(), 10);
+
+        assertEquals(List.of("col15", "col12", "col00"), second.getNames().subList(0, 3));
+        assertEquals(20, second.getNames().size());
+        assertEquals(second.getNames().size(), second.getNames().stream().distinct().count());
+        assertEquals(20, second.getPagedLoaded());
+    }
+
+    @Test
     public void scopeWithFewerThanOnePageHasNothingMore() {
         CollectionListing l = CollectionListing.build(new FakeCollectionSource("a", "b"), NONE, NONE, 10);
         assertEquals(List.of("a", "b"), l.getNames());
@@ -148,19 +176,83 @@ public class CollectionListingTest {
     }
 
     @Test
-    public void fallbackSourceSwitchesPermanentlyWhenPreferredFails() {
-        CollectionSource broken = new FakeCollectionSource() {
+    public void manifestIsFetchedOnlyOnceEvenWhenWorkersAskForItAtTheSameTime() throws Exception {
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        ScopeSpec scope = ScopeSpec.create("s", java.util.Set.of(CollectionSpec.create("a", "s")));
+        ManifestCollectionSource src = new ManifestCollectionSource(() -> {
+            calls.incrementAndGet();
+            try { Thread.sleep(50); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            return scope;
+        });
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+        try {
+            List<java.util.concurrent.Future<Integer>> counts = new java.util.ArrayList<>();
+            for (int i = 0; i < 4; i++) counts.add(pool.submit(src::count));
+            for (var count : counts) assertEquals(1, count.get().intValue());
+        } finally {
+            pool.shutdownNow();
+        }
+        assertEquals(1, calls.get());
+    }
+
+    private static CollectionSource brokenSource(int[] failures) {
+        return new FakeCollectionSource("p") {
             @Override
             public int count() {
-                throw new IllegalStateException("no query service");
+                failures[0]++;
+                throw new IllegalStateException("timeout");
             }
         };
-        FallbackCollectionSource src = new FallbackCollectionSource(broken, new FakeCollectionSource("a", "b"));
+    }
+
+    @Test
+    public void fallbackSourceSwitchesWhenPreferredFails() {
+        int[] failures = {0};
+        FallbackCollectionSource src = new FallbackCollectionSource(brokenSource(failures), new FakeCollectionSource("a", "b"));
 
         assertFalse(src.isUsingFallback());
         assertEquals(2, src.count());
         assertTrue(src.isUsingFallback());
         assertEquals(List.of("a", "b"), src.page(0, 10));
+        assertEquals("the preferred source is not retried on every call", 1, failures[0]);
+    }
+
+    @Test
+    public void fallbackSourceRetriesThePreferredSourceAfterTheRetryWindow() {
+        int[] failures = {0};
+        long[] now = {1_000_000L};
+        FakeCollectionSource fallback = new FakeCollectionSource("a", "b");
+        FallbackCollectionSource src = new FallbackCollectionSource(brokenSource(failures), fallback, () -> now[0]);
+
+        assertEquals(2, src.count());
+        now[0] += FallbackCollectionSource.RETRY_AFTER_MS - 1;
+        assertEquals(2, src.count());
+        assertEquals(1, failures[0]);
+
+        now[0] += 1;
+        assertEquals("the preferred source gets another chance once the window has passed", 2, src.count());
+        assertEquals(2, failures[0]);
+        assertTrue(src.isUsingFallback());
+    }
+
+    @Test
+    public void fallbackSourceForgetsTheFailureOncePreferredWorksAgain() {
+        boolean[] broken = {true};
+        long[] now = {0};
+        CollectionSource flaky = new FakeCollectionSource("p") {
+            @Override
+            public int count() {
+                if (broken[0]) throw new IllegalStateException("timeout");
+                return super.count();
+            }
+        };
+        FallbackCollectionSource src = new FallbackCollectionSource(flaky, new FakeCollectionSource("a", "b"), () -> now[0]);
+        assertEquals(2, src.count());
+        broken[0] = false;
+        now[0] += FallbackCollectionSource.RETRY_AFTER_MS;
+        assertEquals(1, src.count());
+        assertFalse(src.isUsingFallback());
+        assertEquals(List.of("p"), src.page(0, 10));
     }
 
     @Test

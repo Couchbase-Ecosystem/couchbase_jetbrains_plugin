@@ -25,7 +25,7 @@ import java.util.concurrent.*;
 public class QueryExecutionUiTest extends DialogUiTestCase {
     @Test public void pendingQueryLeavesTheUiResponsiveAndCancelStopsWaiting() throws Exception {
         ActiveCluster previous = ActiveCluster.getInstance();
-        QueryResultToolWindowFactory previousOutput = QueryResultToolWindowFactory.instance;
+        QueryResultToolWindowFactory previousOutput = QueryResultToolWindowFactory.forProject(getProject());
         var output = Mockito.mock(QueryResultToolWindowFactory.class);
         var active = Mockito.mock(ActiveCluster.class);
         var sdk = Mockito.mock(Cluster.class);
@@ -48,7 +48,7 @@ public class QueryExecutionUiTest extends DialogUiTestCase {
         ToolWindow window = Mockito.mock(ToolWindow.class);
         Mockito.doReturn(window).when(manager).getToolWindow("Couchbase Output");
         ServiceContainerUtil.replaceService(getProject(), ToolWindowManager.class, manager, getTestRootDisposable());
-        QueryResultToolWindowFactory.instance = output;
+        QueryResultToolWindowFactory.register(getProject(), output);
         ActiveCluster.setInstance(active);
         JFrame[] frame = {null};
         CustomSqlFileEditor[] editor = {null};
@@ -85,14 +85,14 @@ public class QueryExecutionUiTest extends DialogUiTestCase {
                 if (editor[0] != null) Disposer.dispose(editor[0]);
                 if (frame[0] != null) frame[0].dispose();
             });
-            QueryResultToolWindowFactory.instance = previousOutput;
+            QueryResultToolWindowFactory.register(getProject(), previousOutput);
             ActiveCluster.setInstance(previous);
         }
     }
 
     @Test public void executeRejectsAMutationInAReadOnlyScriptBeforeCallingTheSdk() {
         ActiveCluster previous = ActiveCluster.getInstance();
-        var previousOutput = QueryResultToolWindowFactory.instance;
+        var previousOutput = QueryResultToolWindowFactory.forProject(getProject());
         var output = Mockito.mock(QueryResultToolWindowFactory.class);
         var active = Mockito.mock(ActiveCluster.class);
         var sdk = Mockito.mock(Cluster.class);
@@ -105,7 +105,7 @@ public class QueryExecutionUiTest extends DialogUiTestCase {
         ToolWindowManager manager = Mockito.mock(ToolWindowManager.class, AdditionalAnswers.delegatesTo(real));
         Mockito.doReturn(Mockito.mock(ToolWindow.class)).when(manager).getToolWindow("Couchbase Output");
         ServiceContainerUtil.replaceService(getProject(), ToolWindowManager.class, manager, getTestRootDisposable());
-        QueryResultToolWindowFactory.instance = output; ActiveCluster.setInstance(active);
+        QueryResultToolWindowFactory.register(getProject(), output); ActiveCluster.setInstance(active);
         JFrame[] frame = {null}; CustomSqlFileEditor[] editor = {null};
         try {
             ApplicationManager.getApplication().invokeAndWait(() -> {
@@ -123,7 +123,7 @@ public class QueryExecutionUiTest extends DialogUiTestCase {
                 if (editor[0] != null) Disposer.dispose(editor[0]);
                 if (frame[0] != null) frame[0].dispose();
             });
-            QueryResultToolWindowFactory.instance = previousOutput; ActiveCluster.setInstance(previous);
+            QueryResultToolWindowFactory.register(getProject(), previousOutput); ActiveCluster.setInstance(previous);
         }
     }
 

@@ -2,6 +2,7 @@ package com.couchbase.intellij.database;
 
 import com.couchbase.client.core.env.CertificateAuthenticator;
 import com.couchbase.client.core.env.PasswordAuthenticator;
+import com.couchbase.client.core.env.SecurityConfig;
 import com.couchbase.client.java.ClusterOptions;
 import com.couchbase.intellij.persistence.SavedCluster;
 
@@ -17,6 +18,10 @@ import java.util.*;
 
 /** One authentication configuration for both the SDK and the explorer's REST requests. */
 public final class ConnectionAuthentication {
+    public static final int REST_CONNECT_TIMEOUT_MS = 10_000;
+    /** Same budget as the SDK's default management, query and search timeouts, so a slow call still completes. */
+    public static final int REST_READ_TIMEOUT_MS = 75_000;
+
     private final SavedCluster settings;
     private final String secret;
     private final KeyManagerFactory keyManagers;
@@ -63,7 +68,15 @@ public final class ConnectionAuthentication {
                 kmf.init(store, password);
                 TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 if (settings.getServerCaCertificatePath() == null || settings.getServerCaCertificatePath().isBlank()) {
-                    tmf.init((KeyStore) null);
+                    // Same default trust as the SDK: the JVM's CA certificates plus the Capella CA, so the REST
+                    // views reach a Capella cluster that the SDK already connects to.
+                    KeyStore trust = KeyStore.getInstance(KeyStore.getDefaultType());
+                    trust.load(null, null);
+                    int index = 0;
+                    for (X509Certificate certificate : SecurityConfig.defaultCaCertificates()) {
+                        trust.setCertificateEntry("default-" + index++, certificate);
+                    }
+                    tmf.init(trust);
                 } else {
                     KeyStore trust = KeyStore.getInstance(KeyStore.getDefaultType());
                     trust.load(null, null);
@@ -114,7 +127,7 @@ public final class ConnectionAuthentication {
             connection.setRequestProperty("Authorization", "Basic " + Base64.getEncoder()
                     .encodeToString(credentials.getBytes(StandardCharsets.UTF_8)));
         }
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(30000);
+        connection.setConnectTimeout(REST_CONNECT_TIMEOUT_MS);
+        connection.setReadTimeout(REST_READ_TIMEOUT_MS);
     }
 }

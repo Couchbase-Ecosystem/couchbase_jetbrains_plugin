@@ -97,8 +97,7 @@ public class CouchbaseWindowContent extends JPanel {
                     if (clickedPath != null) {
                         DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
                         if (clickedNode.getUserObject() instanceof LoadMoreCollectionsNodeDescriptor) {
-                            LoadMoreCollectionsNodeDescriptor loadMore = (LoadMoreCollectionsNodeDescriptor) clickedNode.getUserObject();
-                            DataLoader.listCollections((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
+                            DataLoader.loadMoreCollections((DefaultMutableTreeNode) clickedNode.getParent(), tree);
                         } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
                             LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
                             DataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());

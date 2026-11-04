@@ -58,7 +58,9 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     private static final String docsTooltip = "Count of documents returned";
     private static final String docsSizeTooltip = "Total size of documents returned";
     private static final String[] QUERY_LIMITS = {"200", "500", "1000", "No Limit"};
-    public static QueryResultToolWindowFactory instance;
+    /** The factory that built a project's Couchbase Output tool window; each project window has its own. */
+    private static final com.intellij.openapi.util.Key<QueryResultToolWindowFactory> OUTPUT_WINDOW =
+            com.intellij.openapi.util.Key.create("couchbase.output.window");
     public static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static String latestExplain = null;
     private final String[] headers = {"RTT", "ELAPSED", "EXECUTION", "MUTATIONS", "DOCS", "SIZE"};
@@ -90,7 +92,16 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
 
     public QueryResultToolWindowFactory() {
-        instance = this;
+    }
+
+    /** The output window of {@code project}, or null until its tool window content has been created. */
+    public static QueryResultToolWindowFactory forProject(@NotNull Project project) {
+        return project.getUserData(OUTPUT_WINDOW);
+    }
+
+    /** Makes {@code window} the output window of {@code project}; null forgets it. Tests inject a stand-in here. */
+    public static void register(@NotNull Project project, QueryResultToolWindowFactory window) {
+        project.putUserData(OUTPUT_WINDOW, window);
     }
 
     @NotNull
@@ -108,6 +119,7 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         this.project = project;
+        register(project, this);
         JBTabs tabs = JBTabsFactory.createTabs(project);
         model = new JsonTableModel();
         JBTable table = new JBTable(model);

@@ -113,7 +113,8 @@ public class ConnectionAuthenticationTest {
         try {
             var connection = (HttpURLConnection) URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/").toURL().openConnection();
             ConnectionAuthentication.load(settings, "secret").configureRestConnection(connection);
-            assertEquals(10000, connection.getConnectTimeout());
+            assertEquals(ConnectionAuthentication.REST_CONNECT_TIMEOUT_MS, connection.getConnectTimeout());
+            assertEquals("slow management calls get the SDK's 75 s budget", 75_000, connection.getReadTimeout());
             try (var in = connection.getInputStream()) {
                 assertEquals("Basic " + Base64.getEncoder().encodeToString("user:secret".getBytes(StandardCharsets.UTF_8)), new String(in.readAllBytes(), StandardCharsets.UTF_8));
             } finally { connection.disconnect(); }

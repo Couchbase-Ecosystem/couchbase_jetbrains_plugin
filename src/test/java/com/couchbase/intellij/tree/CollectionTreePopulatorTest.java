@@ -58,14 +58,55 @@ public class CollectionTreePopulatorTest extends LightPlatformCodeInsightFixture
         assertFalse(lastChild() instanceof LoadMoreNodeDescriptor);
     }
 
+    private CollectionListing loadMore(FakeCollectionSource src) {
+        assertTrue("a Load More row must be shown first", lastChild() instanceof LoadMoreCollectionsNodeDescriptor);
+        return CollectionTreePopulator.loadMore(node, desc, src, favorites, "conn", new HashMap<>(), n -> null);
+    }
+
     @Test
     public void clickingLoadMoreTwiceWalksThroughAllPages() {
         FakeCollectionSource src = FakeCollectionSource.numbered(25);
         populate(src, 10);
-        populate(src, ((LoadMoreCollectionsNodeDescriptor) lastChild()).getNewOffset());
+        loadMore(src);
         assertEquals(21, node.getChildCount());
-        populate(src, ((LoadMoreCollectionsNodeDescriptor) lastChild()).getNewOffset());
+        assertEquals(20, desc.getPagedLoaded());
+        loadMore(src);
         assertEquals(25, node.getChildCount());
+        assertFalse(lastChild() instanceof LoadMoreNodeDescriptor);
+    }
+
+    @Test
+    public void loadMoreFetchesOnlyTheNextPageNotTheOnesAlreadyShown() {
+        FakeCollectionSource src = FakeCollectionSource.numbered(35);
+        populate(src, 10);
+        loadMore(src);
+        loadMore(src);
+        assertEquals(List.of("0:10", "10:10", "20:10"), src.pageRequests);
+        assertEquals(List.of("col00", "col29"), List.of(childNames().get(0), childNames().get(29)));
+        assertEquals(31, node.getChildCount());
+    }
+
+    @Test
+    public void loadMoreKeepsFavoritesAndSearchSelectionsOnTopWithoutDuplicates() {
+        favorites.setFavorite("conn", "b", "s", "col12", true);
+        desc.addSearchAdded("col18");
+        FakeCollectionSource src = FakeCollectionSource.numbered(30);
+        populate(src, 10);
+        loadMore(src);
+        assertEquals(List.of("col12", "col18", "col00"), childNames().subList(0, 3));
+        assertEquals(21, node.getChildCount());
+        assertEquals(childNames().size(), new HashSet<>(childNames()).size());
+    }
+
+    @Test
+    public void refreshingAfterLoadMoreReReadsTheWholeLoadedPrefix() {
+        FakeCollectionSource src = FakeCollectionSource.numbered(30);
+        populate(src, 10);
+        loadMore(src);
+        src.pageRequests.clear();
+        populate(src, Math.max(desc.getPagedLoaded(), CollectionListing.PAGE_SIZE));
+        assertEquals("a refresh (create, delete, favorite) re-reads what is shown", List.of("0:20"), src.pageRequests);
+        assertEquals(21, node.getChildCount());
     }
 
     @Test

@@ -73,6 +73,26 @@ public class CouchbaseDocumentSaveCoordinatorTest extends BasePlatformTestCase {
         assertTrue(file.getUserData(CouchbaseDocumentSaveCoordinator.LAST_ERROR).contains("boom"));
     }
 
+    public void testAutosaveBacksOffAfterAFailedSaveButAnExplicitSaveRetriesAtOnce() {
+        var collection = sdk.bucket("b").scope("s").collection("c");
+        when(collection.get("id")).thenThrow(new RuntimeException("connection refused"));
+        Document document = EditorFactory.getInstance().createDocument("{\"a\":1}");
+
+        assertFalse(CouchbaseDocumentSaveCoordinator.maySave(document, file, false));
+        waitForSaveToFinish(document);
+        assertTrue(file.getUserData(CouchbaseDocumentSaveCoordinator.LAST_ERROR).contains("connection refused"));
+        verify(collection, times(1)).get("id");
+
+        assertFalse(CouchbaseDocumentSaveCoordinator.maySave(document, file, false));
+        assertFalse("autosave must not hit the server again right away", CouchbaseDocumentSaveCoordinator.isSaving(document));
+        verify(collection, times(1)).get("id");
+
+        assertFalse(CouchbaseDocumentSaveCoordinator.maySave(document, file, true));
+        assertTrue("an explicit save always tries", CouchbaseDocumentSaveCoordinator.isSaving(document));
+        waitForSaveToFinish(document);
+        verify(collection, times(2)).get("id");
+    }
+
     private static void waitForSaveToFinish(Document document) {
         long deadline = System.currentTimeMillis() + 10_000;
         while (CouchbaseDocumentSaveCoordinator.isSaving(document)) {

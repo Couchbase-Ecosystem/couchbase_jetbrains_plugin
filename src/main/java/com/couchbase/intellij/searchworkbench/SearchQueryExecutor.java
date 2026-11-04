@@ -8,12 +8,8 @@ import com.couchbase.intellij.workbench.Log;
 import com.couchbase.intellij.workbench.QueryResultToolWindowFactory;
 import com.couchbase.intellij.workbench.QueryResultUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryErrorUtil;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,25 +128,7 @@ public class SearchQueryExecutor {
     }
 
 
-    private static ToolWindow toolWindow;
-    private static QueryResultToolWindowFactory resultWindow;
-
     public static QueryResultToolWindowFactory getOutputWindow(Project project) {
-        if (toolWindow == null) {
-            ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
-            toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
-        }
-
-        if (toolWindow != null) {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                toolWindow.show();
-            }, ModalityState.any());
-        }
-
-        if (resultWindow == null) {
-            resultWindow = QueryResultToolWindowFactory.instance;
-        }
-
-        return resultWindow;
+        return QueryResultUtil.getOutputWindow(project);
     }
 }

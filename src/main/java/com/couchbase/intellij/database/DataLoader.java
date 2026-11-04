@@ -114,10 +114,35 @@ public class DataLoader {
 
     /**
      * Lists the collections of the scope, {@code pagedToLoad} alphabetical entries at a time (favorites and
-     * collections pulled in by search are shown on top of those).
+     * collections pulled in by search are shown on top of those). The prefix is read afresh, so this is the
+     * call to make after a collection was created or deleted or a favorite changed.
      */
     public static void listCollections(DefaultMutableTreeNode parentNode, Tree tree, int pagedToLoad) {
         if (deferToUi(() -> listCollections(parentNode, tree, pagedToLoad))) return;
+        loadCollections(parentNode, tree, (source, favorites, searchAdded, loaded) ->
+                CollectionListing.build(source, favorites, searchAdded, pagedToLoad),
+                () -> listCollections(parentNode, tree, pagedToLoad));
+    }
+
+    /**
+     * Appends the next page of collections to the ones the node already shows. Only that page is fetched,
+     * so browsing deep into a large scope does not re-read everything loaded before.
+     */
+    public static void loadMoreCollections(DefaultMutableTreeNode parentNode, Tree tree) {
+        if (deferToUi(() -> loadMoreCollections(parentNode, tree))) return;
+        loadCollections(parentNode, tree, (source, favorites, searchAdded, loaded) ->
+                CollectionListing.extend(source, favorites, searchAdded, loaded, CollectionListing.PAGE_SIZE),
+                () -> loadMoreCollections(parentNode, tree));
+    }
+
+    @FunctionalInterface
+    private interface ListingBuilder {
+        CollectionListing build(CollectionSource source, List<String> favorites, List<String> searchAdded,
+                                List<String> loaded);
+    }
+
+    private static void loadCollections(DefaultMutableTreeNode parentNode, Tree tree, ListingBuilder builder,
+                                        Runnable retry) {
         if (!(parentNode.getUserObject() instanceof CollectionsNodeDescriptor descriptor))
             throw new IllegalStateException("Expected a collections node");
         long generation = descriptor.beginLoad();
@@ -126,9 +151,10 @@ public class DataLoader {
         FavoriteCollections favorites = FavoriteCollectionsStorage.getInstance().getValue();
         List<String> favoriteNames = List.copyOf(favorites.getFavorites(connectionId, descriptor.getBucket(), descriptor.getScope()));
         List<String> searchAdded = List.copyOf(descriptor.getSearchAdded());
+        List<String> loaded = descriptor.getPagedNames();
         CollectionSource source = CollectionSources.forScope(descriptor.getBucket(), descriptor.getScope());
         TreeLoadTask.load(parentNode, tree, active, "collections", () -> descriptor.isCurrentLoad(generation), () -> {
-            CollectionListing listing = CollectionListing.build(source, favoriteNames, searchAdded, pagedToLoad);
+            CollectionListing listing = builder.build(source, favoriteNames, searchAdded, loaded);
             Map<String, Integer> counts;
             try { counts = CouchbaseRestAPI.getCollectionCounts(descriptor.getBucket(), descriptor.getScope()); }
             catch (Exception unavailable) { Log.debug("Collection counts unavailable", unavailable); counts = Map.of(); }
@@ -138,7 +164,7 @@ public class DataLoader {
                     name -> QueryFilterUtil.getQueryFilter(descriptor.getBucket(), descriptor.getScope(), name));
             if (parentNode.getParent() instanceof DefaultMutableTreeNode parent && parent.getUserObject() instanceof ScopeNodeDescriptor scope)
                 scope.setCounter(formatCount(page.listing().getTotal()));
-        }, () -> listCollections(parentNode, tree, pagedToLoad));
+        }, retry);
     }
 
     private record CollectionPage(CollectionListing listing, Map<String, Integer> counts) {}

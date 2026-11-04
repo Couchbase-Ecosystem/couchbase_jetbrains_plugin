@@ -21,6 +21,9 @@ public final class CouchbaseDocumentSaveCoordinator {
     private static final Key<Save> REPLAYING = Key.create("couchbase.replaying.document.save");
     private static final com.intellij.openapi.diagnostic.Logger LOG = com.intellij.openapi.diagnostic.Logger.getInstance(CouchbaseDocumentSaveCoordinator.class);
     public static final Key<String> LAST_ERROR = Key.create("couchbase.document.save.error");
+    /** Epoch millis before which autosave must not retry a failed save; explicit saves ignore it. */
+    private static final Key<Long> RETRY_AFTER = Key.create("couchbase.document.save.retry.after");
+    public static final long AUTOSAVE_RETRY_DELAY_MS = 30_000;
     private CouchbaseDocumentSaveCoordinator() {}
 
     public static boolean maySave(Document document, CouchbaseDocumentVirtualFile file, boolean explicit) {
@@ -30,6 +33,10 @@ public final class CouchbaseDocumentSaveCoordinator {
             pending.again |= document.getModificationStamp() != pending.stamp;
             return false;
         }
+        // A failed save leaves the document dirty, so autosave would otherwise hit an unreachable
+        // server again on every tick. Explicit saves (Ctrl+S) always try.
+        Long retryAfter = file.getUserData(RETRY_AFTER);
+        if (!explicit && retryAfter != null && System.currentTimeMillis() < retryAfter) return false;
         start(document, file, explicit);
         return false;
     }
@@ -40,6 +47,7 @@ public final class CouchbaseDocumentSaveCoordinator {
         Save save = new Save(document, file, active, explicit);
         document.putUserData(PENDING, save);
         file.putUserData(LAST_ERROR, null);
+        file.putUserData(RETRY_AFTER, null);
         ApplicationManager.getApplication().executeOnPooledThread(() -> prepare(save));
     }
 
@@ -166,6 +174,7 @@ public final class CouchbaseDocumentSaveCoordinator {
                     ? "The document changed again while saving. Your edits are kept; save again to review the conflict."
                     : "Could not save the document. Your edits are kept. " + Objects.toString(failure.getMessage(), "Try again.");
             save.file.putUserData(LAST_ERROR, message);
+            save.file.putUserData(RETRY_AFTER, System.currentTimeMillis() + AUTOSAVE_RETRY_DELAY_MS);
             finish(save);
             // Autosave should not interrupt typing with a modal error dialog.
             if (save.explicit && !save.file.getProject().isDisposed()) {

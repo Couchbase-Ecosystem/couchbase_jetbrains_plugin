@@ -19,10 +19,8 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
     /** Search selections for the current expansion; kept during paging and favorite changes. */
     private final List<String> searchAdded = new ArrayList<>();
 
-    /** How many collections of the alphabetical sequence are currently loaded. */
-    @Setter
-    @Getter
-    private int pagedLoaded;
+    /** The alphabetical sequence currently loaded, in source order; "Load More" continues after it. */
+    private List<String> pagedNames = List.of();
     @Getter private int total = -1;
     @Getter private int shown;
 
@@ -44,6 +42,19 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
         return searchAdded;
     }
 
+    public List<String> getPagedNames() {
+        return pagedNames;
+    }
+
+    public void setPagedNames(List<String> pagedNames) {
+        this.pagedNames = List.copyOf(pagedNames);
+    }
+
+    /** How many collections of the alphabetical sequence are currently loaded. */
+    public int getPagedLoaded() {
+        return pagedNames.size();
+    }
+
     public void addSearchAdded(String collection) {
         if (!searchAdded.contains(collection)) {
             searchAdded.add(collection);
@@ -53,7 +64,7 @@ public class CollectionsNodeDescriptor extends CounterNodeDescriptor {
     /** Invalidates any background load and forgets temporary selections when this scope is closed. */
     public void resetForExpansion() {
         searchAdded.clear();
-        pagedLoaded = 0;
+        pagedNames = List.of();
         total = -1;
         shown = 0;
         setCounter("");

@@ -3,7 +3,14 @@ package com.couchbase.intellij.database.collections;
 import java.util.List;
 import java.util.Locale;
 
-/** A picker-local snapshot, loaded on the first nonempty search and reused as the user types. */
+/**
+ * A picker-local snapshot, loaded on the first nonempty search and reused as the user types.
+ * <p>
+ * Trade-off: the snapshot is every collection name of the scope, fetched in one request. On a scope with
+ * thousands of collections the first keystroke therefore waits for that request, but every later keystroke
+ * filters locally and the server is not queried once per character. The snapshot only lives as long as the
+ * picker, so a collection created meanwhile shows up the next time the picker is opened.
+ */
 public final class CachedCollectionSearch {
     private final CollectionSource source;
     private List<String> names;

@@ -9,7 +9,8 @@ import java.util.stream.Collectors;
 
 /**
  * Works on every cluster (including KV-only ones) but always has to download the whole scope manifest, so it
- * is only used when the query service cannot page for us. The manifest is fetched once per instance.
+ * is only used when the query service cannot page for us. The manifest is fetched once per instance, even when
+ * several worker threads ask for it at the same time.
  */
 public class ManifestCollectionSource implements CollectionSource {
 
@@ -20,7 +21,7 @@ public class ManifestCollectionSource implements CollectionSource {
         this.scopeSupplier = scopeSupplier;
     }
 
-    private List<String> names() {
+    private synchronized List<String> names() {
         if (names == null) {
             names = scopeSupplier.get().collections().stream().map(CollectionSpec::name)
                     .sorted(CollectionListing.NAME_ORDER).collect(Collectors.toList());

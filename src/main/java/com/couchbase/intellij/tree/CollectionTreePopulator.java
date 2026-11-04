@@ -31,6 +31,19 @@ public final class CollectionTreePopulator {
         return listing;
     }
 
+    /** Appends the next page to what the node already shows; only that page is fetched from the source. */
+    public static CollectionListing loadMore(DefaultMutableTreeNode parent, CollectionsNodeDescriptor desc,
+                                             CollectionSource source, FavoriteCollections favorites,
+                                             String connectionId, Map<String, Integer> counts,
+                                             Function<String, QueryFilter> filters) {
+        CollectionListing listing = CollectionListing.extend(source,
+                favorites.getFavorites(connectionId, desc.getBucket(), desc.getScope()), desc.getSearchAdded(),
+                desc.getPagedNames(), CollectionListing.PAGE_SIZE);
+
+        apply(parent, desc, listing, favorites, connectionId, counts, filters);
+        return listing;
+    }
+
     /** Applies a listing already fetched in the background. Must be called on the EDT for a live tree. */
     public static void apply(DefaultMutableTreeNode parent, CollectionsNodeDescriptor desc,
                              CollectionListing listing, FavoriteCollections favorites,
@@ -40,7 +53,7 @@ public final class CollectionTreePopulator {
         String scope = desc.getScope();
 
         parent.removeAllChildren();
-        desc.setPagedLoaded(listing.getPagedLoaded());
+        desc.setPagedNames(listing.getPagedNames());
         desc.setListingCounts(listing.getNames().size(), listing.getTotal());
 
         if (listing.getNames().isEmpty()) {

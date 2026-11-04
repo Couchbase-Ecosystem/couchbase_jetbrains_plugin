@@ -9,6 +9,8 @@ public class FakeCollectionSource implements CollectionSource {
     public final List<String> names;
     public int pageCalls;
     public int searchCalls;
+    /** Every page request as "offset:limit", so tests can check how much travels over the wire. */
+    public final List<String> pageRequests = new ArrayList<>();
 
     public FakeCollectionSource(String... names) {
         this.names = Arrays.stream(names).sorted(CollectionListing.NAME_ORDER).collect(Collectors.toList());
@@ -30,6 +32,7 @@ public class FakeCollectionSource implements CollectionSource {
     @Override
     public List<String> page(int offset, int limit) {
         pageCalls++;
+        pageRequests.add(offset + ":" + limit);
         if (offset >= names.size()) {
             return new ArrayList<>();
         }

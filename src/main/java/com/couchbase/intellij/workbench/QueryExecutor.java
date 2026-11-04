@@ -34,9 +34,6 @@ import java.util.stream.Collectors;
 
 public class QueryExecutor {
 
-
-    private static boolean isQueryScript = false;
-
     private static void showReadOnlyError(Project project) {
         CouchbaseQueryError error = new CouchbaseQueryError();
         error.setMessage("This connection is read-only. Statements that modify data, indexes, or permissions cannot run.");
@@ -324,7 +321,6 @@ public class QueryExecutor {
                     "-", "-", "-"), null, CouchbaseQueryErrorUtil.parseQueryError(e), null, false);
         } catch (Exception e) {
             Log.error(e);
-            e.printStackTrace();
         }
 
         //if historyIndex is negative, doesn't add it to the history
@@ -393,14 +389,6 @@ public class QueryExecutor {
             hist.remove(0);
             hist.add(query.trim());
         }
-    }
-
-    public static boolean getIsQueryScript() {
-        return isQueryScript;
-    }
-
-    public static void setIsQueryScript(boolean isQueryScript) {
-        QueryExecutor.isQueryScript = isQueryScript;
     }
 
     public enum QueryType {

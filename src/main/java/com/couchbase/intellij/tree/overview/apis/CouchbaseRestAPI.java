@@ -39,17 +39,8 @@ public class CouchbaseRestAPI {
     }
 
     public static List<String> listKVDocuments(String bucket, String scope, String collection, int skip, int limit, String start, String end) throws Exception {
-        String filters = "";
-        if(start != null) {
-            filters += "&startkey=\""+start+"\"";
-        }
-
-        if(end != null) {
-            filters+="&endkey=\""+end+"\"";
-        }
-
-        String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/"
-                        + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs?skip=" + skip + "&limit=" + limit + filters+"&include_doc=false",
+        String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091")
+                        + kvDocumentsPath(bucket, scope, collection, skip, limit, start, end),
                 ActiveCluster.getInstance().getClusterURL());
 
         Gson gson = new Gson();
@@ -58,6 +49,29 @@ public class CouchbaseRestAPI {
         return response.getRows().stream()
                 .map(KVRow::getId)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * The REST path of a key-range document listing. The server expects the keys as JSON strings, so the quotes
+     * (and anything else the user typed) are percent-encoded: the URL is later parsed with {@code URI}, which
+     * rejects a raw {@code "}.
+     */
+    static String kvDocumentsPath(String bucket, String scope, String collection, int skip, int limit, String start, String end) {
+        String filters = "";
+        if (start != null) {
+            filters += "&startkey=" + jsonStringParam(start);
+        }
+        if (end != null) {
+            filters += "&endkey=" + jsonStringParam(end);
+        }
+        return "/pools/default/buckets/" + bucket + "/scopes/" + scope + "/collections/" + collection
+                + "/docs?skip=" + skip + "&limit=" + limit + filters + "&include_doc=false";
+    }
+
+    private static final Gson KEY_JSON = new GsonBuilder().disableHtmlEscaping().create();
+
+    private static String jsonStringParam(String value) {
+        return java.net.URLEncoder.encode(KEY_JSON.toJson(value), java.nio.charset.StandardCharsets.UTF_8);
     }
 
     public static Map<String, Integer> getCollectionCounts(String bucket, String scope) throws Exception {

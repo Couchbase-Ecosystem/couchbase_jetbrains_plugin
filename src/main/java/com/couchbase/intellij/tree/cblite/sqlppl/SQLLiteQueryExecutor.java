@@ -3,6 +3,7 @@ package com.couchbase.intellij.tree.cblite.sqlppl;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.intellij.tree.cblite.ActiveCBLDatabase;
 import com.couchbase.intellij.workbench.QueryResultToolWindowFactory;
+import com.couchbase.intellij.workbench.QueryResultUtil;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryError;
 import com.couchbase.intellij.workbench.error.CouchbaseQueryResultError;
 import com.couchbase.lite.Query;
@@ -11,17 +12,12 @@ import com.couchbase.lite.ResultSet;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class SQLLiteQueryExecutor {
-
-    private static ToolWindow toolWindow;
-    private static QueryResultToolWindowFactory resultWindow;
 
     public static void runQuery(String query, int historyIndex, Project project) {
 
@@ -65,15 +61,6 @@ public class SQLLiteQueryExecutor {
 
 
     private static QueryResultToolWindowFactory getOutputWindow(Project project) {
-        if (toolWindow == null) {
-            ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
-            toolWindow = toolWindowManager.getToolWindow("Couchbase Output");
-        }
-        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> toolWindow.show()));
-
-        if (resultWindow == null) {
-            resultWindow = QueryResultToolWindowFactory.instance;
-        }
-        return resultWindow;
+        return QueryResultUtil.getOutputWindow(project);
     }
 }
