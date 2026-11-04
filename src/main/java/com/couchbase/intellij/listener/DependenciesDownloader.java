@@ -6,6 +6,7 @@ import com.couchbase.intellij.tools.ToolStatus;
 import com.couchbase.intellij.workbench.Log;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.FileOutputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -13,15 +14,18 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static com.couchbase.intellij.listener.DependenciesUtil.*;
 import static utils.FileUtils.*;
+import com.intellij.util.io.Decompressor;
 import static utils.OSUtil.*;
 
 //TODO: This code is a little bit messy and definitely deserves some love in the future
 public class DependenciesDownloader {
+    private static final com.intellij.openapi.diagnostic.Logger LOG = com.intellij.openapi.diagnostic.Logger.getInstance(DependenciesDownloader.class);
 
     public static final String TOOL_SHELL = "shell";
     public static final String TOOL_IMPORT_EXPORT = "import_export";
@@ -221,7 +225,7 @@ public class DependenciesDownloader {
 
     private void setToolActive(ToolStatus status, String path, ToolSpec spec) {
         for (Map.Entry<CBTools.Type, String> entry : spec.getToolsMap().entrySet()) {
-            CBTools.getTool(entry.getKey()).setPath(path + File.separator + entry.getValue());
+            CBTools.getTool(entry.getKey()).setPath(path == null ? null : path + File.separator + entry.getValue());
             CBTools.getTool(entry.getKey()).setStatus(status);
         }
     }
@@ -238,22 +242,37 @@ public class DependenciesDownloader {
             try {
                 createFolder(targetDir);
                 String fileName = spec.getUrl().substring(spec.getUrl().lastIndexOf("/") + 1);
-                String localFilePath = targetDir + File.separator + fileName;
+                File archive = new File(targetDir, fileName);
                 URL website = java.net.URI.create(spec.getUrl()).toURL();
-                try (ReadableByteChannel rbc = Channels.newChannel(website.openStream()); FileOutputStream fos = new FileOutputStream(localFilePath)) {
+                try (ReadableByteChannel rbc = Channels.newChannel(website.openStream()); FileOutputStream fos = new FileOutputStream(archive)) {
                     fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
                 }
 
-                unzipFile(localFilePath, targetDir);
+                extractArchive(archive, new File(targetDir));
+                Files.deleteIfExists(archive.toPath());
                 makeFilesExecutable(new File(targetDir));
                 setToolActive(ToolStatus.AVAILABLE, targetDir, spec);
                 DependenciesUtil.setPropertyValue(configFolder, key, value);
             } catch (Exception e) {
-                setToolActive(ToolStatus.NOT_AVAILABLE, null, null);
+                // Leave a clear "not available" state rather than a download that never ends.
+                setToolActive(ToolStatus.NOT_AVAILABLE, null, spec);
+                LOG.warn("Could not install " + spec.getUrl() + " into " + targetDir, e);
                 Log.error(e);
-                e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Unpacks a downloaded tool archive. Linux builds of cbimport/cbexport and cbsh are tarballs while the other
+     * platforms ship zips, so both are handled here, without relying on an external unzip binary.
+     */
+    public static void extractArchive(File archive, File targetDir) throws IOException {
+        String name = archive.getName().toLowerCase(Locale.ROOT);
+        if (name.endsWith(".tar.gz") || name.endsWith(".tgz") || name.endsWith(".tar")) {
+            new Decompressor.Tar(archive).extract(targetDir);
+        } else {
+            new Decompressor.Zip(archive).withZipExtensions().extract(targetDir);
+        }
     }
 
     public boolean isInstalled(String pluginPath, ToolSpec spec, CBTools.Type type) {

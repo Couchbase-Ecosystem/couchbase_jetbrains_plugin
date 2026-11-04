@@ -64,7 +64,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.14.4")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.14.4")
 
-    testImplementation("org.testcontainers:couchbase:1.21.4")
+    testImplementation("org.testcontainers:couchbase:1.21.4") {
+        // The IDE bundles commons-compress 1.27 (lib-client.jar) and its Decompressor links against it; the older
+        // copy Testcontainers pulls in would shadow it on the test classpath and break tar extraction in tests.
+        exclude(group = "org.apache.commons", module = "commons-compress")
+    }
     testImplementation("junit:junit:4.13.2")
 
     add(uiTestSourceSet.implementationConfigurationName, "org.assertj:assertj-swing:3.17.1")
