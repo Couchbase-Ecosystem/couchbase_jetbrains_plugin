@@ -241,10 +241,11 @@ public class CouchbaseWindowContent extends JPanel {
                     if (descriptor.isFavorite()) {
                         JLabel favorite = new JLabel(IconLoader.getIcon("/assets/icons/collection-favorite.svg", CouchbaseWindowContent.class));
                         favorite.setName("collectionFavoriteIndicator");
-                        favorite.setToolTipText("Favorite collection");
-                        favorite.getAccessibleContext().setAccessibleName("Favorite collection");
+                        favorite.getAccessibleContext().setAccessibleName(FAVORITE_TOOLTIP);
                         favorite.setBorder(JBUI.Borders.empty(0, 4));
                         rendered.add(favorite);
+                        // The tree asks the rendered component for its tooltip, never its children.
+                        rendered.setToolTipText(FAVORITE_TOOLTIP);
                     }
                     rendered.setOpaque(false);
                     return rendered;
@@ -271,16 +272,22 @@ public class CouchbaseWindowContent extends JPanel {
         }
     }
 
+    public static final String FAVORITE_TOOLTIP = "Favorite collection";
+    public static final String READ_ONLY_TOOLTIP = "Cluster is on read-only mode";
+
     static class IconPanel extends JPanel {
 
         public IconPanel(Icon icon1, Icon icon2, JLabel text) {
             setLayout(new FlowLayout(FlowLayout.LEFT, 0, 2));
             add(new JLabel(icon1));
             JLabel lbl2 = new JLabel(icon2);
-            lbl2.setToolTipText("Cluster is on read-only mode");
+            lbl2.setName("connectionReadOnlyIndicator");
             lbl2.setBorder(JBUI.Borders.empty(0, 3));
             add(lbl2);
             add(text);
+            // Set on the panel: JTree.getToolTipText asks the rendered component itself, so a tooltip on the
+            // inner label would never show.
+            setToolTipText(READ_ONLY_TOOLTIP);
         }
     }
 

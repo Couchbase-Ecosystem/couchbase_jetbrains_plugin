@@ -263,6 +263,9 @@ public class SQLPPTemplates extends CompletionProvider<CompletionParameters> {
         template.addVariable("attribute", new TextExpression(""), true);
         template.addTextSegment(" = ");
         template.addVariable("value", new TextExpression(""), true);
+        // Without a WHERE clause the statement would update every document in the collection.
+        template.addTextSegment(" WHERE ");
+        template.addVariable("condition", new TextExpression(""), true);
         template.addTextSegment(";");
         return template;
     }

@@ -120,28 +120,34 @@ public class SearchFileEditor implements FileEditor, TextEditor {
                         }
                     };
 
-                    executeAction.registerCustomShortcutSet(CommonShortcuts.getCtrlEnter(), queryEditor.getComponent());
                     executeGroup.replaceAction(this, cancelAction);
                     isExecutingQuery = true;
 
-                    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running SQL++ query", true) {
+                    // Read the selection on the EDT; the request itself must wait on a worker so the IDE stays
+                    // responsive and Cancel can be clicked.
+                    String bucket = bucketCombo.getSelectedItem() == null ? null : bucketCombo.getSelectedItem().toString();
+                    String index = idxCombo.getSelectedItem() == null ? null : idxCombo.getSelectedItem().toString();
+                    String text = queryEditor.getEditor().getDocument().getText();
+                    BlockingQueue<Boolean> channel = queryExecutionChannel;
+                    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running search query", true) {
                         @Override
                         public void run(@NotNull ProgressIndicator indicator) {
-
-                            ApplicationManager.getApplication().invokeLater(() -> {
-                                boolean query = SearchQueryExecutor.executeQuery(queryExecutionChannel,
-                                        bucketCombo.getSelectedItem() == null ? null : bucketCombo.getSelectedItem().toString(),
-                                        idxCombo.getSelectedItem() == null ? null : idxCombo.getSelectedItem().toString(),
-                                        queryEditor.getEditor().getDocument().getText(),
-                                        project);
-                                executeGroup.replaceAction(cancelAction, executeAction);
-                                isExecutingQuery = false;
-                            });
+                            try {
+                                SearchQueryExecutor.executeQuery(channel, bucket, index, text, project);
+                            } finally {
+                                ApplicationManager.getApplication().invokeLater(() -> {
+                                    executeGroup.replaceAction(cancelAction, executeAction);
+                                    isExecutingQuery = false;
+                                });
+                            }
                         }
                     });
                 }
             }
         };
+        // Registered once, up front: it used to be registered inside actionPerformed, so Ctrl+Enter only worked
+        // after the first click on Execute.
+        executeAction.registerCustomShortcutSet(CommonShortcuts.getCtrlEnter(), queryEditor.getComponent());
 
         executeGroup.add(executeAction);
 
