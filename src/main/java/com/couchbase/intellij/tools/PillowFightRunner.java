@@ -207,7 +207,7 @@ public class PillowFightRunner {
                 dispose();
                 pillowFightDialog.bucketComboBox.setSelectedItem(selectedBucket);
                 pillowFightDialog.scopeComboBox.setSelectedItem(selectedScope);
-                pillowFightDialog.collectionComboBox.setSelectedItem(selectedCollection);
+                pillowFightDialog.collectionComboBox.setSelectedCollection(selectedCollection);
                 pillowFightDialog.show();
             });
 

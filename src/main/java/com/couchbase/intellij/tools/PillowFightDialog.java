@@ -1,9 +1,9 @@
 package com.couchbase.intellij.tools;
 
-import com.couchbase.client.java.manager.collection.CollectionSpec;
 import com.couchbase.client.java.manager.collection.ScopeSpec;
 import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
+import com.couchbase.intellij.tree.CollectionPicker;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
@@ -29,7 +29,6 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PillowFightDialog extends DialogWrapper {
@@ -40,7 +39,7 @@ public class PillowFightDialog extends DialogWrapper {
     private static Balloon balloonHint;
     protected final ComboBox<String> bucketComboBox;
     protected final ComboBox<String> scopeComboBox;
-    protected final ComboBox<String> collectionComboBox;
+    protected final CollectionPicker collectionComboBox;
     private final ComboBox<String> durabilityComboBox;
     private final JSpinner persistToSpinner;
     private final JCheckBox persistToCheckbox;
@@ -87,7 +86,11 @@ public class PillowFightDialog extends DialogWrapper {
 
         bucketComboBox = new ComboBox<>();
         scopeComboBox = new ComboBox<>();
-        collectionComboBox = new ComboBox<>();
+        collectionComboBox = CollectionPicker.forActiveCluster(project);
+        collectionComboBox.setErrorHandler(e -> {
+            Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
+            Log.error(e);
+        });
         try {
             Set<String> bucketNamesSet = ActiveCluster.getInstance().get().buckets().getAllBuckets().keySet();
             String[] bucketNamesArray = bucketNamesSet.toArray(new String[0]);
@@ -240,7 +243,7 @@ public class PillowFightDialog extends DialogWrapper {
                 Messages.showErrorDialog("The selectd bucket is empty. Selecting default scope and collection",
                         "Empty Bucket");
                 scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedCollection(DEFAULT_TAG);
 
             }
             handleScopeComboBoxChange();
@@ -259,29 +262,22 @@ public class PillowFightDialog extends DialogWrapper {
 
             if (selectedScope == null || selectedScope.isEmpty()) {
                 scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                collectionComboBox.setSelectedItem(DEFAULT_TAG);
+                collectionComboBox.setSelectedCollection(DEFAULT_TAG);
                 return;
             }
 
-            Consumer<String> refreshCollectionCombo = scope -> {
-                String[] collectionNamesArray =
-                        ActiveCluster.getInstance().get().bucket(selectedBucket).collections().getAllScopes().stream().filter(s -> s.name().equals(scope)).flatMap(s -> s.collections().stream()).map(CollectionSpec::name).distinct().toArray(String[]::new);
-                collectionComboBox.removeAllItems();
-                for (String s : collectionNamesArray) {
-                    collectionComboBox.addItem(s);
+            // Favorites plus the first page only; other collections are reached through the picker's search
+            // button. The names are fetched in the background so the dialog stays responsive on large scopes.
+            collectionComboBox.setScope(selectedBucket, selectedScope, total -> {
+                if (total == 0) {
+                    Messages.showErrorDialog("The selected scope is empty. Selecting default scope and collection",
+                            "Empty Scope");
+                    if (!DEFAULT_TAG.equals(selectedScope)) {
+                        scopeComboBox.setSelectedItem(DEFAULT_TAG);
+                    }
+                    collectionComboBox.setSelectedCollection(DEFAULT_TAG);
                 }
-            };
-
-            refreshCollectionCombo.accept(selectedScope);
-
-            if (collectionComboBox.getItemCount() > 0) {
-                collectionComboBox.setSelectedIndex(0);
-            } else {
-                Messages.showErrorDialog("The selectd scope is empty. Selecting default scope and collection", "Empty"
-                        + " Bucket");
-                scopeComboBox.setSelectedItem(DEFAULT_TAG);
-                collectionComboBox.setSelectedItem(DEFAULT_TAG);
-            }
+            });
         } catch (Exception e) {
             Messages.showErrorDialog(NETWORK_CONNECTIVITY_ERROR_MESSAGE, COUCHBASE_PLUGIN_ERROR_MESSAGE);
             Log.error(e);
@@ -693,7 +689,7 @@ public class PillowFightDialog extends DialogWrapper {
             try {
                 PillowFightRunner pillowFightRunner = new PillowFightRunner();
                 pillowFightRunner.runPillowFightCommand(project, getValue(bucketComboBox), getValue(scopeComboBox),
-                        getValue(collectionComboBox), getValue(durabilityComboBox), getValue(persistToSpinner),
+                        Objects.requireNonNull(collectionComboBox.getSelectedCollection()), getValue(durabilityComboBox), getValue(persistToSpinner),
                         getValue(batchSizeSpinner), getValue(numberItemsSpinner), keyPrefixTextField.getText(),
                         getValue(numberThreadsSpinner), getValue(percentageSpinner), getValue(noPopulationComboBox),
                         getValue(populateOnlyComboBox), getValue(minSizeSpinner), getValue(maxSizeSpinner),

@@ -104,6 +104,12 @@ Use the arrow keys to navigate, **Enter** to keep a collection in the list, and
 remove it from favorites. Favorited collections display a gray star; other
 collections have no star. The Collections row shows the visible and total counts.
 
+Dialogs that ask for a collection (Import, Export, Pillow Fight and Add
+Relationship) follow the same rule: their collection list offers the scope's
+favorites plus its first ten collections, loaded in the background, and a search
+button next to the list opens the same search dialog to pick any other collection.
+The ER diagram of a scope draws at most fifty collections, favorites first.
+
 ### Interact with Documents
 
 1. Click on the desired Collection to list all the documents that have been stored within it.
