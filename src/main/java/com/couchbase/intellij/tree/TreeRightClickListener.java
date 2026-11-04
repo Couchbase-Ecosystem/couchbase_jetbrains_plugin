@@ -206,18 +206,17 @@ public class TreeRightClickListener {
 
             DefaultActionGroup tools = new DefaultActionGroup("Tools", true);
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBC_PILLOW_FIGHT)
-                                                                        .isAvailable()) {
-                AnAction pillowFight = new PasswordConnectionAction("Pillow Fight") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
-                        pillowFightDialog.show();
-                    }
-                };
-                tools.add(pillowFight);
-                tools.addSeparator();
-            }
+            // Tool entries are always listed; each one disables itself with a reason while its tool is
+            // still downloading or the connection cannot use it.
+            AnAction pillowFight = new PasswordConnectionAction("Pillow Fight", CBTools.Type.CBC_PILLOW_FIGHT, true) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    PillowFightDialog pillowFightDialog = new PillowFightDialog(project);
+                    pillowFightDialog.show();
+                }
+            };
+            tools.add(pillowFight);
+            tools.addSeparator();
 
             AnAction ddlExport = new AnAction("DDL Export") {
                 @Override
@@ -228,53 +227,44 @@ public class TreeRightClickListener {
             };
             tools.add(ddlExport);
 
-            if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
-                AnAction cbexport = new PasswordConnectionAction("Data Export") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        ExportDialog dialog = new ExportDialog();
-                        dialog.show();
-                    }
-                };
-                tools.add(cbexport);
-            }
+            AnAction cbexport = new PasswordConnectionAction("Data Export", CBTools.Type.CB_EXPORT, false) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    ExportDialog dialog = new ExportDialog();
+                    dialog.show();
+                }
+            };
+            tools.add(cbexport);
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CB_IMPORT)
-                                                                        .isAvailable()) {
-
-                AnAction cbimport = new PasswordConnectionAction("Data Import") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        ImportDialog importDialog = new ImportDialog(project);
-                        importDialog.show();
-                    }
-                };
-                tools.add(cbimport);
-                tools.addSeparator();
-            }
+            AnAction cbimport = new PasswordConnectionAction("Data Import", CBTools.Type.CB_IMPORT, true) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    ImportDialog importDialog = new ImportDialog(project);
+                    importDialog.show();
+                }
+            };
+            tools.add(cbimport);
+            tools.addSeparator();
 
             // Migration Dialog
-            if (!ActiveCluster.getInstance().isReadOnlyMode() && CBTools.getTool(CBTools.Type.CBMIGRATE)
-                                                                        .isAvailable()) {
-                AnAction cbMigration = new PasswordConnectionAction("MongoDB to Couchbase Migration") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        MigrationDialog dialog = new MigrationDialog(project);
-                        dialog.show();
-                    }
-                };
+            AnAction cbMigration = new PasswordConnectionAction("MongoDB to Couchbase Migration", CBTools.Type.CBMIGRATE, true) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    MigrationDialog dialog = new MigrationDialog(project);
+                    dialog.show();
+                }
+            };
 
-                AnAction dynamo = new PasswordConnectionAction("DynamoDB to Couchbase Migration") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        DynamoMigrationDialog dialog = new DynamoMigrationDialog(project);
-                        dialog.show();
-                    }
-                };
-                tools.add(cbMigration);
-                tools.add(dynamo);
-                tools.addSeparator();
-            }
+            AnAction dynamo = new PasswordConnectionAction("DynamoDB to Couchbase Migration", CBTools.Type.CBMIGRATE, true) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    DynamoMigrationDialog dialog = new DynamoMigrationDialog(project);
+                    dialog.show();
+                }
+            };
+            tools.add(cbMigration);
+            tools.add(dynamo);
+            tools.addSeparator();
 
             DefaultActionGroup settings = new DefaultActionGroup("Settings", true);
             DefaultActionGroup colors = new DefaultActionGroup("Connection Colors", true);
@@ -862,46 +852,41 @@ public class TreeRightClickListener {
             }
         }
 
-        // cbexport and cbimport are installed together, so if one is available the
-        // other also is
-        if (CBTools.getTool(CBTools.Type.CB_EXPORT).isAvailable()) {
-            actionGroup.addSeparator();
+        // Listed even while cbimport/cbexport are still downloading; the entries disable themselves with a reason.
+        actionGroup.addSeparator();
 
-            if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-                AnAction simpleImport = new PasswordConnectionAction("Simple Import") {
-                    @Override
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor(
-                                "json");
-                        VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
-                        if (file != null) {
-                            CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(),
-                                                            file.getPath(), null);
-                        } else {
-                            Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
-                                                     "Simple Import Error");
-                        }
-                    }
-                };
-                actionGroup.add(simpleImport);
-            }
-
-            AnAction simpleExport = new PasswordConnectionAction("Simple Export") {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",
-                                                                      "Choose where you " + "want to save the file:");
-                    VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project)
-                                                                   .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
-                    if (wrapper != null) {
-                        File file = wrapper.getFile();
-                        CBExport.simpleCollectionExport(col.getBucket(), col.getScope(), col.getText(),
-                                                        file.getAbsolutePath(), null);
-                    }
+        AnAction simpleImport = new PasswordConnectionAction("Simple Import", CBTools.Type.CB_IMPORT, true) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor(
+                        "json");
+                VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+                if (file != null) {
+                    CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(),
+                                                    file.getPath(), null);
+                } else {
+                    Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
+                                             "Simple Import Error");
                 }
-            };
-            actionGroup.add(simpleExport);
-        }
+            }
+        };
+        actionGroup.add(simpleImport);
+
+        AnAction simpleExport = new PasswordConnectionAction("Simple Export", CBTools.Type.CB_EXPORT, false) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Collection Export",
+                                                                  "Choose where you " + "want to save the file:");
+                VirtualFileWrapper wrapper = FileChooserFactory.getInstance().createSaveFileDialog(fsd, project)
+                                                               .save(("cb_export-" + col.getScope() + "_" + col.getText() + "-" + TimeUtils.getCurrentDateTime() + ".json"));
+                if (wrapper != null) {
+                    File file = wrapper.getFile();
+                    CBExport.simpleCollectionExport(col.getBucket(), col.getScope(), col.getText(),
+                                                    file.getAbsolutePath(), null);
+                }
+            }
+        };
+        actionGroup.add(simpleExport);
 
         showPopup(e, tree, actionGroup);
     }
@@ -920,12 +905,10 @@ public class TreeRightClickListener {
                         searchWorkbenchCounter++;
                         String fileName = "search" + searchWorkbenchCounter + ".cbs.json";
                         String fileContent = """
-                                {
                                   "query": {
-                                        "query": "your_query_here"
+                                    "query": "your_query_here"
                                   },
                                   "fields": ["*"]
-                                }
                                         """;
                         VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance()
                                                                                                 .getFileTypeByExtension(

@@ -2,8 +2,9 @@ package com.couchbase.intellij.tools;
 
 public class CBTool {
 
-    private ToolStatus status;
-    private String path;
+    // Written by the download thread, read by action updates.
+    private volatile ToolStatus status;
+    private volatile String path;
 
     public CBTool() {
         this.status = ToolStatus.NOT_AVAILABLE;
