@@ -104,6 +104,15 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         project.putUserData(OUTPUT_WINDOW, window);
     }
 
+    /** Copies the selected rows, or every row when nothing is selected, in table order. */
+    private void copyRows(JBTable table, boolean asJson) {
+        int[] selected = table.getSelectedRows();
+        int[] view = selected.length > 0 ? selected : java.util.stream.IntStream.range(0, table.getRowCount()).toArray();
+        int[] rows = java.util.Arrays.stream(view).map(table::convertRowIndexToModel).toArray();
+        String text = asJson ? model.rowsToJson(rows) : model.rowsToCsv(rows);
+        com.intellij.openapi.ide.CopyPasteManager.getInstance().setContents(new java.awt.datatransfer.StringSelection(text));
+    }
+
     @NotNull
     private static String getEmptyExplain() {
         return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
@@ -126,6 +135,22 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
         table.setCellSelectionEnabled(true);
         table.setRowSelectionAllowed(true);
         table.setColumnSelectionAllowed(true);
+        table.setAutoCreateRowSorter(true); // click a header to sort
+        com.intellij.ui.TableSpeedSearch.installOn(table); // type to jump to a cell
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                setText(JsonTableModel.cellText(value)); // nested values as JSON, not Map.toString()
+            }
+        });
+        JPopupMenu rowMenu = new JPopupMenu();
+        JMenuItem copyJson = new JMenuItem("Copy Rows as JSON");
+        copyJson.addActionListener(e -> copyRows(table, true));
+        rowMenu.add(copyJson);
+        JMenuItem copyCsv = new JMenuItem("Copy Rows as CSV");
+        copyCsv.addActionListener(e -> copyRows(table, false));
+        rowMenu.add(copyCsv);
+        table.setComponentPopupMenu(rowMenu);
 
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BorderLayout());

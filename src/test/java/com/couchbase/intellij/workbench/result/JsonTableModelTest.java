@@ -155,11 +155,55 @@ public class JsonTableModelTest {
     }
 
     @Test
-    public void csvWritesMissingValueAsNullLiteral() {
-        // NOTE: possible bug: CSV export does not quote or escape values and renders missing cells as "null"
+    public void csvWritesMissingValuesAsEmptyFields() {
+        // Missing cells are empty fields; quoting is covered by the tests below.
         JsonTableModel model = new JsonTableModel();
         model.updateData(new ArrayList<>(List.of(row("a", 1L), row("b", 2L))));
 
-        assertEquals("a,b\n1,null\nnull,2\n", model.tableModelToCSV());
+        assertEquals("a,b\n1,\n,2\n", model.tableModelToCSV());
+    }
+
+    @Test
+    public void csvQuotesFieldsWithCommasQuotesAndLineBreaks() {
+        JsonTableModel model = new JsonTableModel();
+        List<Map<String, Object>> data = new ArrayList<>();
+        data.add(row("name", "Smith, John", "quote", "say \"hi\"", "multi", "a\nb", "plain", 1L));
+        model.updateData(data);
+
+        assertEquals("name,quote,multi,plain\n\"Smith, John\",\"say \"\"hi\"\"\",\"a\nb\",1\n", model.tableModelToCSV());
+    }
+
+    @Test
+    public void csvWritesNestedValuesAsJsonAndNullsAsEmpty() {
+        JsonTableModel model = new JsonTableModel();
+        List<Map<String, Object>> data = new ArrayList<>();
+        data.add(row("id", "a", "address", row("city", "Paris", "zip", null), "tags", List.of("x", "y")));
+        data.add(row("id", "b"));
+        model.updateData(data);
+
+        assertEquals("id,address,tags\n"
+                + "a,\"{\"\"city\"\":\"\"Paris\"\",\"\"zip\"\":null}\",\"[\"\"x\"\",\"\"y\"\"]\"\n"
+                + "b,,\n", model.tableModelToCSV());
+    }
+
+    @Test
+    public void selectedRowsCopyAsJsonInTableOrderWithSdkContainersUnwrapped() {
+        JsonTableModel model = new JsonTableModel();
+        List<Map<String, Object>> data = new ArrayList<>();
+        data.add(row("id", "a", "n", 1L));
+        data.add(row("id", "b", "nested", JsonObject.create().put("k", JsonArray.from(1, 2))));
+        data.add(row("id", "c"));
+        model.updateData(data);
+
+        assertEquals("[{\"id\":\"c\"},{\"id\":\"b\",\"nested\":{\"k\":[1,2]}}]", model.rowsToJson(new int[]{2, 1}));
+        assertEquals("id,n,nested\nb,,\"{\"\"k\"\":[1,2]}\"\n", model.rowsToCsv(new int[]{1}));
+    }
+
+    @Test
+    public void cellTextShowsNestedValuesAsJson() {
+        assertEquals("", JsonTableModel.cellText(null));
+        assertEquals("42", JsonTableModel.cellText(42L));
+        assertEquals("{\"a\":1}", JsonTableModel.cellText(row("a", 1L)));
+        assertEquals("[1,\"x\"]", JsonTableModel.cellText(List.of(1L, "x")));
     }
 }
