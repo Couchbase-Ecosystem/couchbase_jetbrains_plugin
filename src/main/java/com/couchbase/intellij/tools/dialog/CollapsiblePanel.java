@@ -40,6 +40,7 @@ public class CollapsiblePanel extends JPanel {
 
         // Create header
         headerLabel = new JLabel(title, collapsedIcon, JLabel.LEADING);
+        headerLabel.setName("collapsibleHeader");
         headerLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         headerLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -85,7 +86,7 @@ public class CollapsiblePanel extends JPanel {
         this.panelToggleListener = panelToggleListener;
     }
 
-    private void toggleContent() {
+    public void toggleContent() {
         if (contentPanel.isVisible()) {
             contentPanel.setVisible(false);
             headerLabel.setIcon(collapsedIcon);
