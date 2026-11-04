@@ -6,6 +6,7 @@ import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import com.couchbase.client.java.Cluster;
+import java.awt.Component;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -51,23 +52,43 @@ public final class ClusterUiTask {
     public static <T> void submit(Project project, Connection connection, String title, Work<T> work,
                                   Consumer<T> success, Consumer<Exception> failure) {
         ModalityState modality = ModalityState.current();
+        submit(project, connection, title, work, success, failure,
+                callback -> ApplicationManager.getApplication().invokeLater(callback, modality));
+    }
+
+    /**
+     * Like {@link #submit(Project, ActiveCluster, String, Work, Consumer, Consumer)}, but the callbacks run under
+     * the modality of the window that holds {@code owner} at the time the work finishes. Use this for work
+     * started while a dialog is still being built: with the modality captured at submit time, the result would
+     * only arrive once the modal dialog had closed again.
+     */
+    public static <T> void submit(Project project, ActiveCluster active, String title, Work<T> work,
+                                  Consumer<T> success, Consumer<Exception> failure, Component owner) {
+        submit(project, capture(active), title, work, success, failure, callback ->
+                // The owner's window is resolved on the EDT, once the dialog that contains it is showing.
+                ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication()
+                        .invokeLater(callback, ModalityState.stateForComponent(owner)), ModalityState.any()));
+    }
+
+    private static <T> void submit(Project project, Connection connection, String title, Work<T> work,
+                                   Consumer<T> success, Consumer<Exception> failure, Consumer<Runnable> ui) {
         ProgressManager.getInstance().run(new Task.Backgroundable(project, title, false) {
             @Override public void run(@NotNull ProgressIndicator indicator) {
                 try {
                     connection.requireCurrent();
                     T result = work.run(connection);
-                    ApplicationManager.getApplication().invokeLater(() -> {
+                    ui.accept(() -> {
                         if (project != null && project.isDisposed()) return;
                         if (!connection.isCurrent()) {
                             failure.accept(new IllegalStateException("The active connection changed. Select the original connection and try again."));
                         } else success.accept(result);
-                    }, modality);
+                    });
                 } catch (Throwable error) {
                     // Callers reset busy and pending state in the failure callback, so Errors must reach it too.
                     Exception reported = asException(error);
-                    ApplicationManager.getApplication().invokeLater(() -> {
+                    ui.accept(() -> {
                         if (project == null || !project.isDisposed()) failure.accept(reported);
-                    }, modality);
+                    });
                     // Still let the platform report serious errors and handle its control-flow exceptions.
                     if (error instanceof Error) throw (Error) error;
                 }

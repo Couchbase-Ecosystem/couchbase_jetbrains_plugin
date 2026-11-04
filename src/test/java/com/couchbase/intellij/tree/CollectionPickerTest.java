@@ -115,7 +115,7 @@ public class CollectionPickerTest extends LightPlatformCodeInsightFixture4TestCa
         assertEquals("col09", p.getItems().get(9));
         assertEquals(25, p.getTotal());
         assertEquals("col00", p.getSelectedCollection());
-        assertEquals("Showing 10 of 25 collections. Use the search button to pick another one.", status(p));
+        assertEquals("10 of 25 collections listed. Search for the others.", status(p));
     }
 
     @Test
@@ -143,7 +143,7 @@ public class CollectionPickerTest extends LightPlatformCodeInsightFixture4TestCa
         assertEquals("col20", p.getSelectedCollection());
         assertEquals(11, p.getItems().size());
         assertEquals("col20", p.getItems().get(10));
-        assertEquals("Showing 11 of 25 collections. Use the search button to pick another one.", status(p));
+        assertEquals("11 of 25 collections listed. Search for the others.", status(p));
 
         // Choosing a collection that is already listed does not duplicate it.
         searchCallback.accept("col03");

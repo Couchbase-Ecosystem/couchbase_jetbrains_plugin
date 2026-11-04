@@ -46,13 +46,14 @@ public class MermaidERDiagramDialog extends DialogWrapper {
         ActiveCluster active = ActiveCluster.getInstance();
         List<String> favorites = FavoriteCollectionsStorage.getInstance().getValue()
                 .getFavorites(active.getId(), bucket, scope);
-        // Schema inference runs per collection, so the chart is built in the background and capped.
+        // Schema inference runs per collection, so the chart is built in the background and capped. The result
+        // is delivered under this dialog's modality, which is not current yet while the dialog is being built.
         ClusterUiTask.submit(null, active, "Building ER diagram of " + bucket + "." + scope,
                 connection -> generateChart(favorites), this::loadMermaidDiagram, error -> {
                     Log.error("Could not build the ER diagram of " + bucket + "." + scope, error);
                     browser.loadHTML("<html><body>Could not build the diagram: "
                             + StringUtil.escapeXmlEntities(String.valueOf(error.getMessage())) + "</body></html>");
-                });
+                }, browser.getComponent());
     }
 
     private void loadMermaidDiagram(Chart chart) {

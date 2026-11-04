@@ -89,17 +89,22 @@ public class CollectionPicker extends JPanel {
 
     /** A picker bound to the active connection, its favorites and the standard search dialog. */
     public static CollectionPicker forActiveCluster(@Nullable Project project) {
-        return new CollectionPicker(CollectionSources::forScope,
+        // Dialogs set the scope while they are still being built, so results are delivered under the modality
+        // of whichever window ends up holding the picker, not the one current at submit time.
+        CollectionPicker[] picker = new CollectionPicker[1];
+        Loader loader = new Loader() {
+            @Override
+            public <T> void load(String title, Callable<T> work, Consumer<T> onSuccess, Consumer<Exception> onFailure) {
+                ClusterUiTask.submit(project, ActiveCluster.getInstance(), title, connection -> work.call(),
+                        onSuccess, onFailure, picker[0]);
+            }
+        };
+        picker[0] = new CollectionPicker(CollectionSources::forScope,
                 (bucket, scope) -> FavoriteCollectionsStorage.getInstance().getValue()
                         .getFavorites(ActiveCluster.getInstance().getId(), bucket, scope),
                 (source, onChosen) -> new CollectionSearchDialog(project, source, onChosen).show(),
-                new Loader() {
-                    @Override
-                    public <T> void load(String title, Callable<T> work, Consumer<T> onSuccess, Consumer<Exception> onFailure) {
-                        ClusterUiTask.submit(project, ActiveCluster.getInstance(), title, connection -> work.call(),
-                                onSuccess, onFailure);
-                    }
-                });
+                loader);
+        return picker[0];
     }
 
     /** Forgets the scope and empties the combo. */
@@ -181,8 +186,7 @@ public class CollectionPicker extends JPanel {
 
     private void updateStatus() {
         if (total > combo.getItemCount()) {
-            status.setText("Showing " + combo.getItemCount() + " of " + total
-                    + " collections. Use the search button to pick another one.");
+            status.setText(combo.getItemCount() + " of " + total + " collections listed. Search for the others.");
         } else {
             status.setText("");
         }
