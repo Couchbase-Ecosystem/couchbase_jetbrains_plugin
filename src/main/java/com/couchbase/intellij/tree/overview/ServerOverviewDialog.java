@@ -37,13 +37,8 @@ public class ServerOverviewDialog extends DialogWrapper {
     }
 
 
-    public static String mbToGb(long sizeInMb) {
-        if (sizeInMb < 1024) {
-            return sizeInMb + " Mb";
-        } else {
-            double sizeInGb = sizeInMb / 1024.0;
-            return String.format("%.2f Gb", sizeInGb);
-        }
+    public static String mbToGb(Long sizeInMb) {
+        return OverviewFormat.mbToGb(sizeInMb);
     }
 
 
@@ -181,7 +176,8 @@ public class ServerOverviewDialog extends DialogWrapper {
 
 
         String[] quotaKeys = {"Data", "Index", "Search", "Eventing", "Analytics"};
-        String[] quotaValues = {mbToGb(overview.getMemoryQuota()), mbToGb(overview.getIndexMemoryQuota()), mbToGb(overview.getFtsMemoryQuota()), mbToGb(overview.getEventingMemoryQuota()), mbToGb(overview.getCbasMemoryQuota())};
+        // Eventing and Analytics quotas are absent on clusters without those services (Community Edition).
+        String[] quotaValues = OverviewFormat.quotaValues(overview);
         JPanel quotaPanel = createKeyValuePanel(quotaKeys, quotaValues, 2);
 
         panel.setBorder(JBUI.Borders.emptyTop(10));
