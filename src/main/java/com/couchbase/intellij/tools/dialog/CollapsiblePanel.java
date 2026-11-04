@@ -60,12 +60,18 @@ public class CollapsiblePanel extends JPanel {
 
         separator = new JSeparator();
 
+        // The separator stretches to whatever width the header gets, without a stored preferred width that would
+        // keep the header (and the dialog) as wide as the last expanded layout after collapsing.
+        JPanel separatorPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints line = new GridBagConstraints();
+        line.fill = GridBagConstraints.HORIZONTAL;
+        line.weightx = 1.0;
+        line.insets = new Insets(0, 10, 0, 0); // Some space between text and line
+        separatorPanel.add(separator, line);
+
         JPanel headerPanel = new JPanel(new BorderLayout());
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
-        titlePanel.add(headerLabel);
-        titlePanel.add(Box.createRigidArea(new Dimension(10, 0))); // Some space between text and line
-        titlePanel.add(separator);
-        headerPanel.add(titlePanel, BorderLayout.CENTER);
+        headerPanel.add(headerLabel, BorderLayout.WEST);
+        headerPanel.add(separatorPanel, BorderLayout.CENTER);
 
         add(headerPanel, BorderLayout.NORTH);
         add(contentPanel, BorderLayout.CENTER);
@@ -95,17 +101,6 @@ public class CollapsiblePanel extends JPanel {
         // Inform parent to layout again since this component changed its size
         revalidate();
         repaint();
-    }
-
-    @Override
-    public void doLayout() {
-        super.doLayout();
-
-        // Adjust the size of the separator to fill the rest of the space
-        Dimension preferredSize = separator.getPreferredSize();
-        preferredSize.width = getWidth() - headerLabel.getWidth() - 10; // 10 is the rigid area width
-        separator.setPreferredSize(preferredSize);
-        separator.setMaximumSize(preferredSize);
     }
 
     public boolean contentIsEnabled() {
