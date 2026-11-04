@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.ui.ScreenUtil;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
@@ -22,8 +23,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -315,7 +314,7 @@ public class PillowFightDialog extends DialogWrapper {
 
     @Override
     protected @Nullable JComponent createCenterPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
+        JPanel panel = new ViewportWidePanel();
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -351,7 +350,9 @@ public class PillowFightDialog extends DialogWrapper {
         gbc.gridx++;
         JPanel rightPaddingPanel = new JPanel();
         rightPaddingPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+        gbc.weightx = 1.0; // extra width goes here, so the labels stay at the left edge when the dialog grows
         panel.add(rightPaddingPanel, gbc);
+        gbc.weightx = 0.0;
         gbc.gridx--;
 
         gbc.gridx--;
@@ -627,22 +628,42 @@ public class PillowFightDialog extends DialogWrapper {
         JBScrollPane jbScrollPane = new JBScrollPane(panel);
         jbScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        int jbScrollWidth = jbScrollPane.getPreferredSize().width;
-        int jbScrollOriginalHeight = jbScrollPane.getPreferredSize().height;
-        collapsiblePanel1.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                if (collapsiblePanel1.contentIsEnabled()) {
-                    jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth,
-                            (int) (Toolkit.getDefaultToolkit().getScreenSize().height * 0.8)));
-                } else {
-                    jbScrollPane.setPreferredSize(new Dimension(jbScrollWidth, jbScrollOriginalHeight));
-                }
-                pack();
-            }
-        });
+        collapsiblePanel1.setPanelToggleListener(() -> fitToContent(jbScrollPane));
 
         return jbScrollPane;
+    }
+
+    /** Grows or shrinks the dialog with the advanced section, staying within 80% of the screen height. */
+    private void fitToContent(JBScrollPane scrollPane) {
+        scrollPane.setPreferredSize(null);
+        Dimension preferred = scrollPane.getPreferredSize();
+        int maxHeight = (int) (ScreenUtil.getScreenRectangle(scrollPane).height * 0.8);
+        if (preferred.height > maxHeight) {
+            preferred = new Dimension(preferred.width + scrollPane.getVerticalScrollBar().getPreferredSize().width, maxHeight);
+        }
+        scrollPane.setPreferredSize(preferred);
+        pack();
+        Window window = getWindow();
+        if (window != null) {
+            Rectangle bounds = window.getBounds();
+            ScreenUtil.fitToScreen(bounds);
+            window.setBounds(bounds);
+        }
+    }
+
+    /** A form panel that always spans the scroll pane's width, so nothing is clipped at the right edge. */
+    private static final class ViewportWidePanel extends JPanel implements Scrollable {
+        ViewportWidePanel() {
+            super(new GridBagLayout());
+        }
+
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 16; }
+        @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
+            return orientation == SwingConstants.VERTICAL ? visible.height : visible.width;
+        }
+        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
     }
 
     private boolean componentIsEnabled(JSpinner spinner) {

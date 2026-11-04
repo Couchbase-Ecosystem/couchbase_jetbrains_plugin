@@ -17,8 +17,6 @@ public class CollapsiblePanel extends JPanel {
     private Icon collapsedIcon;
     private JSeparator separator;
 
-    private Integer originalWidth;
-
     public CollapsiblePanel(String title, JPanel content, boolean isExpanded) {
         this(title, content);
         if (isExpanded) {
@@ -71,16 +69,9 @@ public class CollapsiblePanel extends JPanel {
 
         add(headerPanel, BorderLayout.NORTH);
         add(contentPanel, BorderLayout.CENTER);
-    }
-
-    @Override
-    public Dimension getPreferredSize() {
-        Dimension headerPreferredSize = headerLabel.getPreferredSize();
-        Dimension contentPreferredSize = contentPanel.isVisible() ? contentPanel.getPreferredSize() : new Dimension(0, 0);
-
-        int preferredHeight = headerPreferredSize.height + contentPreferredSize.height + 30;
-
-        return new Dimension(originalWidth = getParent().getWidth(), preferredHeight);
+        // The preferred size is the real one of header plus (visible) content: reporting the parent's current
+        // width instead made expanded content narrower than it needs, so its grid slid off the left edge.
+        setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
     }
 
 
