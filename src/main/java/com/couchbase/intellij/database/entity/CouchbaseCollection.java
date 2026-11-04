@@ -110,6 +110,19 @@ public class CouchbaseCollection implements CouchbaseClusterEntity {
         return generateDocument(getChildren());
     }
 
+    /** Flavors already inferred; empty while inference is pending or failed. Never starts inference. */
+    public Set<CouchbaseDocumentFlavor> getCachedChildren() {
+        Set<CouchbaseDocumentFlavor> snapshot = children.getValue();
+        return snapshot == null ? Set.of() : snapshot;
+    }
+
+    /** Starts inference in the background if no schema is known yet; returns immediately. */
+    public void ensureSchemaRequested() {
+        if (children.getValue() == null) {
+            updateSchema();
+        }
+    }
+
     /** Used by optional templates: missing or unfinished inference must not prevent document creation. */
     public JsonObject generateCachedDocument() {
         Set<CouchbaseDocumentFlavor> snapshot = children.getValue();

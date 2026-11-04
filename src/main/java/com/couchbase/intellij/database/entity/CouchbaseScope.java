@@ -25,12 +25,22 @@ public class CouchbaseScope implements CouchbaseClusterEntity {
         return parent;
     }
 
+    /**
+     * Scopes with at most this many collections get every schema inferred as soon as the scope is read, so
+     * completion is instant. Larger scopes (they may hold thousands of collections) infer each collection
+     * lazily, on first use, instead of starting one INFER task per collection.
+     */
+    public static final int EAGER_INFER_LIMIT = 20;
+
     @Override
     public void updateSchema() {
-        collections = spec.collections().stream()
+        Set<CouchbaseCollection> fresh = spec.collections().stream()
                 .map(collectionSpec -> new CouchbaseCollection(this, collectionSpec))
-                .peek(CouchbaseCollection::updateSchema)
                 .collect(Collectors.toSet());
+        if (fresh.size() <= EAGER_INFER_LIMIT) {
+            fresh.forEach(CouchbaseCollection::updateSchema);
+        }
+        collections = fresh;
     }
 
     @Override
