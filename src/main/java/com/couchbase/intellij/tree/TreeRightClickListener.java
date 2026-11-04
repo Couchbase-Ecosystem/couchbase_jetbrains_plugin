@@ -61,6 +61,8 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.List;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import java.util.Objects;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -659,6 +661,21 @@ public class TreeRightClickListener {
         String collection = col.getCollection();
         String docId = col.getId();
 
+        actionGroup.add(new AnAction("Copy Document ID") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                TreeCopy.toClipboard(docId);
+            }
+        });
+        actionGroup.add(new AnAction("Copy Document", "Remembers the document so it can be pasted into a collection", null) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                DocumentClipboard.copy(new DocumentClipboard.CopiedDocument(ActiveCluster.getInstance().getId(),
+                        bucket, scope, collection, docId));
+            }
+        });
+        actionGroup.addSeparator();
+
         AnAction viewMetaData = new AnAction("View Metadata") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -722,6 +739,15 @@ public class TreeRightClickListener {
         };
         actionGroup.add(viewIdxStatsAction);
 
+        if (idx.getVirtualFile() instanceof LightVirtualFile definition) {
+            actionGroup.add(new AnAction("Copy Definition") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    TreeCopy.toClipboard(definition.getContent().toString());
+                }
+            });
+        }
+
         showPopup(e, tree, actionGroup);
     }
 
@@ -753,7 +779,57 @@ public class TreeRightClickListener {
                 }
             };
             actionGroup.add(createDocument);
+
+            ClusterUiTask.Connection pasteConnection = ClusterUiTask.capture(ActiveCluster.getInstance());
+            String target = TreeCopy.qualifiedName(col.getBucket(), col.getScope(), col.getText());
+            AnAction pasteDocument = new AnAction("Paste Document") {
+                @Override
+                public void update(@NotNull AnActionEvent e) {
+                    DocumentClipboard.CopiedDocument copied = DocumentClipboard.get();
+                    e.getPresentation().setVisible(copied != null);
+                    if (copied == null) return;
+                    boolean sameConnection = Objects.equals(copied.connectionId(), ActiveCluster.getInstance().getId());
+                    e.getPresentation().setEnabled(sameConnection);
+                    e.getPresentation().setDescription(sameConnection
+                            ? "Paste '" + copied.id() + "' into " + target
+                            : "The copied document belongs to another connection.");
+                }
+
+                @Override
+                public @NotNull ActionUpdateThread getActionUpdateThread() {
+                    return ActionUpdateThread.BGT;
+                }
+
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    DocumentClipboard.CopiedDocument copied = DocumentClipboard.get();
+                    if (copied == null || !requireMenuTarget(project, pasteConnection, tree, clickedNode, "Paste Document")) return;
+                    ClusterUiTask.submit(project, pasteConnection, "Pasting document " + copied.id(), connection -> {
+                        connection.requireWritable();
+                        com.couchbase.client.java.Cluster sdk = connection.sdk();
+                        String content = DocumentPaste.readJson(
+                                sdk.bucket(copied.bucket()).scope(copied.scope()).collection(copied.collection()), copied.id());
+                        return DocumentPaste.paste(new DocumentPaste.SdkTarget(
+                                sdk.bucket(col.getBucket()).scope(col.getScope()).collection(col.getText())),
+                                copied.id(), content, target, new DocumentPaste.DialogPrompter(project));
+                    }, written -> {
+                        if (written == null) return;
+                        if (tree.isExpanded(new TreePath(clickedNode.getPath()))) DataLoader.listDocuments(clickedNode, tree, 0);
+                        com.intellij.notification.NotificationGroupManager.getInstance().getNotificationGroup("Couchbase document saves")
+                                .createNotification("Pasted '" + written + "' into " + target, com.intellij.notification.NotificationType.INFORMATION)
+                                .notify(project);
+                    }, error -> Messages.showErrorDialog(project, "Could not paste the document. " + error.getMessage(), "Paste Document"));
+                }
+            };
+            actionGroup.add(pasteDocument);
         }
+
+        actionGroup.add(new AnAction("Copy Qualified Name", "Copies `bucket`.`scope`.`collection`", null) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                TreeCopy.toClipboard(TreeCopy.qualifiedName(col.getBucket(), col.getScope(), col.getText()));
+            }
+        });
 
         actionGroup.addSeparator();
         String connectionId = ActiveCluster.getInstance().getId();
