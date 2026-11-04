@@ -65,7 +65,8 @@ public class TreeActionHandler {
 
             try {
                 DefaultMutableTreeNode finalNewActiveNode = newActiveNode;
-                ActiveCluster.getInstance().connect(savedCluster, err -> {
+                // Both callbacks arrive on the connection's worker threads; the tree may only change on the EDT.
+                ActiveCluster.getInstance().connect(savedCluster, err -> ApplicationManager.getApplication().invokeLater(() -> {
                     if (err != null) {
                         tree.setPaintBusy(false);
                         if (connectionListener != null) {
@@ -126,7 +127,7 @@ public class TreeActionHandler {
                         connectionListener.consume(null);
                     }
                     tree.setPaintBusy(false);
-                }, () -> {
+                }), () -> ApplicationManager.getApplication().invokeLater(() -> {
                     try {
                         if (disconnectListener != null) {
                             disconnectListener.run();
@@ -134,7 +135,7 @@ public class TreeActionHandler {
                     } finally {
                         disconnectFromCluster(targetNode, (ConnectionNodeDescriptor) targetNode.getUserObject(), tree);
                     }
-                });
+                }));
 
             } catch (Exception e) {
                 tree.setPaintBusy(false);
