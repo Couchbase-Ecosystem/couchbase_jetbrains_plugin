@@ -22,9 +22,11 @@ import java.util.List;
 /** Native tree speed search, extended with a lazy snapshot of the selected scope's collection names. */
 public final class CollectionExplorerTree extends Tree {
     private final CollectionSpeedSearch search;
+    private final Project project;
 
     public CollectionExplorerTree(Project project, TreeModel model) {
         super(model);
+        this.project = project;
         search = new CollectionSpeedSearch(project);
         search.setupListeners();
         ToolTipManager.sharedInstance().registerComponent(this);
@@ -62,14 +64,26 @@ public final class CollectionExplorerTree extends Tree {
     }
 
     @Override protected void processKeyEvent(KeyEvent event) {
-        if (event.getID() == KeyEvent.KEY_PRESSED && event.getKeyCode() == KeyEvent.VK_ENTER && !search.isPopupActive()
-                && getLastSelectedPathComponent() instanceof DefaultMutableTreeNode node
-                && node.getUserObject() instanceof LoadErrorNodeDescriptor error) {
-            error.retry();
+        if (event.getID() == KeyEvent.KEY_PRESSED && !search.isPopupActive()
+                && getLastSelectedPathComponent() instanceof DefaultMutableTreeNode node && handleKey(event.getKeyCode(), node)) {
             event.consume();
             return;
         }
         super.processKeyEvent(event);
+    }
+
+    /** Enter opens documents and indexes, loads more rows or retries; Delete and F5 run the node's menu actions. */
+    boolean handleKey(int keyCode, DefaultMutableTreeNode node) {
+        if (keyCode == KeyEvent.VK_ENTER) {
+            if (node.getUserObject() instanceof LoadErrorNodeDescriptor error) {
+                error.retry();
+                return true;
+            }
+            return TreeNodeActions.open(project, this, node);
+        }
+        if (keyCode == KeyEvent.VK_DELETE) return TreeNodeActions.perform(project, this, node, "Delete", "Drop");
+        if (keyCode == KeyEvent.VK_F5) return TreeNodeActions.perform(project, this, node, "Refresh");
+        return false;
     }
 
     @Override public String getToolTipText(MouseEvent event) {

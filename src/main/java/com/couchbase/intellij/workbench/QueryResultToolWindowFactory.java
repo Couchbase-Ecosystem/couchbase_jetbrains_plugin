@@ -115,7 +115,8 @@ public class QueryResultToolWindowFactory implements ToolWindowFactory {
 
     @NotNull
     private static String getEmptyExplain() {
-        return "<html><body style=\" background: #3c3f41\"><span style='color:#ccc'>Nothing to show</span></body></html>";
+        return "<html><body style=\"background: " + utils.ColorHelper.panelBackgroundHex() + "\"><span style='color:"
+                + utils.ColorHelper.labelForegroundHex() + "'>Nothing to show</span></body></html>";
     }
 
     public static void removeAllActionListeners(JMenuItem menuItem) {

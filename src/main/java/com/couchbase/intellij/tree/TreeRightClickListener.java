@@ -80,6 +80,12 @@ public class TreeRightClickListener {
     }
 
 
+    /** The primary index has its own management call; every other index is dropped by name. */
+    static void dropIndex(com.couchbase.client.java.manager.query.CollectionQueryIndexManager indexes, String indexName) {
+        if ("#primary".equals(indexName)) indexes.dropPrimaryIndex();
+        else indexes.dropIndex(indexName);
+    }
+
     /** A menu acts on the connection and node it was opened for, never on whatever is current when it is clicked. */
     static boolean isMenuTargetCurrent(ClusterUiTask.Connection menuConnection, Object treeRoot, DefaultMutableTreeNode node) {
         return menuConnection.isCurrent() && node.getParent() != null && node.getRoot() == treeRoot;
@@ -93,33 +99,39 @@ public class TreeRightClickListener {
 
 
     public static void handle(Tree tree, Project project, JPanel toolbarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode) {
-        Object userObject = clickedNode.getUserObject();
         int row = tree.getClosestRowForLocation(e.getX(), e.getY());
         tree.setSelectionRow(row);
-
-        if (userObject instanceof ConnectionNodeDescriptor) {
-            handleConnectionRightClick(project, toolbarPanel, e, clickedNode, (ConnectionNodeDescriptor) userObject,
-                                       tree);
-        } else if (userObject instanceof BucketNodeDescriptor) {
-            handleBucketRightClick(project, e, clickedNode, tree);
-        } else if (userObject instanceof ScopeNodeDescriptor) {
-            handleScopeRightClick(project, e, clickedNode, tree);
-        } else if (userObject instanceof CollectionsNodeDescriptor) {
-            handleCollectionSRightClick(project, e, clickedNode, tree);
-        } else if (userObject instanceof CollectionNodeDescriptor) {
-            handleCollectionRightClick(project, e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
-        } else if (userObject instanceof FileNodeDescriptor) {
-            handleDocumentRightClick(project, e, clickedNode, (FileNodeDescriptor) userObject, tree);
-        } else if (userObject instanceof SearchIndexNodeDescriptor) {
-            handleSearchIndexRightClick(project, e, clickedNode, (SearchIndexNodeDescriptor) userObject, tree);
-        } else if (userObject instanceof IndexNodeDescriptor) {
-            handleIndexRightClick(project, e, clickedNode, (IndexNodeDescriptor) userObject, tree);
-        } else if (userObject instanceof SchemaDataNodeDescriptor) {
-            handleSchemaDataNodeDescriptorClick(project, e, clickedNode, (SchemaDataNodeDescriptor) userObject, tree);
-        }
+        DefaultActionGroup menu = menuFor(tree, project, toolbarPanel, e, clickedNode);
+        if (menu != null) showPopup(e, tree, menu);
     }
 
-    private static void handleSchemaDataNodeDescriptorClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, SchemaDataNodeDescriptor userObject, Tree tree) {
+    /** The context menu of {@code clickedNode}, or null when it has none. Keyboard shortcuts use it without showing it. */
+    public static @org.jetbrains.annotations.Nullable DefaultActionGroup menuFor(Tree tree, Project project, JPanel toolbarPanel,
+                                                                                @org.jetbrains.annotations.Nullable MouseEvent e, DefaultMutableTreeNode clickedNode) {
+        Object userObject = clickedNode.getUserObject();
+        if (userObject instanceof ConnectionNodeDescriptor) {
+            return handleConnectionRightClick(project, toolbarPanel, e, clickedNode, (ConnectionNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof BucketNodeDescriptor) {
+            return handleBucketRightClick(project, e, clickedNode, tree);
+        } else if (userObject instanceof ScopeNodeDescriptor) {
+            return handleScopeRightClick(project, e, clickedNode, tree);
+        } else if (userObject instanceof CollectionsNodeDescriptor) {
+            return handleCollectionSRightClick(project, e, clickedNode, tree);
+        } else if (userObject instanceof CollectionNodeDescriptor) {
+            return handleCollectionRightClick(project, e, clickedNode, (CollectionNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof FileNodeDescriptor) {
+            return handleDocumentRightClick(project, e, clickedNode, (FileNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof SearchIndexNodeDescriptor) {
+            return handleSearchIndexRightClick(project, e, clickedNode, (SearchIndexNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof IndexNodeDescriptor) {
+            return handleIndexRightClick(project, e, clickedNode, (IndexNodeDescriptor) userObject, tree);
+        } else if (userObject instanceof SchemaDataNodeDescriptor) {
+            return handleSchemaDataNodeDescriptorClick(project, e, clickedNode, (SchemaDataNodeDescriptor) userObject, tree);
+        }
+        return null;
+    }
+
+    private static DefaultActionGroup handleSchemaDataNodeDescriptorClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, SchemaDataNodeDescriptor userObject, Tree tree) {
 
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         Map<String, String> map = RelationshipStorage.getInstance().getValue().getRelationships()
@@ -149,10 +161,10 @@ public class TreeRightClickListener {
         }
 
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
-    private static void handleConnectionRightClick(Project project, JPanel toolBarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
+    private static DefaultActionGroup handleConnectionRightClick(Project project, JPanel toolBarPanel, MouseEvent e, DefaultMutableTreeNode clickedNode, ConnectionNodeDescriptor userObject, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         if (userObject.isActive()) {
@@ -393,9 +405,9 @@ public class TreeRightClickListener {
         AnAction deleteConnection = new AnAction("Delete Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                int choice = Messages.showYesNoDialog(project,
+                int choice = DeleteConfirmation.ask(project,
                         "Delete the connection '" + userObject.getText() + "'? Its saved password, favorites and cached schema are removed too.",
-                        "Delete Connection", "Delete", "Cancel", Messages.getWarningIcon());
+                        "Delete Connection", "Delete");
                 if (choice == Messages.YES) {
                     TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
                 }
@@ -403,10 +415,10 @@ public class TreeRightClickListener {
         };
         actionGroup.add(deleteConnection);
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
-    private static void handleBucketRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+    private static DefaultActionGroup handleBucketRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         AnAction menuItem = new AnAction("Refresh Scopes") {
             @Override
@@ -417,6 +429,14 @@ public class TreeRightClickListener {
             }
         };
         actionGroup.add(menuItem);
+
+        String overviewBucket = ((BucketNodeDescriptor) clickedNode.getUserObject()).getText();
+        actionGroup.add(new AnAction("Bucket Overview") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                new ServerOverviewDialog(true, overviewBucket).show();
+            }
+        });
 
         if (!ActiveCluster.getInstance().isReadOnlyMode()) {
             // Add "Add New Scope" option
@@ -452,9 +472,7 @@ public class TreeRightClickListener {
                         if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Bucket")) return;
 
                         // Show confirmation dialog before deleting bucket
-                        int result = Messages.showYesNoDialog(
-                                "Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket",
-                                Messages.getQuestionIcon());
+                        int result = DeleteConfirmation.ask(project, "Are you sure you want to delete the bucket " + bucketName + "?", "Delete Bucket", "Delete");
                         if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Bucket")) {
                             return;
                         }
@@ -474,11 +492,11 @@ public class TreeRightClickListener {
             actionGroup.add(deleteBucketItem);
         }
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
 
-    private static void handleCollectionSRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+    private static DefaultActionGroup handleCollectionSRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         CollectionsNodeDescriptor cols = (CollectionsNodeDescriptor) clickedNode.getUserObject();
         String bucketName = cols.getBucket();
@@ -500,7 +518,7 @@ public class TreeRightClickListener {
 
             actionGroup.add(addNewCollectionItem);
         }
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
     private static AnAction collectionSearchAction(Project project, Tree tree, DefaultMutableTreeNode collectionsNode) {
@@ -529,7 +547,7 @@ public class TreeRightClickListener {
                 }).show();
     }
 
-    private static void handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
+    private static DefaultActionGroup handleScopeRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         ScopeNodeDescriptor scope = (ScopeNodeDescriptor) clickedNode.getUserObject();
         String bucketName = scope.getBucket();
@@ -578,9 +596,7 @@ public class TreeRightClickListener {
                             if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Scope")) return;
 
                             // Show confirmation dialog before deleting scope
-                            int result = Messages.showYesNoDialog(
-                                    "Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope",
-                                    Messages.getQuestionIcon());
+                            int result = DeleteConfirmation.ask(project, "Are you sure you want to delete the scope " + scopeName + "?", "Delete Scope", "Delete");
                             if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Scope")) {
                                 return;
                             }
@@ -650,10 +666,10 @@ public class TreeRightClickListener {
         }
 
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
-    private static void handleDocumentRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, FileNodeDescriptor col, Tree tree) {
+    private static DefaultActionGroup handleDocumentRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, FileNodeDescriptor col, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         String bucket = col.getBucket();
@@ -703,9 +719,7 @@ public class TreeRightClickListener {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Document")) return;
-                    int result = Messages.showYesNoDialog(
-                            "<html>Are you sure you want to delete the document " + "<strong>" + col.getId() + "</strong>?</html>",
-                            "Delete Document", Messages.getQuestionIcon());
+                    int result = DeleteConfirmation.askForDocument(project, col.getId());
                     if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Document")) {
                         return;
                     }
@@ -722,10 +736,10 @@ public class TreeRightClickListener {
             actionGroup.add(deleteDoc);
         }
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
-    private static void handleIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, IndexNodeDescriptor idx, Tree tree) {
+    private static DefaultActionGroup handleIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, IndexNodeDescriptor idx, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction viewIdxStatsAction = new AnAction("View Stats") {
@@ -748,7 +762,29 @@ public class TreeRightClickListener {
             });
         }
 
-        showPopup(e, tree, actionGroup);
+        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
+            ClusterUiTask.Connection original = ClusterUiTask.capture(ActiveCluster.getInstance());
+            String indexName = idx.getText().substring(0, idx.getText().lastIndexOf('.'));
+            String keyspace = TreeCopy.qualifiedName(idx.getBucket(), idx.getScope(), idx.getCollection());
+            actionGroup.addSeparator();
+            actionGroup.add(new AnAction("Drop Index") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    if (!requireMenuTarget(project, original, tree, clickedNode, "Drop Index")) return;
+                    int result = DeleteConfirmation.ask(project,
+                            "<html>Drop the index <strong>" + indexName + "</strong> on " + keyspace + "?</html>", "Drop Index", "Drop");
+                    if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Drop Index")) return;
+                    runMutation(project, original, "Dropping index", sdk -> dropIndex(
+                            sdk.bucket(idx.getBucket()).scope(idx.getScope()).collection(idx.getCollection()).queryIndexes(), indexName), () -> {
+                        if (clickedNode.getParent() instanceof DefaultMutableTreeNode parent
+                                && parent.getUserObject() instanceof IndexesNodeDescriptor && parent.getRoot() == tree.getModel().getRoot())
+                            DataLoader.listIndexes(parent, tree);
+                    });
+                }
+            });
+        }
+
+        return actionGroup;
     }
 
     private static void showPopup(MouseEvent e, Tree tree, DefaultActionGroup actionGroup) {
@@ -756,7 +792,7 @@ public class TreeRightClickListener {
                 .getComponent().show(tree, e.getX(), e.getY());
     }
 
-    private static void handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
+    private static DefaultActionGroup handleCollectionRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, CollectionNodeDescriptor col, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
         AnAction openDocument = new AnAction("Open Document") {
@@ -906,9 +942,8 @@ public class TreeRightClickListener {
                         try {
                             if (!requireMenuTarget(project, original, tree, clickedNode, "Delete Collection")) return;
 
-                            int result = Messages.showYesNoDialog(
-                                    "Are you sure you want to delete the collection " + col.getText() + "?",
-                                    "Delete Collection", Messages.getQuestionIcon());
+                            int result = DeleteConfirmation.ask(project, "Are you sure you want to delete the collection " + col.getText() + "?",
+                                    "Delete Collection", "Delete");
                             if (result != Messages.YES || !requireMenuTarget(project, original, tree, clickedNode, "Delete Collection")) {
                                 return;
                             }
@@ -961,11 +996,11 @@ public class TreeRightClickListener {
         };
         actionGroup.add(simpleExport);
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 
 
-    private static void handleSearchIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, SearchIndexNodeDescriptor idx, Tree tree) {
+    private static DefaultActionGroup handleSearchIndexRightClick(Project project, MouseEvent e, DefaultMutableTreeNode clickedNode, SearchIndexNodeDescriptor idx, Tree tree) {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
 
@@ -1006,9 +1041,8 @@ public class TreeRightClickListener {
             AnAction deleteDoc = new AnAction("Delete Index") {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
-                    int result = Messages.showYesNoDialog(
-                            "<html>Are you sure you want to delete the index <strong>" + idx.getIndexName() + "</strong>?</html>",
-                            "Delete Document", Messages.getQuestionIcon());
+                    int result = DeleteConfirmation.ask(project, "<html>Are you sure you want to delete the index <strong>" + idx.getIndexName() + "</strong>?</html>",
+                            "Delete Index", "Delete");
                     if (result != Messages.YES) {
                         return;
                     }
@@ -1044,6 +1078,6 @@ public class TreeRightClickListener {
             actionGroup.add(deleteDoc);
         }
 
-        showPopup(e, tree, actionGroup);
+        return actionGroup;
     }
 }

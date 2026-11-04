@@ -96,11 +96,8 @@ public class CouchbaseWindowContent extends JPanel {
                     TreePath clickedPath = tree.getPathForLocation(e.getX(), e.getY());
                     if (clickedPath != null) {
                         DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
-                        if (clickedNode.getUserObject() instanceof LoadMoreCollectionsNodeDescriptor) {
-                            DataLoader.loadMoreCollections((DefaultMutableTreeNode) clickedNode.getParent(), tree);
-                        } else if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
-                            LoadMoreNodeDescriptor loadMore = (LoadMoreNodeDescriptor) clickedNode.getUserObject();
-                            DataLoader.listDocuments((DefaultMutableTreeNode) clickedNode.getParent(), tree, loadMore.getNewOffset());
+                        if (clickedNode.getUserObject() instanceof LoadMoreNodeDescriptor) {
+                            TreeNodeActions.open(project, tree, clickedNode);
                         }
                     }
                 }
@@ -115,35 +112,8 @@ public class CouchbaseWindowContent extends JPanel {
                     DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) clickedPath.getLastPathComponent();
                     Object userObject = clickedNode.getUserObject();
                     if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) {
-                        if (userObject instanceof FileNodeDescriptor) {
-                            FileNodeDescriptor descriptor = (FileNodeDescriptor) userObject;
-                            //always force to load the file from server on read only mode.
-                            if (ActiveCluster.getInstance().isReadOnlyMode()) {
-                                descriptor.setVirtualFile(null);
-                            }
-
-                            DataLoader.loadDocument(project, descriptor, tree, file -> {
-                                EditorOpening.openFile(project, file, editors -> {
-                                    if (!editors.isEmpty()) CouchbaseDocumentEditorRefresher.attach(editors.getFirst());
-                                });
-                            });
-                        } else if (userObject instanceof IndexNodeDescriptor descriptor) {
-                            VirtualFile virtualFile = descriptor.getVirtualFile();
-                            if (virtualFile != null) {
-                                EditorOpening.openFile(project, virtualFile);
-
-                            } else {
-                                Log.debug("virtual file is null");
-                            }
-                        } else if (userObject instanceof SearchIndexNodeDescriptor descriptor) {
-                            VirtualFile virtualFile = descriptor.getVirtualFile();
-                            if (virtualFile != null) {
-                                DocumentFormatter.formatFile(project, virtualFile);
-                                EditorOpening.openFile(project, virtualFile);
-
-                            } else {
-                                Log.debug("virtual file is null");
-                            }
+                        if (TreeNodeActions.open(project, tree, clickedNode)) {
+                            return;
                         } else if (userObject instanceof MissingIndexNodeDescriptor) {
 
                             MissingIndexNodeDescriptor node = (MissingIndexNodeDescriptor) userObject;

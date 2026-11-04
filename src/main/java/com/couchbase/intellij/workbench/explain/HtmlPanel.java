@@ -12,7 +12,7 @@ public class HtmlPanel extends JPanel {
 
     public HtmlPanel() {
         super(new BorderLayout());
-        setBackground(Color.decode("#3c3f41"));
+        setBackground(com.intellij.util.ui.UIUtil.getPanelBackground()); // follows the IDE theme
         JBCefClient jbCefClient = JBCefApp.getInstance().createClient();
         jbCefBrowser = JBCefBrowser.createBuilder().setClient(jbCefClient)
             .setUrl(null)

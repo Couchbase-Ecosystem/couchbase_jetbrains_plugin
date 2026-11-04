@@ -48,7 +48,7 @@ public class ExplainContent {
                     "    <script src=\"" + scripts + "makeD3TreeFromSimpleTree.js\"></script>\n" +
                     "  </head>\n" +
                     "\n" +
-                    "   <body style=\" background: #3c3f41\">\n" +
+                    "   <body style=\" background: CB_BACKGROUND\">\n" +
                     "    <pre id='debug' style='display: none;'>\n" +
                     "    </pre>\n" +
                     "\n" +
@@ -62,7 +62,7 @@ public class ExplainContent {
                     "      style=\"\n" +
                     "        width: 95%;\n" +
                     "        height: 300px;\n" +
-                    "        background: #3c3f41;\n" +
+                    "        background: CB_BACKGROUND;\n" +
                     "        margin: 10px auto;\n" +
                     "      \"\n" +
                     "    ></div>\n" +
@@ -85,6 +85,12 @@ public class ExplainContent {
                     "    </script>\n" +
                     "  </body>";
         }
-        return content.replace("CB_EXPLAIN_RESULT", explainResult.stream().collect(Collectors.joining(", ", "[", "]")));
+        return render(content, explainResult, utils.ColorHelper.panelBackgroundHex());
+    }
+
+    /** Fills the template with the plans and the page background, which follows the IDE theme. */
+    static String render(String template, Collection<String> explainResult, String backgroundHex) {
+        return template.replace("CB_BACKGROUND", backgroundHex)
+                .replace("CB_EXPLAIN_RESULT", explainResult.stream().collect(Collectors.joining(", ", "[", "]")));
     }
 }
