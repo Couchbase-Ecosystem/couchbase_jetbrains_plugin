@@ -292,6 +292,18 @@ public class CollectionListingTest {
     }
 
     @Test
+    public void removingAConnectionDropsOnlyItsFavorites() {
+        FavoriteCollections f = new FavoriteCollections();
+        f.setFavorite("c1", "b", "s", "x", true);
+        f.setFavorite("c1", "other", "s", "y", true);
+        f.setFavorite("c10", "b", "s", "z", true);
+        f.removeConnection("c1");
+        assertTrue(f.getFavorites("c1", "b", "s").isEmpty());
+        assertTrue(f.getFavorites("c1", "other", "s").isEmpty());
+        assertEquals("a connection id that merely starts the same is untouched", List.of("z"), f.getFavorites("c10", "b", "s"));
+    }
+
+    @Test
     public void similarScopeNamesDoNotLeakIntoEachOther() {
         FavoriteCollections f = new FavoriteCollections();
         f.setFavorite("c", "b", "sc", "x", true);

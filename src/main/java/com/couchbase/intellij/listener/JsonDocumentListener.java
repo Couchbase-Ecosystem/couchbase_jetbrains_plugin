@@ -58,7 +58,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
 
                 //this is a new document
                 if (doc == null) {
-                    saveCBLDocument(document, file);
+                    return saveCBLDocument(document, file);
                 } else {
 
 
@@ -71,8 +71,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                                 , options, 1, Messages.getWarningIcon());
 
                         if (result == 0) {
-                            saveCBLDocument(document, file);
-                            return true;
+                            return saveCBLDocument(document, file);
                         } else if (result == 1) {
                             file.putUserData(VirtualFileKeys.CAS, doc.getRevisionID());
                             ApplicationManager.getApplication().runWriteAction(() -> {
@@ -87,19 +86,24 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                             return false;
                         }
                     } else {
-                        saveCBLDocument(document, file);
+                        return saveCBLDocument(document, file);
                     }
                 }
 
             } catch (CouchbaseLiteException ex) {
+                // Returning true here would clear the editor's dirty flag although nothing was written.
                 Log.error("Could not save the document", ex);
+                Messages.showErrorDialog("<html>The Document <strong>" + file.getUserData(VirtualFileKeys.ID)
+                        + "</strong> could not be saved: " + ex.getMessage() + "</html>", "Couchbase Plugin Error");
+                return false;
             }
 
         }
         return true;
     }
 
-    private static void saveCBLDocument(@NotNull Document document, VirtualFile file) throws CouchbaseLiteException {
+    /** @return whether the document was written; false keeps the editor dirty so the user can retry. */
+    private static boolean saveCBLDocument(@NotNull Document document, VirtualFile file) throws CouchbaseLiteException {
 
 
         try {
@@ -108,7 +112,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
             Messages.showErrorDialog("<html>The Document <strong>"
                     + file.getUserData(VirtualFileKeys.ID)
                     + "</strong> can't be saved as it is not a valid JSON</html>", "Couchbase Plugin Error");
-            return;
+            return false;
         }
 
         MutableDocument newDoc = new MutableDocument(file.getUserData(VirtualFileKeys.ID));
@@ -125,6 +129,7 @@ public class JsonDocumentListener extends FileDocumentSynchronizationVetoer {
                 .getDocument(file.getUserData(VirtualFileKeys.ID));
 
         file.putUserData(VirtualFileKeys.CAS, String.valueOf(doc.getRevisionID()));
+        return true;
     }
 
 }

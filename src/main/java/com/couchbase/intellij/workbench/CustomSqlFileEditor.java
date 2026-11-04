@@ -209,7 +209,9 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         return;
                     }
                     String statement = getFocusedStatement();
-
+                    if (statement == null) {
+                        return;
+                    }
                     startQueryExecution(executeGroup, ADVISE, List.of(statement));
                 });
             }
@@ -224,6 +226,9 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
                         return;
                     }
                     String statement = getFocusedStatement();
+                    if (statement == null) {
+                        return;
+                    }
                     startQueryExecution(executeGroup, EXPLAIN, List.of(statement));
                 });
             }
@@ -377,13 +382,9 @@ public class CustomSqlFileEditor implements FileEditor, TextEditor {
         if (err != null) {
             return queryEditor.getDocument().getText();
         }
-        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
-            PsiElement focused = psi.findElementAt(queryEditor.textEditor.getEditor().getCaretModel().getOffset());
-            if (focused != null) {
-                return normalizeStatement(PsiTreeUtil.getTopmostParentOfType(focused, Statement.class));
-            }
-            return null;
-        });
+        // At the end of the file or on whitespace between statements there is no element under the caret;
+        // the closest statement before it is what the user means.
+        return StatementAtCaret.find(psi, queryEditor.textEditor.getEditor().getCaretModel().getOffset());
     }
 
     private List<String> getStatements() {

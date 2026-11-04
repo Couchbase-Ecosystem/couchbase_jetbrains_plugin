@@ -167,6 +167,10 @@ public class CBLTreeRightClickListener {
         AnAction deleteConnection = new AnAction("Delete Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                if (Messages.showYesNoDialog(project, "Delete the connection '" + userObject.getText() + "'?",
+                        "Delete Connection", "Delete", "Cancel", Messages.getWarningIcon()) != Messages.YES) {
+                    return;
+                }
                 try {
                     CBLTreeHandler.deleteConnection(clickedNode, userObject, tree);
                 } catch (CouchbaseLiteException ex) {

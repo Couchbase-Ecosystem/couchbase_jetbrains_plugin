@@ -391,7 +391,12 @@ public class TreeRightClickListener {
         AnAction deleteConnection = new AnAction("Delete Connection") {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
+                int choice = Messages.showYesNoDialog(project,
+                        "Delete the connection '" + userObject.getText() + "'? Its saved password, favorites and cached schema are removed too.",
+                        "Delete Connection", "Delete", "Cancel", Messages.getWarningIcon());
+                if (choice == Messages.YES) {
+                    TreeActionHandler.deleteConnection(clickedNode, userObject, tree);
+                }
             }
         };
         actionGroup.add(deleteConnection);
@@ -594,25 +599,20 @@ public class TreeRightClickListener {
 
         actionGroup.addSeparator();
 
-        if (!ActiveCluster.getInstance().isReadOnlyMode()) {
-            AnAction simpleImport = new PasswordConnectionAction("Simple Import") {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    // Show confirmation dialog before deleting scope
-                    FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
-                    VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
-                    if (file != null) {
-                        CBImport.simpleScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
-                    } else {
-                        Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
-                                                 "Simple " + "Import Error");
-                    }
+        // Listed even while cbimport/cbexport are still downloading; the entries disable themselves with a reason.
+        AnAction simpleImport = new PasswordConnectionAction("Simple Import", CBTools.Type.CB_IMPORT, true) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+                VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
+                if (file != null) { // cancelling the chooser is not an error
+                    CBImport.simpleScopeImport(scope.getBucket(), scope.getText(), file.getPath(), project);
                 }
-            };
-            actionGroup.add(simpleImport);
-        }
+            }
+        };
+        actionGroup.add(simpleImport);
 
-        AnAction simpleExport = new PasswordConnectionAction("Simple Export") {
+        AnAction simpleExport = new PasswordConnectionAction("Simple Export", CBTools.Type.CB_EXPORT, false) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 FileSaverDescriptor fsd = new FileSaverDescriptor("Simple Scope Export",
@@ -861,12 +861,9 @@ public class TreeRightClickListener {
                 FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor(
                         "json");
                 VirtualFile file = FileChooser.chooseFile(descriptor, project, null);
-                if (file != null) {
+                if (file != null) { // cancelling the chooser is not an error
                     CBImport.simpleCollectionImport(col.getBucket(), col.getScope(), col.getText(),
                                                     file.getPath(), null);
-                } else {
-                    Messages.showErrorDialog("Simple Import requires a .json file. Please try again.",
-                                             "Simple Import Error");
                 }
             }
         };
@@ -905,11 +902,13 @@ public class TreeRightClickListener {
                         searchWorkbenchCounter++;
                         String fileName = "search" + searchWorkbenchCounter + ".cbs.json";
                         String fileContent = """
+                                {
                                   "query": {
                                     "query": "your_query_here"
                                   },
                                   "fields": ["*"]
-                                        """;
+                                }
+                                """;
                         VirtualFile virtualFile = new LightVirtualFile(fileName, FileTypeManager.getInstance()
                                                                                                 .getFileTypeByExtension(
                                                                                                         "cbs.json"),

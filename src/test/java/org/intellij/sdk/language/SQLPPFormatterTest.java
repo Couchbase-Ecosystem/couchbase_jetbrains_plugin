@@ -50,4 +50,30 @@ public class SQLPPFormatterTest {
         // Quote handling is ad hoc (the formatter splits on quotes); pin only that the literal survives intact.
         assertTrue(SQLPPFormatter.format("select 'a, b' from t").contains("'a, b'"));
     }
+
+    @Test
+    public void testDoubleQuotedStringsAreCopiedThrough() {
+        String out = SQLPPFormatter.format("select * from t where name = \"a  and   b, c\"");
+        assertTrue(out, out.contains("\"a  and   b, c\""));
+    }
+
+    @Test
+    public void testBacktickedIdentifiersAreCopiedThrough() {
+        String out = SQLPPFormatter.format("select `my  from` from `travel-sample`.`inventory`.`on time`");
+        assertTrue(out, out.contains("`my  from`"));
+        assertTrue(out, out.contains("`on time`"));
+    }
+
+    @Test
+    public void testCommentsAreKeptAndDoNotSwallowTheRestOfTheQuery() {
+        String out = SQLPPFormatter.format("select * -- all of them\nfrom t /* keep   this */ where x = 1");
+        assertTrue(out, out.contains("-- all of them\n"));
+        assertTrue(out, out.contains("/* keep   this */"));
+        assertTrue(out, out.contains("WHERE x = 1"));
+    }
+
+    @Test
+    public void testRunsOfWhitespaceOutsideLiteralsCollapse() {
+        assertEquals("SELECT a\nFROM t", SQLPPFormatter.format("select    a\t\tfrom\n\n   t"));
+    }
 }

@@ -459,7 +459,12 @@ public class DataLoader {
 
     public static void deleteSavedCluster(SavedCluster sv) {
         PasswordStorage.savePassword(sv, null);
-        ClustersStorage.getInstance().getValue().getMap().remove(sv.getId());
+        Clusters clusters = ClustersStorage.getInstance().getValue();
+        clusters.getMap().remove(sv.getId());
+        // Everything else keyed by the connection id would otherwise linger in the plugin's XML for good.
+        clusters.getInferCache().remove(sv.getId());
+        clusters.getInferCacheUpdateTimes().remove(sv.getId());
+        FavoriteCollectionsStorage.getInstance().getValue().removeConnection(sv.getId());
     }
 
     public static void createPrimaryIndex(String bucket, String scope, String collection) {

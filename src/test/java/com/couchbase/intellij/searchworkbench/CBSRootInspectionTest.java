@@ -191,6 +191,17 @@ public class CBSRootInspectionTest extends CodeInsightFixtureTestCase {
     }
 
 
+    public void testKnnOperatorIsAValidRootKey() {
+        String json = """
+                {
+                    "query": { "match": "pool", "field": "name" },
+                    "knn": [ { "k": 3, "field": "vec", "vector": [0.1, 0.2] } ],
+                    "knn_operator": "or"
+                }
+                """;
+        assertSize(0, getHighlightInfos(json));
+    }
+
     public void testInvalidTypes() {
         String json = """
                 {

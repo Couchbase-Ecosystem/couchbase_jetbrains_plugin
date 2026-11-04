@@ -35,6 +35,11 @@ public class FavoriteCollections {
         }
     }
 
+    /** Forgets every favorite of a connection, for when the connection itself is deleted. */
+    public void removeConnection(String connectionId) {
+        keys.removeIf(k -> k.startsWith(connectionId + "|"));
+    }
+
     /** Favorite collection names (unsorted) for one scope of one connection. */
     public List<String> getFavorites(String connectionId, String bucket, String scope) {
         String prefix = key(connectionId, bucket, scope, "");
