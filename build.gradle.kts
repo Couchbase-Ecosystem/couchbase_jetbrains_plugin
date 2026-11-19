@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.couchbase"
-version = "1.1.11"
+version = "1.1.12"
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
@@ -150,6 +150,7 @@ intellijPlatform {
                         <a href="https://github.com/couchbaselabs/couchbase_jetbrains_plugin">project repo</a>.
         """.trimIndent()
         changeNotes = """
+            1.1.12  - paged collection browsing with search and favorites, certificate authentication, copy/paste of documents in the explorer, sortable and searchable query results, explain panel theming, tree keyboard support, bucket overview and drop index, and a more responsive UI on large scopes
             1.1.11  - removes the Capella iQ chat tab and its Capella login; dependency upgrades (Couchbase Java SDK 3.13), removal of deprecated APIs, compatibility with IntelliJ 2025.2 (252) up to 2027.3 (273.*); dropped support for 2025.1
             1.1.10  - compatibility with intellij 262.*
             1.1.9   - compatibility with intellij 261.*
