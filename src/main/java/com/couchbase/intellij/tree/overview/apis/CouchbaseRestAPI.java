@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 public class CouchbaseRestAPI {
 
     public static String getMetaDocument(String bucket, String scope, String collection, String id) throws Exception {
-        String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/"
-                + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs/" + id, ActiveCluster.getInstance().getClusterURL());
+        String result = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, "/pools/default/buckets/"
+                + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs/" + id), ActiveCluster.getInstance().getClusterURL());
 
         JsonObject object = JsonObject.fromJson(result);
         object.removeKey("json");
@@ -39,8 +39,7 @@ public class CouchbaseRestAPI {
     }
 
     public static List<String> listKVDocuments(String bucket, String scope, String collection, int skip, int limit, String start, String end) throws Exception {
-        String result = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091")
-                        + kvDocumentsPath(bucket, scope, collection, skip, limit, start, end),
+        String result = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, kvDocumentsPath(bucket, scope, collection, skip, limit, start, end)),
                 ActiveCluster.getInstance().getClusterURL());
 
         Gson gson = new Gson();
@@ -99,7 +98,7 @@ public class CouchbaseRestAPI {
                 "  }\n" +
                 "]";
 
-        String content = callPostSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/stats/range/",
+        String content = callPostSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, "/pools/default/stats/range/"),
                 ActiveCluster.getInstance().getClusterURL(), payload);
 
         Gson gson = new GsonBuilder().create();
@@ -129,7 +128,7 @@ public class CouchbaseRestAPI {
             key += ":" + scope + ":" + collection + ":" + indexName;
         }
 
-        List<String> calls = callAllEndpoints((ActiveCluster.getInstance().isSSLEnabled() ? "19102" : "9102") + "/api/v1/stats/" + bucket + "." + scope + "." + collection, ActiveCluster.getInstance().getClusterURL());
+        List<String> calls = callAllEndpoints(endpoint(CouchbaseService.INDEX, "/api/v1/stats/" + bucket + "." + scope + "." + collection), ActiveCluster.getInstance().getClusterURL());
 
         Log.debug("Endpoint results " + calls.size());
         Gson gson = new GsonBuilder().create();
@@ -158,22 +157,30 @@ public class CouchbaseRestAPI {
 
     public static ServerOverview getOverview() throws Exception {
 
-        String content = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/nodes", ActiveCluster.getInstance().getClusterURL());
+        String content = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, "/pools/nodes"), ActiveCluster.getInstance().getClusterURL());
         Gson gson = new GsonBuilder().serializeNulls().create();
         return gson.fromJson(content, ServerOverview.class);
     }
 
     public static BucketOverview getBucketOverview(String bucket) throws Exception {
 
-        String content = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/pools/default/buckets/" + bucket, ActiveCluster.getInstance().getClusterURL());
+        String content = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, "/pools/default/buckets/" + bucket), ActiveCluster.getInstance().getClusterURL());
         Gson gson = new GsonBuilder().serializeNulls().create();
         return gson.fromJson(content, BucketOverview.class);
     }
 
     public static Permissions callWhoAmIEndpoint() throws Exception {
-        String content = callSingleEndpoint((ActiveCluster.getInstance().isSSLEnabled() ? "18091" : "8091") + "/whoami", ActiveCluster.getInstance().getClusterURL());
+        String content = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, "/whoami"), ActiveCluster.getInstance().getClusterURL());
         Gson gson = new GsonBuilder().serializeNulls().create();
         return gson.fromJson(content, Permissions.class);
+    }
+
+    /**
+     * The {@code port + path} endpoint of {@code service}, using the TLS port when the active cluster uses TLS
+     * (the same setting {@link #setupConnection} uses to pick the https scheme).
+     */
+    private static String endpoint(CouchbaseService service, String path) {
+        return service.endpoint(ActiveCluster.getInstance().isSSLEnabled(), path);
     }
 
     private static String callSingleEndpoint(String endpoint, String cbURL) throws Exception {
@@ -210,14 +217,10 @@ public class CouchbaseRestAPI {
     }
 
     public static CompletableFuture<String> callFTS(boolean isScoped, String bucket, String scope, String indexName, String query) throws Exception {
-        String endpoint = (ActiveCluster.getInstance().isSSLEnabled() ? "18094" : "8094");
-
-        if (isScoped) {
-            endpoint += "/api/bucket/" + bucket + "/scope/" + scope + "/index/" + indexName + "/query";
-        } else {
-            endpoint += "/api/index/" + indexName + "/query";
-        }
-        return callEndpointAllowErrors(false, endpoint, ActiveCluster.searchNodes().get(0), query);
+        String path = isScoped
+                ? "/api/bucket/" + bucket + "/scope/" + scope + "/index/" + indexName + "/query"
+                : "/api/index/" + indexName + "/query";
+        return callEndpointAllowErrors(false, endpoint(CouchbaseService.SEARCH, path), ActiveCluster.searchNodes().get(0), query);
     }
 
     private static HttpURLConnection setupConnection(boolean isGet, String endpoint, String serverURL, String data) throws Exception {
