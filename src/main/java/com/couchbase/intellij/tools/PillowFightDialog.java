@@ -635,20 +635,26 @@ public class PillowFightDialog extends DialogWrapper {
 
     /** Grows or shrinks the dialog with the advanced section, staying within 80% of the screen height. */
     private void fitToContent(JBScrollPane scrollPane) {
-        // JBScrollPane adds the vertical scroll bar to its preferred width when it thinks the bar is needed, which it
-        // still does right after collapsing the tall expanded layout. Measure without the bar and add it back below
-        // only when the content really is taller than the limit.
-        scrollPane.getViewport().setViewPosition(new Point(0, 0));
-        int policy = scrollPane.getVerticalScrollBarPolicy();
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(null);
-        Dimension preferred = scrollPane.getPreferredSize();
-        scrollPane.setVerticalScrollBarPolicy(policy);
+        // Size the scroll pane from its view, not from JBScrollPane's own preferred size: right after collapsing the
+        // tall expanded layout, its layout still counts the vertical scroll bar (even with the bar policy switched
+        // off), so the dialog came back one scroll bar wider than its compact size. The bar is added below only when
+        // the content really is taller than the limit.
+        JViewport viewport = scrollPane.getViewport();
+        viewport.setViewPosition(new Point(0, 0));
+        Component view = viewport.getView();
+        Dimension content = view instanceof Scrollable scrollable
+                ? scrollable.getPreferredScrollableViewportSize() : view.getPreferredSize();
+        Insets insets = scrollPane.getInsets();
+        Insets viewportInsets = scrollPane.getViewportBorder() == null ? JBUI.emptyInsets()
+                : scrollPane.getViewportBorder().getBorderInsets(scrollPane);
+        int width = content.width + insets.left + insets.right + viewportInsets.left + viewportInsets.right;
+        int height = content.height + insets.top + insets.bottom + viewportInsets.top + viewportInsets.bottom;
         int maxHeight = (int) (ScreenUtil.getScreenRectangle(scrollPane).height * 0.8);
-        if (preferred.height > maxHeight) {
-            preferred = new Dimension(preferred.width + scrollPane.getVerticalScrollBar().getPreferredSize().width, maxHeight);
+        if (height > maxHeight) {
+            width += scrollPane.getVerticalScrollBar().getPreferredSize().width;
+            height = maxHeight;
         }
-        scrollPane.setPreferredSize(preferred);
+        scrollPane.setPreferredSize(new Dimension(width, height));
         pack();
         Window window = getWindow();
         if (window != null) {

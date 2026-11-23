@@ -119,9 +119,15 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
             await("dialog shrinks back to its compact size", () -> GuiActionRunner.execute(() ->
                     Math.abs(window.getWidth() - compact.width) <= 4 && window.getHeight() <= compact.height + 4));
         } catch (WaitTimedOutError timedOut) {
-            Dimension now = GuiActionRunner.execute(() -> window.getSize());
-            throw new AssertionError("After collapsing, the dialog is " + now.width + "x" + now.height
-                    + "; the compact size is " + compact.width + "x" + compact.height, timedOut);
+            String state = GuiActionRunner.execute(() -> {
+                JScrollPane pane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, advanced);
+                return "After collapsing, the dialog is " + window.getWidth() + "x" + window.getHeight()
+                        + "; the compact size is " + compact.width + "x" + compact.height
+                        + "; scroll pane " + pane.getSize() + " preferred " + pane.getPreferredSize()
+                        + ", view preferred " + pane.getViewport().getView().getPreferredSize()
+                        + ", vertical bar visible " + pane.getVerticalScrollBar().isVisible();
+            });
+            throw new AssertionError(state, timedOut);
         }
     }
 }
