@@ -125,6 +125,11 @@ public class TreeToolBarBuilder {
                 NewConnectionDialog dialog = new NewConnectionDialog(project, tree, null, null);
                 dialog.show();
             }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
+            }
         };
         addConnectionAction.getTemplatePresentation()
                            .setIcon(IconLoader.getIcon("/assets/icons/new_database.svg", CouchbaseWindowContent.class));
@@ -189,6 +194,11 @@ public class TreeToolBarBuilder {
 
                 Component component = e.getInputEvent().getComponent();
                 menu.show(component, component.getWidth() / 2, component.getHeight() / 2);
+            }
+
+            @Override
+            public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.BGT;
             }
         };
         ellipsisAction.getTemplatePresentation().setIcon(

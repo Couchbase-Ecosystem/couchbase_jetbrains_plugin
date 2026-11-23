@@ -2,7 +2,8 @@ package com.couchbase.intellij.tree;
 
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.DoNotAskOption;
+import com.intellij.openapi.ui.MessageDialogBuilder;
 import com.intellij.openapi.ui.Messages;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,14 +23,16 @@ public final class DeleteConfirmation {
     }
 
     /** Document deletes can be remembered: once "Don't ask again" is ticked they proceed without a prompt. */
-    @SuppressWarnings("deprecation") // Messages.showDialog with a default button index only takes the DialogWrapper variant
     public static int askForDocument(@Nullable Project project, String id) {
         PropertiesComponent properties = PropertiesComponent.getInstance();
         if (!properties.getBoolean(ASK_BEFORE_DELETING_DOCUMENTS, true)) {
             return Messages.YES;
         }
-        int choice = Messages.showDialog(project, "<html>Delete the document <strong>" + id + "</strong>?</html>", "Delete Document",
-                new String[]{"Delete", Messages.getCancelButton()}, 1, Messages.getWarningIcon(), new DialogWrapper.DoNotAskOption.Adapter() {
+        String cancel = Messages.getCancelButton();
+        String choice = new MessageDialogBuilder.Message("Delete Document",
+                "<html>Delete the document <strong>" + id + "</strong>?</html>")
+                .buttons("Delete", cancel).defaultButton(cancel).focusedButton(cancel).asWarning()
+                .doNotAsk(new DoNotAskOption.Adapter() {
                     @Override
                     public void rememberChoice(boolean isSelected, int exitCode) {
                         if (isSelected && exitCode == 0) {
@@ -41,7 +44,7 @@ public final class DeleteConfirmation {
                     public @NotNull String getDoNotShowMessage() {
                         return "Don't ask again when deleting documents";
                     }
-                });
-        return choice == 0 ? Messages.YES : Messages.NO;
+                }).show(project, null);
+        return "Delete".equals(choice) ? Messages.YES : Messages.NO;
     }
 }

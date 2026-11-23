@@ -7,7 +7,9 @@ import com.couchbase.intellij.workbench.EditorOpening;
 import com.couchbase.intellij.workbench.Log;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.ActionUiKind;
 import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.project.Project;
@@ -71,7 +73,13 @@ public final class TreeNodeActions {
         if (action == null) {
             return false;
         }
-        ActionUtil.invokeAction(action, DataManager.getInstance().getDataContext(tree), ActionPlaces.KEYBOARD_SHORTCUT, null, null);
+        AnActionEvent event = AnActionEvent.createEvent(DataManager.getInstance().getDataContext(tree),
+                action.getTemplatePresentation().clone(), ActionPlaces.KEYBOARD_SHORTCUT, ActionUiKind.NONE, null);
+        // Same contract as the removed ActionUtil.invokeAction: refresh the presentation, run only if it is usable.
+        ActionUtil.updateAction(action, event);
+        if (event.getPresentation().isEnabledAndVisible()) {
+            ActionUtil.performAction(action, event);
+        }
         return true;
     }
 
@@ -79,7 +87,7 @@ public final class TreeNodeActions {
         if (menu == null) {
             return null;
         }
-        for (AnAction action : menu.getChildren((com.intellij.openapi.actionSystem.AnActionEvent) null)) {
+        for (AnAction action : menu.getChildActionsOrStubs()) {
             String text = action.getTemplatePresentation().getText();
             if (text == null) continue;
             for (String prefix : prefixes) {

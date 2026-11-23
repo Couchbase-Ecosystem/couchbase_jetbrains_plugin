@@ -269,9 +269,9 @@ public class DependenciesDownloader {
     public static void extractArchive(File archive, File targetDir) throws IOException {
         String name = archive.getName().toLowerCase(Locale.ROOT);
         if (name.endsWith(".tar.gz") || name.endsWith(".tgz") || name.endsWith(".tar")) {
-            new Decompressor.Tar(archive).extract(targetDir);
+            new Decompressor.Tar(archive.toPath()).extract(targetDir.toPath());
         } else {
-            new Decompressor.Zip(archive).withZipExtensions().extract(targetDir);
+            new Decompressor.Zip(archive.toPath()).withZipExtensions().extract(targetDir.toPath());
         }
     }
 
