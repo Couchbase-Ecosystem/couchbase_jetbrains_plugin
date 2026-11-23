@@ -60,6 +60,11 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
         return thread;
     });
     private static final AtomicReference<Object> CURRENT_TEST = new AtomicReference<>();
+    /**
+     * Guards CURRENT_TEST changes together with the watchdog's interrupt and dialog disposal, so a watchdog cannot
+     * pass its ownership check, pause, and then act on a test that has started since.
+     */
+    private static final Object WATCHDOG_LOCK = new Object();
     private Object testToken;
     private ScheduledFuture<?> watchdog;
 
@@ -157,7 +162,9 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
         String test = getClass().getSimpleName() + "-" + getName();
         Object token = new Object();
         testToken = token;
-        CURRENT_TEST.set(token);
+        synchronized (WATCHDOG_LOCK) {
+            CURRENT_TEST.set(token);
+        }
         watchdog = WATCHDOG.schedule(() -> {
             if (CURRENT_TEST.get() != token) {
                 return;
@@ -178,18 +185,34 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
             } catch (Exception ignored) {
                 // The dump is on stderr already.
             }
-            // Unblock what can be unblocked, but only while this test is still the one running.
-            if (CURRENT_TEST.get() == token) {
-                SwingUtilities.invokeLater(DialogUiTestCase::disposeShowingDialogs);
+            // Unblock what can be unblocked, but only while this test is still the one running. The EDT callback
+            // checks again: by the time it runs, this test may have finished and another one opened its dialogs.
+            synchronized (WATCHDOG_LOCK) {
+                if (CURRENT_TEST.get() != token) {
+                    return;
+                }
                 testThread.interrupt();
             }
+            SwingUtilities.invokeLater(() -> {
+                synchronized (WATCHDOG_LOCK) {
+                    if (CURRENT_TEST.get() == token) {
+                        disposeShowingDialogs();
+                    }
+                }
+            });
         }, WATCHDOG_SECONDS, TimeUnit.SECONDS);
     }
 
-    private void stopWatchdog() {
-        CURRENT_TEST.compareAndSet(testToken, null);
-        if (watchdog != null) {
-            watchdog.cancel(false);
+    /**
+     * Takes the token and future that tearDown saved before super.tearDown(): the platform clears this test's
+     * instance fields there, so testToken and watchdog are null afterwards.
+     */
+    private static void stopWatchdog(Object token, ScheduledFuture<?> future) {
+        synchronized (WATCHDOG_LOCK) {
+            CURRENT_TEST.compareAndSet(token, null);
+        }
+        if (future != null) {
+            future.cancel(false);
         }
     }
 
@@ -208,6 +231,9 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
 
     @Override
     protected void tearDown() throws Exception {
+        // super.tearDown() clears the instance fields; keep what stopWatchdog needs.
+        Object token = testToken;
+        ScheduledFuture<?> future = watchdog;
         try {
             closeDialogs();
         } finally {
@@ -219,7 +245,7 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
                 try {
                     super.tearDown();
                 } finally {
-                    stopWatchdog();
+                    stopWatchdog(token, future);
                     trace("tearDown", "activeCluster=" + ActiveCluster.INSTANCE.getValue());
                 }
             }
