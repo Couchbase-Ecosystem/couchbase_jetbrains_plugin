@@ -8,6 +8,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.tree.DialogUiTestCase;
 import org.assertj.swing.edt.GuiActionRunner;
+import org.assertj.swing.exception.WaitTimedOutError;
 import org.assertj.swing.fixture.DialogFixture;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -85,7 +86,13 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
         DialogFixture dialog = pillowFight();
         awaitCollections(dialog);
         JDialog window = (JDialog) dialog.target();
-        Dimension compact = GuiActionRunner.execute(() -> window.getSize());
+        // Measure the compact layout with the collections listed. The dialog opened while they were loading, and
+        // the status line under the picker ("10 of 25 collections listed. ...") is wider than "Loading collections...",
+        // so the size it opened with is narrower than what collapsing packs back to.
+        Dimension compact = GuiActionRunner.execute(() -> {
+            window.pack();
+            return window.getSize();
+        });
         CollapsiblePanel advanced = robot.finder().findByType(window, CollapsiblePanel.class);
 
         dialog.label("collapsibleHeader").click();
@@ -108,7 +115,13 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
         assertTrue("advanced labels were visible", checked > 5);
 
         dialog.label("collapsibleHeader").click();
-        await("dialog shrinks back to its compact size", () -> GuiActionRunner.execute(() ->
-                Math.abs(window.getWidth() - compact.width) <= 4 && window.getHeight() <= compact.height + 4));
+        try {
+            await("dialog shrinks back to its compact size", () -> GuiActionRunner.execute(() ->
+                    Math.abs(window.getWidth() - compact.width) <= 4 && window.getHeight() <= compact.height + 4));
+        } catch (WaitTimedOutError timedOut) {
+            Dimension now = GuiActionRunner.execute(() -> window.getSize());
+            throw new AssertionError("After collapsing, the dialog is " + now.width + "x" + now.height
+                    + "; the compact size is " + compact.width + "x" + compact.height, timedOut);
+        }
     }
 }

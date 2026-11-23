@@ -18,13 +18,19 @@ import org.mockito.Mockito;
 import javax.imageio.ImageIO;
 import javax.swing.JDialog;
 import javax.swing.SwingUtilities;
+import java.awt.Dialog;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -35,8 +41,12 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
                 "SystemPropertyWatcher");
     }
 
+    /** A test (with its setUp and tearDown) that runs longer than this is hung: dump the threads so CI shows where. */
+    private static final long WATCHDOG_SECONDS = Long.getLong("ui.test.watchdog.seconds", 300);
+
     protected Robot robot;
     private final List<DialogWrapper> dialogs = new ArrayList<>();
+    private ScheduledExecutorService watchdog;
 
     @Override
     protected boolean runInDispatchThread() {
@@ -48,6 +58,7 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
     protected void setUp() throws Exception {
         assertFalse("UI tests need a display; on Linux use xvfb-run -a ./gradlew uiTest",
                 GraphicsEnvironment.isHeadless());
+        startWatchdog();
         super.setUp();
         robot = BasicRobot.robotWithCurrentAwtHierarchy();
         robot.settings().delayBetweenEvents(30);
@@ -99,15 +110,59 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
         }
     }
 
-    /** Close modal peers before subclass cleanup invokes non-modal platform actions. */
+    /**
+     * Close modal peers before subclass cleanup invokes non-modal platform actions. A failed test can also leave
+     * dialogs it did not open itself (an error message, a search dialog); one of them still modal would block the
+     * next test, so dispose every dialog that is still showing.
+     */
     protected void closeDialogs() {
         GuiActionRunner.execute(() -> {
-                for (DialogWrapper dialog : dialogs) {
-                    if (!dialog.isDisposed()) {
-                        dialog.close(DialogWrapper.CANCEL_EXIT_CODE);
-                    }
+            for (DialogWrapper dialog : dialogs) {
+                if (!dialog.isDisposed()) {
+                    dialog.close(DialogWrapper.CANCEL_EXIT_CODE);
                 }
+            }
+            disposeShowingDialogs();
         });
+    }
+
+    private static void disposeShowingDialogs() {
+        for (Window window : Window.getWindows()) {
+            if (window instanceof Dialog && window.isShowing()) {
+                window.dispose();
+            }
+        }
+    }
+
+    private void startWatchdog() {
+        Thread testThread = Thread.currentThread();
+        String test = getClass().getSimpleName() + "-" + getName();
+        watchdog = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "UI test watchdog");
+            thread.setDaemon(true);
+            return thread;
+        });
+        watchdog.schedule(() -> {
+            StringBuilder dump = new StringBuilder(test + " still runs after " + WATCHDOG_SECONDS + "s. Threads:\n");
+            for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
+                Thread thread = entry.getKey();
+                dump.append('\n').append('"').append(thread.getName()).append("\" ").append(thread.getState()).append('\n');
+                for (StackTraceElement frame : entry.getValue()) {
+                    dump.append("    at ").append(frame).append('\n');
+                }
+            }
+            System.err.println(dump);
+            try {
+                Path artifacts = Path.of(System.getProperty("ui.test.artifacts"));
+                Files.createDirectories(artifacts);
+                Files.writeString(artifacts.resolve(test + "-threads.txt"), dump);
+            } catch (Exception ignored) {
+                // The dump is on stderr already.
+            }
+            // Unblock what can be unblocked: a leftover modal dialog, and a test thread waiting in a pause.
+            SwingUtilities.invokeLater(DialogUiTestCase::disposeShowingDialogs);
+            testThread.interrupt();
+        }, WATCHDOG_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -120,7 +175,13 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
                     robot.cleanUpWithoutDisposingWindows();
                 }
             } finally {
-                super.tearDown();
+                try {
+                    super.tearDown();
+                } finally {
+                    if (watchdog != null) {
+                        watchdog.shutdownNow();
+                    }
+                }
             }
         }
     }

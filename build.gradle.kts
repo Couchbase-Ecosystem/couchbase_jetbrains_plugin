@@ -2,6 +2,7 @@ import org.jetbrains.intellij.platform.gradle.IntelliJPlatform
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import java.time.Duration
 
 plugins {
     id("java")
@@ -103,11 +104,14 @@ val uiTest = intellijPlatformTesting.testIde.register("uiTest") {
         systemProperty("ui.test.artifacts", layout.buildDirectory.dir("reports/uiTest/artifacts").get().asFile)
         maxParallelForks = 1
         exclude("**/CriticalGuiSmokeTest.class")
+        // Stop a hung run well before the 30-minute CI job limit, so the step fails instead of being cancelled.
+        timeout = Duration.ofMinutes(20)
         if (providers.gradleProperty("uiTestsWithoutDocker").map(String::toBoolean).getOrElse(false)) {
             exclude("**/*CouchbaseUiTest.class")
         }
         testLogging {
-            events("passed", "skipped", "failed")
+            // "started" shows which test a hung run is stuck in.
+            events("started", "passed", "skipped", "failed")
             exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         }
     }
