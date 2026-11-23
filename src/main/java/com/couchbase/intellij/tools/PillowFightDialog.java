@@ -635,6 +635,9 @@ public class PillowFightDialog extends DialogWrapper {
 
     /** Grows or shrinks the dialog with the advanced section, staying within 80% of the screen height. */
     private void fitToContent(JBScrollPane scrollPane) {
+        // JBScrollPane counts the vertical scroll bar in its preferred size while the view is scrolled away from the
+        // top. After scrolling down to the header in the expanded layout, collapsing would keep that width.
+        scrollPane.getViewport().setViewPosition(new Point(0, 0));
         scrollPane.setPreferredSize(null);
         Dimension preferred = scrollPane.getPreferredSize();
         int maxHeight = (int) (ScreenUtil.getScreenRectangle(scrollPane).height * 0.8);

@@ -111,7 +111,7 @@ public class CriticalGuiSmokeTest extends LightPlatformCodeInsightFixture4TestCa
     }
 
     @Test public void explorerAndCollectionsContextMenuOpenWithNativePeers() throws Exception {
-        ActiveCluster previous = ActiveCluster.getInstance();
+        ActiveCluster previous = ActiveCluster.INSTANCE.getValue();
         ActiveCluster active = Mockito.mock(ActiveCluster.class);
         ActiveCluster.setInstance(active);
         JFrame[] frame = {null};

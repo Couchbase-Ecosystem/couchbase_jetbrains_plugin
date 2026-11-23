@@ -30,7 +30,7 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        previous = ActiveCluster.getInstance();
+        previous = ActiveCluster.INSTANCE.getValue();
         Set<CollectionSpec> collections = new HashSet<>();
         IntStream.range(0, 25).forEach(i -> collections.add(CollectionSpec.create(String.format("col%02d", i), "inventory")));
         List<ScopeSpec> scopes = List.of(ScopeSpec.create("inventory", collections));

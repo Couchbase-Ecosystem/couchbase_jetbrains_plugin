@@ -34,7 +34,7 @@ public class AsyncDocumentUiTest extends DialogUiTestCase {
 
     @Override protected void setUp() throws Exception {
         super.setUp();
-        previous = ActiveCluster.getInstance(); active = Mockito.mock(ActiveCluster.class);
+        previous = ActiveCluster.INSTANCE.getValue(); active = Mockito.mock(ActiveCluster.class);
         sdk = Mockito.mock(Cluster.class); bucket = Mockito.mock(Bucket.class);
         Scope scope = Mockito.mock(Scope.class); collection = Mockito.mock(com.couchbase.client.java.Collection.class);
         var settings = new SavedCluster(); settings.setId("async-ui");

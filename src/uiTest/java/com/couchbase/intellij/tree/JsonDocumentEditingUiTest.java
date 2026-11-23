@@ -44,7 +44,7 @@ public class JsonDocumentEditingUiTest extends DialogUiTestCase {
     private boolean previousTestMode;
 
     @Override protected void setUp() throws Exception {
-        super.setUp(); previous = ActiveCluster.getInstance();
+        super.setUp(); previous = ActiveCluster.INSTANCE.getValue();
         sdk = Mockito.mock(Cluster.class, Mockito.RETURNS_DEEP_STUBS);
         settings = Mockito.mock(SavedCluster.class);
         Mockito.when(settings.isInferCacheValid(Mockito.anyString())).thenReturn(true);

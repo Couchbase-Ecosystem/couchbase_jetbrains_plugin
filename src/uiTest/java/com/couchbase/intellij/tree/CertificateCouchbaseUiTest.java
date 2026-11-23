@@ -62,7 +62,7 @@ public class CertificateCouchbaseUiTest extends DialogUiTestCase {
         SavedCluster settings = settings();
         ConnectionAuthentication auth = ConnectionAuthentication.load(settings, "changeit");
         Cluster sdk = Cluster.connect(settings.getUrl(), auth.clusterOptions());
-        ActiveCluster previous = ActiveCluster.getInstance();
+        ActiveCluster previous = ActiveCluster.INSTANCE.getValue();
         try {
             sdk.waitUntilReady(Duration.ofSeconds(15));
             ActiveCluster active = new ActiveCluster() {
@@ -90,7 +90,7 @@ public class CertificateCouchbaseUiTest extends DialogUiTestCase {
         SavedCluster settings = settings();
         ConnectionAuthentication auth = ConnectionAuthentication.load(settings, "changeit");
         Cluster sdk = Cluster.connect(settings.getUrl(), auth.clusterOptions());
-        ActiveCluster previous = ActiveCluster.getInstance();
+        ActiveCluster previous = ActiveCluster.INSTANCE.getValue();
         String name = "schema_ui_" + Long.toUnsignedString(System.nanoTime());
         JFrame frame = null;
         boolean created = false;

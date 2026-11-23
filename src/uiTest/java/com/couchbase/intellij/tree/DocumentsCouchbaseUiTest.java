@@ -73,7 +73,7 @@ public class DocumentsCouchbaseUiTest extends DialogUiTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        previousCluster = ActiveCluster.getInstance();
+        previousCluster = ActiveCluster.INSTANCE.getValue();
         GuiActionRunner.execute(() -> {
             ActiveCluster active = new UiTestCluster();
             active.setCluster(DATABASE.cluster);

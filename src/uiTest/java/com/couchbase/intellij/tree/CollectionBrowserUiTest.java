@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
 
 public class CollectionBrowserUiTest extends DialogUiTestCase {
     @Test public void nativeTreeSearchAndContextMenuFavoritesWorkAcrossCollapseAndPaging() throws Exception {
-        ActiveCluster previous = ActiveCluster.getInstance();
+        ActiveCluster previous = ActiveCluster.INSTANCE.getValue();
         var active = Mockito.mock(ActiveCluster.class);
         Mockito.when(active.get()).thenReturn(Mockito.mock(com.couchbase.client.java.Cluster.class));
         Mockito.when(active.getId()).thenReturn("browser-ui"); ActiveCluster.setInstance(active);

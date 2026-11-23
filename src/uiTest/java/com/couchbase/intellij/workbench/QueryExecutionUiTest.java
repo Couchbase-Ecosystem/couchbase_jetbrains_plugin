@@ -24,7 +24,7 @@ import java.util.concurrent.*;
 
 public class QueryExecutionUiTest extends DialogUiTestCase {
     @Test public void pendingQueryLeavesTheUiResponsiveAndCancelStopsWaiting() throws Exception {
-        ActiveCluster previous = ActiveCluster.getInstance();
+        ActiveCluster previous = ActiveCluster.INSTANCE.getValue();
         QueryResultToolWindowFactory previousOutput = QueryResultToolWindowFactory.forProject(getProject());
         var output = Mockito.mock(QueryResultToolWindowFactory.class);
         var active = Mockito.mock(ActiveCluster.class);
@@ -91,7 +91,7 @@ public class QueryExecutionUiTest extends DialogUiTestCase {
     }
 
     @Test public void executeRejectsAMutationInAReadOnlyScriptBeforeCallingTheSdk() {
-        ActiveCluster previous = ActiveCluster.getInstance();
+        ActiveCluster previous = ActiveCluster.INSTANCE.getValue();
         var previousOutput = QueryResultToolWindowFactory.forProject(getProject());
         var output = Mockito.mock(QueryResultToolWindowFactory.class);
         var active = Mockito.mock(ActiveCluster.class);
