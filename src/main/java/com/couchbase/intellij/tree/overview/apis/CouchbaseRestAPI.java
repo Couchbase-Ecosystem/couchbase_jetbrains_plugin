@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 public class CouchbaseRestAPI {
 
     public static String getMetaDocument(String bucket, String scope, String collection, String id) throws Exception {
-        String result = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, "/pools/default/buckets/"
-                + bucket + "/scopes/" + scope + "/collections/" + collection + "/docs/" + id), ActiveCluster.getInstance().getClusterURL());
+        String result = callSingleEndpoint(endpoint(CouchbaseService.MANAGEMENT, docPath(bucket, scope, collection, id)),
+                ActiveCluster.getInstance().getClusterURL());
 
         JsonObject object = JsonObject.fromJson(result);
         object.removeKey("json");
@@ -63,8 +63,25 @@ public class CouchbaseRestAPI {
         if (end != null) {
             filters += "&endkey=" + jsonStringParam(end);
         }
-        return "/pools/default/buckets/" + bucket + "/scopes/" + scope + "/collections/" + collection
-                + "/docs?skip=" + skip + "&limit=" + limit + filters + "&include_doc=false";
+        return collectionPath(bucket, scope, collection) + "/docs?skip=" + skip + "&limit=" + limit + filters + "&include_doc=false";
+    }
+
+    /**
+     * The REST path of one document. Every segment is percent-encoded: document keys may hold characters that
+     * {@code URI} rejects ({@code [ ] " space}) or that change the path ({@code / ? # %}).
+     */
+    static String docPath(String bucket, String scope, String collection, String id) {
+        return collectionPath(bucket, scope, collection) + "/docs/" + pathSegment(id);
+    }
+
+    private static String collectionPath(String bucket, String scope, String collection) {
+        return "/pools/default/buckets/" + pathSegment(bucket) + "/scopes/" + pathSegment(scope)
+                + "/collections/" + pathSegment(collection);
+    }
+
+    /** Percent-encodes one path segment ({@code URLEncoder} is for forms, so its {@code +} for a space is undone). */
+    static String pathSegment(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private static final Gson KEY_JSON = new GsonBuilder().disableHtmlEscaping().create();

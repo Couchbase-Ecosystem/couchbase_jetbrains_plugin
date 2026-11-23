@@ -511,8 +511,11 @@ public class DataLoader {
     public static String getDocMetadata(ClusterUiTask.Connection connection, String bucket, String scope, String collection, String docId) {
 
         try {
-            String query = "Select meta().* from `" + collection + "` use keys \"" + docId + "\"";
-            final List<JsonObject> results = connection.sdk().bucket(bucket).scope(scope).query(query).rowsAsObject();
+            // The key goes in as a query parameter: spliced into the statement, a key holding a quote breaks it.
+            String query = "Select meta().* from `" + collection + "` use keys $id";
+            final List<JsonObject> results = connection.sdk().bucket(bucket).scope(scope).query(query,
+                    com.couchbase.client.java.query.QueryOptions.queryOptions()
+                            .parameters(JsonObject.create().put("id", docId))).rowsAsObject();
 
             return results.get(0).toString();
         } catch (Exception e) {
