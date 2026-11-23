@@ -34,6 +34,7 @@ public class CouchbaseWindowFactory implements ToolWindowFactory {
         Content explorer = contentFactory.createContent(couchbaseWindowContent, "Explorer", false);
         toolWindow.getContentManager().addContent(explorer);
         setContent(project, CLUSTER_CONTENT, explorer);
+        com.intellij.openapi.diagnostic.Logger.getInstance(CouchbaseWindowFactory.class).info("Couchbase explorer window created");
 
         try {
             cbLite = createCBLiteContent(project);

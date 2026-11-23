@@ -30,6 +30,13 @@ public class ToolWindowListener implements ToolWindowManagerListener {
                 e.printStackTrace();
             }
         }
+        // End-to-end smoke test hook (tools/e2e-ide-smoke.py): open the window as a click on its stripe button would.
+        if (ids.contains("Couchbase") && Boolean.getBoolean("couchbase.e2e")) {
+            com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(() -> {
+                com.intellij.openapi.wm.ToolWindow window = toolWindowManager.getToolWindow("Couchbase");
+                if (window != null) window.activate(null);
+            });
+        }
         ToolWindowManagerListener.super.toolWindowsRegistered(ids, toolWindowManager);
     }
 }

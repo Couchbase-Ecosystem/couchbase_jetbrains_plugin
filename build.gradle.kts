@@ -52,6 +52,8 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.20")
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
     implementation("com.google.code.gson:gson:2.14.0")
+    // IntelliJ 2026.3 no longer exposes Jackson to plugin class loaders, so bundle it (the whole window failed to build without it).
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.4")
 
     implementation("software.amazon.awssdk:dynamodb:2.56.0")
     implementation("software.amazon.awssdk:auth:2.56.0")
@@ -131,6 +133,24 @@ val criticalGuiSmokeTest = intellijPlatformTesting.testIde.register("criticalGui
     }
 }
 
+// Launches the plugin in IntelliJ IDEA 2026.3 (the build customers are on): ./gradlew runIde263
+intellijPlatformTesting.runIde.register("runIde263") {
+    type = IntelliJPlatformType.IntellijIdea
+    version = "2026.3"
+}
+
+// End-to-end smoke test target: opens a fixture project in IntelliJ IDEA 2026.3 with the Couchbase window showing.
+// Run it through tools/e2e-ide-smoke.py, which also checks the IDE log for plugin errors.
+intellijPlatformTesting.runIde.register("e2eIde263") {
+    type = IntelliJPlatformType.IntellijIdea
+    version = "2026.3"
+    task {
+        args(layout.projectDirectory.dir("tools/e2e/fixture-project").asFile.absolutePath)
+        jvmArgs("-Dcouchbase.e2e=true", "-Didea.trust.all.projects=true", "-Dide.show.tips.on.startup.default.value=false",
+                "-Didea.initially.ask.config=never", "-Dnosplash=true", "-Djb.consents.confirmation.enabled=false")
+    }
+}
+
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellijPlatform {
@@ -183,6 +203,7 @@ intellijPlatform {
         ides {
             create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
             create(IntelliJPlatformType.IntellijIdea, "2026.2")
+            create(IntelliJPlatformType.IntellijIdea, "2026.3")
             create(IntelliJPlatformType.IntellijIdeaCommunity, "LATEST-EAP-SNAPSHOT") {
                 useInstaller = false
             }
