@@ -42,6 +42,13 @@ Could not find bundled plugin with ID: 'com.intellij.java'.
         self.assertEqual(calls, ["--no-daemon test --console=plain"] * 2)
         self.assertFalse(index_exists)
 
+    def test_recovers_indexing_failure_while_resolving_the_test_task(self):
+        status, calls, index_exists = self.run_fixture(
+            self.INDEX_FAILURE.replace("':compileJava'", "':test'"), 1)
+        self.assertEqual(status, 0)
+        self.assertEqual(len(calls), 2)
+        self.assertFalse(index_exists)
+
     def test_does_not_retry_a_test_failure(self):
         status, calls, index_exists = self.run_fixture("SomeTest > test FAILED", 1)
         self.assertEqual(status, 1)

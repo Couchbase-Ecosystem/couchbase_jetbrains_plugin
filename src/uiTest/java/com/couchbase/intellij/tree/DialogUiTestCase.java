@@ -1,5 +1,6 @@
 package com.couchbase.intellij.tree;
 
+import com.couchbase.intellij.database.ActiveCluster;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.impl.DialogWrapperPeerImpl;
 import com.intellij.openapi.util.Disposer;
@@ -18,13 +19,21 @@ import org.mockito.Mockito;
 import javax.imageio.ImageIO;
 import javax.swing.JDialog;
 import javax.swing.SwingUtilities;
+import java.awt.Dialog;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -35,8 +44,29 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
                 "SystemPropertyWatcher");
     }
 
+    /** A test (with its setUp and tearDown) that runs longer than this is hung: dump the threads so CI shows where. */
+    private static final long WATCHDOG_SECONDS = Long.getLong("ui.test.watchdog.seconds", 300);
+
     protected Robot robot;
     private final List<DialogWrapper> dialogs = new ArrayList<>();
+    /**
+     * One scheduler for the whole run. A test's watchdog acts only while that test is still the current one, so a
+     * watchdog that outlives its test (whatever kept tearDown from cancelling it) cannot interrupt the test thread
+     * or close the dialogs of a later test.
+     */
+    private static final ScheduledExecutorService WATCHDOG = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "UI test watchdog");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private static final AtomicReference<Object> CURRENT_TEST = new AtomicReference<>();
+    /**
+     * Guards CURRENT_TEST changes together with the watchdog's interrupt and dialog disposal, so a watchdog cannot
+     * pass its ownership check, pause, and then act on a test that has started since.
+     */
+    private static final Object WATCHDOG_LOCK = new Object();
+    private Object testToken;
+    private ScheduledFuture<?> watchdog;
 
     @Override
     protected boolean runInDispatchThread() {
@@ -48,6 +78,10 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
     protected void setUp() throws Exception {
         assertFalse("UI tests need a display; on Linux use xvfb-run -a ./gradlew uiTest",
                 GraphicsEnvironment.isHeadless());
+        // An interrupt left over from an earlier test would end the next wait in this one at once.
+        boolean wasInterrupted = Thread.interrupted();
+        trace("setUp", "interrupted=" + wasInterrupted + " activeCluster=" + ActiveCluster.INSTANCE.getValue());
+        startWatchdog();
         super.setUp();
         robot = BasicRobot.robotWithCurrentAwtHierarchy();
         robot.settings().delayBetweenEvents(30);
@@ -99,19 +133,107 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
         }
     }
 
-    /** Close modal peers before subclass cleanup invokes non-modal platform actions. */
+    /**
+     * Close modal peers before subclass cleanup invokes non-modal platform actions. A failed test can also leave
+     * dialogs it did not open itself (an error message, a search dialog); one of them still modal would block the
+     * next test, so dispose every dialog that is still showing.
+     */
     protected void closeDialogs() {
         GuiActionRunner.execute(() -> {
-                for (DialogWrapper dialog : dialogs) {
-                    if (!dialog.isDisposed()) {
-                        dialog.close(DialogWrapper.CANCEL_EXIT_CODE);
+            for (DialogWrapper dialog : dialogs) {
+                if (!dialog.isDisposed()) {
+                    dialog.close(DialogWrapper.CANCEL_EXIT_CODE);
+                }
+            }
+            disposeShowingDialogs();
+        });
+    }
+
+    private static void disposeShowingDialogs() {
+        for (Window window : Window.getWindows()) {
+            if (window instanceof Dialog && window.isShowing()) {
+                window.dispose();
+            }
+        }
+    }
+
+    private void startWatchdog() {
+        Thread testThread = Thread.currentThread();
+        String test = getClass().getSimpleName() + "-" + getName();
+        Object token = new Object();
+        testToken = token;
+        synchronized (WATCHDOG_LOCK) {
+            CURRENT_TEST.set(token);
+        }
+        watchdog = WATCHDOG.schedule(() -> {
+            if (CURRENT_TEST.get() != token) {
+                return;
+            }
+            StringBuilder dump = new StringBuilder(test + " still runs after " + WATCHDOG_SECONDS + "s. Threads:\n");
+            for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
+                Thread thread = entry.getKey();
+                dump.append('\n').append('"').append(thread.getName()).append("\" ").append(thread.getState()).append('\n');
+                for (StackTraceElement frame : entry.getValue()) {
+                    dump.append("    at ").append(frame).append('\n');
+                }
+            }
+            System.err.println(dump);
+            try {
+                Path artifacts = Path.of(System.getProperty("ui.test.artifacts"));
+                Files.createDirectories(artifacts);
+                Files.writeString(artifacts.resolve(test + "-threads.txt"), dump);
+            } catch (Exception ignored) {
+                // The dump is on stderr already.
+            }
+            // Unblock what can be unblocked, but only while this test is still the one running. The EDT callback
+            // checks again: by the time it runs, this test may have finished and another one opened its dialogs.
+            synchronized (WATCHDOG_LOCK) {
+                if (CURRENT_TEST.get() != token) {
+                    return;
+                }
+                testThread.interrupt();
+            }
+            SwingUtilities.invokeLater(() -> {
+                synchronized (WATCHDOG_LOCK) {
+                    if (CURRENT_TEST.get() == token) {
+                        disposeShowingDialogs();
                     }
                 }
-        });
+            });
+        }, WATCHDOG_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Takes the token and future that tearDown saved before super.tearDown(): the platform clears this test's
+     * instance fields there, so testToken and watchdog are null afterwards.
+     */
+    private static void stopWatchdog(Object token, ScheduledFuture<?> future) {
+        synchronized (WATCHDOG_LOCK) {
+            CURRENT_TEST.compareAndSet(token, null);
+        }
+        if (future != null) {
+            future.cancel(false);
+        }
+    }
+
+    /** One line per setUp and tearDown in artifacts/ui-test-trace.txt, to tell what a hung or failed run did. */
+    private void trace(String phase, String details) {
+        try {
+            Path artifacts = Path.of(System.getProperty("ui.test.artifacts"));
+            Files.createDirectories(artifacts);
+            Files.writeString(artifacts.resolve("ui-test-trace.txt"), java.time.Instant.now() + " " + phase + " "
+                            + getClass().getSimpleName() + "." + getName() + " " + details + "\n",
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+            // Tracing must not fail a test.
+        }
     }
 
     @Override
     protected void tearDown() throws Exception {
+        // super.tearDown() clears the instance fields; keep what stopWatchdog needs.
+        Object token = testToken;
+        ScheduledFuture<?> future = watchdog;
         try {
             closeDialogs();
         } finally {
@@ -120,7 +242,12 @@ public abstract class DialogUiTestCase extends LightPlatformCodeInsightFixture4T
                     robot.cleanUpWithoutDisposingWindows();
                 }
             } finally {
-                super.tearDown();
+                try {
+                    super.tearDown();
+                } finally {
+                    stopWatchdog(token, future);
+                    trace("tearDown", "activeCluster=" + ActiveCluster.INSTANCE.getValue());
+                }
             }
         }
     }

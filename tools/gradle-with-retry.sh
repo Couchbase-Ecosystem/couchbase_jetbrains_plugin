@@ -18,7 +18,7 @@ for attempt in 1 2 3; do
     if (( attempt == 3 )) \
         || ! grep -q 'java.nio.file.ClosedFileSystemException' "$log_file" \
         || ! grep -q "Could not find bundled plugin with ID: 'com.intellij.java'" "$log_file" \
-        || ! grep -q "Could not determine the dependencies of task ':compileJava'" "$log_file"; then
+        || ! grep -qE "Could not determine the dependencies of task ':[A-Za-z]+'" "$log_file"; then
         exit "$result"
     fi
 

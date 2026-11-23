@@ -26,7 +26,7 @@ public class QueryHistoryUiTest extends DialogUiTestCase {
 
     @Override protected void setUp() throws Exception {
         super.setUp();
-        previous = ActiveCluster.getInstance();
+        previous = ActiveCluster.INSTANCE.getValue();
         savedHistory = new ArrayList<>(QueryHistoryStorage.getInstance().getValue().getHistory());
         var active = Mockito.mock(ActiveCluster.class);
         Mockito.when(active.getQueryContext()).thenReturn(new Subscribable<QueryContext>());

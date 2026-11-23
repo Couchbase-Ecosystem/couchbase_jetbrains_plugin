@@ -76,7 +76,7 @@ public class AsyncConnectionUiTest extends DialogUiTestCase {
         Cluster original = sdk.get(), replacement = Mockito.mock(Cluster.class);
         AtomicReference<String> error = new AtomicReference<>(); AtomicBoolean confirmed = new AtomicBoolean();
         var previousDialog = com.intellij.openapi.ui.TestDialogManager.setTestDialog(message -> {
-            if (message.contains("Are you sure")) { confirmed.set(true); sdk.set(replacement); }
+            if (message.contains("Delete the document")) { confirmed.set(true); sdk.set(replacement); }
             else error.set(message);
             return com.intellij.openapi.ui.Messages.YES;
         });
@@ -103,7 +103,7 @@ public class AsyncConnectionUiTest extends DialogUiTestCase {
                 delete.actionPerformed(Mockito.mock(com.intellij.openapi.actionSystem.AnActionEvent.class));
             });
             await("The actual delete action reports a stale confirmation", () -> error.get() != null);
-            assertTrue(confirmed.get()); assertTrue(error.get(), error.get().toLowerCase().contains("connection"));
+            assertTrue("The delete confirmation was not shown; error: " + error.get(), confirmed.get()); assertTrue(error.get(), error.get().toLowerCase().contains("connection"));
             Mockito.verifyNoInteractions(original, replacement);
         } finally { com.intellij.openapi.ui.TestDialogManager.setTestDialog(previousDialog); }
     }

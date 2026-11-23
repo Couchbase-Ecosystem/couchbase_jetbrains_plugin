@@ -8,6 +8,7 @@ import com.couchbase.intellij.database.ActiveCluster;
 import com.couchbase.intellij.tools.dialog.CollapsiblePanel;
 import com.couchbase.intellij.tree.DialogUiTestCase;
 import org.assertj.swing.edt.GuiActionRunner;
+import org.assertj.swing.exception.WaitTimedOutError;
 import org.assertj.swing.fixture.DialogFixture;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -29,7 +30,7 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        previous = ActiveCluster.getInstance();
+        previous = ActiveCluster.INSTANCE.getValue();
         Set<CollectionSpec> collections = new HashSet<>();
         IntStream.range(0, 25).forEach(i -> collections.add(CollectionSpec.create(String.format("col%02d", i), "inventory")));
         List<ScopeSpec> scopes = List.of(ScopeSpec.create("inventory", collections));
@@ -85,8 +86,15 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
         DialogFixture dialog = pillowFight();
         awaitCollections(dialog);
         JDialog window = (JDialog) dialog.target();
-        Dimension compact = GuiActionRunner.execute(() -> window.getSize());
+        // Measure the compact layout with the collections listed. The dialog opened while they were loading, and
+        // the status line under the picker ("10 of 25 collections listed. ...") is wider than "Loading collections...",
+        // so the size it opened with is narrower than what collapsing packs back to.
+        Dimension compact = GuiActionRunner.execute(() -> {
+            window.pack();
+            return window.getSize();
+        });
         CollapsiblePanel advanced = robot.finder().findByType(window, CollapsiblePanel.class);
+        String compactLayout = GuiActionRunner.execute(() -> preferredWidths(advanced.getParent()));
 
         dialog.label("collapsibleHeader").click();
         await("advanced options expanded", () -> GuiActionRunner.execute(advanced::contentIsEnabled));
@@ -108,7 +116,38 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
         assertTrue("advanced labels were visible", checked > 5);
 
         dialog.label("collapsibleHeader").click();
-        await("dialog shrinks back to its compact size", () -> GuiActionRunner.execute(() ->
-                Math.abs(window.getWidth() - compact.width) <= 4 && window.getHeight() <= compact.height + 4));
+        try {
+            await("dialog shrinks back to its compact size", () -> GuiActionRunner.execute(() ->
+                    Math.abs(window.getWidth() - compact.width) <= 4 && window.getHeight() <= compact.height + 4));
+        } catch (WaitTimedOutError timedOut) {
+            String state = GuiActionRunner.execute(() -> {
+                JScrollPane pane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, advanced);
+                return "After collapsing, the dialog is " + window.getWidth() + "x" + window.getHeight()
+                        + "; the compact size is " + compact.width + "x" + compact.height
+                        + "; scroll pane " + pane.getSize() + " preferred " + pane.getPreferredSize()
+                        + ", view preferred " + pane.getViewport().getView().getPreferredSize()
+                        + ", vertical bar visible " + pane.getVerticalScrollBar().isVisible()
+                        + "\nform children (preferred width) when compact: " + compactLayout
+                        + "\nform children (preferred width) after collapsing: " + preferredWidths(advanced.getParent());
+            });
+            throw new AssertionError(state, timedOut);
+        }
+    }
+
+    /** The preferred width of each child of the form, and of the children of nested panels, for failure messages. */
+    private static String preferredWidths(Container form) {
+        StringBuilder out = new StringBuilder();
+        for (Component child : form.getComponents()) {
+            out.append("[").append(child.getName() != null ? child.getName() : child.getClass().getSimpleName())
+                    .append(child.isVisible() ? "" : "(hidden)").append(" ").append(child.getPreferredSize().width);
+            if (child instanceof JComboBox<?> combo) out.append(" items=").append(combo.getItemCount());
+            if (child instanceof JLabel label) out.append(" '").append(label.getText()).append("'");
+            if (child instanceof Container nested && nested.getComponentCount() > 0 && !(child instanceof JComboBox<?>)
+                    && !(child instanceof CollapsiblePanel)) {
+                out.append(" {").append(preferredWidths(nested)).append("}");
+            }
+            out.append("] ");
+        }
+        return out.toString();
     }
 }

@@ -43,4 +43,22 @@ public class CouchbaseRestAPIPathTest {
         String raw = query(CouchbaseRestAPI.kvDocumentsPath("b", "s", "c", 0, 10, null, null));
         assertEquals("skip=0&limit=10&include_doc=false", raw);
     }
+
+    @Test
+    public void documentKeysAreOnePercentEncodedPathSegment() {
+        String path = CouchbaseRestAPI.docPath("travel-sample", "inventory", "airline", "draft[1] a/b?c#d%e\"f");
+
+        URI uri = URI.create("https://host:18091" + path);
+        assertNull(uri.getRawQuery());
+        assertNull(uri.getRawFragment());
+        assertEquals("/pools/default/buckets/travel-sample/scopes/inventory/collections/airline/docs/draft[1] a/b?c#d%e\"f",
+                uri.getPath());
+        assertTrue(uri.getRawPath(), uri.getRawPath().endsWith("/docs/draft%5B1%5D%20a%2Fb%3Fc%23d%25e%22f"));
+    }
+
+    @Test
+    public void plainNamesAreUnchanged() {
+        assertEquals("/pools/default/buckets/b/scopes/_default/collections/_default/docs/airline_10",
+                CouchbaseRestAPI.docPath("b", "_default", "_default", "airline_10"));
+    }
 }

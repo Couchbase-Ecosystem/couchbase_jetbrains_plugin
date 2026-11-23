@@ -29,7 +29,7 @@ public class TreeLoadingUiTest extends DialogUiTestCase {
     private DefaultMutableTreeNode parent;
 
     @Override protected void setUp() throws Exception {
-        super.setUp(); previous = ActiveCluster.getInstance();
+        super.setUp(); previous = ActiveCluster.INSTANCE.getValue();
         active = Mockito.mock(ActiveCluster.class); sdk = Mockito.mock(Cluster.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(active.get()).thenReturn(sdk); Mockito.when(active.getId()).thenReturn("loading-ui");
         Mockito.when(active.getSavedCluster()).thenReturn(new SavedCluster()); ActiveCluster.setInstance(active);
