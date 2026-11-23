@@ -94,6 +94,7 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
             return window.getSize();
         });
         CollapsiblePanel advanced = robot.finder().findByType(window, CollapsiblePanel.class);
+        String compactLayout = GuiActionRunner.execute(() -> preferredWidths(advanced.getParent()));
 
         dialog.label("collapsibleHeader").click();
         await("advanced options expanded", () -> GuiActionRunner.execute(advanced::contentIsEnabled));
@@ -125,9 +126,28 @@ public class PillowFightDialogUiTest extends DialogUiTestCase {
                         + "; the compact size is " + compact.width + "x" + compact.height
                         + "; scroll pane " + pane.getSize() + " preferred " + pane.getPreferredSize()
                         + ", view preferred " + pane.getViewport().getView().getPreferredSize()
-                        + ", vertical bar visible " + pane.getVerticalScrollBar().isVisible();
+                        + ", vertical bar visible " + pane.getVerticalScrollBar().isVisible()
+                        + "\nform children (preferred width) when compact: " + compactLayout
+                        + "\nform children (preferred width) after collapsing: " + preferredWidths(advanced.getParent());
             });
             throw new AssertionError(state, timedOut);
         }
+    }
+
+    /** The preferred width of each child of the form, and of the children of nested panels, for failure messages. */
+    private static String preferredWidths(Container form) {
+        StringBuilder out = new StringBuilder();
+        for (Component child : form.getComponents()) {
+            out.append("[").append(child.getName() != null ? child.getName() : child.getClass().getSimpleName())
+                    .append(child.isVisible() ? "" : "(hidden)").append(" ").append(child.getPreferredSize().width);
+            if (child instanceof JComboBox<?> combo) out.append(" items=").append(combo.getItemCount());
+            if (child instanceof JLabel label) out.append(" '").append(label.getText()).append("'");
+            if (child instanceof Container nested && nested.getComponentCount() > 0 && !(child instanceof JComboBox<?>)
+                    && !(child instanceof CollapsiblePanel)) {
+                out.append(" {").append(preferredWidths(nested)).append("}");
+            }
+            out.append("] ");
+        }
+        return out.toString();
     }
 }
